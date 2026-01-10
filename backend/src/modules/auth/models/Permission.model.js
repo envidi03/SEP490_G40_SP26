@@ -24,4 +24,7 @@ const permissionSchema = new Schema(
     { timestamps: true, collection: "permissions" }
 );
 
+// Index để query nhanh permissions theo module
+permissionSchema.index({ module: 1 });
+
 module.exports = mongoose.model("Permission", permissionSchema);

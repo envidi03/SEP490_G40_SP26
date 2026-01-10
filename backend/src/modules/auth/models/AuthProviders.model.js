@@ -15,7 +15,15 @@ const authProviderSchema = new Schema(
 
         email: {
             type: String,
-            trim: true
+            trim: true,
+            lowercase: true,
+            validate: {
+                validator: function (v) {
+                    if (!v) return true;
+                    return /^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/.test(v);
+                },
+                message: 'Email không hợp lệ'
+            }
         },
 
         // Lưu token của bên thứ 3 (nếu cần dùng API của họ, ví dụ lấy danh bạ, lịch)

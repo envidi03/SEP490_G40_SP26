@@ -14,7 +14,14 @@ const accountSchema = new Schema(
             type: String,
             required: true,
             unique: true,
-            trim: true
+            trim: true,
+            lowercase: true,
+            validate: {
+                validator: function (v) {
+                    return /^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/.test(v);
+                },
+                message: 'Email không hợp lệ'
+            }
         },
         password: {
             type: String,
@@ -30,7 +37,8 @@ const accountSchema = new Schema(
 
         user_id: {
             type: Schema.Types.ObjectId,
-            ref: "User"
+            ref: "User",
+            index: true
         },
 
         // Trạng thái tài khoản (Login check cái này đầu tiên)
@@ -42,7 +50,19 @@ const accountSchema = new Schema(
         },
 
         email_verified: { type: Boolean, default: false },
-        phone_number: { type: String, unique: true, sparse: true, trim: true },
+        phone_number: {
+            type: String,
+            unique: true,
+            sparse: true,
+            trim: true,
+            validate: {
+                validator: function (v) {
+                    if (!v) return true;
+                    return /^(0|\+84)[0-9]{9}$/.test(v);
+                },
+                message: 'Số điện thoại không hợp lệ (phải là 10 số bắt đầu bằng 0 hoặc +84)'
+            }
+        },
     },
     { timestamps: true, collection: "accounts" }
 );

@@ -6,7 +6,9 @@ const userSchema = new Schema(
         account_id: {
             type: Schema.Types.ObjectId,
             ref: "Account",
-            required: true, unique: true
+            required: true,
+            unique: true,
+            index: true
         },
 
         full_name: {

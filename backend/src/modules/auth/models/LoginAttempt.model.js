@@ -1,6 +1,10 @@
 const mongoose = require("mongoose");
 const { Schema } = mongoose;
 
+// TTL cho login attempts (30 ngày)
+const LOGIN_ATTEMPT_TTL_DAYS = 30;
+const LOGIN_ATTEMPT_TTL_SECONDS = 60 * 60 * 24 * LOGIN_ATTEMPT_TTL_DAYS;
+
 const loginAttemptSchema = new Schema(
     {
         ip: {
@@ -28,7 +32,7 @@ const loginAttemptSchema = new Schema(
         },
 
         // Tự động xóa log sau 30 ngày để giảm tải DB
-        at: { type: Date, default: Date.now, index: true, expires: 60 * 60 * 24 * 30 },
+        at: { type: Date, default: Date.now, index: true, expires: LOGIN_ATTEMPT_TTL_SECONDS },
     },
     { timestamps: true, collection: "login_attempts" }
 );
