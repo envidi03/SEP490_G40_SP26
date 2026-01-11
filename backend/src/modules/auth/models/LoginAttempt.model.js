@@ -1,7 +1,6 @@
 const mongoose = require("mongoose");
 const { Schema } = mongoose;
 
-// TTL cho login attempts (30 ngày)
 const LOGIN_ATTEMPT_TTL_DAYS = 30;
 const LOGIN_ATTEMPT_TTL_SECONDS = 60 * 60 * 24 * LOGIN_ATTEMPT_TTL_DAYS;
 
