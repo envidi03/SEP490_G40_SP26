@@ -1,12 +1,14 @@
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import HomePage from "../pages/home_page/HomePage";
+
 const AppRoutes = () => {
     return (
-        <Routes>
-            <Route path="/" element={<HomePage />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/admin-clinic-dashboard" element={<AdminClinicDashboard />} />
-            <Route path="/doctor-dashboard" element={<DoctorDashboard />} />
-            <Route path="/receptionist-dashboard" element={<ReceptionistDashboard />} />
-        </Routes>
+        <BrowserRouter>
+            <Routes>
+                <Route path="/" element={<HomePage />} />
+            </Routes>
+        </BrowserRouter>
+
     );
 };
 
