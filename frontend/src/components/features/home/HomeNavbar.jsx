@@ -1,5 +1,5 @@
 import TopBarNav from './components/TopBarNav';
-import MainNavigation from './MainNavigation';
+import MainNavigation from './components/MainNavigation';
 
 const HomeNavbar = () => {
     return (
@@ -10,7 +10,6 @@ const HomeNavbar = () => {
             <div className="bg-white">
                 <MainNavigation />
             </div>
-
         </nav>
     );
 };
