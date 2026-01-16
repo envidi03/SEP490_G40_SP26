@@ -35,17 +35,11 @@ const accountSchema = new Schema(
             required: true
         },
 
-        user_id: {
-            type: Schema.Types.ObjectId,
-            ref: "User",
-            index: true
-        },
-
         // Trạng thái tài khoản (Login check cái này đầu tiên)
         status: {
             type: String,
             default: "ACTIVE",
-            enum: ["ACTIVE", "INACTIVE", "LOCKED", "BANNED"],
+            enum: ["ACTIVE", "INACTIVE", "PENDING"],
             required: true
         },
 
