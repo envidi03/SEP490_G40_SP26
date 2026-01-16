@@ -1,8 +1,17 @@
+import TopBarNav from './components/TopBarNav';
+import MainNavigation from './MainNavigation';
+
 const HomeNavbar = () => {
     return (
-        <div>
-            <h1>HomeNavbar</h1>
-        </div>
+        <nav className="bg-white fixed w-full top-0 z-50 shadow-sm">
+            {/* Subtle top bar */}
+            <TopBarNav />
+            {/* Main navigation */}
+            <div className="bg-white">
+                <MainNavigation />
+            </div>
+
+        </nav>
     );
 };
 
