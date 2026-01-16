@@ -85,3 +85,48 @@ exports.register = async (data) => {
         }
     };
 };
+
+exports.login = async (data) => {
+    const { email, password } = data;
+
+    if (!email || !password) {
+        throw new ValidationError('Email and password are required');
+    }
+
+    const account = await Account.findOne({ email });
+    if (!account) {
+        throw new NotFoundError('Account not found');
+    }
+
+    const isPasswordValid = await bcryptjs.compare(password, account.password);
+    if (!isPasswordValid) {
+        throw new UnauthorizedError('Invalid password');
+    }
+
+    const user = await User.findOne({ account_id: account._id });
+    if (!user) {
+        throw new NotFoundError('User not found');
+    }
+
+    const token = jwt.sign({
+        account_id: account._id,
+        user_id: user._id
+    }, process.env.JWT_SECRET, { expiresIn: '1h' });
+
+    return {
+        account: {
+            id: account._id,
+            username: account.username,
+            email: account.email,
+            status: account.status,
+            email_verified: account.email_verified
+        },
+        user: {
+            id: user._id,
+            full_name: user.full_name,
+            dob: user.dob,
+            gender: user.gender
+        },
+        token
+    };
+};
