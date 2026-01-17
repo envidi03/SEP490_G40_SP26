@@ -126,3 +126,23 @@ exports.resetPassword = async (req, res, next) => {
         next(error);
     }
 };
+
+exports.changePassword = async (req, res, next) => {
+    try {
+        const { currentPassword, newPassword } = req.body;
+        if (!currentPassword || !newPassword) {
+            return res.status(400).json({
+                status: 'error',
+                message: 'Current password and new password are required'
+            });
+        }
+
+        const result = await authService.changePassword(req.user.account_id, currentPassword, newPassword);
+        res.status(200).json({
+            status: 'success',
+            message: result.message
+        });
+    } catch (error) {
+        next(error);
+    }
+};
