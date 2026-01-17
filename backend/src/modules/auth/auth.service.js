@@ -375,7 +375,7 @@ exports.changePassword = async (account_id, currentPassword, newPassword) => {
         throw new ValidationError('Password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, one number, and one special character!')
     }
 
-    const account = await Account.findById(account_id)
+    const account = await Account.findById(account_id).select('+password')
     if (!account) {
         throw new NotFoundError('Account not found!')
     }
