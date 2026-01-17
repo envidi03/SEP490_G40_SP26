@@ -45,3 +45,23 @@ exports.verifyEmail = async (req, res, next) => {
         next(error);
     }
 };
+
+exports.logout = async (req, res, next) => {
+    try {
+        const { refreshToken } = req.body;
+        if (!refreshToken) {
+            return res.status(400).json({
+                status: 'error',
+                message: 'Refresh token is required'
+            });
+        }
+
+        await authService.logout(refreshToken);
+        res.status(200).json({
+            status: 'success',
+            message: 'Logged out successfully'
+        });
+    } catch (error) {
+        next(error);
+    }
+};
