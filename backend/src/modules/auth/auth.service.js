@@ -252,7 +252,7 @@ exports.refreshToken = async (refreshToken) => {
     };
 };
 
-exports.forgptPassword = async (email) => {
+exports.forgotPassword = async (email) => {
     const account = await Account.findOne({ email });
     if (!account) {
         throw new NotFoundError('Account not found!')
@@ -273,10 +273,58 @@ exports.forgptPassword = async (email) => {
     try {
         await emailService.sendPasswordResetEmail(email, otp, user.full_name);
     } catch (error) {
-        throw new Error('Failed to send password reset email');
+        console.error('Failed to send email:', error);
     }
 
     return {
         message: 'Password reset email sent successfully'
+    }
+}
+
+exports.resetPassword = async (email, otp, newPassword) => {
+    if (!newPassword || newPassword.length < 8) {
+        throw new ValidationError('New password is required!');
+    }
+
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+    if (!passwordRegex.test(newPassword)) {
+        throw new ValidationError('Password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, one number, and one special character!');
+    }
+
+    const account = await Account.findOne({ email });
+    if (!account) {
+        throw new NotFoundError('Account not found!');
+    }
+
+    const hashedOtp = crypto.createHash('sha256').update(otp).digest('hex');
+
+    const passwordReset = await PasswordReset.findOne({
+        account_id: account._id,
+        token_hash: hashedOtp,
+        used: false
+    })
+
+    if (!passwordReset) {
+        throw new UnauthorizedError('Invalid OTP')
+    }
+
+    if (passwordReset.expires_at < new Date()) {
+        await PasswordReset.deleteOne({ _id: passwordReset._id })
+        throw new UnauthorizedError('OTP is expired')
+    }
+
+    const hashedPassword = await bcryptjs.hash(newPassword, 10);
+    account.password = hashedPassword;
+    await account.save();
+
+    passwordReset.used = true;
+    await passwordReset.save();
+
+    await PasswordReset.deleteOne({ _id: passwordReset._id })
+
+    await Session.deleteMany({ account_id: account._id })
+
+    return {
+        message: 'Password reset successfully'
     }
 }
