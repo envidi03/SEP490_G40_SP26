@@ -106,3 +106,23 @@ exports.forgotPassword = async (req, res, next) => {
         next(error);
     }
 };
+
+exports.resetPassword = async (req, res, next) => {
+    try {
+        const { email, otp, newPassword } = req.body;
+        if (!email || !otp || !newPassword) {
+            return res.status(400).json({
+                status: 'error',
+                message: 'Email, OTP, and new password are required'
+            });
+        }
+
+        const result = await authService.resetPassword(email, otp, newPassword);
+        res.status(200).json({
+            status: 'success',
+            message: result.message
+        });
+    } catch (error) {
+        next(error);
+    }
+};
