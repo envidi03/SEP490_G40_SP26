@@ -16,7 +16,6 @@ const { signToken, signRefreshToken, verifyRefreshToken, revokeRefreshToken, ver
 const { ValidationError, ConflictError, NotFoundError, UnauthorizedError, ForbiddenError } = require('../common/errors');
 
 const emailService = require('../common/service/email.service')
-const otpService = require('../common/service/otp.service')
 
 exports.register = async (data) => {
     const { username, email, password, phone_number, full_name, dob, gender, address, avatar_url } = data;
@@ -130,7 +129,7 @@ exports.verifyEmail = async (token) => {
     await emailVerification.deleteOne({ _id: emailVerification._id });
 };
 
-exports.login = async (data) => {
+exports.login = async (data, ip_address = 'unknown', user_agent = 'unknown') => {
     const { email, password } = data;
 
     if (!email || !password) {
@@ -139,9 +138,18 @@ exports.login = async (data) => {
 
     const account = await Account.findOne({ email });
     if (!account) {
-        throw new NotFoundError('Account not found');
+        throw new NotFoundError('Email or password is incorrect');
     }
 
+    const recentFailedAttempts = await LoginAttempt.countDocuments({
+        account_id: account._id,
+        ok: false,
+        at: { $gte: Date.now() - 15 * 60 * 1000 }
+    })
+
+    if (recentFailedAttempts >= 5) {
+        throw new ForbiddenError('Too many failed attempts. Please try again later');
+    }
 
     if (account.status === 'INACTIVE') {
         throw new ForbiddenError('Account is inactive');
@@ -153,6 +161,13 @@ exports.login = async (data) => {
 
     const isPasswordValid = await bcryptjs.compare(password, account.password);
     if (!isPasswordValid) {
+        await LoginAttempt.create({
+            account_id: account._id,
+            ip: ip_address,
+            user_agent,
+            ok: false,
+            reason: 'Invalid password'
+        })
         throw new UnauthorizedError('Invalid password');
     }
 
@@ -176,9 +191,17 @@ exports.login = async (data) => {
         account_id: account._id,
         user_id: user._id,
         refresh_token: hashedRefreshToken,
+        ip_address,
+        user_agent,
         expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
     });
 
+    await LoginAttempt.create({
+        account_id: account._id,
+        ip: ip_address,
+        user_agent,
+        ok: true
+    })
 
     return {
         account: {
