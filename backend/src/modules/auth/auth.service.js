@@ -328,3 +328,40 @@ exports.resetPassword = async (email, otp, newPassword) => {
         message: 'Password reset successfully'
     }
 }
+
+exports.changePassword = async (account_id, currentPassword, newPassword) => {
+    if (!newPassword || newPassword.length < 8) {
+        throw new ValidationError('New password is required!')
+    }
+
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+
+    if (!passwordRegex.test(newPassword)) {
+        throw new ValidationError('Password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, one number, and one special character!')
+    }
+
+    const account = await Account.findById(account_id)
+    if (!account) {
+        throw new NotFoundError('Account not found!')
+    }
+
+    const isPasswordValid = await bcryptjs.compare(currentPassword, account.password)
+    if (!isPasswordValid) {
+        throw new UnauthorizedError('Old password is incorrect!')
+    }
+
+    const isSamePassword = await bcryptjs.compare(newPassword, account.password)
+    if (isSamePassword) {
+        throw new UnauthorizedError('New password is same as old password!')
+    }
+
+    const hashedPassword = await bcryptjs.hash(newPassword, 10)
+    account.password = hashedPassword
+    await account.save();
+
+    await Session.deleteMany({ account_id: account._id })
+
+    return {
+        message: 'Password changed successfully'
+    }
+}
