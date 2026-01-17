@@ -13,7 +13,7 @@ const Role = require('../auth/models/Role.model');
 const Session = require('../auth/models/Session.model');
 const User = require('../auth/models/User.model');
 require('dotenv').config();
-const { signToken, signRefreshToken, verifyRefreshToken, revokeRefreshToken, verifyToken, hashToken } = require('../common/utils/jwt');
+const { signToken, signRefreshToken, verifyToken, hashToken } = require('../common/utils/jwt');
 
 const { ValidationError, ConflictError, NotFoundError, UnauthorizedError, ForbiddenError } = require('../common/errors');
 
@@ -151,10 +151,8 @@ exports.resendVerificationEmail = async (email) => {
         throw new ConflictError('Email already verified');
     }
 
-    // Delete old verification tokens
     await EmailVerification.deleteMany({ account_id: account._id });
 
-    // Generate new token
     const verificationToken = crypto.randomBytes(32).toString('hex');
     const hashedToken = crypto.createHash('sha256').update(verificationToken).digest('hex');
 
@@ -164,7 +162,6 @@ exports.resendVerificationEmail = async (email) => {
         expiresAt: new Date(Date.now() + 60 * 60 * 1000)
     });
 
-    // Get user for full_name
     const user = await User.findOne({ account_id: account._id });
 
     try {
@@ -183,7 +180,7 @@ exports.resendVerificationEmail = async (email) => {
 };
 
 exports.login = async (data, ip_address = 'unknown', user_agent = 'unknown') => {
-    const { identifier, password, rememberMe } = data; // Added rememberMe
+    const { identifier, password, rememberMe } = data;
 
     if (!identifier || !password) {
         throw new ValidationError('Email/Username and password are required');

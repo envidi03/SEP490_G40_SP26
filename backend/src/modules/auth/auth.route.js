@@ -1,8 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const authController = require('./auth.controller');
+const { authenticate } = require('../../common/middlewares');
 
-// Public routes (no authentication required)
 router.post('/register', authController.register);
 router.post('/login', authController.login);
 router.get('/verify-email', authController.verifyEmail);
@@ -11,10 +11,8 @@ router.post('/forgot-password', authController.forgotPassword);
 router.post('/reset-password', authController.resetPassword);
 router.post('/google', authController.googleAuth);
 
-// Protected routes (require authentication)
-// TODO: Add authentication middleware
-router.post('/logout', authController.logout);
-router.post('/refresh-token', authController.refreshToken);
-router.post('/change-password', authController.changePassword);
+router.post('/logout', authenticate, authController.logout);
+router.post('/refresh-token', authenticate, authController.refreshToken);
+router.post('/change-password', authenticate, authController.changePassword);
 
 module.exports = router;
