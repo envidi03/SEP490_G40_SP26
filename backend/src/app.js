@@ -4,7 +4,7 @@ const morgan = require('morgan');
 require('dotenv').config();
 
 const app = express();
-
+app.set('trust proxy', true);
 
 // CORS Configuration
 const corsOptions = {
