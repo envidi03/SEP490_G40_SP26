@@ -14,7 +14,7 @@ class EmailService {
         })
     }
 
-    async sendEmailVerificationEmail(email, otp, userName = '') {
+    async sendEmailVerificationEmail(email, verificationToken, userName = '') {
         const subject = 'Verify Your Email - Dental Clinic Management System';
         const html = `
             <!DOCTYPE html>
@@ -39,7 +39,7 @@ class EmailService {
                         <p>Hello${userName ? ' ' + userName : ''},</p>
                         <p>Thank you for registering with DentalCMS! Please use the following OTP code to verify your email address:</p>
                         <div class="otp-box">
-                            <div class="otp-code">${otp}</div>
+                            <div class="otp-code">${verificationToken}</div>
                         </div>
                         <p>This code will expire in ${process.env.OTP_EXPIRES_MINUTES || 15} minutes.</p>
                         <p>If you didn't request this verification, please ignore this email.</p>

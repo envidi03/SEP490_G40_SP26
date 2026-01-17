@@ -77,6 +77,16 @@ exports.register = async (data) => {
         expiresAt: new Date(Date.now() + 60 * 60 * 1000)
     });
 
+    try {
+        await emailService.sendEmailVerificationEmail({
+            email,
+            verificationToken,
+            full_name
+        })
+    } catch (error) {
+        console.error('Failed to send verification email:', error);
+    }
+
     const user = await User.create({
         account_id: account._id,
         full_name,
