@@ -65,3 +65,24 @@ exports.logout = async (req, res, next) => {
         next(error);
     }
 };
+
+exports.refreshToken = async (req, res, next) => {
+    try {
+        const { refreshToken } = req.body;
+        if (!refreshToken) {
+            return res.status(400).json({
+                status: 'error',
+                message: 'Refresh token is required'
+            });
+        }
+
+        const result = await authService.refreshToken(refreshToken);
+        res.status(200).json({
+            status: 'success',
+            message: 'Token refreshed successfully',
+            data: result
+        });
+    } catch (error) {
+        next(error);
+    }
+};
