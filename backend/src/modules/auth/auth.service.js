@@ -13,11 +13,11 @@ const Role = require('../auth/models/Role.model');
 const Session = require('../auth/models/Session.model');
 const User = require('../auth/models/User.model');
 require('dotenv').config();
-const { signToken, signRefreshToken, verifyToken, hashToken } = require('../common/utils/jwt');
+const { signToken, signRefreshToken, verifyToken, hashToken } = require('../../common/utils/jwt');
 
-const { ValidationError, ConflictError, NotFoundError, UnauthorizedError, ForbiddenError } = require('../common/errors');
+const { ValidationError, ConflictError, NotFoundError, UnauthorizedError, ForbiddenError } = require('../../common/errors');
 
-const emailService = require('../common/service/email.service');
+const emailService = require('../../common/service/email.service');
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 exports.register = async (data) => {
