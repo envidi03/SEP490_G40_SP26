@@ -20,7 +20,7 @@ const userSchema = new Schema(
         },
         gender: {
             type: String,
-            enum: ["MALE", "FEMALE", "OTHER"]
+            enum: ["male", "female", "other"]
         },
         address: {
             type: String

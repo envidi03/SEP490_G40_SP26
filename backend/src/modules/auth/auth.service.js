@@ -66,7 +66,7 @@ exports.register = async (data) => {
         email,
         password: hashPassword,
         phone_number,
-        status: "Pending",
+        status: "PENDING",
         role_id: defaultRole._id,
         email_verified: false
     });
@@ -76,16 +76,16 @@ exports.register = async (data) => {
 
     await EmailVerification.create({
         account_id: account._id,
-        token: hashedToken,
-        expiresAt: new Date(Date.now() + 60 * 60 * 1000)
+        token_hash: hashedToken,
+        expires_at: new Date(Date.now() + 60 * 60 * 1000)
     });
 
     try {
-        await emailService.sendEmailVerificationEmail({
+        await emailService.sendEmailVerificationEmail(
             email,
             verificationToken,
             full_name
-        })
+        );
     } catch (error) {
         console.error('Failed to send verification email:', error);
     }
@@ -120,12 +120,12 @@ exports.register = async (data) => {
 
 exports.verifyEmail = async (token) => {
     const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
-    const emailVerification = await EmailVerification.findOne({ token: hashedToken });
+    const emailVerification = await EmailVerification.findOne({ token_hash: hashedToken });
     if (!emailVerification) {
         throw new NotFoundError('Email verification not found');
     }
 
-    if (emailVerification.expiresAt < new Date()) {
+    if (emailVerification.expires_at < new Date()) {
         await emailVerification.deleteOne({ _id: emailVerification._id });
         throw new ForbiddenError('Email verification expired');
     }
@@ -158,8 +158,8 @@ exports.resendVerificationEmail = async (email) => {
 
     await EmailVerification.create({
         account_id: account._id,
-        token: hashedToken,
-        expiresAt: new Date(Date.now() + 60 * 60 * 1000)
+        token_hash: hashedToken,
+        expires_at: new Date(Date.now() + 60 * 60 * 1000)
     });
 
     const user = await User.findOne({ account_id: account._id });
