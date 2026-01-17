@@ -573,6 +573,134 @@ export const mockInvoices = [
     }
 ];
 
+// Services Gallery Data (Homepage)
+export const servicesGalleryData = [
+    {
+        image: "https://nhakhoaparkway.com/wp-content/uploads/2024/03/Nieng-rang-trong-suot.jpg",
+        title: "Niềng răng trong suốt",
+        subtitle: "Invisalign"
+    },
+    {
+        image: "https://nhakhoaparkway.com/wp-content/uploads/2024/03/Nieng-rang-mac-cai_.jpg",
+        title: "Niềng răng mắc cài tiết",
+        subtitle: "kiệm"
+    },
+    {
+        image: "https://nhakhoaparkway.com/wp-content/uploads/2024/04/Nha-tre%CC%89-em.jpg",
+        title: "Nha trẻ em",
+        subtitle: null
+    },
+    {
+        image: "https://nhakhoaparkway.com/wp-content/uploads/2024/03/Trong-rang-Implant-2.jpg",
+        title: "Trồng răng Implant",
+        subtitle: null
+    },
+    {
+        image: "https://nhakhoaparkway.com/wp-content/uploads/2024/03/Lay-cao-rang.jpg",
+        title: "Lấy cao răng",
+        subtitle: null
+    },
+    {
+        image: "https://nhakhoaparkway.com/wp-content/uploads/2024/03/Nieng-rang-trong-suot-Clear-correct_.jpg",
+        title: "Niềng răng trong suốt",
+        subtitle: "cho Teen"
+    },
+    {
+        image: "https://nhakhoaparkway.com/wp-content/uploads/2024/03/Nieng-rang-Mac-cai-truyen-thong.jpg",
+        title: "Niềng răng mắc cài",
+        subtitle: null
+    },
+    {
+        image: "https://nhakhoaparkway.com/wp-content/uploads/2024/01/Nho%CC%82%CC%89-ra%CC%86ng-kho%CC%82n.png",
+        title: "Nhổ răng khôn",
+        subtitle: null
+    },
+    {
+        image: "https://nhakhoaparkway.com/wp-content/uploads/2024/03/Tay-trang-rang.jpg",
+        title: "Răng sứ thẩm mỹ &",
+        subtitle: "veneer"
+    },
+    {
+        image: "https://nhakhoaparkway.com/wp-content/uploads/2024/03/Tram-rang.jpg",
+        title: "Trám răng",
+        subtitle: null
+    }
+];
+
+// Featured Services Data (Homepage)
+export const featuredServicesData = [
+    {
+        image: "https://images.unsplash.com/photo-1606811841689-23dfddce3e95?w=600&h=400&fit=crop",
+        title: "Trám răng mặt nhai",
+        category: "Nha khoa tổng quát",
+        price: "350.000đ - 450.000đ",
+        discount: null
+    },
+    {
+        image: "https://nhakhoaparkway.com/wp-content/uploads/2024/02/Ta%CC%82%CC%89y-tra%CC%86%CC%81ng-3-1536x864.png",
+        title: "Tẩy trắng răng cấp tốc Express",
+        category: "Nha khoa thẩm mỹ",
+        price: "1.250.000đ - 1.400.000đ",
+        discount: null
+    },
+    {
+        image: "https://nhakhoaparkway.com/wp-content/uploads/2024/02/Go%CC%81i-nie%CC%82%CC%80ng-ra%CC%86ng-trong-suo%CC%82%CC%81t-Comprehensive-3-na%CC%86m-1536x1024.jpg",
+        title: "Gói niềng trong suốt Invisalign Comprehensive 3 năm",
+        category: "Niềng răng trong suốt invisalign",
+        price: "77.350.000đ - 79.300.000đ",
+        originalPrice: "119.000.000đ - 125.000.000đ",
+        discount: "Giảm 35%"
+    }
+];
+
+// Doctors Team Data (Homepage)
+export const doctorsTeamData = [
+    {
+        image: "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=300&h=400&fit=crop&crop=faces",
+        name: "Phạm Thị Hà Xuyên",
+        credentials: [
+            "Bác sĩ răng hàm mặt",
+            "Tốt nghiệp Đại học Y Dược TP.HCM (2012)",
+            "Chứng chỉ Nha khoa thẩm mỹ - Hàn Quốc (2018)",
+            "10+ năm kinh nghiệm lâm sàng",
+            "Chuyên về: Răng sứ thẩm mỹ, Veneer, Tẩy trắng răng"
+        ]
+    },
+    {
+        image: "https://images.unsplash.com/photo-1594824476967-48c8b964273f?w=300&h=400&fit=crop&crop=faces",
+        name: "Nguyễn Xuân Nhi",
+        credentials: [
+            "Bác sĩ răng hàm mặt",
+            "Tốt nghiệp Đại học Y Hà Nội (2014)",
+            "Chứng chỉ Niềng răng Invisalign - Mỹ (2017)",
+            "8+ năm kinh nghiệm lâm sàng",
+            "Chuyên về: Niềng răng trong suốt, Chỉnh nha"
+        ]
+    },
+    {
+        image: "https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=300&h=400&fit=crop&crop=faces",
+        name: "Trần Minh Tuấn",
+        credentials: [
+            "Bác sĩ răng hàm mặt",
+            "Tốt nghiệp ĐH Y Dược TP.HCM (2010)",
+            "Chứng chỉ Cấy ghép Implant - Đức (2015)",
+            "12+ năm kinh nghiệm lâm sàng",
+            "Chuyên về: Cấy ghép Implant, Phục hồi răng"
+        ]
+    },
+    {
+        image: "https://images.unsplash.com/photo-1638202993928-7267aad84c31?w=300&h=400&fit=crop&crop=faces",
+        name: "Lê Thị Mai",
+        credentials: [
+            "Bác sĩ răng hàm mặt",
+            "Tốt nghiệp ĐH Y Phạm Ngọc Thạch (2015)",
+            "Chứng chỉ Nha khoa trẻ em - Singapore (2019)",
+            "7+ năm kinh nghiệm lâm sàng",
+            "Chuyên về: Nha khoa trẻ em, Dự phòng răng miệng"
+        ]
+    }
+];
+
 // ==================== DERIVED DATA ====================
 /**
  * mockPatients - Derived from mockUsers where role is Patient
