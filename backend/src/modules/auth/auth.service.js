@@ -454,19 +454,23 @@ exports.changePassword = async (account_id, currentPassword, newPassword) => {
 }
 
 exports.googleAuth = async (googleToken, ip_address = 'unknown', user_agent = 'unknown') => {
-    let googleUser;
+    const { OAuth2Client } = require('google-auth-library');
+    const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+
+    let payload;
     try {
-        const ticket = await googleClient.verifyIdToken({
+        const ticket = await client.verifyIdToken({
             idToken: googleToken,
             audience: process.env.GOOGLE_CLIENT_ID
         });
-        googleUser = ticket.getPayload();
+        payload = ticket.getPayload();
     } catch (error) {
         throw new UnauthorizedError('Invalid Google token');
     }
 
-    let account = await Account.findOne({ email: googleUser.email });
-    let user;
+    const { sub: googleId, email, name, picture } = payload;
+
+    let account = await Account.findOne({ email }).populate('role_id');
 
     if (!account) {
         const defaultRole = await Role.findOne({ name: 'PATIENT' });
@@ -474,30 +478,33 @@ exports.googleAuth = async (googleToken, ip_address = 'unknown', user_agent = 'u
             throw new NotFoundError('Default role not found');
         }
 
+        const randomPassword = crypto.randomBytes(32).toString('hex');
+        const hashedPassword = await bcryptjs.hash(randomPassword, 10);
+
         account = await Account.create({
-            email: googleUser.email,
-            username: googleUser.email.split('@')[0] + '_' + Date.now(),
-            password: crypto.randomBytes(32).toString('hex'),
+            username: `user_${Date.now()}`,
+            email,
+            password: hashedPassword,
             status: 'ACTIVE',
-            email_verified: true,
-            role_id: defaultRole._id
+            role_id: defaultRole._id,
+            email_verified: true
         });
 
-        user = await User.create({
+        await User.create({
             account_id: account._id,
-            full_name: googleUser.name,
-            avatar_url: googleUser.picture || ''
+            full_name: name || '',
+            avatar_url: picture || undefined
         });
 
         await AuthProvider.create({
             account_id: account._id,
             provider: 'google',
-            provider_id: googleUser.sub,
-            provider_email: googleUser.email
+            provider_user_id: googleId,
+            email: email
         });
-    } else {
-        user = await User.findOne({ account_id: account._id });
 
+        account = await Account.findById(account._id).populate('role_id');
+    } else {
         const existingProvider = await AuthProvider.findOne({
             account_id: account._id,
             provider: 'google'
@@ -507,34 +514,37 @@ exports.googleAuth = async (googleToken, ip_address = 'unknown', user_agent = 'u
             await AuthProvider.create({
                 account_id: account._id,
                 provider: 'google',
-                provider_id: googleUser.sub,
-                provider_email: googleUser.email
+                provider_user_id: googleId,
+                email: email
             });
+        }
+
+        if (account.status === 'INACTIVE') {
+            throw new ForbiddenError('Account is inactive');
         }
     }
 
-    if (account.status === 'INACTIVE') {
-        throw new ForbiddenError('Account is inactive');
-    }
+    const user = await User.findOne({ account_id: account._id });
 
     const token = signToken({
         account_id: account._id,
         user_id: user._id
     });
 
+    const refreshTokenExpiry = 7;
     const refreshToken = signRefreshToken({
         account_id: account._id,
         user_id: user._id
-    });
+    }, refreshTokenExpiry);
 
     const hashedRefreshToken = hashToken(refreshToken);
-
     await Session.create({
         account_id: account._id,
         refresh_token: hashedRefreshToken,
         ip_address,
         user_agent,
-        expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+        remember_me: false,
+        expires_at: new Date(Date.now() + refreshTokenExpiry * 24 * 60 * 60 * 1000)
     });
 
     await LoginAttempt.create({
@@ -555,11 +565,10 @@ exports.googleAuth = async (googleToken, ip_address = 'unknown', user_agent = 'u
         user: {
             id: user._id,
             full_name: user.full_name,
-            dob: user.dob,
-            gender: user.gender,
             avatar_url: user.avatar_url
         },
         token,
         refreshToken
     };
 };
+
