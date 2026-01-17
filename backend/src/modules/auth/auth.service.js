@@ -15,6 +15,9 @@ const { signToken, signRefreshToken, verifyRefreshToken, revokeRefreshToken, ver
 
 const { ValidationError, ConflictError, NotFoundError, UnauthorizedError, ForbiddenError } = require('../common/errors');
 
+const emailService = require('../common/service/email.service')
+const otpService = require('../common/service/otp.service')
+
 exports.register = async (data) => {
     const { username, email, password, phone_number, full_name, dob, gender, address, avatar_url } = data;
 
@@ -103,6 +106,30 @@ exports.register = async (data) => {
     };
 };
 
+exports.verifyEmail = async (token) => {
+    const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+    const emailVerification = await EmailVerification.findOne({ token: hashedToken });
+    if (!emailVerification) {
+        throw new NotFoundError('Email verification not found');
+    }
+
+    if (emailVerification.expiresAt < new Date()) {
+        await emailVerification.deleteOne({ _id: emailVerification._id });
+        throw new ForbiddenError('Email verification expired');
+    }
+
+    const account = await Account.findById(emailVerification.account_id);
+    if (!account) {
+        throw new NotFoundError('Account not found');
+    }
+
+    account.email_verified = true;
+    account.status = 'ACTIVE';
+    await account.save();
+
+    await emailVerification.deleteOne({ _id: emailVerification._id });
+};
+
 exports.login = async (data) => {
     const { email, password } = data;
 
@@ -172,6 +199,19 @@ exports.login = async (data) => {
     };
 };
 
+exports.logout = async (account_id) => {
+    const session = await Session.findOne({ account_id });
+    if (!session) {
+        throw new NotFoundError('Session not found');
+    }
+
+    if (session.revoked_at) {
+        throw new UnauthorizedError('Session already revoked');
+    }
+
+    await session.deleteOne({ _id: session._id });
+};
+
 
 exports.refreshToken = async (refreshToken) => {
     const session = await Session.findOne({ refresh_token: hashToken(refreshToken) });
@@ -179,7 +219,12 @@ exports.refreshToken = async (refreshToken) => {
         throw new NotFoundError('Session not found');
     }
 
+    if (session.revoked_at) {
+        throw new UnauthorizedError('Session already revoked');
+    }
+
     if (session.expires_at < new Date()) {
+        await session.deleteOne({ _id: session._id });
         throw new ForbiddenError('Session expired');
     }
 
@@ -197,25 +242,41 @@ exports.refreshToken = async (refreshToken) => {
         throw new NotFoundError('User not found');
     }
 
-    const token = signToken({
+    const newAccessToken = signToken({
         account_id: account._id,
         user_id: user._id
     });
 
     return {
-        account: {
-            id: account._id,
-            username: account.username,
-            email: account.email,
-            status: account.status,
-            email_verified: account.email_verified
-        },
-        user: {
-            id: user._id,
-            full_name: user.full_name,
-            dob: user.dob,
-            gender: user.gender
-        },
-        token
+        token: newAccessToken
     };
 };
+
+exports.forgptPassword = async (email) => {
+    const account = await Account.findOne({ email });
+    if (!account) {
+        throw new NotFoundError('Account not found!')
+    }
+
+    const otp = Math.floor(100000 + Math.random() + 900000).toString();
+    const hashedOtp = crypto.createHash('sha256').update(otp).digest('hex');
+
+    await PasswordReset.deleteMany({ account_id: account._id });
+
+    await PasswordReset.create({
+        account_id: account._id,
+        token_hash: hashedOtp,
+        expires_at: new Date(Date.now() + 15 * 60 * 1000)
+    })
+
+    const user = await User.findOne({ account_id: account._id })
+    try {
+        await emailService.sendPasswordResetEmail(email, otp, user.full_name);
+    } catch (error) {
+        throw new Error('Failed to send password reset email');
+    }
+
+    return {
+        message: 'Password reset email sent successfully'
+    }
+}
