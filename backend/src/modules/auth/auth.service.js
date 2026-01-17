@@ -144,7 +144,7 @@ exports.login = async (data, ip_address = 'unknown', user_agent = 'unknown') => 
     const recentFailedAttempts = await LoginAttempt.countDocuments({
         account_id: account._id,
         ok: false,
-        at: { $gte: Date.now() - 15 * 60 * 1000 }
+        at: { $gte: new Date(Date.now() - 15 * 60 * 1000) }
     })
 
     if (recentFailedAttempts >= 5) {
