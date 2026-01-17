@@ -1,6 +1,8 @@
 const bcryptjs = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
+const { OAuth2Client } = require('google-auth-library');
+
 const Account = require('../auth/models/Account.model');
 const AuthProvider = require('../auth/models/AuthProviders.model');
 const EmailVerification = require('../auth/models/EmailVerification.model');
@@ -15,7 +17,8 @@ const { signToken, signRefreshToken, verifyRefreshToken, revokeRefreshToken, ver
 
 const { ValidationError, ConflictError, NotFoundError, UnauthorizedError, ForbiddenError } = require('../common/errors');
 
-const emailService = require('../common/service/email.service')
+const emailService = require('../common/service/email.service');
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 exports.register = async (data) => {
     const { username, email, password, phone_number, full_name, dob, gender, address, avatar_url } = data;
@@ -172,7 +175,7 @@ exports.resendVerificationEmail = async (email) => {
 }
 
 exports.login = async (data, ip_address = 'unknown', user_agent = 'unknown') => {
-    const { identifier, password } = data;
+    const { identifier, password, rememberMe } = data; // Added rememberMe
 
     if (!identifier || !password) {
         throw new ValidationError('Email/Username and password are required');
@@ -227,20 +230,23 @@ exports.login = async (data, ip_address = 'unknown', user_agent = 'unknown') => 
         account_id: account._id,
         user_id: user._id
     });
+
+    // Remember Me: 30 days if true, 7 days if false
+    const refreshTokenExpiry = rememberMe ? 30 : 7;
     const refreshToken = signRefreshToken({
         account_id: account._id,
         user_id: user._id
-    });
+    }, refreshTokenExpiry);
 
     const hashedRefreshToken = hashToken(refreshToken);
 
     const session = await Session.create({
         account_id: account._id,
-        user_id: user._id,
         refresh_token: hashedRefreshToken,
         ip_address,
         user_agent,
-        expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+        remember_me: rememberMe || false,
+        expires_at: new Date(Date.now() + refreshTokenExpiry * 24 * 60 * 60 * 1000)
     });
 
     await LoginAttempt.create({
@@ -441,3 +447,114 @@ exports.changePassword = async (account_id, currentPassword, newPassword) => {
         message: 'Password changed successfully'
     }
 }
+
+exports.googleAuth = async (googleToken, ip_address = 'unknown', user_agent = 'unknown') => {
+    let googleUser;
+    try {
+        const ticket = await googleClient.verifyIdToken({
+            idToken: googleToken,
+            audience: process.env.GOOGLE_CLIENT_ID
+        });
+        googleUser = ticket.getPayload();
+    } catch (error) {
+        throw new UnauthorizedError('Invalid Google token');
+    }
+
+    let account = await Account.findOne({ email: googleUser.email });
+    let user;
+
+    if (!account) {
+        const defaultRole = await Role.findOne({ name: 'PATIENT' });
+        if (!defaultRole) {
+            throw new NotFoundError('Default role not found');
+        }
+
+        account = await Account.create({
+            email: googleUser.email,
+            username: googleUser.email.split('@')[0] + '_' + Date.now(),
+            password: crypto.randomBytes(32).toString('hex'),
+            status: 'ACTIVE',
+            email_verified: true,
+            role_id: defaultRole._id
+        });
+
+        user = await User.create({
+            account_id: account._id,
+            full_name: googleUser.name,
+            avatar_url: googleUser.picture || ''
+        });
+
+        await AuthProvider.create({
+            account_id: account._id,
+            provider: 'google',
+            provider_id: googleUser.sub,
+            provider_email: googleUser.email
+        });
+    } else {
+        user = await User.findOne({ account_id: account._id });
+
+        const existingProvider = await AuthProvider.findOne({
+            account_id: account._id,
+            provider: 'google'
+        });
+
+        if (!existingProvider) {
+            await AuthProvider.create({
+                account_id: account._id,
+                provider: 'google',
+                provider_id: googleUser.sub,
+                provider_email: googleUser.email
+            });
+        }
+    }
+
+    if (account.status === 'INACTIVE') {
+        throw new ForbiddenError('Account is inactive');
+    }
+
+    const token = signToken({
+        account_id: account._id,
+        user_id: user._id
+    });
+
+    const refreshToken = signRefreshToken({
+        account_id: account._id,
+        user_id: user._id
+    });
+
+    const hashedRefreshToken = hashToken(refreshToken);
+
+    await Session.create({
+        account_id: account._id,
+        refresh_token: hashedRefreshToken,
+        ip_address,
+        user_agent,
+        expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+    });
+
+    await LoginAttempt.create({
+        account_id: account._id,
+        ip: ip_address,
+        user_agent,
+        ok: true
+    });
+
+    return {
+        account: {
+            id: account._id,
+            username: account.username,
+            email: account.email,
+            status: account.status,
+            email_verified: account.email_verified
+        },
+        user: {
+            id: user._id,
+            full_name: user.full_name,
+            dob: user.dob,
+            gender: user.gender,
+            avatar_url: user.avatar_url
+        },
+        token,
+        refreshToken
+    };
+};

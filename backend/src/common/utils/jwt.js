@@ -8,9 +8,9 @@ function signToken(payload) {
     });
 }
 
-function signRefreshToken(payload) {
+function signRefreshToken(payload, expiryDays = 7) {
     return jwt.sign(payload, process.env.JWT_REFRESH_SECRET, {
-        expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d'
+        expiresIn: `${expiryDays}d`
     });
 }
 

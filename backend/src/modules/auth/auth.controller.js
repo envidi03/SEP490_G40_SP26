@@ -15,7 +15,13 @@ exports.register = async (req, res, next) => {
 
 exports.login = async (req, res, next) => {
     try {
-        const result = await authService.login(req.body);
+        const ip_address = req.ip ||
+            req.headers['x-forwarded-for']?.split(',')[0].trim() ||
+            req.connection.remoteAddress ||
+            'unknown';
+        const user_agent = req.headers['user-agent'] || 'unknown';
+
+        const result = await authService.login(req.body, ip_address, user_agent);
         res.status(200).json({
             status: 'success',
             message: 'Login successful',
@@ -141,6 +147,33 @@ exports.changePassword = async (req, res, next) => {
         res.status(200).json({
             status: 'success',
             message: result.message
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+exports.googleAuth = async (req, res, next) => {
+    try {
+        const { googleToken } = req.body;
+        if (!googleToken) {
+            return res.status(400).json({
+                status: 'error',
+                message: 'Google token is required'
+            });
+        }
+
+        const ip_address = req.ip ||
+            req.headers['x-forwarded-for']?.split(',')[0].trim() ||
+            req.connection.remoteAddress ||
+            'unknown';
+        const user_agent = req.headers['user-agent'] || 'unknown';
+
+        const result = await authService.googleAuth(googleToken, ip_address, user_agent);
+        res.status(200).json({
+            status: 'success',
+            message: 'Google login successful',
+            data: result
         });
     } catch (error) {
         next(error);
