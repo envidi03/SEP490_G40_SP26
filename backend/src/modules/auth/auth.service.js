@@ -143,36 +143,44 @@ exports.verifyEmail = async (token) => {
 };
 
 exports.resendVerificationEmail = async (email) => {
-    const account = await Account.findOne({ email })
+    const account = await Account.findOne({ email });
     if (!account) {
         throw new NotFoundError('Account not found');
     }
     if (account.email_verified) {
         throw new ConflictError('Email already verified');
     }
-    await EmailVerification.deleteMany({ account_id: account._id })
 
+    // Delete old verification tokens
+    await EmailVerification.deleteMany({ account_id: account._id });
 
+    // Generate new token
+    const verificationToken = crypto.randomBytes(32).toString('hex');
     const hashedToken = crypto.createHash('sha256').update(verificationToken).digest('hex');
+
     await EmailVerification.create({
         account_id: account._id,
-        token_hash: hashedToken,
+        token: hashedToken,
         expiresAt: new Date(Date.now() + 60 * 60 * 1000)
-    })
+    });
+
+    // Get user for full_name
+    const user = await User.findOne({ account_id: account._id });
+
     try {
-        await emailService.sendEmailVerificationEmail({
+        await emailService.sendEmailVerificationEmail(
             email,
             verificationToken,
-            full_name
-        })
+            user?.full_name || ''
+        );
     } catch (error) {
         console.error('Failed to send verification email:', error);
     }
 
     return {
         message: 'Verification email sent successfully'
-    }
-}
+    };
+};
 
 exports.login = async (data, ip_address = 'unknown', user_agent = 'unknown') => {
     const { identifier, password, rememberMe } = data; // Added rememberMe

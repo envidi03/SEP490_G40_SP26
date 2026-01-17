@@ -36,6 +36,10 @@ app.get('/health', (req, res) => {
 });
 
 // API Routes
+const authRoutes = require('./modules/auth/auth.route');
+app.use('/api/auth', authRoutes);
+
+// 404 Handler - Must be after all routes
 app.use((req, res, next) => {
     res.status(404).json({
         status: 'error',
