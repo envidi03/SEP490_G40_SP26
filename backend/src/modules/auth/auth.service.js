@@ -130,13 +130,19 @@ exports.verifyEmail = async (token) => {
 };
 
 exports.login = async (data, ip_address = 'unknown', user_agent = 'unknown') => {
-    const { email, password } = data;
+    const { identifier, password } = data; // Accept email or username
 
-    if (!email || !password) {
-        throw new ValidationError('Email and password are required');
+    if (!identifier || !password) {
+        throw new ValidationError('Email/Username and password are required');
     }
 
-    const account = await Account.findOne({ email });
+    // Find by email OR username
+    const account = await Account.findOne({
+        $or: [
+            { email: identifier },
+            { username: identifier }
+        ]
+    }).select('+password'); // Must select password to verify
     if (!account) {
         throw new NotFoundError('Email or password is incorrect');
     }
@@ -222,8 +228,10 @@ exports.login = async (data, ip_address = 'unknown', user_agent = 'unknown') => 
     };
 };
 
-exports.logout = async (account_id) => {
-    const session = await Session.findOne({ account_id });
+exports.logout = async (refreshToken) => {
+    const hashedRefreshToken = hashToken(refreshToken);
+    const session = await Session.findOne({ refresh_token: hashedRefreshToken });
+
     if (!session) {
         throw new NotFoundError('Session not found');
     }
@@ -232,7 +240,11 @@ exports.logout = async (account_id) => {
         throw new UnauthorizedError('Session already revoked');
     }
 
-    await session.deleteOne({ _id: session._id });
+    await Session.deleteOne({ _id: session._id });
+
+    return {
+        message: 'Logged out successfully'
+    };
 };
 
 
@@ -281,7 +293,7 @@ exports.forgotPassword = async (email) => {
         throw new NotFoundError('Account not found!')
     }
 
-    const otp = Math.floor(100000 + Math.random() + 900000).toString();
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const hashedOtp = crypto.createHash('sha256').update(otp).digest('hex');
 
     await PasswordReset.deleteMany({ account_id: account._id });
