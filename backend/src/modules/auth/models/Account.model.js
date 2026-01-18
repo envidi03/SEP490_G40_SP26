@@ -35,17 +35,11 @@ const accountSchema = new Schema(
             required: true
         },
 
-        user_id: {
-            type: Schema.Types.ObjectId,
-            ref: "User",
-            index: true
-        },
-
         // Trạng thái tài khoản (Login check cái này đầu tiên)
         status: {
             type: String,
-            default: "ACTIVE",
-            enum: ["ACTIVE", "INACTIVE", "LOCKED", "BANNED"],
+            default: "PENDING",
+            enum: ["ACTIVE", "INACTIVE", "PENDING"],
             required: true
         },
 
@@ -66,14 +60,6 @@ const accountSchema = new Schema(
     },
     { timestamps: true, collection: "accounts" }
 );
-
-// Middleware Hash Password
-accountSchema.pre("save", async function (next) {
-    if (!this.isModified("password")) return next();
-    const saltRounds = Number(process.env.BCRYPT_SALT_ROUNDS || 10);
-    this.password = await bcrypt.hash(this.password, saltRounds);
-    next();
-});
 
 // Method kiểm tra pass
 accountSchema.methods.comparePassword = function (candidatePassword) {
