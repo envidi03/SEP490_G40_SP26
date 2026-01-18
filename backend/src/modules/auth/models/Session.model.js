@@ -9,18 +9,22 @@ const sessionSchema = new mongoose.Schema(
             index: true
         },
 
-        // Token hash (Bảo mật: không lưu raw token trong DB)
-        refresh_token_hash: {
+        refresh_token: {
             type: String,
             required: true
         },
 
-        ip: {
+        ip_address: {
             type: String
         },
         user_agent: {
             type: String
-        }, // Lưu tên trình duyệt/thiết bị
+        },
+
+        remember_me: {
+            type: Boolean,
+            default: false
+        },
 
         expires_at: {
             type: Date,
