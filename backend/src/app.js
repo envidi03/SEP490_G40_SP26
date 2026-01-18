@@ -54,8 +54,8 @@ app.get('/health', (req, res) => {
 const { authRoutes } = require('./modules/auth');
 app.use('/api/auth', authRoutes);
 
-const { clinicRoutes } = require('./modules/clinic');
-app.use('/api/clinic', clinicRoutes);
+// const { clinicRoutes } = require('./modules/clinic');
+// app.use('/api/clinic', clinicRoutes);
 
 // 404 Handler - Must be after all routes
 app.use((req, res, next) => {
