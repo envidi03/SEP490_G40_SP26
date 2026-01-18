@@ -1,3 +1,4 @@
+import ForgotPassword from '../pages/auth/ForgotPassword';
 import Login from '../pages/auth/Login';
 import Register from '../pages/auth/Register';
 import HomePage from '../pages/home_page/HomePage';
@@ -14,6 +15,10 @@ const publicRoutes = [
   {
     path: "register",
     element: <Register />
+  },
+  {
+    path: "forgot-password",
+    element: <ForgotPassword />
   }
 ];
 
