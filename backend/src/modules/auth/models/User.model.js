@@ -20,14 +20,14 @@ const userSchema = new Schema(
         },
         gender: {
             type: String,
-            enum: ["MALE", "FEMALE", "OTHER"]
+            enum: ["male", "female", "other"]
         },
         address: {
             type: String
         },
         avatar_url: {
             type: String,
-            default: ""
+            default: "https://as2.ftcdn.net/jpg/03/31/69/91/1000_F_331699188_lRpvqxO5QRtwOM05gR50ImaaJgBx68vi.jpg"
         },
 
         // Các cờ cài đặt thông báo (User setting)
