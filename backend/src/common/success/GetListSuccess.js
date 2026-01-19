@@ -1,5 +1,5 @@
 // responses/success/GetListSuccess.js
-import BaseSuccess from "./BaseSuccess";
+const BaseSuccess = require('./BaseSuccess');
 
 class GetListSuccess extends BaseSuccess {
   constructor(data, pagination, message = "Get list success") {
@@ -12,4 +12,4 @@ class GetListSuccess extends BaseSuccess {
   }
 }
 
-export default GetListSuccess;
+module.exports = GetListSuccess;

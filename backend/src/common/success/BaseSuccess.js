@@ -9,4 +9,4 @@ class BaseSuccess {
   }
 }
 
-export default BaseSuccess;
+module.exports = BaseSuccess;

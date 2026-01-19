@@ -2,9 +2,23 @@ const express = require('express');
 const cors = require('cors');
 const morgan = require('morgan');
 require('dotenv').config();
+const logger = require('./common/utils/logger');
 
 const app = express();
 app.set('trust proxy', true);
+
+// Override stream của Morgan để bắn log vào Winston thay vì console.log
+const morganMiddleware = morgan(
+  ':method :url :status :res[content-length] - :response-time ms',
+  {
+    stream: {
+      // Configure Morgan to use our custom logger with the http severity
+      write: (message) => logger.info(message.trim()),
+    },
+  }
+);
+
+app.use(morganMiddleware);
 
 // CORS Configuration
 const corsOptions = {
@@ -38,6 +52,9 @@ app.get('/health', (req, res) => {
 // API Routes
 const { authRoutes } = require('./modules/auth');
 app.use('/api/auth', authRoutes);
+
+const { clinicRoute } = require('./modules/clinic');
+app.use('/api/clinic', clinicRoute);
 
 // 404 Handler - Must be after all routes
 app.use((req, res, next) => {

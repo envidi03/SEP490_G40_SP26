@@ -1,0 +1,15 @@
+{
+    "keep": {
+        "days": true,
+        "amount": 14
+    },
+    "auditLog": "/Users/trantoan/Toan-Project/SEP490_G40_SP26/backend/src/logs/.d6ab273557d1bc8a59e3180185fa39ed3f726b05-audit.json",
+    "files": [
+        {
+            "date": 1768823194829,
+            "name": "/Users/trantoan/Toan-Project/SEP490_G40_SP26/backend/src/logs/application-2026-01-19.log",
+            "hash": "a3df9f0db4c0b873a67ba53479c2bcbaa6faa99c71a6e075f28a9d75ea48bb66"
+        }
+    ],
+    "hashType": "sha256"
+}
