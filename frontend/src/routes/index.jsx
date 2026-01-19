@@ -2,12 +2,12 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 
 // Import role-based routes
 import * as adminRoutes from './admin';
-// import * as receptionistRoutes from './receptionist';
-// import * as pharmacyRoutes from './pharmacy';
-// import * as assistantRoutes from './assistant';
-// import * as doctorRoutes from './doctor';
-// import * as publicRoutes from './public';
-// import * as sharedRoutes from './shared';
+import * as receptionistRoutes from './receptionist';
+import * as pharmacyRoutes from './pharmacy';
+import * as assistantRoutes from './assistant';
+import * as doctorRoutes from './doctor';
+import * as publicRoutes from './public';
+import * as sharedRoutes from './shared';
 
 // Import error pages
 import Unauthorized from '../pages/error/Unauthorized';
