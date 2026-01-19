@@ -719,21 +719,21 @@ export const mockLeaveRequests = [
     id: 'leave_001',
     user_id: '67890abc12345def67890002', // BS. Nguyễn Văn Anh
     type: 'SICK_LEAVE',
-    start_date: '2026-02-01',
-    end_date: '2026-02-03',
+    startDate: '2026-02-01',
+    endDate: '2026-02-03',
     reason: 'Sốt xuất huyết',
     status: 'PENDING',
-    created_at: '2026-01-15'
+    createdAt: '2026-01-15'
   },
   {
     id: 'leave_002',
     user_id: '67890abc12345def67890010', // Assistant Võ Thị Lan
     type: 'ANNUAL_LEAVE',
-    start_date: '2026-01-25',
-    end_date: '2026-01-26',
+    startDate: '2026-01-25',
+    endDate: '2026-01-26',
     reason: 'Về quê',
     status: 'PENDING',
-    created_at: '2026-01-10',
+    createdAt: '2026-01-10',
     approver_id: '67890abc12345def67890002' // Assigned to BS. Nguyễn Văn Anh for approval
   }
 ];
