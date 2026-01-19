@@ -629,6 +629,13 @@ export const authenticateUser = (username, password) => {
   return getUserWithAccountAndRole(account.user_id);
 };
 
+/**
+ * Get appointments by doctor ID
+ */
+export const getAppointmentsByDoctor = (doctorId) => {
+  return mockAppointments.filter(apt => apt.doctor_id === doctorId);
+};
+
 // ==================== DENTAL RECORD TABLE ====================
 /**
  * Dental Record table - Treatment history

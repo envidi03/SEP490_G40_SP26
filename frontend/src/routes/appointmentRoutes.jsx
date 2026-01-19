@@ -3,6 +3,7 @@ import ProtectedRoute from './guards/ProtectedRoute';
 import AppointmentList from '../pages/appointments/AppointmentList';
 import AppointmentForm from '../pages/appointments/AppointmentForm';
 import AppointmentCalendar from '../pages/appointments/AppointmentCalendar';
+import DentistAppointmentList from '../pages/appointments/DentistAppointmentList';
 
 // Appointment management routes
 const appointmentRoutes = [
@@ -12,6 +13,16 @@ const appointmentRoutes = [
             <ProtectedRoute>
                 <DashboardLayout>
                     <AppointmentList />
+                </DashboardLayout>
+            </ProtectedRoute>
+        )
+    },
+    {
+        path: '/dentist-appointments',
+        element: (
+            <ProtectedRoute>
+                <DashboardLayout>
+                    <DentistAppointmentList />
                 </DashboardLayout>
             </ProtectedRoute>
         )

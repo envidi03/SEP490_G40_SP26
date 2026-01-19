@@ -1,4 +1,4 @@
-"use client"
+
 
 import { useState, useMemo } from "react"
 import { useAuth } from "../../contexts/AuthContext"
@@ -13,7 +13,7 @@ import AppointmentStatsSection from "./components/AppointmentStatsSection"
 import AppointmentDetailModal from "./components/AppointmentDetailModal"
 import AppointmentStatusFilter from "./components/AppointmentStatusFilter"
 
-const DoctorAppointmentList = () => {
+const DentistAppointmentList = () => {
   const { user } = useAuth()
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState("All")
@@ -160,4 +160,4 @@ const DoctorAppointmentList = () => {
   )
 }
 
-export default DoctorAppointmentList
+export default DentistAppointmentList

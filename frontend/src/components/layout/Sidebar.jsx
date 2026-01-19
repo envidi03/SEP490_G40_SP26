@@ -25,7 +25,7 @@ const Sidebar = ({ role }) => {
         Doctor: [
             { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
             { path: '/patients', icon: Users, label: 'Bệnh nhân' },
-            { path: '/appointments', icon: Calendar, label: 'Lịch hẹn' },
+            { path: '/dentist-appointments', icon: Calendar, label: 'Lịch hẹn' },
             { path: '/treatments', icon: ClipboardList, label: 'Điều trị' },
             { path: '/medicines', icon: Pill, label: 'Thuốc' },
             { path: '/leave-requests', icon: Calendar, label: 'Xin nghỉ phép' },
