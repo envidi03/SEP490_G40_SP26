@@ -24,10 +24,9 @@ const LeaveRequestTable = ({ requests }) => {
             accessor: 'type',
             render: (row) => {
                 const types = {
-                    'sick': 'Nghỉ ốm',
-                    'vacation': 'Nghỉ phép',
-                    'personal': 'Việc riêng',
-                    'other': 'Khác'
+                    'SICK_LEAVE': 'Nghỉ ốm',
+                    'ANNUAL_LEAVE': 'Nghỉ phép năm',
+                    'PERSONAL_LEAVE': 'Việc riêng'
                 };
                 return types[row.type] || row.type;
             }
@@ -42,14 +41,14 @@ const LeaveRequestTable = ({ requests }) => {
             accessor: 'status',
             render: (row) => {
                 const variants = {
-                    'Pending': 'warning',
-                    'Approved': 'success',
-                    'Rejected': 'danger'
+                    'PENDING': 'warning',
+                    'APPROVED': 'success',
+                    'REJECTED': 'danger'
                 };
                 const labels = {
-                    'Pending': 'Chờ duyệt',
-                    'Approved': 'Đã duyệt',
-                    'Rejected': 'Từ chối'
+                    'PENDING': 'Chờ duyệt',
+                    'APPROVED': 'Đã duyệt',
+                    'REJECTED': 'Từ chối'
                 };
                 return <Badge variant={variants[row.status] || 'default'}>{labels[row.status] || row.status}</Badge>;
             }

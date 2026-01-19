@@ -9,6 +9,7 @@ import invoiceRoutes from './invoiceRoutes';
 import medicineRoutes from './medicineRoutes';
 import equipmentRoutes from './equipmentRoutes';
 import userRoutes from './userRoutes';
+import leavereqRoutes from './leavereqRoutes';
 
 // Import error pages
 import Unauthorized from '../pages/error/Unauthorized';
@@ -56,6 +57,11 @@ const AppRoutes = () => {
                 {/* User Routes (Admin only) */}
                 {userRoutes.map((route, index) => (
                     <Route key={`user-${index}`} path={route.path} element={route.element} />
+                ))}
+
+                {/* Leave Request Routes */}
+                {leavereqRoutes.map((route, index) => (
+                    <Route key={`leavereq-${index}`} path={route.path} element={route.element} />
                 ))}
 
                 {/* Error Pages */}

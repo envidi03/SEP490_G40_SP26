@@ -142,6 +142,16 @@ const DoctorDashboard = () => {
                                 <p className="text-sm text-gray-600">Quản lý lịch hẹn tuần này</p>
                             </div>
                         </button>
+                        <button
+                            onClick={() => window.location.href = '/doctor/leave-requests'}
+                            className="w-full p-4 bg-red-50 hover:bg-red-100 rounded-lg text-left transition-colors flex items-center"
+                        >
+                            <Calendar size={24} className="text-red-600 mr-3" />
+                            <div>
+                                <p className="font-medium text-gray-900">Xin nghỉ phép</p>
+                                <p className="text-sm text-gray-600">Tạo đơn xin nghỉ mới</p>
+                            </div>
+                        </button>
                     </div>
                 </Card>
 

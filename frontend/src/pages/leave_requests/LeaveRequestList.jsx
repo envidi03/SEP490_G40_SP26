@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Plus } from 'lucide-react';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import Button from '../../components/ui/Button';
@@ -10,41 +10,20 @@ import Select from '../../components/ui/Select';
 import LeaveRequestStats from './components/LeaveRequestStats';
 import LeaveRequestTable from './components/LeaveRequestTable';
 import LeaveRequestForm from './components/LeaveRequestForm';
-
-// Mock data
-const MOCK_REQUESTS = [
-    {
-        id: 1,
-        createdAt: '2026-01-10',
-        startDate: '2026-01-20',
-        endDate: '2026-01-22',
-        type: 'vacation',
-        reason: 'Đi du lịch cùng gia đình',
-        status: 'Approved'
-    },
-    {
-        id: 2,
-        createdAt: '2026-01-05',
-        startDate: '2026-01-06',
-        endDate: '2026-01-06',
-        type: 'sick',
-        reason: 'Sốt cao',
-        status: 'Rejected'
-    },
-    {
-        id: 3,
-        createdAt: '2026-01-15',
-        startDate: '2026-01-25',
-        endDate: '2026-01-25',
-        type: 'personal',
-        reason: 'Đám cưới bạn thân',
-        status: 'Pending'
-    }
-];
+import { useAuth } from '../../contexts/AuthContext';
+import { mockLeaveRequests } from '../../utils/mockData';
 
 const LeaveRequestList = () => {
+    const { user } = useAuth();
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [requests, setRequests] = useState(MOCK_REQUESTS);
+    const [requests, setRequests] = useState([]);
+
+    useEffect(() => {
+        if (user) {
+            const userRequests = mockLeaveRequests.filter(req => req.user_id === user.id);
+            setRequests(userRequests);
+        }
+    }, [user]);
 
     // Filter states
     const [searchTerm, setSearchTerm] = useState("");
@@ -59,9 +38,9 @@ const LeaveRequestList = () => {
             const days = (end - start) / (1000 * 60 * 60 * 24) + 1;
             return acc + days;
         }, 0),
-        pending: requests.filter(r => r.status === 'Pending').length,
-        approved: requests.filter(r => r.status === 'Approved').length,
-        rejected: requests.filter(r => r.status === 'Rejected').length,
+        pending: requests.filter(r => r.status === 'PENDING').length,
+        approved: requests.filter(r => r.status === 'APPROVED').length,
+        rejected: requests.filter(r => r.status === 'REJECTED').length,
     }), [requests]);
 
     // Filter requests
@@ -76,9 +55,10 @@ const LeaveRequestList = () => {
 
     const handleCreateRequest = (data) => {
         const newRequest = {
-            id: Date.now(),
-            createdAt: new Date().toISOString(),
-            status: 'Pending',
+            id: `leave_${Date.now()}`,
+            user_id: user.id,
+            createdAt: new Date().toISOString().split('T')[0],
+            status: 'PENDING',
             ...data
         };
         setRequests([newRequest, ...requests]);
@@ -116,9 +96,9 @@ const LeaveRequestList = () => {
                             onChange={(e) => setStatusFilter(e.target.value)}
                             options={[
                                 { value: 'All', label: 'Tất cả trạng thái' },
-                                { value: 'Pending', label: 'Chờ duyệt' },
-                                { value: 'Approved', label: 'Đã duyệt' },
-                                { value: 'Rejected', label: 'Từ chối' }
+                                { value: 'PENDING', label: 'Chờ duyệt' },
+                                { value: 'APPROVED', label: 'Đã duyệt' },
+                                { value: 'REJECTED', label: 'Từ chối' }
                             ]}
                         />
                         <Select
@@ -126,10 +106,9 @@ const LeaveRequestList = () => {
                             onChange={(e) => setTypeFilter(e.target.value)}
                             options={[
                                 { value: 'All', label: 'Tất cả loại nghỉ' },
-                                { value: 'sick', label: 'Nghỉ ốm' },
-                                { value: 'vacation', label: 'Nghỉ phép' },
-                                { value: 'personal', label: 'Việc riêng' },
-                                { value: 'other', label: 'Khác' }
+                                { value: 'SICK_LEAVE', label: 'Nghỉ ốm' },
+                                { value: 'ANNUAL_LEAVE', label: 'Nghỉ phép năm' },
+                                { value: 'PERSONAL_LEAVE', label: 'Việc riêng' }
                             ]}
                         />
                     </div>

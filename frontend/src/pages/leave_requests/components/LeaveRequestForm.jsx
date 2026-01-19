@@ -7,7 +7,7 @@ const LeaveRequestForm = ({ onSubmit, onCancel }) => {
     const [formData, setFormData] = useState({
         startDate: '',
         endDate: '',
-        type: 'sick',
+        type: 'SICK_LEAVE',
         reason: ''
     });
 
@@ -51,10 +51,9 @@ const LeaveRequestForm = ({ onSubmit, onCancel }) => {
                 value={formData.type}
                 onChange={handleChange}
                 options={[
-                    { value: 'sick', label: 'Nghỉ ốm' },
-                    { value: 'vacation', label: 'Nghỉ phép' },
-                    { value: 'personal', label: 'Việc riêng' },
-                    { value: 'other', label: 'Khác' }
+                    { value: 'SICK_LEAVE', label: 'Nghỉ ốm' },
+                    { value: 'ANNUAL_LEAVE', label: 'Nghỉ phép năm' },
+                    { value: 'PERSONAL_LEAVE', label: 'Việc riêng' }
                 ]}
             />
 
