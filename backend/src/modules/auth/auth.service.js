@@ -191,7 +191,15 @@ exports.login = async (data, ip_address = 'unknown', user_agent = 'unknown') => 
             { email: identifier },
             { username: identifier }
         ]
-    }).select('+password');
+    })
+        .select('+password')
+        .populate({
+            path: 'role_id',
+            populate: {
+                path: 'permissions'
+            }
+        });
+
     if (!account) {
         throw new NotFoundError('Email or password is incorrect');
     }
@@ -273,7 +281,18 @@ exports.login = async (data, ip_address = 'unknown', user_agent = 'unknown') => 
             id: user._id,
             full_name: user.full_name,
             dob: user.dob,
-            gender: user.gender
+            gender: user.gender,
+            is_doctor: user.is_doctor,
+            is_patient: user.is_patient
+        },
+        role: {
+            id: account.role_id._id,
+            name: account.role_id.name,
+            permissions: account.role_id.permissions.map(p => ({
+                code: p.code,
+                name: p.name,
+                module: p.module
+            }))
         },
         token,
         refreshToken
