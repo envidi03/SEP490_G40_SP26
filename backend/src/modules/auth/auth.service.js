@@ -121,12 +121,8 @@ exports.register = async (data) => {
 exports.verifyEmail = async (token) => {
     const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
     const emailVerification = await EmailVerification.findOne({ token_hash: hashedToken });
-
-    // If token not found, check if account is already verified
     if (!emailVerification) {
-        // Try to find any account that might have used this token
-        // This is a fallback for when user clicks the link multiple times
-        throw new NotFoundError('Email verification link is invalid or has already been used');
+        throw new NotFoundError('Email verification not found');
     }
 
     if (emailVerification.expires_at < new Date()) {
@@ -139,26 +135,11 @@ exports.verifyEmail = async (token) => {
         throw new NotFoundError('Account not found');
     }
 
-    // Check if already verified
-    if (account.email_verified && account.status === 'ACTIVE') {
-        // Clean up the token
-        await emailVerification.deleteOne({ _id: emailVerification._id });
-        return {
-            message: 'Email already verified. You can now login.',
-            alreadyVerified: true
-        };
-    }
-
     account.email_verified = true;
     account.status = 'ACTIVE';
     await account.save();
 
     await emailVerification.deleteOne({ _id: emailVerification._id });
-
-    return {
-        message: 'Email verified successfully',
-        alreadyVerified: false
-    };
 };
 
 exports.resendVerificationEmail = async (email) => {
@@ -210,7 +191,15 @@ exports.login = async (data, ip_address = 'unknown', user_agent = 'unknown') => 
             { email: identifier },
             { username: identifier }
         ]
-    }).select('+password');
+    })
+        .select('+password')
+        .populate({
+            path: 'role_id',
+            populate: {
+                path: 'permissions'
+            }
+        });
+
     if (!account) {
         throw new NotFoundError('Email or password is incorrect');
     }
@@ -292,7 +281,18 @@ exports.login = async (data, ip_address = 'unknown', user_agent = 'unknown') => 
             id: user._id,
             full_name: user.full_name,
             dob: user.dob,
-            gender: user.gender
+            gender: user.gender,
+            is_doctor: user.is_doctor,
+            is_patient: user.is_patient
+        },
+        role: {
+            id: account.role_id._id,
+            name: account.role_id.name,
+            permissions: account.role_id.permissions.map(p => ({
+                code: p.code,
+                name: p.name,
+                module: p.module
+            }))
         },
         token,
         refreshToken

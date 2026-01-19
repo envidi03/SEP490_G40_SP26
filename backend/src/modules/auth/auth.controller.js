@@ -42,11 +42,10 @@ exports.verifyEmail = async (req, res, next) => {
             });
         }
 
-        const result = await authService.verifyEmail(token);
+        await authService.verifyEmail(token);
         res.status(200).json({
             status: 'success',
-            message: result.message || 'Email verified successfully. You can now login.',
-            data: result
+            message: 'Email verified successfully. You can now login.'
         });
     } catch (error) {
         next(error);

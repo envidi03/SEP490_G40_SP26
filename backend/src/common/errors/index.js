@@ -4,6 +4,5 @@ module.exports = {
     ConflictError: require('./ConflictError'),
     NotFoundError: require('./NotFoundError'),
     UnauthorizedError: require('./UnauthorizedError'),
-    ForbiddenError: require('./ForbiddenError'), 
-    InternalServerError: require("./InternalServerError")
+    ForbiddenError: require('./ForbiddenError')
 };
