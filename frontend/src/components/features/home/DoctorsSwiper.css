@@ -1,0 +1,116 @@
+/* Doctors Swiper Custom Styles */
+.doctors-swiper {
+    padding: 0 60px !important;
+    /* Space for navigation arrows */
+    margin-bottom: 40px;
+}
+
+/* Ensure uniform slide heights */
+.doctors-swiper .swiper-slide {
+    height: auto !important;
+    display: flex !important;
+}
+
+/* Ensure uniform card heights */
+.doctors-swiper .swiper-slide>div {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.doctors-swiper .swiper-slide .flex.flex-col.sm\:flex-row.h-full {
+    min-height: 280px;
+    /* Minimum height for consistency */
+}
+
+/* Uniform image container */
+.doctors-swiper .swiper-slide .relative.w-full.sm\:w-48 {
+    flex-shrink: 0;
+}
+
+/* Uniform content area */
+.doctors-swiper .swiper-slide .p-6.flex-1 {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+/* Navigation Arrows */
+.doctors-swiper .swiper-button-next,
+.doctors-swiper .swiper-button-prev {
+    width: 44px !important;
+    height: 44px !important;
+    background: white;
+    border-radius: 50%;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    transition: all 0.3s ease;
+}
+
+.doctors-swiper .swiper-button-next:hover,
+.doctors-swiper .swiper-button-prev:hover {
+    background: #3b82f6;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.doctors-swiper .swiper-button-next:after,
+.doctors-swiper .swiper-button-prev:after {
+    font-size: 18px !important;
+    font-weight: bold;
+    color: #3b82f6;
+}
+
+.doctors-swiper .swiper-button-next:hover:after,
+.doctors-swiper .swiper-button-prev:hover:after {
+    color: white;
+}
+
+/* Position arrows outside */
+.doctors-swiper .swiper-button-prev {
+    left: 0 !important;
+}
+
+.doctors-swiper .swiper-button-next {
+    right: 0 !important;
+}
+
+/* Pagination Dots */
+.doctors-swiper .swiper-pagination {
+    bottom: -30px !important;
+}
+
+.doctors-swiper .swiper-pagination-bullet {
+    width: 10px;
+    height: 10px;
+    background: #cbd5e1;
+    opacity: 1;
+    transition: all 0.3s ease;
+}
+
+.doctors-swiper .swiper-pagination-bullet-active {
+    background: #3b82f6;
+    width: 24px;
+    border-radius: 5px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 640px) {
+    .doctors-swiper {
+        padding: 0 20px !important;
+    }
+
+    .doctors-swiper .swiper-button-next,
+    .doctors-swiper .swiper-button-prev {
+        width: 36px !important;
+        height: 36px !important;
+    }
+
+    .doctors-swiper .swiper-button-next:after,
+    .doctors-swiper .swiper-button-prev:after {
+        font-size: 14px !important;
+    }
+
+    .doctors-swiper .swiper-slide .flex.flex-col.sm\:flex-row.h-full {
+        min-height: auto;
+        /* Remove min-height on mobile */
+    }
+}

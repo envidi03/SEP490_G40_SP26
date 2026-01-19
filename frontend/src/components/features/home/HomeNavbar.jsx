@@ -1,7 +1,7 @@
 import React from 'react';
 
-import TopBarNav from './components/TopBarNav';
-import MainNavigation from './components/MainNavigation';
+import TopBarNav from './TopBarNav';
+import MainNavigation from './MainNavigation';
 
 const HomeNavbar = () => {
     return (

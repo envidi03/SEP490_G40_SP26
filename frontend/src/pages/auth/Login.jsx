@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { mockUsers } from '../../utils/mockData';
+import { mockAccounts, authenticateUser } from '../../utils/mockData';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
 import { LogIn, User, Lock } from 'lucide-react';
@@ -21,14 +21,10 @@ const Login = () => {
 
         // Simulate API call delay
         setTimeout(() => {
-            const user = mockUsers.find(
-                u => u.username === username && u.password === password
-            );
+            const user = authenticateUser(username, password);
 
             if (user) {
-                // Remove password from user object before storing
-                const { password, ...userWithoutPassword } = user;
-                login(userWithoutPassword);
+                login(user);
                 navigate('/dashboard');
             } else {
                 setError('Tên đăng nhập hoặc mật khẩu không đúng');
@@ -37,11 +33,21 @@ const Login = () => {
         }, 500);
     };
 
-    const handleDemoLogin = (role) => {
-        const demoUser = mockUsers.find(u => u.role === role);
-        if (demoUser) {
-            setUsername(demoUser.username);
-            setPassword(demoUser.password);
+    const handleDemoLogin = (roleName) => {
+        // Find account based on role name (this is a bit complex with the new structure, so we'll hardcode for demo)
+        let demoAccount;
+
+        if (roleName === 'Admin') {
+            demoAccount = mockAccounts.find(a => a.username === 'admin');
+        } else if (roleName === 'Doctor') {
+            demoAccount = mockAccounts.find(a => a.username === 'doctor1');
+        } else if (roleName === 'Receptionist') {
+            demoAccount = mockAccounts.find(a => a.username === 'receptionist1');
+        }
+
+        if (demoAccount) {
+            setUsername(demoAccount.username);
+            setPassword(demoAccount.password);
         }
     };
 

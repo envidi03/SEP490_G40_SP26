@@ -21,7 +21,7 @@ const Modal = ({ isOpen, onClose, title, children, size = 'md' }) => {
                 ></div>
 
                 {/* Modal */}
-                <div className={`relative bg-white rounded-lg shadow-xl ${sizes[size]} w-full`}>
+                <div className={`relative bg-white rounded-lg shadow-xl ${sizes[size]} w-full animate-scaleIn`}>
                     {/* Header */}
                     <div className="flex items-center justify-between p-4 border-b border-gray-200">
                         <h3 className="text-lg font-semibold text-gray-900">{title}</h3>

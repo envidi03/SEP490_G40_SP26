@@ -5,7 +5,15 @@ import {
     CheckCircle, Award, Shield, Clock, Users, Star,
     Calendar, Phone, Mail, MapPin, User, MessageSquare
 } from 'lucide-react';
-import BannerCarousel from './components/BannerCarousel';
+import BannerCarousel from './BannerCarousel';
+// Swiper imports
+import { Swiper, SwiperSlide } from 'swiper/react';
+import { Navigation, Pagination, Autoplay } from 'swiper/modules';
+import 'swiper/css';
+import 'swiper/css/navigation';
+import 'swiper/css/pagination';
+import './DoctorsSwiper.css';
+
 
 const HomeContent = () => {
     const [formData, setFormData] = useState({
@@ -166,7 +174,7 @@ const HomeContent = () => {
                 <BannerCarousel />
             </section>
 
-            {/* Featured Services Gallery - Parkway Style */}
+            {/* Featured Services Gallery */}
             <section className="py-16 bg-white">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="text-center mb-12">
@@ -178,7 +186,7 @@ const HomeContent = () => {
                         <div className="group cursor-pointer">
                             <div className="relative overflow-hidden rounded-2xl aspect-square mb-3 bg-gray-100">
                                 <img
-                                    src="https://images.unsplash.com/photo-1606811841689-23dfddce3e95?w=400&h=400&fit=crop"
+                                    src="https://nhakhoaparkway.com/wp-content/uploads/2024/03/Nieng-rang-trong-suot.jpg"
                                     alt="Niềng răng trong suốt Invisalign"
                                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
                                 />
@@ -190,7 +198,7 @@ const HomeContent = () => {
                         <div className="group cursor-pointer">
                             <div className="relative overflow-hidden rounded-2xl aspect-square mb-3 bg-gray-100">
                                 <img
-                                    src="https://images.unsplash.com/photo-1588776814546-1ffcf47267a5?w=400&h=400&fit=crop"
+                                    src="https://nhakhoaparkway.com/wp-content/uploads/2024/03/Nieng-rang-mac-cai_.jpg"
                                     alt="Niềng răng mắc cài tiết kiệm"
                                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
                                 />
@@ -202,7 +210,7 @@ const HomeContent = () => {
                         <div className="group cursor-pointer">
                             <div className="relative overflow-hidden rounded-2xl aspect-square mb-3 bg-gray-100">
                                 <img
-                                    src="https://images.unsplash.com/photo-1629909613654-28e377c37b09?w=400&h=400&fit=crop"
+                                    src="https://nhakhoaparkway.com/wp-content/uploads/2024/04/Nha-tre%CC%89-em.jpg"
                                     alt="Nha trẻ em"
                                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
                                 />
@@ -214,7 +222,7 @@ const HomeContent = () => {
                         <div className="group cursor-pointer">
                             <div className="relative overflow-hidden rounded-2xl aspect-square mb-3 bg-gray-100">
                                 <img
-                                    src="https://images.unsplash.com/photo-1598256989800-fe5f95da9787?w=400&h=400&fit=crop"
+                                    src="https://nhakhoaparkway.com/wp-content/uploads/2024/03/Trong-rang-Implant-2.jpg"
                                     alt="Trồng răng Implant"
                                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
                                 />
@@ -226,7 +234,7 @@ const HomeContent = () => {
                         <div className="group cursor-pointer">
                             <div className="relative overflow-hidden rounded-2xl aspect-square mb-3 bg-gray-100">
                                 <img
-                                    src="https://images.unsplash.com/photo-1609840114035-3c981960dc59?w=400&h=400&fit=crop"
+                                    src="https://nhakhoaparkway.com/wp-content/uploads/2024/03/Lay-cao-rang.jpg"
                                     alt="Lấy cao răng"
                                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
                                 />
@@ -238,7 +246,7 @@ const HomeContent = () => {
                         <div className="group cursor-pointer">
                             <div className="relative overflow-hidden rounded-2xl aspect-square mb-3 bg-gray-100">
                                 <img
-                                    src="https://images.unsplash.com/photo-1606811841689-23dfddce3e95?w=400&h=400&fit=crop&sat=-100"
+                                    src="https://nhakhoaparkway.com/wp-content/uploads/2024/03/Nieng-rang-trong-suot-Clear-correct_.jpg"
                                     alt="Niềng răng trong suốt cho Teen"
                                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
                                 />
@@ -250,7 +258,7 @@ const HomeContent = () => {
                         <div className="group cursor-pointer">
                             <div className="relative overflow-hidden rounded-2xl aspect-square mb-3 bg-gray-100">
                                 <img
-                                    src="https://images.unsplash.com/photo-1606811971618-4486d14f3f99?w=400&h=400&fit=crop"
+                                    src="https://nhakhoaparkway.com/wp-content/uploads/2024/03/Nieng-rang-Mac-cai-truyen-thong.jpg"
                                     alt="Niềng răng mắc cài"
                                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
                                 />
@@ -262,7 +270,7 @@ const HomeContent = () => {
                         <div className="group cursor-pointer">
                             <div className="relative overflow-hidden rounded-2xl aspect-square mb-3 bg-gray-100">
                                 <img
-                                    src="https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=400&h=400&fit=crop"
+                                    src="https://nhakhoaparkway.com/wp-content/uploads/2024/01/Nho%CC%82%CC%89-ra%CC%86ng-kho%CC%82n.png"
                                     alt="Nhổ răng khôn"
                                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
                                 />
@@ -274,7 +282,7 @@ const HomeContent = () => {
                         <div className="group cursor-pointer">
                             <div className="relative overflow-hidden rounded-2xl aspect-square mb-3 bg-gray-100">
                                 <img
-                                    src="https://images.unsplash.com/photo-1609137144813-7d9921338f24?w=400&h=400&fit=crop"
+                                    src="https://nhakhoaparkway.com/wp-content/uploads/2024/03/Tay-trang-rang.jpg"
                                     alt="Răng sứ thẩm mỹ & veneer"
                                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
                                 />
@@ -286,7 +294,7 @@ const HomeContent = () => {
                         <div className="group cursor-pointer">
                             <div className="relative overflow-hidden rounded-2xl aspect-square mb-3 bg-gray-100">
                                 <img
-                                    src="https://images.unsplash.com/photo-1606811841689-23dfddce3e95?w=400&h=400&fit=crop&brightness=1.1"
+                                    src="https://nhakhoaparkway.com/wp-content/uploads/2024/03/Tram-rang.jpg"
                                     alt="Trám răng"
                                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
                                 />
@@ -297,91 +305,263 @@ const HomeContent = () => {
                 </div>
             </section>
 
-            {/* Services Section - Parkway Style */}
-            <section id="services" className="py-20 bg-gray-50">
+            {/* Featured Services - "Dịch vụ đang được yêu thích" */}
+            <section className="py-16 bg-white">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="text-center mb-16">
-                        <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">Chăm Sóc Sức Khỏe Răng Miệng Toàn Diện</h2>
-                        <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-                            Đa dạng dịch vụ nha khoa chuyên sâu với công nghệ hiện đại
-                        </p>
+                    <div className="text-center mb-12">
+                        <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">Dịch vụ đang được yêu thích</h2>
                     </div>
 
                     <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {services.map((service, index) => {
-                            const Icon = service.icon;
-                            const isFeatured = index < 2; // First 2 services are featured
+                        {/* Service 1: Trám răng */}
+                        <div className="bg-white rounded-2xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 group border border-gray-100">
+                            <div className="relative h-56 overflow-hidden">
+                                <img
+                                    src="https://images.unsplash.com/photo-1606811841689-23dfddce3e95?w=600&h=400&fit=crop"
+                                    alt="Trám răng mặt nhai"
+                                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                                />
+                            </div>
+                            <div className="p-6">
+                                <h3 className="text-xl font-bold text-gray-900 mb-2">Trám răng mặt nhai</h3>
+                                <p className="text-sm text-gray-600 mb-4">Nha khoa tổng quát</p>
+                                <p className="text-lg font-bold text-primary-600 mb-4">350.000đ - 450.000đ</p>
+                                <button className="w-full py-3 border-2 border-primary-600 text-primary-600 rounded-lg font-semibold hover:bg-primary-50 transition-all">
+                                    Xem chi tiết
+                                </button>
+                            </div>
+                        </div>
 
-                            return (
-                                <div
-                                    key={index}
-                                    className="group bg-white rounded-2xl overflow-hidden shadow-md hover:shadow-2xl transition-all duration-300 cursor-pointer"
-                                >
-                                    {/* Service Image */}
-                                    <div className="relative h-48 overflow-hidden bg-gradient-to-br from-blue-50 to-purple-50">
-                                        {isFeatured && (
-                                            <div className="absolute top-4 right-4 z-10 bg-red-500 text-white px-3 py-1 rounded-full text-xs font-bold">
-                                                🔥 Đang được yêu thích
-                                            </div>
-                                        )}
-                                        <div className="absolute inset-0 flex items-center justify-center">
-                                            <div className={`${service.color} rounded-2xl p-8 group-hover:scale-110 transition-transform duration-300`}>
-                                                <Icon size={64} />
-                                            </div>
-                                        </div>
+                        {/* Service 2: Tẩy trắng răng */}
+                        <div className="bg-white rounded-2xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 group border border-gray-100">
+                            <div className="relative h-56 overflow-hidden">
+                                <img
+                                    src="https://nhakhoaparkway.com/wp-content/uploads/2024/02/Ta%CC%82%CC%89y-tra%CC%86%CC%81ng-3-1536x864.png"
+                                    alt="Tẩy trắng răng cấp tốc Express"
+                                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                                />
+                            </div>
+                            <div className="p-6">
+                                <h3 className="text-xl font-bold text-gray-900 mb-2">Tẩy trắng răng cấp tốc Express</h3>
+                                <p className="text-sm text-gray-600 mb-4">Nha khoa thẩm mỹ</p>
+                                <p className="text-lg font-bold text-primary-600 mb-4">1.250.000đ - 1.400.000đ</p>
+                                <button className="w-full py-3 border-2 border-primary-600 text-primary-600 rounded-lg font-semibold hover:bg-primary-50 transition-all">
+                                    Xem chi tiết
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Service 3: Invisalign - WITH DISCOUNT */}
+                        <div className="bg-white rounded-2xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 group border border-gray-100">
+                            <div className="relative h-56 overflow-hidden">
+                                <div className="absolute top-4 left-4 z-10 bg-red-500 text-white px-3 py-1 rounded-md text-sm font-bold">
+                                    Giảm 35%
+                                </div>
+                                <img
+                                    src="https://nhakhoaparkway.com/wp-content/uploads/2024/02/Go%CC%81i-nie%CC%82%CC%80ng-ra%CC%86ng-trong-suo%CC%82%CC%81t-Comprehensive-3-na%CC%86m-1536x1024.jpg"
+                                    alt="Gói niềng trong suốt Invisalign Comprehensive 3 năm"
+                                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                                />
+                            </div>
+                            <div className="p-6">
+                                <h3 className="text-xl font-bold text-gray-900 mb-2">Gói niềng trong suốt Invisalign Comprehensive 3 năm</h3>
+                                <p className="text-sm text-gray-600 mb-4">Niềng răng trong suốt invisalign</p>
+                                <div className="mb-4">
+                                    <p className="text-sm text-gray-400 line-through">119.000.000đ - 125.000.000đ</p>
+                                    <p className="text-lg font-bold text-red-600">77.350.000đ - 79.300.000đ</p>
+                                </div>
+                                <button className="w-full py-3 border-2 border-primary-600 text-primary-600 rounded-lg font-semibold hover:bg-primary-50 transition-all">
+                                    Xem chi tiết
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            {/* Doctors Team Section - "Gặp gỡ đội ngũ bác sĩ"  */}
+            <section className="py-16 bg-gray-50">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div className="text-center mb-12">
+                        <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">
+                            Gặp gỡ đội ngũ bác sĩ răng hàm mặt giàu kinh nghiệm
+                        </h2>
+                        <p className="text-lg text-gray-600 mt-4 max-w-3xl mx-auto">
+                            Đội ngũ bác sĩ có trên 7 năm kinh nghiệm, áp dụng quy trình điều trị tiên tiến nhất cho bạn và gia đình
+                        </p>
+                    </div>
+
+                    {/* Swiper Carousel for Doctors */}
+                    <Swiper
+                        modules={[Navigation, Pagination, Autoplay]}
+                        spaceBetween={24}
+                        slidesPerView={1}
+                        navigation
+                        pagination={{ clickable: true }}
+                        autoplay={{ delay: 5000, disableOnInteraction: false }}
+                        breakpoints={{
+                            640: { slidesPerView: 1 },
+                            1024: { slidesPerView: 2 }
+                        }}
+                        className="doctors-swiper"
+                    >
+                        {/* Doctor 1 - Horizontal Card */}
+                        <SwiperSlide>
+                            <div className="bg-white rounded-2xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 group h-full">
+                                <div className="flex flex-col sm:flex-row h-full">
+                                    {/* Doctor Photo - Left */}
+                                    <div className="relative w-full sm:w-48 h-64 sm:h-auto overflow-hidden bg-gradient-to-br from-blue-50 to-purple-50">
+                                        <img
+                                            src="https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=300&h=400&fit=crop&crop=faces"
+                                            alt="BS. Phạm Thị Hà Xuyên"
+                                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                        />
                                     </div>
 
-                                    {/* Service Content */}
-                                    <div className="p-6">
-                                        <h3 className="text-xl font-bold text-gray-900 mb-2 group-hover:text-primary-600 transition-colors">
-                                            {service.title}
-                                        </h3>
-                                        <p className="text-gray-600 mb-4 text-sm leading-relaxed">
-                                            {service.description}
-                                        </p>
-
-                                        {/* Price hint */}
-                                        <div className="flex items-center justify-between mb-4 pb-4 border-b border-gray-100">
-                                            <div>
-                                                <p className="text-xs text-gray-500">Giá từ</p>
-                                                <p className="text-lg font-bold text-primary-600">
-                                                    {index === 0 ? "500K" : index === 1 ? "2M" : index === 2 ? "5M" : index === 3 ? "15M" : index === 4 ? "800K" : "1.5M"}
-                                                </p>
-                                            </div>
-                                            <div className="flex items-center gap-1 text-yellow-500">
-                                                <Star size={16} fill="currentColor" />
-                                                <span className="text-sm font-semibold text-gray-700">4.9</span>
-                                            </div>
+                                    {/* Doctor Info - Right */}
+                                    <div className="p-6 flex-1">
+                                        <div className="mb-3">
+                                            <span className="inline-block bg-primary-100 text-primary-700 px-3 py-1 rounded-full text-xs font-semibold">
+                                                BS.
+                                            </span>
                                         </div>
-
-                                        <button
-                                            onClick={scrollToBooking}
-                                            className="w-full py-3 bg-primary-600 text-white rounded-lg font-semibold hover:bg-primary-700 transition-all flex items-center justify-center gap-2 group-hover:shadow-lg"
-                                        >
-                                            Đặt lịch tư vấn
-                                            <span className="group-hover:translate-x-1 transition-transform">→</span>
+                                        <h3 className="text-xl font-bold text-gray-900 mb-3">Phạm Thị Hà Xuyên</h3>
+                                        <ul className="text-sm text-gray-600 space-y-2 mb-4">
+                                            <li>• Bác sĩ răng hàm mặt</li>
+                                            <li>• Tốt nghiệp Đại học Y Dược TP.HCM (2012)</li>
+                                            <li>• Chứng chỉ Nha khoa thẩm mỹ - Hàn Quốc (2018)</li>
+                                            <li>• 10+ năm kinh nghiệm lâm sàng</li>
+                                            <li>• Chuyên về: Răng sứ thẩm mỹ, Veneer, Tẩy trắng răng</li>
+                                        </ul>
+                                        <button className="text-primary-600 font-semibold hover:text-primary-700 text-sm">
+                                            Xem chi tiết →
                                         </button>
                                     </div>
                                 </div>
-                            );
-                        })}
-                    </div>
+                            </div>
+                        </SwiperSlide>
 
-                    {/* View All Services CTA */}
+                        {/* Doctor 2 - Horizontal Card */}
+                        <SwiperSlide>
+                            <div className="bg-white rounded-2xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 group h-full">
+                                <div className="flex flex-col sm:flex-row h-full">
+                                    {/* Doctor Photo - Left */}
+                                    <div className="relative w-full sm:w-48 h-64 sm:h-auto overflow-hidden bg-gradient-to-br from-blue-50 to-purple-50">
+                                        <img
+                                            src="https://images.unsplash.com/photo-1594824476967-48c8b964273f?w=300&h=400&fit=crop&crop=faces"
+                                            alt="BS. Nguyễn Xuân Nhi"
+                                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                        />
+                                    </div>
+
+                                    {/* Doctor Info - Right */}
+                                    <div className="p-6 flex-1">
+                                        <div className="mb-3">
+                                            <span className="inline-block bg-primary-100 text-primary-700 px-3 py-1 rounded-full text-xs font-semibold">
+                                                BS.
+                                            </span>
+                                        </div>
+                                        <h3 className="text-xl font-bold text-gray-900 mb-3">Nguyễn Xuân Nhi</h3>
+                                        <ul className="text-sm text-gray-600 space-y-2 mb-4">
+                                            <li>• Bác sĩ răng hàm mặt</li>
+                                            <li>• Tốt nghiệp Đại học Y Hà Nội (2014)</li>
+                                            <li>• Chứng chỉ Niềng răng Invisalign - Mỹ (2017)</li>
+                                            <li>• 8+ năm kinh nghiệm lâm sàng</li>
+                                            <li>• Chuyên về: Niềng răng trong suốt, Chỉnh nha</li>
+                                        </ul>
+                                        <button className="text-primary-600 font-semibold hover:text-primary-700 text-sm">
+                                            Xem chi tiết →
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </SwiperSlide>
+
+                        {/* Doctor 3 - Horizontal Card */}
+                        <SwiperSlide>
+                            <div className="bg-white rounded-2xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 group h-full">
+                                <div className="flex flex-col sm:flex-row h-full">
+                                    {/* Doctor Photo - Left */}
+                                    <div className="relative w-full sm:w-48 h-64 sm:h-auto overflow-hidden bg-gradient-to-br from-blue-50 to-purple-50">
+                                        <img
+                                            src="https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=300&h=400&fit=crop&crop=faces"
+                                            alt="BS. Trần Minh Tuấn"
+                                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                        />
+                                    </div>
+
+                                    {/* Doctor Info - Right */}
+                                    <div className="p-6 flex-1">
+                                        <div className="mb-3">
+                                            <span className="inline-block bg-primary-100 text-primary-700 px-3 py-1 rounded-full text-xs font-semibold">
+                                                BS.
+                                            </span>
+                                        </div>
+                                        <h3 className="text-xl font-bold text-gray-900 mb-3">Trần Minh Tuấn</h3>
+                                        <ul className="text-sm text-gray-600 space-y-2 mb-4">
+                                            <li>• Bác sĩ răng hàm mặt</li>
+                                            <li>• Tốt nghiệp ĐH Y Dược TP.HCM (2010)</li>
+                                            <li>• Chứng chỉ Cấy ghép Implant - Đức (2015)</li>
+                                            <li>• 12+ năm kinh nghiệm lâm sàng</li>
+                                            <li>• Chuyên về: Cấy ghép Implant, Phục hồi răng</li>
+                                        </ul>
+                                        <button className="text-primary-600 font-semibold hover:text-primary-700 text-sm">
+                                            Xem chi tiết →
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </SwiperSlide>
+
+                        {/* Doctor 4 - Horizontal Card */}
+                        <SwiperSlide>
+                            <div className="bg-white rounded-2xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 group h-full">
+                                <div className="flex flex-col sm:flex-row h-full">
+                                    {/* Doctor Photo - Left */}
+                                    <div className="relative w-full sm:w-48 h-64 sm:h-auto overflow-hidden bg-gradient-to-br from-blue-50 to-purple-50">
+                                        <img
+                                            src="https://images.unsplash.com/photo-1638202993928-7267aad84c31?w=300&h=400&fit=crop&crop=faces"
+                                            alt="BS. Lê Thị Mai"
+                                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                        />
+                                    </div>
+
+                                    {/* Doctor Info - Right */}
+                                    <div className="p-6 flex-1">
+                                        <div className="mb-3">
+                                            <span className="inline-block bg-primary-100 text-primary-700 px-3 py-1 rounded-full text-xs font-semibold">
+                                                BS.
+                                            </span>
+                                        </div>
+                                        <h3 className="text-xl font-bold text-gray-900 mb-3">Lê Thị Mai</h3>
+                                        <ul className="text-sm text-gray-600 space-y-2 mb-4">
+                                            <li>• Bác sĩ răng hàm mặt</li>
+                                            <li>• Tốt nghiệp ĐH Y Phạm Ngọc Thạch (2015)</li>
+                                            <li>• Chứng chỉ Nha khoa trẻ em - Singapore (2019)</li>
+                                            <li>• 7+ năm kinh nghiệm lâm sàng</li>
+                                            <li>• Chuyên về: Nha khoa trẻ em, Dự phòng răng miệng</li>
+                                        </ul>
+                                        <button className="text-primary-600 font-semibold hover:text-primary-700 text-sm">
+                                            Xem chi tiết →
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </SwiperSlide>
+                    </Swiper>
+
+                    {/* View All Doctors CTA */}
                     <div className="text-center mt-12">
-                        <a
-                            href="#services"
-                            className="inline-flex items-center gap-2 px-8 py-4 border-2 border-primary-600 text-primary-600 rounded-lg font-semibold hover:bg-primary-50 transition-all"
-                        >
-                            Xem tất cả dịch vụ
+                        <button className="inline-flex items-center gap-2 px-8 py-4 bg-primary-600 text-white rounded-lg font-semibold hover:bg-primary-700 transition-all shadow-md hover:shadow-lg">
+                            Xem tất cả bác sĩ
                             <span>→</span>
-                        </a>
+                        </button>
                     </div>
                 </div>
             </section>
 
             {/* Booking Section */}
-            <section id="booking" className="py-16 bg-gradient-to-br from-blue-50 to-purple-50">
+            {/* <section id="booking" className="py-16 bg-gradient-to-br from-blue-50 to-purple-50">
                 <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="text-center mb-12">
                         <h2 className="text-4xl font-bold text-gray-900 mb-4">Đặt Lịch Khám</h2>
@@ -542,10 +722,10 @@ const HomeContent = () => {
                         </form>
                     </div>
                 </div>
-            </section>
+            </section > */}
 
             {/* Why Choose Us Section */}
-            <section id="about" className="py-16 bg-white">
+            < section id="about" className="py-16 bg-white" >
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="text-center mb-12">
                         <h2 className="text-4xl font-bold text-gray-900 mb-4">Tại Sao Chọn Chúng Tôi</h2>
@@ -578,10 +758,10 @@ const HomeContent = () => {
                         })}
                     </div>
                 </div>
-            </section>
+            </section >
 
             {/* Contact Section */}
-            <section id="contact" className="py-16 bg-primary-600 text-white">
+            < section id="contact" className="py-16 bg-primary-600 text-white" >
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="grid md:grid-cols-2 gap-12 items-center">
                         <div>
@@ -650,8 +830,8 @@ const HomeContent = () => {
                         </div>
                     </div>
                 </div>
-            </section>
-        </div>
+            </section >
+        </div >
     );
 };
 

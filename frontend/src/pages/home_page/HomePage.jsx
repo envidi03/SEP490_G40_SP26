@@ -1,6 +1,6 @@
-import HomeNavbar from '../../components/layout/home_page/HomeNavbar';
-import HomeFooter from '../../components/layout/home_page/HomeFooter';
-import HomeContent from '../../components/layout/home_page/HomeContent';
+import HomeNavbar from '../../components/features/home/HomeNavbar';
+import HomeFooter from '../../components/features/home/HomeFooter';
+import HomeContent from '../../components/features/home/HomeContent';
 
 const HomePage = () => {
 
