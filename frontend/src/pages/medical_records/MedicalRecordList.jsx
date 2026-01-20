@@ -1,24 +1,28 @@
 import React, { useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Search, Filter } from 'lucide-react';
 import Card from '../../components/ui/Card';
 import { mockAppointments } from '../../utils/mockData';
 import { useAuth } from '../../contexts/AuthContext';
 import MedicalRecordTable from './components/MedicalRecordTable';
 import AppointmentDetailModal from '../appointments/components/AppointmentDetailModal';
+import CreateRecordModal from './components/CreateRecordModal';
 
 const MedicalRecordList = () => {
     const { user } = useAuth();
-    const navigate = useNavigate();
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedAppointment, setSelectedAppointment] = useState(null);
     const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+
+    // Create Record Modal State
+    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    const [selectedAppointmentForCreate, setSelectedAppointmentForCreate] = useState(null);
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     // Filter completed appointments for the logged-in doctor
     const completedAppointments = useMemo(() => {
         return mockAppointments.filter(apt =>
             apt.doctor_id === user?.id &&
-            (apt.status === 'Completed' || apt.status === 'Confirmed') // Showing Confirmed too for demo, usually 'Completed'
+            (apt.status === 'Completed' || apt.status === 'Confirmed')
         );
     }, [user]);
 
@@ -35,7 +39,38 @@ const MedicalRecordList = () => {
     };
 
     const handleCreateRecord = (appointment) => {
-        navigate(`/dentist/patients/${appointment.patient_id}/create-record`);
+        setSelectedAppointmentForCreate(appointment);
+        setIsCreateModalOpen(true);
+    };
+
+    const handleCloseCreateModal = () => {
+        setIsCreateModalOpen(false);
+        setSelectedAppointmentForCreate(null);
+    };
+
+    const handleSubmitRecord = async (formData) => {
+        setIsSubmitting(true);
+        try {
+            // Simulate API call
+            console.log('Creating record for appointment:', selectedAppointmentForCreate.id);
+            console.log('Data:', {
+                ...formData,
+                patient_id: selectedAppointmentForCreate.patient_id,
+                doctor_id: user.id,
+                appointment_id: selectedAppointmentForCreate.id
+            });
+
+            // Simulate delay
+            await new Promise(resolve => setTimeout(resolve, 1000));
+
+            alert('Tạo hồ sơ thành công!');
+            handleCloseCreateModal();
+        } catch (error) {
+            console.error('Error creating record:', error);
+            alert('Có lỗi xảy ra');
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     return (
@@ -83,11 +118,20 @@ const MedicalRecordList = () => {
                 />
             </Card>
 
-            {/* Detail Modal */}
+            {/* Detail Modal (View Only) */}
             <AppointmentDetailModal
                 isOpen={isDetailModalOpen}
                 onClose={() => setIsDetailModalOpen(false)}
                 appointment={selectedAppointment}
+            />
+
+            {/* Create Record Modal (Side-by-Side) */}
+            <CreateRecordModal
+                isOpen={isCreateModalOpen}
+                onClose={handleCloseCreateModal}
+                appointment={selectedAppointmentForCreate}
+                onSubmit={handleSubmitRecord}
+                isSubmitting={isSubmitting}
             />
         </div>
     );
