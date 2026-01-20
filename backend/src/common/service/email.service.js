@@ -15,7 +15,7 @@ class EmailService {
     }
 
     async sendEmailVerificationEmail(email, verificationToken, userName = '') {
-        const verificationLink = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/verify-email?token=${verificationToken}`;
+        const verificationLink = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/verify-email?token=${verificationToken}`;
         const subject = 'Verify Your Email - Dental Clinic Management System';
         const html = `
             <!DOCTYPE html>

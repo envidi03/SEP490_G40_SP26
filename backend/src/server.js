@@ -5,7 +5,7 @@ require('dotenv').config();
 // ============ SERVER CONFIGURATION ============
 
 const PORT = process.env.PORT || 5000;
-const HOST = process.env.HOST || 'localhost';
+const HOST = '0.0.0.0'; // Required for Render deployment
 
 // ============ START SERVER ============
 
