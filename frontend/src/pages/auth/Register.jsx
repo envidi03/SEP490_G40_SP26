@@ -7,7 +7,8 @@ import { UserPlus, User, Mail, Lock, Phone, Eye, EyeOff } from 'lucide-react';
 
 const Register = () => {
     const [formData, setFormData] = React.useState({
-        name: '',
+        username: '',
+        fullName: '',
         email: '',
         phone: '',
         password: '',
@@ -27,6 +28,33 @@ const Register = () => {
         });
     };
 
+    // Password validation regex - must match backend requirements
+    const validatePassword = (password) => {
+        const errors = [];
+
+        if (password.length < 8) {
+            errors.push('Mật khẩu phải có ít nhất 8 ký tự');
+        }
+
+        if (!/[a-z]/.test(password)) {
+            errors.push('Phải có ít nhất 1 chữ thường');
+        }
+
+        if (!/[A-Z]/.test(password)) {
+            errors.push('Phải có ít nhất 1 chữ hoa');
+        }
+
+        if (!/\d/.test(password)) {
+            errors.push('Phải có ít nhất 1 số');
+        }
+
+        if (!/[@$!%*?&]/.test(password)) {
+            errors.push('Phải có ít nhất 1 ký tự đặc biệt (@$!%*?&)');
+        }
+
+        return errors;
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
@@ -37,18 +65,35 @@ const Register = () => {
             return;
         }
 
-        if (formData.password.length < 6) {
-            setError('Mật khẩu phải có ít nhất 6 ký tự');
+        // Validate password format (match backend requirements)
+        const passwordErrors = validatePassword(formData.password);
+        if (passwordErrors.length > 0) {
+            setError(passwordErrors.join('. '));
             return;
         }
 
         setLoading(true);
 
-        // Simulate API call
-        setTimeout(() => {
-            setStep('success');
+        try {
+            // TODO: Replace with actual API call
+            // const response = await authService.register({
+            //     username: formData.username,
+            //     full_name: formData.fullName,
+            //     email: formData.email,
+            //     phone_number: formData.phone,
+            //     password: formData.password
+            // });
+
+            // Simulate API call for now
+            setTimeout(() => {
+                setStep('success');
+                setLoading(false);
+            }, 1000);
+
+        } catch (err) {
+            setError(err.response?.data?.message || 'Đăng ký thất bại. Vui lòng thử lại.');
             setLoading(false);
-        }, 1000);
+        }
     };
 
     return (
@@ -72,16 +117,34 @@ const Register = () => {
 
                                 {/* Form */}
                                 <form onSubmit={handleSubmit} className="space-y-4">
+                                    {/* Username */}
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                                            <User size={16} className="inline mr-1" />
+                                            Tên đăng nhập
+                                        </label>
+                                        <Input
+                                            type="text"
+                                            name="username"
+                                            value={formData.username}
+                                            onChange={handleChange}
+                                            placeholder="username123"
+                                            required
+                                            className="w-full"
+                                        />
+                                        <p className="text-xs text-gray-500 mt-1">Tên đăng nhập để đăng nhập hệ thống</p>
+                                    </div>
+
                                     {/* Full Name */}
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-2">
                                             <User size={16} className="inline mr-1" />
-                                            Họ và tên
+                                            Họ và tên đầy đủ
                                         </label>
                                         <Input
                                             type="text"
-                                            name="name"
-                                            value={formData.name}
+                                            name="fullName"
+                                            value={formData.fullName}
                                             onChange={handleChange}
                                             placeholder="Nguyễn Văn A"
                                             required
@@ -135,7 +198,7 @@ const Register = () => {
                                                 name="password"
                                                 value={formData.password}
                                                 onChange={handleChange}
-                                                placeholder="Ít nhất 6 ký tự"
+                                                placeholder="Ít nhất 8 ký tự"
                                                 required
                                                 className="w-full pr-10"
                                             />
@@ -147,6 +210,9 @@ const Register = () => {
                                                 {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                                             </button>
                                         </div>
+                                        <p className="text-xs text-gray-500 mt-1">
+                                            Phải có chữ hoa, chữ thường, số và ký tự đặc biệt (@$!%*?&)
+                                        </p>
                                     </div>
 
                                     {/* Confirm Password */}

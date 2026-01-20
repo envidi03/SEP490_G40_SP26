@@ -1,7 +1,5 @@
-import React from 'react';
-
-import TopBarNav from './TopBarNav';
-import MainNavigation from './MainNavigation';
+import TopBarNav from './components/TopBarNav';
+import MainNavigation from './components/MainNavigation';
 
 const HomeNavbar = () => {
     return (
@@ -16,4 +14,4 @@ const HomeNavbar = () => {
     );
 };
 
-export default HomeNavbar;
+export default HomeNavbar;  

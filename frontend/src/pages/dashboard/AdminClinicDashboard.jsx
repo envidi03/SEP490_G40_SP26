@@ -3,6 +3,7 @@ import { Users, Calendar, DollarSign, ClipboardList, TrendingUp, Activity } from
 import Card from '../../components/ui/Card';
 import Badge from '../../components/ui/Badge';
 import { mockPatients, mockAppointments, mockInvoices } from '../../utils/mockData';
+import { formatDate } from '../../utils/dateUtils';
 
 const StatCard = ({ icon: Icon, title, value, trend, color }) => (
     <Card className="hover:shadow-lg transition-shadow">
@@ -81,7 +82,7 @@ const AdminClinicDashboard = () => {
                             <div key={apt.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
                                 <div>
                                     <p className="font-medium text-gray-900">{apt.patientName}</p>
-                                    <p className="text-sm text-gray-600">{apt.date} - {apt.time}</p>
+                                    <p className="text-sm text-gray-600">{formatDate(apt.date)} - {apt.time}</p>
                                     <p className="text-xs text-gray-500 mt-1">{apt.doctorName}</p>
                                 </div>
                                 <Badge variant={apt.status === 'Confirmed' ? 'success' : 'warning'}>
@@ -102,7 +103,7 @@ const AdminClinicDashboard = () => {
                             <div key={inv.id} className="flex justify-between items-center p-3 bg-red-50 rounded-lg border border-red-100">
                                 <div>
                                     <p className="font-medium text-gray-900">{inv.patientName}</p>
-                                    <p className="text-sm text-gray-600">{inv.date}</p>
+                                    <p className="text-sm text-gray-600">{formatDate(inv.date)}</p>
                                 </div>
                                 <div className="text-right">
                                     <p className="font-semibold text-red-600">

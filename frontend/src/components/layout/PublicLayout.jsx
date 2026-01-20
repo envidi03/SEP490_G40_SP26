@@ -1,5 +1,6 @@
-import HomeNavbar from '../features/home/HomeNavbar';
-import HomeFooter from '../features/home/HomeFooter';
+import HomeFooter from "../features/home/HomeFooter";
+import HomeNavbar from "../features/home/HomeNavbar";
+
 
 const PublicLayout = ({ children }) => {
     return (
@@ -14,6 +15,6 @@ const PublicLayout = ({ children }) => {
             <HomeFooter />
         </div>
     );
-};
+}
 
 export default PublicLayout;

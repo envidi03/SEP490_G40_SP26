@@ -29,7 +29,7 @@ const Table = ({ columns, data, onRowClick }) => {
                         <tr
                             key={rowIndex}
                             onClick={() => onRowClick && onRowClick(row)}
-                            className={onRowClick ? 'hover:bg-gray-50 cursor-pointer transition-all duration-200 hover:scale-[1.01]' : 'transition-colors hover:bg-gray-50'}
+                            className={onRowClick ? 'hover:bg-gray-50 cursor-pointer transition-colors' : ''}
                         >
                             {columns.map((column, colIndex) => (
                                 <td key={colIndex} className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">

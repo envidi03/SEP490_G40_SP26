@@ -1,8 +1,9 @@
-import React from 'react';
-import { AuthProvider } from './contexts/AuthContext';
-import AppRoutes from './routes';
+import { AuthProvider } from "./contexts/AuthContext";
+import AppRoutes from "./routes/index.jsx";
+
 
 function App() {
+
   return (
     <AuthProvider>
       <AppRoutes />
