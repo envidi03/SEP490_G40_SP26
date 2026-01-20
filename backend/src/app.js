@@ -26,7 +26,35 @@ if (process.env.NODE_ENV !== 'production') {
     app.use(morgan('combined'));
 }
 
+// Swagger Documentation
+const swaggerDocs = require('./config/swagger');
+swaggerDocs(app);
 
+/**
+ * @swagger
+ * /health:
+ *   get:
+ *     summary: Health check endpoint
+ *     description: Check if the server is running
+ *     tags: [Health]
+ *     responses:
+ *       200:
+ *         description: Server is running
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Server is running
+ *                 timestamp:
+ *                   type: string
+ *                   format: date-time
+ */
 app.get('/health', (req, res) => {
     res.status(200).json({
         status: 'success',
