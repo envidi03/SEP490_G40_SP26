@@ -1,22 +1,22 @@
-"use client"
+
 
 import { useState } from "react"
 import { mockPatients, mockAppointments } from "../../utils/mockData"
 import { useAuth } from "../../contexts/AuthContext"
-import PatientSearchBar from "./components/PatientSearchBar"
-import PatientStatsSection from "./components/PatientStatsSection"
-import PatientTableSection from "./components/PatientTableSection"
-import PatientDetailModal from "./components/PatientDetailModal"
+import PatientSearchBar from "./components/dentist/PatientSearchBar"
+import PatientStatsSection from "./components/dentist/PatientStatsSection"
+import PatientTableSection from "./components/dentist/PatientTableSection"
+import PatientDetailModal from "./components/dentist/PatientDetailModal"
 
-const DoctorPatientList = () => {
+const DentistPatientList = () => {
   const { user } = useAuth()
   const [searchTerm, setSearchTerm] = useState("")
   const [filterStatus, setFilterStatus] = useState("all")
   const [selectedPatient, setSelectedPatient] = useState(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
 
-  const doctorAppointments = mockAppointments.filter((apt) => apt.doctorId === user?.id)
-  const patientIds = new Set(doctorAppointments.map((apt) => apt.patientId))
+  const doctorAppointments = mockAppointments.filter((apt) => apt.doctor_id === user?.id)
+  const patientIds = new Set(doctorAppointments.map((apt) => apt.patient_id))
 
   // Get patients who have appointments with this doctor
   const doctorPatients = mockPatients.filter((p) => patientIds.has(p.id))
@@ -75,4 +75,4 @@ const DoctorPatientList = () => {
   )
 }
 
-export default DoctorPatientList
+export default DentistPatientList

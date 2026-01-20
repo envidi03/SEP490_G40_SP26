@@ -1,8 +1,9 @@
 import DashboardLayout from '../components/layout/DashboardLayout';
 import ProtectedRoute from './guards/ProtectedRoute';
-import PatientList from '../pages/patients/PatientList';
 import PatientDetail from '../pages/patients/PatientDetail';
 import MedicalRecords from '../pages/patients/MedicalRecords';
+import DentistPatientList from '../pages/patients/DentistPatientList';
+import PatientList from '../pages/patients/PatientList';
 
 // Patient management routes
 const patientRoutes = [
@@ -12,6 +13,16 @@ const patientRoutes = [
             <ProtectedRoute>
                 <DashboardLayout>
                     <PatientList />
+                </DashboardLayout>
+            </ProtectedRoute>
+        )
+    },
+    {
+        path: '/dentist-patients',
+        element: (
+            <ProtectedRoute>
+                <DashboardLayout>
+                    <DentistPatientList />
                 </DashboardLayout>
             </ProtectedRoute>
         )
