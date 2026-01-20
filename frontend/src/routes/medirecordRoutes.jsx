@@ -13,6 +13,26 @@ const medirecordRoutes = [
                 </DashboardLayout>
             </ProtectedRoute>
         )
+    },
+    {
+        path: '/dentist/approvals',
+        element: (
+            <ProtectedRoute>
+                <DashboardLayout>
+                    <MedicalRecordApproval />
+                </DashboardLayout>
+            </ProtectedRoute>
+        )
+    },
+    {
+        path: '/dentist/approvals/:id',
+        element: (
+            <ProtectedRoute>
+                <DashboardLayout>
+                    <MedicalRecordApprovalDetail />
+                </DashboardLayout>
+            </ProtectedRoute>
+        )
     }
 ];
 

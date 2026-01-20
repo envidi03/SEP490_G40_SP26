@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import {
     LayoutDashboard, Users, Calendar, ClipboardList,
     DollarSign, Pill, Wrench, FileText, Settings,
-    UserCog
+    UserCog, FileCheck
 } from 'lucide-react';
 import clsx from 'clsx';
 
@@ -30,6 +30,7 @@ const Sidebar = ({ role }) => {
             { path: '/medicines', icon: Pill, label: 'Thuốc' },
             { path: '/leave-requests', icon: Calendar, label: 'Xin nghỉ phép' },
             { path: '/dentist/medical-records', icon: FileText, label: 'Hồ sơ Bệnh án' },
+            { path: '/dentist/approvals', icon: FileCheck, label: 'Duyệt Hồ sơ Bệnh án' },
         ],
         Receptionist: [
             { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
