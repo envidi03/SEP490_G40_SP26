@@ -7,4 +7,4 @@ class DeleteSuccess {
   }
 }
 
-export default DeleteSuccess;
+module.exports = DeleteSuccess;

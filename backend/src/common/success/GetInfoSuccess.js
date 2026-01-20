@@ -1,5 +1,5 @@
 // responses/success/GetInfoSuccess.js
-import BaseSuccess from "./BaseSuccess";
+const BaseSuccess = require('./BaseSuccess');
 
 class GetInfoSuccess extends BaseSuccess {
   constructor(data, message = "Get information success") {
@@ -11,4 +11,4 @@ class GetInfoSuccess extends BaseSuccess {
   }
 }
 
-export default GetInfoSuccess;
+module.exports = GetInfoSuccess;
