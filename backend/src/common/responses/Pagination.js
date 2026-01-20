@@ -7,5 +7,4 @@ class Pagination {
     this.totalPages = Math.ceil(totalItems / size);
   }
 }
-
-export default Pagination;
+module.exports = Pagination;
