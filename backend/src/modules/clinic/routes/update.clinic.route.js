@@ -7,9 +7,6 @@ const clinicController = require('../controllers/clinic.controller');
 /**
  * 
  */
-router.patch('/', auth.authenticate, auth.authorize("ADMIN_CLINIC"), clinicController.updateClinic);
-
-// get all clinics
-router.get('/', auth.authenticate, auth.authorize("ADMIN_CLINIC"), clinicController.getInforClinics);
+router.patch('/:clinicId', auth.authenticate, auth.authorize("ADMIN_CLINIC"), clinicController.updateClinic);
 
 module.exports = router;
