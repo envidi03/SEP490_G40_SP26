@@ -3,7 +3,10 @@ const logger = require('../../../common/utils/logger');
 const Clinic = require('../models/clinic.model');
 const getInforClinics = async (id) => {
     try {
-        logger.debug('Fetching clinic data for ID:', id);
+        if (!id) {
+            logger.warn('No clinic ID provided to getInforClinics service');
+            return null;
+        }
         const clinic = await Clinic.findById(id).select('-__v -createdAt -updatedAt');
         logger.debug('Clinic data in service:', JSON.stringify(clinic));
         return clinic;
