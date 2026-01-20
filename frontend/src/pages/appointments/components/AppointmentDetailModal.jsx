@@ -17,16 +17,16 @@ const AppointmentDetailModal = ({ isOpen, onClose, appointment }) => {
     return colorMap[status] || "default"
   }
 
-//   const calculateAge = (dob) => {
-//     const today = new Date()
-//     const birthDate = new Date(dob)
-//     let age = today.getFullYear() - birthDate.getFullYear()
-//     const monthDiff = today.getMonth() - birthDate.getMonth()
-//     if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-//       age--
-//     }
-//     return age
-//   }
+  //   const calculateAge = (dob) => {
+  //     const today = new Date()
+  //     const birthDate = new Date(dob)
+  //     let age = today.getFullYear() - birthDate.getFullYear()
+  //     const monthDiff = today.getMonth() - birthDate.getMonth()
+  //     if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+  //       age--
+  //     }
+  //     return age
+  //   }
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Chi tiết lịch hẹn" size="lg">
@@ -113,7 +113,7 @@ const AppointmentDetailModal = ({ isOpen, onClose, appointment }) => {
         {/* Action Buttons */}
         <div className="flex gap-3 pt-4 border-t border-gray-200">
           <Button variant="primary" className="flex-1">
-            Bắt đầu khám
+            Tạo hồ sơ nha khoa
           </Button>
           <Button variant="outline" className="flex-1 bg-transparent">
             Xác nhận

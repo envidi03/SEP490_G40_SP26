@@ -122,7 +122,10 @@ const PatientDetailModal = ({ patient, doctorAppointments, onClose }) => {
 
           {/* Action Buttons */}
           <div className="flex gap-3 pt-4 border-t border-gray-200">
-            <button className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium">
+            <button
+              onClick={() => window.location.href = `/dentist/patients/${patient.id}/create-record`}
+              className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+            >
               Tạo phiếu khám
             </button>
             <button className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium">

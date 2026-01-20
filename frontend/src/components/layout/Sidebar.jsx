@@ -29,6 +29,7 @@ const Sidebar = ({ role }) => {
             { path: '/treatments', icon: ClipboardList, label: 'Điều trị' },
             { path: '/medicines', icon: Pill, label: 'Thuốc' },
             { path: '/leave-requests', icon: Calendar, label: 'Xin nghỉ phép' },
+            { path: '/dentist/medical-records', icon: FileText, label: 'Hồ sơ Bệnh án' },
         ],
         Receptionist: [
             { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },

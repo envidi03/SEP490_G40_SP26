@@ -10,6 +10,7 @@ import medicineRoutes from './medicineRoutes';
 import equipmentRoutes from './equipmentRoutes';
 import userRoutes from './userRoutes';
 import leavereqRoutes from './leavereqRoutes';
+import medirecordRoutes from './medirecordRoutes';
 
 // Import error pages
 import Unauthorized from '../pages/error/Unauthorized';
@@ -63,6 +64,12 @@ const AppRoutes = () => {
                 {leavereqRoutes.map((route, index) => (
                     <Route key={`leavereq-${index}`} path={route.path} element={route.element} />
                 ))}
+
+                {/* Medical Record Routes */}
+                {medirecordRoutes.map((route, index) => (
+                    <Route key={`medirecord-${index}`} path={route.path} element={route.element} />
+                ))}
+
 
                 {/* Error Pages */}
                 <Route path="/unauthorized" element={<Unauthorized />} />
