@@ -2,6 +2,7 @@ import HomePage from '../../pages/home_page/HomePage';
 import Register from '../../pages/auth/Register';
 import Login from '../../pages/auth/Login';
 import PublicRoute from '../guards/PublicRoute';
+import VerifyEmail from '../../pages/auth/VerifyEmail';
 
 
 // Public routes - accessible without authentication
@@ -25,7 +26,15 @@ const publicRoutes = [
                 <Register />
             </PublicRoute>
         )
-    }
+    },
+    {
+        path: '/verify-email',
+        element: (
+            <PublicRoute>
+                <VerifyEmail />
+            </PublicRoute>
+        )
+    },
 ];
 
 export default publicRoutes;
