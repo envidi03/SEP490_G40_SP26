@@ -3,6 +3,7 @@ import Register from '../../pages/auth/Register';
 import Login from '../../pages/auth/Login';
 import PublicRoute from '../guards/PublicRoute';
 import VerifyEmail from '../../pages/auth/VerifyEmail';
+import ForgotPassword from '../../pages/auth/ForgotPassword';
 
 
 // Public routes - accessible without authentication
@@ -32,6 +33,15 @@ const publicRoutes = [
         element: (
             <PublicRoute>
                 <VerifyEmail />
+            </PublicRoute>
+        )
+    },
+    ,
+    {
+        path: '/forgot-password',
+        element: (
+            <PublicRoute>
+                <ForgotPassword />
             </PublicRoute>
         )
     },
