@@ -7,6 +7,7 @@ import DentistPatientList from '../../pages/patients/DentistPatientList';
 import LeaveRequestList from '../../pages/leave_requests/LeaveRequestList';
 import MedicalRecordList from '../../pages/medical_records/MedicalRecordList';
 import MedicalRecordApprovalList from '../../pages/medical_records/MedicalRecordApprovalList';
+import AssistantLeaveRequests from '../../pages/leave_requests/AssistantLeaveRequests/AssistantLeaveRequests';
 
 const dashboardRoutes = [
     {
@@ -65,6 +66,16 @@ const dashboardRoutes = [
             <ProtectedRoute allowedRoles={['DOCTOR']}>
                 <DashboardLayout>
                     <MedicalRecordApprovalList />
+                </DashboardLayout>
+            </ProtectedRoute>
+        )
+    },
+    {
+        path: '/dentist/assistant-leave-requests',
+        element: (
+            <ProtectedRoute allowedRoles={['DOCTOR']}>
+                <DashboardLayout>
+                    <AssistantLeaveRequests />
                 </DashboardLayout>
             </ProtectedRoute>
         )

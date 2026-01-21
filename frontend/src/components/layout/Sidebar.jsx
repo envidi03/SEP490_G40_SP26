@@ -39,6 +39,7 @@ const Sidebar = ({ role }) => {
             { path: '/dentist/medical-records', icon: FileText, label: 'Hồ Sơ' },
             { path: '/dentist/medical-record-approvals', icon: ClipboardCheck, label: 'Phê duyệt HS' },
             { path: '/dentist/leave-requests', icon: Briefcase, label: 'Nghỉ Phép' },
+            { path: '/dentist/assistant-leave-requests', icon: UserCog, label: 'NP Trợ Lý' },
         ],
         RECEPTIONIST: [
             { path: '/receptionist/dashboard', icon: LayoutDashboard, label: 'Dashboard' },

@@ -805,6 +805,30 @@ export const mockLeaveRequests = [
         createdAt: '2026-01-20',
         approvedBy: '67890abc12345def67890001',
         approvedAt: '2026-01-20'
+    },
+    {
+        id: 'leave_006',
+        user_id: '67890abc12345def67890010', // Võ Thị Lan (Assistant)
+        type: 'PERSONAL_LEAVE',
+        startDate: '2026-02-15',
+        endDate: '2026-02-16',
+        reason: 'Có việc gia đình',
+        status: 'PENDING',
+        createdAt: '2026-01-21',
+        approvedBy: null,
+        approvedAt: null
+    },
+    {
+        id: 'leave_007',
+        user_id: '67890abc12345def67890010', // Võ Thị Lan (Assistant)
+        type: 'ANNUAL_LEAVE',
+        startDate: '2026-03-01',
+        endDate: '2026-03-05',
+        reason: 'Đi du lịch cùng gia đình',
+        status: 'PENDING',
+        createdAt: '2026-01-21',
+        approvedBy: null,
+        approvedAt: null
     }
 ];
 
@@ -958,6 +982,32 @@ export const getMedicalRecordsPendingApproval = (doctorId) => {
                 creatorName: creator?.full_name || 'Unknown'
             };
         });
+};
+
+/**
+ * Get leave requests from assistants (for doctor to approve)
+ * @returns {Array} List of leave requests from assistants
+ */
+export const getAssistantLeaveRequests = () => {
+    // Find all users with role Assistant
+    const assistantIds = mockUsers
+        .filter(u => {
+            const account = mockAccounts.find(a => a.id === u.account_id);
+            return account && account.role_id === 'role_006'; // Assistant role
+        })
+        .map(u => u.id);
+
+    return mockLeaveRequests
+        .filter(req => assistantIds.includes(req.user_id))
+        .map(req => {
+            const user = mockUsers.find(u => u.id === req.user_id);
+            return {
+                ...req,
+                userName: user?.full_name || 'Unknown',
+                userEmail: user?.email || ''
+            };
+        })
+        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 };
 
 /**
