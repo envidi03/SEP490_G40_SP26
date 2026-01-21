@@ -23,7 +23,7 @@ const DoctorDashboard = () => {
     const { user } = useAuth();
 
     // Filter appointments for current doctor
-    const myAppointments = mockAppointments.filter(apt => apt.doctorId === user?.id);
+    const myAppointments = mockAppointments.filter(apt => apt.doctor_id === user?.id);
     const todayAppointments = myAppointments.filter(apt => apt.date === '2026-01-15');
     const pending = todayAppointments.filter(apt => apt.status === 'Pending');
     const confirmed = todayAppointments.filter(apt => apt.status === 'Confirmed');
@@ -60,7 +60,7 @@ const DoctorDashboard = () => {
         <div>
             <div className="mb-8">
                 <h1 className="text-3xl font-bold text-gray-900">Dashboard Bác Sĩ</h1>
-                <p className="text-gray-600 mt-1">Chào mừng, {user?.name}</p>
+                <p className="text-gray-600 mt-1">Chào mừng, {user?.full_name}</p>
             </div>
 
             {/* Stats Grid */}
@@ -140,16 +140,6 @@ const DoctorDashboard = () => {
                             <div>
                                 <p className="font-medium text-gray-900">Xem lịch làm việc</p>
                                 <p className="text-sm text-gray-600">Quản lý lịch hẹn tuần này</p>
-                            </div>
-                        </button>
-                        <button
-                            onClick={() => window.location.href = '/doctor/leave-requests'}
-                            className="w-full p-4 bg-red-50 hover:bg-red-100 rounded-lg text-left transition-colors flex items-center"
-                        >
-                            <Calendar size={24} className="text-red-600 mr-3" />
-                            <div>
-                                <p className="font-medium text-gray-900">Xin nghỉ phép</p>
-                                <p className="text-sm text-gray-600">Tạo đơn xin nghỉ mới</p>
                             </div>
                         </button>
                     </div>

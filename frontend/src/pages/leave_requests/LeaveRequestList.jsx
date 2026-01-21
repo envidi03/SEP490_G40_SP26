@@ -1,6 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Plus } from 'lucide-react';
-import DashboardLayout from '../../components/layout/DashboardLayout';
 import Button from '../../components/ui/Button';
 import Modal from '../../components/ui/Modal';
 import Card from '../../components/ui/Card';
@@ -20,7 +19,12 @@ const LeaveRequestList = () => {
 
     useEffect(() => {
         if (user) {
+            console.log('🔍 LeaveRequestList - User:', user);
+            console.log('🔍 User ID:', user.id);
+            console.log('📋 All Leave Requests:', mockLeaveRequests);
             const userRequests = mockLeaveRequests.filter(req => req.user_id === user.id);
+            console.log('✅ Filtered Leave Requests:', userRequests);
+            console.log('📊 Total requests found:', userRequests.length);
             setRequests(userRequests);
         }
     }, [user]);
