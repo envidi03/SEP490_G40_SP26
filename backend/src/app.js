@@ -84,6 +84,10 @@ app.use('/api/auth', authRoutes);
 const { clinicRoute } = require('./modules/clinic');
 app.use('/api/clinic', clinicRoute);
 
+const { roomRoute } = require('./modules/room');
+app.use('/api/room', roomRoute);
+
+
 // 404 Handler - Must be after all routes
 app.use((req, res, next) => {
     res.status(404).json({

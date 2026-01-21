@@ -11,22 +11,27 @@ const updateClinic = async (req, res) => {
         logger.info('Attempting to update clinic');
         const clinicId = req.params.clinicId;
         const updateData = req.body;
-        logger.debug('Clinic ID:', clinicId);
-        logger.debug('Update data:', JSON.stringify(cleanObjectData(updateData)));
+        
+        // Sửa: Dùng Template Literals để nối chuỗi ID và dữ liệu đã clean
+        logger.debug(`Clinic ID: ${clinicId}`);
+        logger.debug(`Update data: ${JSON.stringify(cleanObjectData(updateData))}`);
 
         // 1. Kiểm tra xem body có dữ liệu không
-        // (Object.keys(obj).length === 0 nghĩa là {} rỗng)
         if (!updateData || Object.keys(updateData).length === 0) {
             throw new AppError.BadRequestError('No update data provided');
         }
+
         // 2. Gọi service để cập nhật clinic
         const updatedClinic = await clinicService.updateClinic(clinicId, cleanObjectData(updateData));
 
-        logger.debug('Updated clinic:', JSON.stringify(updatedClinic));
+        // Sửa: Dùng Template Literals để hiển thị kết quả trả về
+        logger.debug(`Updated clinic: ${JSON.stringify(updatedClinic)}`);
+        
         logger.info(`Clinic ${clinicId} updated successfully`);
         return new successRes.UpdateSuccess(updatedClinic, 'Clinic updated successfully').send(res);
     } catch (error) {
-        logger.error('Error updating clinic:', error);
+        // Sửa: Log chi tiết lỗi message
+        logger.error(`Error updating clinic: ${error.message}`, error);
         throw new errorRes.InternalServerError('An error occurred while updating the clinic');
     }
 };

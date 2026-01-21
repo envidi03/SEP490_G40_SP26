@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const auth = require('./../../../common/middlewares/index');
+const auth = require('../../../common/middlewares/index');
 const clinicController = require('../controllers/clinic.controller');
 
 // update clinic
@@ -143,7 +143,7 @@ const clinicController = require('../controllers/clinic.controller');
  *                 success:
  *                   type: boolean
  *                 statusCode:
- *                   type: integer
+ *                   type: number
  *                 message:
  *                   type: string
  *             example:
@@ -151,7 +151,8 @@ const clinicController = require('../controllers/clinic.controller');
  *               statusCode: 404
  *               message: Clinic not found
  *       409:
- *         description: Xung đột dữ liệu (ví dụ: email hoặc số điện thoại đã tồn tại)
+ *         description: |
+ *           Xung đột dữ liệu (ví dụ: email hoặc số điện thoại đã tồn tại)
  *         content:
  *           application/json:
  *             schema:
