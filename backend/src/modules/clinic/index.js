@@ -2,7 +2,7 @@
 const clinicController = require('./controllers/clinic.controller');
 const clinicService = require('./services/clinic.service');
 const clinicModel = require('./models/clinic.model');
-const clinicRoute = require('./routes/clinic.route');
+const clinicRoute = require('./routes/index.route');
 
 module.exports = {
     clinicController,
