@@ -1,9 +1,9 @@
-// errors/InternalServerError.js
-const BaseError = require("./BaseError");
+const BaseError = require('./BaseError');
 
 class InternalServerError extends BaseError {
-    constructor(message = "Internal server error") {
+    constructor(message = 'Resource not found') {
         super(message, 500);
+        this.name = 'InternalServerError';
     }
 }
 

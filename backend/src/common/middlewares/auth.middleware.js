@@ -1,6 +1,7 @@
 const { verifyToken } = require('../utils/jwt');
 const { UnauthorizedError, ForbiddenError } = require('../errors');
-const { Account } = require('../../modules/auth');
+const  Account = require('../../modules/auth/models/Account.model');
+const logger = require('../utils/logger');
 
 
 const authenticate = async (req, res, next) => {
@@ -25,7 +26,6 @@ const authenticate = async (req, res, next) => {
             }
             throw new UnauthorizedError('Token verification failed');
         }
-
         const account = await Account.findById(decoded.account_id).populate('role_id');
 
         if (!account) {
