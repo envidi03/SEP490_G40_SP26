@@ -1,7 +1,9 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { authenticateUser } from '../../utils/mockData';
+import authService from '../../services/authService';
+import { storage } from '../../services/storage';
+import { getDashboardRoute } from '../../utils/roleConfig';
 import Input from '../../components/ui/Input';
 import Toast from '../../components/ui/Toast';
 import PublicLayout from '../../components/layout/PublicLayout';
@@ -23,43 +25,84 @@ const Login = () => {
         setError('');
         setLoading(true);
 
-        setTimeout(() => {
-            // Use authenticateUser helper which properly checks mockAccounts for username/password
-            // and returns the associated user data with role information
-            const user = authenticateUser(username, password);
+        try {
+            // Call the login API
+            const response = await authService.login(username, password);
 
-            if (user) {
-                // User object from authenticateUser already has role information
-                login(user);
-                setLoading(false);
+            // Backend returns: { status, message, data: { account, user, role, token, refreshToken } }
+            const responseData = response.data || response;
+            const { account, user, role } = responseData;
+
+            if (user && account && role) {
+                // Combine user data with account and role info
+                const userData = {
+                    ...user,
+                    account_id: account.id,
+                    username: account.username,
+                    email: account.email,
+                    status: account.status,
+                    email_verified: account.email_verified,
+                    role: role.name,
+                    role_id: role.id,
+                    permissions: role.permissions
+                };
+
+                // Store user data in storage
+                storage.set('user', userData);
+
+                // Update auth context with user data
+                login(userData);
 
                 // Show success toast
                 setShowToast(true);
 
+                // Debug logging
+                console.log('🎭 Role Name:', role.name);
+                console.log('📍 Calculated Dashboard Route:', getDashboardRoute(role.name));
+
                 // Redirect after showing toast based on role
                 setTimeout(() => {
-                    if (user.role === 'Admin') {
-                        navigate('/admin/dashboard');
-                    } else if (user.role === 'Doctor') {
-                        navigate('/doctor/dashboard');
-                    } else if (user.role === 'Receptionist') {
-                        navigate('/receptionist/dashboard');
-                    } else if (user.role === 'Pharmacy') {
-                        navigate('/pharmacy/dashboard');
-                    } else if (user.role === 'Assistant') {
-                        navigate('/assistant/dashboard');
-                    } else if (user.role === 'Patient') {
-                        navigate('/');
-                    } else {
-                        // Fallback for unknown roles
-                        navigate('/');
-                    }
+                    const dashboardRoute = getDashboardRoute(role.name);
+                    console.log('🚀 Redirecting to:', dashboardRoute);
+                    navigate(dashboardRoute);
                 }, 1500);
             } else {
-                setError('Tên đăng nhập hoặc mật khẩu không đúng');
-                setLoading(false);
+                setError('Không thể lấy thông tin người dùng');
             }
-        }, 800);
+        } catch (error) {
+            console.error('Login error:', error);
+
+            // Handle different types of errors
+            if (error.data) {
+                // API returned an error response
+                const errorMessage = error.data.message || error.data.error;
+
+                switch (error.status) {
+                    case 400:
+                        setError(errorMessage || 'Thông tin đăng nhập không hợp lệ');
+                        break;
+                    case 401:
+                        setError('Tên đăng nhập hoặc mật khẩu không đúng');
+                        break;
+                    case 403:
+                        setError('Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên.');
+                        break;
+                    case 404:
+                        setError('Tài khoản không tồn tại');
+                        break;
+                    default:
+                        setError(errorMessage || 'Đăng nhập thất bại. Vui lòng thử lại.');
+                }
+            } else if (error.request) {
+                // Request was made but no response received
+                setError('Không thể kết nối đến máy chủ. Vui lòng kiểm tra kết nối mạng.');
+            } else {
+                // Something else happened
+                setError('Đã xảy ra lỗi. Vui lòng thử lại.');
+            }
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
@@ -68,7 +111,7 @@ const Login = () => {
             {showToast && (
                 <Toast
                     type="success"
-                    message="Đăng nhập thành công! Chào mừng bạn trở lại."
+                    message="🎉 Đăng nhập thành công! Chào mừng bạn trở lại."
                     onClose={() => setShowToast(false)}
                     duration={3000}
                 />

@@ -4,6 +4,7 @@ import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
 import PublicLayout from '../../components/layout/PublicLayout';
 import { UserPlus, User, Mail, Lock, Phone, Eye, EyeOff } from 'lucide-react';
+import authService from '../../services/authService';
 
 const Register = () => {
     const [formData, setFormData] = React.useState({
@@ -18,7 +19,7 @@ const Register = () => {
     const [showConfirmPassword, setShowConfirmPassword] = React.useState(false);
     const [loading, setLoading] = React.useState(false);
     const [error, setError] = React.useState('');
-    const [step, setStep] = React.useState('form'); // 'form' | 'success'
+    const [step, setStep] = React.useState('form');
     const navigate = useNavigate();
 
     const handleChange = (e) => {
@@ -28,7 +29,6 @@ const Register = () => {
         });
     };
 
-    // Password validation regex - must match backend requirements
     const validatePassword = (password) => {
         const errors = [];
 
@@ -75,16 +75,15 @@ const Register = () => {
         setLoading(true);
 
         try {
-            // TODO: Replace with actual API call
-            // const response = await authService.register({
-            //     username: formData.username,
-            //     full_name: formData.fullName,
-            //     email: formData.email,
-            //     phone_number: formData.phone,
-            //     password: formData.password
-            // });
+            // API call
+            const response = await authService.register({
+                username: formData.username,
+                full_name: formData.fullName,
+                email: formData.email,
+                phone_number: formData.phone,
+                password: formData.password
+            });
 
-            // Simulate API call for now
             setTimeout(() => {
                 setStep('success');
                 setLoading(false);

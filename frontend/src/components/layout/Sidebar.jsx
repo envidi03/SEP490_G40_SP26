@@ -1,0 +1,100 @@
+import { Link, useLocation } from 'react-router-dom';
+import {
+    LayoutDashboard,
+    UserCog,
+    Users,
+    Calendar,
+    ClipboardList,
+    DollarSign,
+    FileText,
+    Pill,
+    Wrench,
+    Package,
+    Clock,
+    Building2,
+    DoorOpen
+} from 'lucide-react';
+import clsx from 'clsx';
+
+const Sidebar = ({ role }) => {
+    const location = useLocation();
+
+
+    const menuItems = {
+        Admin: [
+            { path: '/admin/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+            { path: '/admin/users', icon: UserCog, label: 'Bác sĩ & Trợ lý' },
+            { path: '/admin/rooms', icon: DoorOpen, label: 'Phòng khám' },
+            { path: '/admin/services', icon: ClipboardList, label: 'Dịch vụ' },
+            { path: '/admin/equipment', icon: Wrench, label: 'Thiết bị' },
+            { path: '/admin/medicines', icon: Pill, label: 'Thuốc' },
+            { path: '/admin/clinic-info', icon: Building2, label: 'Thông tin phòng khám' },
+        ],
+        Doctor: [
+            { path: '/doctor/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+            { path: '/doctor/patients', icon: Users, label: 'Bệnh nhân' },
+            { path: '/doctor/appointments', icon: Calendar, label: 'Lịch hẹn' },
+            { path: '/doctor/treatments', icon: ClipboardList, label: 'Điều trị' },
+            { path: '/doctor/medicines', icon: Pill, label: 'Thuốc' },
+        ],
+        Receptionist: [
+            { path: '/receptionist/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+            { path: '/receptionist/patients', icon: Users, label: 'Bệnh nhân' },
+            { path: '/receptionist/appointments', icon: Calendar, label: 'Lịch hẹn' },
+            { path: '/receptionist/invoices', icon: DollarSign, label: 'Hóa đơn' },
+            { path: '/receptionist/services', icon: ClipboardList, label: 'Dịch vụ' },
+            { path: '/receptionist/equipment', icon: Wrench, label: 'Thiết bị' },
+        ],
+        Pharmacy: [
+            { path: '/pharmacy/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+            { path: '/pharmacy/medicines', icon: Pill, label: 'Quản lý thuốc' },
+            { path: '/pharmacy/inventory', icon: Package, label: 'Tồn kho' },
+            { path: '/pharmacy/prescriptions', icon: FileText, label: 'Đơn thuốc' },
+            { path: '/pharmacy/requests', icon: ClipboardList, label: 'Yêu cầu bổ sung' },
+        ],
+        Assistant: [
+            { path: '/assistant/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+            { path: '/assistant/appointments', icon: Calendar, label: 'Lịch Khám' },
+            { path: '/assistant/medical-records', icon: FileText, label: 'Hồ Sơ' },
+            { path: '/assistant/leave-requests', icon: Clock, label: 'Nghỉ Phép' },
+        ],
+    };
+
+    const items = menuItems[role] || menuItems.Admin;
+
+    return (
+        <div className="w-64 bg-gray-900 text-white h-screen fixed left-0 top-0 overflow-y-auto">
+            {/* Logo */}
+            <div className="p-6 border-b border-gray-800">
+                <h1 className="text-2xl font-bold text-primary-400">DCMS</h1>
+                <p className="text-sm text-gray-400 mt-1">Dental Clinic</p>
+            </div>
+
+            {/* Navigation */}
+            <nav className="mt-6">
+                {items.map((item) => {
+                    const Icon = item.icon;
+                    const isActive = location.pathname === item.path;
+
+                    return (
+                        <Link
+                            key={item.path}
+                            to={item.path}
+                            className={clsx(
+                                'flex items-center px-6 py-3 text-sm transition-colors',
+                                isActive
+                                    ? 'bg-primary-600 text-white border-l-4 border-primary-400'
+                                    : 'text-gray-300 hover:bg-gray-800 hover:text-white border-l-4 border-transparent'
+                            )}
+                        >
+                            <Icon size={20} className="mr-3" />
+                            <span className="font-medium">{item.label}</span>
+                        </Link>
+                    );
+                })}
+            </nav>
+        </div>
+    );
+};
+
+export default Sidebar;
