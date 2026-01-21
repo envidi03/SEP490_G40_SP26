@@ -1,42 +1,62 @@
-import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
-    LayoutDashboard, Users, Calendar, ClipboardList,
-    DollarSign, Pill, Wrench, FileText, Settings,
-    UserCog, FileCheck
+    LayoutDashboard,
+    UserCog,
+    Users,
+    Calendar,
+    ClipboardList,
+    DollarSign,
+    FileText,
+    Pill,
+    Wrench,
+    Package,
+    Clock,
+    Building2,
+    DoorOpen
 } from 'lucide-react';
 import clsx from 'clsx';
 
 const Sidebar = ({ role }) => {
     const location = useLocation();
 
+
     const menuItems = {
         Admin: [
-            { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-            { path: '/users', icon: UserCog, label: 'Người dùng' },
-            { path: '/patients', icon: Users, label: 'Bệnh nhân' },
-            { path: '/appointments', icon: Calendar, label: 'Lịch hẹn' },
-            { path: '/treatments', icon: ClipboardList, label: 'Điều trị' },
-            { path: '/invoices', icon: DollarSign, label: 'Hóa đơn' },
-            { path: '/reports', icon: FileText, label: 'Báo cáo' },
-            { path: '/medicines', icon: Pill, label: 'Thuốc' },
-            { path: '/equipment', icon: Wrench, label: 'Thiết bị' },
+            { path: '/admin/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+            { path: '/admin/users', icon: UserCog, label: 'Bác sĩ & Trợ lý' },
+            { path: '/admin/rooms', icon: DoorOpen, label: 'Phòng khám' },
+            { path: '/admin/services', icon: ClipboardList, label: 'Dịch vụ' },
+            { path: '/admin/equipment', icon: Wrench, label: 'Thiết bị' },
+            { path: '/admin/medicines', icon: Pill, label: 'Thuốc' },
+            { path: '/admin/clinic-info', icon: Building2, label: 'Thông tin phòng khám' },
         ],
         Doctor: [
-            { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-            { path: '/dentist-patients', icon: Users, label: 'Bệnh nhân' },
-            { path: '/dentist-appointments', icon: Calendar, label: 'Lịch hẹn' },
-            { path: '/treatments', icon: ClipboardList, label: 'Điều trị' },
-            { path: '/medicines', icon: Pill, label: 'Thuốc' },
-            { path: '/leave-requests', icon: Calendar, label: 'Xin nghỉ phép' },
-            { path: '/dentist/medical-records', icon: FileText, label: 'Hồ sơ Bệnh án' },
-            { path: '/dentist/approvals', icon: FileCheck, label: 'Duyệt Hồ sơ Bệnh án' },
+            { path: '/doctor/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+            { path: '/doctor/patients', icon: Users, label: 'Bệnh nhân' },
+            { path: '/doctor/appointments', icon: Calendar, label: 'Lịch hẹn' },
+            { path: '/doctor/treatments', icon: ClipboardList, label: 'Điều trị' },
+            { path: '/doctor/medicines', icon: Pill, label: 'Thuốc' },
         ],
         Receptionist: [
-            { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-            { path: '/patients', icon: Users, label: 'Bệnh nhân' },
-            { path: '/appointments', icon: Calendar, label: 'Lịch hẹn' },
-            { path: '/invoices', icon: DollarSign, label: 'Hóa đơn' },
+            { path: '/receptionist/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+            { path: '/receptionist/patients', icon: Users, label: 'Bệnh nhân' },
+            { path: '/receptionist/appointments', icon: Calendar, label: 'Lịch hẹn' },
+            { path: '/receptionist/invoices', icon: DollarSign, label: 'Hóa đơn' },
+            { path: '/receptionist/services', icon: ClipboardList, label: 'Dịch vụ' },
+            { path: '/receptionist/equipment', icon: Wrench, label: 'Thiết bị' },
+        ],
+        Pharmacy: [
+            { path: '/pharmacy/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+            { path: '/pharmacy/medicines', icon: Pill, label: 'Quản lý thuốc' },
+            { path: '/pharmacy/inventory', icon: Package, label: 'Tồn kho' },
+            { path: '/pharmacy/prescriptions', icon: FileText, label: 'Đơn thuốc' },
+            { path: '/pharmacy/requests', icon: ClipboardList, label: 'Yêu cầu bổ sung' },
+        ],
+        Assistant: [
+            { path: '/assistant/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+            { path: '/assistant/appointments', icon: Calendar, label: 'Lịch Khám' },
+            { path: '/assistant/medical-records', icon: FileText, label: 'Hồ Sơ' },
+            { path: '/assistant/leave-requests', icon: Clock, label: 'Nghỉ Phép' },
         ],
     };
 
@@ -73,17 +93,6 @@ const Sidebar = ({ role }) => {
                     );
                 })}
             </nav>
-
-            {/* Settings at bottom */}
-            <div className="absolute bottom-0 left-0 right-0 border-t border-gray-800">
-                <Link
-                    to="/settings"
-                    className="flex items-center px-6 py-4 text-sm text-gray-300 hover:bg-gray-800 hover:text-white transition-colors"
-                >
-                    <Settings size={20} className="mr-3" />
-                    <span className="font-medium">Cài đặt</span>
-                </Link>
-            </div>
         </div>
     );
 };
