@@ -95,6 +95,7 @@ const clinicController = require('../controllers/clinic.controller');
  *                   type: string
  *                   example: "Internal Server Error"
  */
-router.get('/:clinicId', auth.authenticate, auth.authorize("ADMIN_CLINIC"), clinicController.getInforClinics);
+// router.get('/:clinicId', auth.authenticate, auth.authorize("ADMIN_CLINIC"), clinicController.getInforClinics);
+router.get('/:clinicId', clinicController.getInforClinics);
 
 module.exports = router;

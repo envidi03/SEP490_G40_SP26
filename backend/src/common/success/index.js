@@ -1,6 +1,8 @@
+const GetDetailSuccess = require("./GetDetailSuccess");
+
 module.exports = {
   BaseSuccess: require("./BaseSuccess"),
-  GetInfoSuccess: require("./GetInfoSuccess"),
+  GetDetailSuccess: require("./GetDetailSuccess"),
   GetListSuccess: require("./GetListSuccess"),
   CreateSuccess: require("./CreateSuccess"),
   UpdateSuccess: require("./UpdateSuccess"),

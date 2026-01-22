@@ -1,7 +1,7 @@
 const logger = require('../../../common/utils/logger');
 const errorRes = require('../../../common/errors');
 const successRes = require('../../../common/success');
-const { default: Pagination } = require('../../../common/responses/Pagination');
+const Pagination = require('../../../common/responses/Pagination');
 const {cleanObjectData} = require('../../../common/utils/cleanObjectData');
 
 const clinicService = require('../services/clinic.service');
@@ -49,7 +49,7 @@ const getInforClinics = async (req, res) => {
             throw new errorRes.NotFoundError('No clinics found');
         }
         logger.debug(`Clinics data retrieved: ${clicic}`);
-        return new successRes.GetInfoSuccess(clicic, 'Clinics retrieved successfully').send(res);
+        return new successRes.GetDetailSuccess(clicic, 'Clinics retrieved successfully').send(res);
     } catch (error) {
         logger.error(`Error getting clinic data: ${error.message}`, {
             stack: error.stack,
