@@ -166,17 +166,12 @@ const updateRoom = async (req, res) => {
     try {
         // Lấy roomId từ params và dữ liệu cập nhật từ body
         const roomId = req.params.roomId;
-
-        logger.debug('Updating room with ID', {
-            context: 'RoomController.updateRoom',
-            roomId
-        });
-
         const updateData = req.body;
 
-        logger.debug('Raw update data from request body', {
+        logger.debug('Room update', {
             context: 'RoomController.updateRoom',
-            updateData
+            id: roomId,
+            dataUpdate: updateData
         });
 
         // remove status from updateData if exists
@@ -187,7 +182,8 @@ const updateRoom = async (req, res) => {
 
         logger.debug('Update data after clean', {
             context: 'RoomController.updateRoom',
-            cleanUpdateData
+            id: roomId,
+            cleanUpdateData: cleanUpdateData
         });
 
         // Kiểm tra xem body có dữ liệu không
@@ -197,6 +193,16 @@ const updateRoom = async (req, res) => {
             });
             throw new errorRes.BadRequestError('No update data provided');
         }
+
+        // check if change room_number, if yes check exists
+        if (cleanUpdateData.room_number && await roomService.checkRoomExistsNotId(cleanUpdateData.room_number, roomId)) {
+            logger.warn('Room number already exists', {
+                context: 'RoomController.updateRoom',
+                room_number: cleanUpdateData.room_number
+            });
+            throw new errorRes.ConflictError(`Room number ${cleanUpdateData.room_number} already exists`);
+        }
+
 
         // Gọi service để cập nhật room
         const updatedRoom = await roomService.updateRoom(roomId, cleanUpdateData);

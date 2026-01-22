@@ -100,6 +100,7 @@ const getRoomById = async (roomId, query) => {
           _id: "$_id",
           room_number: { $first: "$room_number" },
           status: { $first: "$status" },
+          note: { $first: "$note" },
           clinic_id: { $first: "$clinic_id" },
           history_used_filtered: { $push: "$history_used" },
         },
@@ -109,6 +110,7 @@ const getRoomById = async (roomId, query) => {
           room_number: 1,
           status: 1,
           clinic_id: 1,
+          note: 1,
           history_total: { $size: "$history_used_filtered" },
           history_used: {
             $slice: ["$history_used_filtered", skip, historyLimit],
@@ -287,6 +289,12 @@ const createRoom = async (roomData) => {
   }
 };
 
+/**
+ * check room number exists
+ * 
+ * @param {String} roomNumber room number
+ * @returns true if exited, false if not
+ */
 const checkRoomExists = async (roomNumber) => {
   try {
     const room = await Room.findOne({ room_number: roomNumber });
@@ -304,10 +312,38 @@ const checkRoomExists = async (roomNumber) => {
   }
 }
 
+/**
+ * check room number exists but not current room id
+ * 
+ * @param {String} roomNumber room number
+ * @param {ObjectId} currentRoomId _id room
+ * @returns true if exists, false if not
+ */
+const checkRoomExistsNotId = async (roomNumber, currentRoomId) => {
+  try {
+    const room = await Room.findOne({
+      room_number: roomNumber,
+      _id: { $ne: currentRoomId }
+    });
+    return !!room;
+  } catch (error) {
+    logger.error("Error in checkRoomExistsNotId service", {
+      context: "RoomService.checkRoomExistsNotId",
+      message: error.message,
+      stack: error.stack
+    });
+
+    throw new errorRes.InternalServerError(
+      "An error occurred while checking room existence"
+    );
+  }
+}
+
 module.exports = {
   updateRoom,
   getRoomById,
   getRooms,
   createRoom, 
-  checkRoomExists
+  checkRoomExists, 
+  checkRoomExistsNotId
 };

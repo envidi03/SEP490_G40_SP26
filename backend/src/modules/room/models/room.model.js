@@ -33,6 +33,9 @@ const roomSchema = new Schema(
                 }
             }
         ],
+        note: {
+            type: String
+        },
         clinic_id: {
             type: Schema.Types.ObjectId,
             ref: "Clinic", 
