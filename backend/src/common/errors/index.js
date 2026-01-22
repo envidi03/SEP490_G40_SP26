@@ -6,4 +6,5 @@ module.exports = {
     UnauthorizedError: require('./UnauthorizedError'),
     ForbiddenError: require('./ForbiddenError'),
     InternalServerError: require('./InternalServerError'),
+    BadRequestError: require('./BadRequestError'),
 };

@@ -14,23 +14,36 @@ const Pagination = require("../../../common/responses/Pagination");
  */
 const updateRoom = async (roomId, updateData) => {
   try {
-    logger.info("Updating room in service");
-    logger.debug(`Room id need to update: ${roomId}`);
-    logger.debug(`Data need to update: ${updateData}`);
+    logger.info("Updating room in service", {
+      context: "RoomService.updateRoom",
+      roomId
+    });
+
+    logger.debug("Room update payload", {
+      context: "RoomService.updateRoom",
+      updateData
+    });
 
     const updatedRoom = await Room.findByIdAndUpdate(roomId, updateData, {
       new: true,
       runValidators: true,
     });
-    logger.debug(`Updated room data in service: ${updatedRoom}`);
+
+    logger.debug("Updated room data in service", {
+      context: "RoomService.updateRoom",
+      updatedRoom
+    });
+
     return updatedRoom || null;
   } catch (error) {
-    logger.error(`Error in updateRoom service: ${error}`, {
-      stack: error.stack,
+    logger.error("Error in updateRoom service", {
       context: "RoomService.updateRoom",
+      message: error.message,
+      stack: error.stack
     });
+
     throw new errorRes.InternalServerError(
-      "An error occurred while updating the room",
+      "An error occurred while updating the room"
     );
   }
 };
@@ -50,15 +63,23 @@ const getRoomById = async (roomId, query) => {
 
     const skip = (historyPage - 1) * historyLimit;
 
-    logger.debug(
-      `History pagination - Page: ${historyPage}, Limit: ${historyLimit}, Skip: ${skip}`,
-    );
-    logger.debug(
-      `History date filter - Start Date: ${startDate}, End Date: ${endDate}`,
-    );
+    logger.debug("History pagination info", {
+      context: "RoomService.getRoomById",
+      historyPage,
+      historyLimit,
+      skip
+    });
 
-    logger.info("Fetching room by ID in service");
-    logger.debug(`Room ID to fetch: ${roomId}`);
+    logger.debug("History date filter", {
+      context: "RoomService.getRoomById",
+      startDate,
+      endDate
+    });
+
+    logger.info("Fetching room by ID in service", {
+      context: "RoomService.getRoomById",
+      roomId
+    });
 
     // Build history_used filter
     const result = await Room.aggregate([
@@ -83,7 +104,6 @@ const getRoomById = async (roomId, query) => {
           history_used_filtered: { $push: "$history_used" },
         },
       },
-
       {
         $project: {
           room_number: 1,
@@ -96,31 +116,46 @@ const getRoomById = async (roomId, query) => {
         },
       },
     ]);
-    logger.debug(`Room data in service: ${result}`);
+
+    logger.debug("Raw aggregation result", {
+      context: "RoomService.getRoomById",
+      resultCount: result.length
+    });
+
     // get total history_used and room data
     const { history_total, ...roomData } = result[0] || {};
-    const {history_used, ...roomInfo} = roomData || {};
-    const pagination = new Pagination(
-      historyPage,
-      historyLimit,
-      history_total || 0,
-    );
+    const { history_used, ...roomInfo } = roomData || {};
+
+    const pagination = new Pagination({
+      page: historyPage,
+      size: historyLimit,
+      totalItems: history_total || 0
+    });
+
     // format data to return
     const data = {
       ...roomInfo,
       history_used: {
         item: history_used || [],
-        pagination: pagination,
-      },
+        pagination
+      }
     };
+
+    logger.debug("Formatted room data to return", {
+      context: "RoomService.getRoomById",
+      data
+    });
+
     return data || null;
   } catch (error) {
-    logger.error(`Error in getRoomById service: ${error}`, {
-      stack: error.stack,
+    logger.error("Error in getRoomById service", {
       context: "RoomService.getRoomById",
+      message: error.message,
+      stack: error.stack
     });
+
     throw new errorRes.InternalServerError(
-      "An error occurred while fetching the room",
+      "An error occurred while fetching the room"
     );
   }
 };
@@ -132,8 +167,14 @@ const getRoomById = async (roomId, query) => {
  */
 const getRooms = async (query) => {
   try {
-    logger.info("Fetching rooms in service");
-    logger.debug("Query params", query);
+    logger.info("Fetching rooms in service", {
+      context: "RoomService.getRooms"
+    });
+
+    logger.debug("Query params", {
+      context: "RoomService.getRooms",
+      query
+    });
 
     const search = query.search?.trim();
     const status = query.status;
@@ -142,12 +183,11 @@ const getRooms = async (query) => {
     const limit = parseInt(query.limit || 5);
     const skip = (page - 1) * limit;
 
-    // Build filter object
     const result = await Room.aggregate([
       {
         $match: {
           ...(search ? { room_number: { $regex: search, $options: "i" } } : {}),
-          ...(status ? { status: status } : {}),
+          ...(status ? { status } : {}),
         },
       },
       { $sort: { room_number: sort } },
@@ -169,9 +209,24 @@ const getRooms = async (query) => {
         },
       },
     ]);
-    logger.debug(`Rooms data in service: ${result}`);
+
+    logger.debug("Rooms aggregation result", {
+      context: "RoomService.getRooms",
+      result
+    });
+
     const rooms = result[0].data;
-    const total = result[0].totalCount[0]?.count || 0;
+    const total = result[0]?.totalCount[0]?.count || 0;
+
+    logger.debug ("Data submitted from aggregation", {
+      context: "RoomService.getRooms",
+      data: rooms,
+      pagination: {
+        page,
+        limit,
+        total,
+      },
+    });
 
     return {
       data: rooms,
@@ -179,19 +234,21 @@ const getRooms = async (query) => {
         page,
         limit,
         total,
-        totalPages: Math.ceil(total / limit),
       },
     };
   } catch (error) {
-    logger.error(`Error in getRooms service: ${error}`, {
-      stack: error.stack,
+    logger.error("Error in getRooms service", {
       context: "RoomService.getRooms",
+      message: error.message,
+      stack: error.stack
     });
+
     throw new errorRes.InternalServerError(
-      "An error occurred while fetching the rooms",
+      "An error occurred while fetching the rooms"
     );
   }
 };
+
 /**
  * create new room
  * @param {Object} roomData room data
@@ -199,21 +256,58 @@ const getRooms = async (query) => {
  */
 const createRoom = async (roomData) => {
   try {
-    logger.info("Creating new room in service");
-    logger.debug(`Room data to create: ${roomData}`);
+    logger.info("Creating new room in service", {
+      context: "RoomService.createRoom"
+    });
+
+    logger.debug("Room data to create", {
+      context: "RoomService.createRoom",
+      roomData
+    });
+
     const newRoom = new Room(roomData);
     const savedRoom = await newRoom.save();
-    logger.debug(`New room created: ${savedRoom}`);
+
+    logger.debug("New room created", {
+      context: "RoomService.createRoom",
+      roomId: savedRoom.id
+    });
+
     return savedRoom;
   } catch (error) {
-    logger.error(`Error in createRoom service: ${error}`, {
-      stack: error.stack,
+    logger.error("Error in createRoom service", {
       context: "RoomService.createRoom",
+      message: error.message,
+      stack: error.stack
     });
+
     throw new errorRes.InternalServerError(
-      "An error occurred while creating the room",
+      "An error occurred while creating the room"
     );
   }
 };
 
-module.exports = { updateRoom, getRoomById, getRooms, createRoom };
+const checkRoomExists = async (roomNumber) => {
+  try {
+    const room = await Room.findOne({ room_number: roomNumber });
+    return !!room;
+  } catch (error) {
+    logger.error("Error in checkRoomExists service", {
+      context: "RoomService.checkRoomExists",
+      message: error.message,
+      stack: error.stack
+    });
+
+    throw new errorRes.InternalServerError(
+      "An error occurred while checking room existence"
+    );
+  }
+}
+
+module.exports = {
+  updateRoom,
+  getRoomById,
+  getRooms,
+  createRoom, 
+  checkRoomExists
+};

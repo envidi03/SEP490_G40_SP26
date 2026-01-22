@@ -4,18 +4,22 @@ const path = require('path');
 
 // Lấy môi trường hiện tại
 const env = process.env.NODE_ENV || 'development';
-
 // 1. Định dạng log cho môi trường DEV
-// Mục tiêu: Dễ đọc mắt thường, hiện stack trace nếu có lỗi
 const devFormat = winston.format.combine(
   winston.format.colorize(), 
   winston.format.timestamp({ format: 'HH:mm:ss' }),
-  winston.format.errors({ stack: true }), // Quan trọng: Cho phép in ra stack trace
-  winston.format.printf(({ timestamp, level, message, stack, context }) => {
-    // Hiển thị: Thời gian [Level] [Context]: Message
+  winston.format.errors({ stack: true }),
+  winston.format.printf(({ timestamp, level, message, stack, context, ...metadata }) => {
+    // In dòng tiêu đề log
     let logMsg = `${timestamp} [${level}]${context ? ` [${context}]` : ''}: ${message}`;
     
-    // Nếu có stack trace (lỗi), xuống dòng và in ra
+    // NẾU CÓ DỮ LIỆU PHỤ (metadata): Chuyển thành chuỗi JSON đẹp để hiển thị
+    if (Object.keys(metadata).length > 0) {
+      // metadata ở đây sẽ chứa: query, rooms, roomData, cleanUpdateData... tùy theo chỗ gọi
+      logMsg += `\n${JSON.stringify(metadata, null, 2)}`;
+    }
+    
+    // In stack trace nếu là log lỗi
     if (stack) {
         logMsg += `\n${stack}`;
     }
@@ -24,11 +28,12 @@ const devFormat = winston.format.combine(
 );
 
 // 2. Định dạng log cho môi trường PROD
-// Mục tiêu: JSON đầy đủ để nạp vào ELK/Splunk, bao gồm cả stack trace
 const prodFormat = winston.format.combine(
-  winston.format.timestamp(), // Mặc định là ISO format (2026-01-21T...)
-  winston.format.errors({ stack: true }), // Quan trọng: Tự động trích xuất stack từ Error object
-  winston.format.json() // Chuyển tất cả thành JSON
+  winston.format.timestamp(),
+  winston.format.errors({ stack: true }),
+  // Gom tất cả các field lạ vào một object 'metadata' để cấu trúc JSON gọn gàng
+  winston.format.metadata({ fillExcept: ['message', 'level', 'timestamp', 'stack', 'context'] }),
+  winston.format.json()
 );
 
 // 3. Cấu hình ghi log ra file (cho Production)
