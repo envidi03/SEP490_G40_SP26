@@ -2,49 +2,59 @@ const winston = require('winston');
 const DailyRotateFile = require('winston-daily-rotate-file');
 const path = require('path');
 
-// Lấy môi trường hiện tại (mặc định là development)
+// Lấy môi trường hiện tại
 const env = process.env.NODE_ENV || 'development';
 
-// 1. Định dạng log cho môi trường DEV (Dễ đọc, có màu sắc)
+// 1. Định dạng log cho môi trường DEV
+// Mục tiêu: Dễ đọc mắt thường, hiện stack trace nếu có lỗi
 const devFormat = winston.format.combine(
-  winston.format.colorize(), // Thêm màu: Info xanh, Error đỏ...
+  winston.format.colorize(), 
   winston.format.timestamp({ format: 'HH:mm:ss' }),
-  winston.format.printf(({ timestamp, level, message }) => {
-    return `${timestamp} [${level}]: ${message}`;
+  winston.format.errors({ stack: true }), // Quan trọng: Cho phép in ra stack trace
+  winston.format.printf(({ timestamp, level, message, stack, context }) => {
+    // Hiển thị: Thời gian [Level] [Context]: Message
+    let logMsg = `${timestamp} [${level}]${context ? ` [${context}]` : ''}: ${message}`;
+    
+    // Nếu có stack trace (lỗi), xuống dòng và in ra
+    if (stack) {
+        logMsg += `\n${stack}`;
+    }
+    return logMsg;
   })
 );
 
-// 2. Định dạng log cho môi trường PROD (JSON để máy đọc, ELK stack, Splunk...)
+// 2. Định dạng log cho môi trường PROD
+// Mục tiêu: JSON đầy đủ để nạp vào ELK/Splunk, bao gồm cả stack trace
 const prodFormat = winston.format.combine(
-  winston.format.timestamp(),
-  winston.format.json() // Output dạng JSON string
+  winston.format.timestamp(), // Mặc định là ISO format (2026-01-21T...)
+  winston.format.errors({ stack: true }), // Quan trọng: Tự động trích xuất stack từ Error object
+  winston.format.json() // Chuyển tất cả thành JSON
 );
 
 // 3. Cấu hình ghi log ra file (cho Production)
-// Tự động tách file theo ngày, nén file cũ, xóa file cũ sau 14 ngày
 const fileRotateTransport = new DailyRotateFile({
   filename: path.join(__dirname, '../../logs', 'application-%DATE%.log'),
   datePattern: 'YYYY-MM-DD',
-  zippedArchive: true, // Nén file log cũ (.gz)
-  maxSize: '20m',      // Kích thước tối đa mỗi file
-  maxFiles: '14d',     // Giữ log trong 14 ngày
-  level: 'info',       // Chỉ ghi từ mức Info trở lên (bỏ qua debug)
+  zippedArchive: true,
+  maxSize: '20m',
+  maxFiles: '14d',
+  level: 'info',
 });
 
 // Khởi tạo Logger
 const logger = winston.createLogger({
   level: env === 'development' ? 'debug' : 'info',
+  // Mặc định format chung (sẽ bị override bởi transport nếu cần)
   format: env === 'development' ? devFormat : prodFormat,
   transports: [
-    // Luôn ghi ra Console (Terminal)
+    // Console Transport
     new winston.transports.Console({
-      // Nếu là PROD, console log vẫn nên là JSON để các tool như Docker/K8s/Azure Monitor dễ parse
       format: env === 'development' ? devFormat : prodFormat 
     }),
   ],
 });
 
-// Nếu là Production, thêm việc ghi vào File
+// Nếu là Production, thêm transport ghi file
 if (env !== 'development') {
   logger.add(fileRotateTransport);
 }
