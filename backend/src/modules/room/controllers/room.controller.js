@@ -5,7 +5,51 @@ const { default: Pagination } = require('../../../common/responses/Pagination');
 const { cleanObjectData } = require('../../../common/utils/cleanObjectData');
 const roomService = require('../services/room.service');
 
-const getRooms = async (req, res) => { };
+// get list room with pagination and filter (search by name, filter by status, sort by room_number)
+const getRooms = async (req, res) => {
+    try {
+        const query = req.query;
+        logger.debug(`Query parameters for getRooms: ${query}`);
+        const {data: rooms, pagination: pageData} = await roomService.getRooms(query);
+        logger.debug(`Rooms data retrieved: ${rooms}`);
+        logger.debug(`Pagination data: ${pageData}`);
+        const pagination = new Pagination(pageData.page, pageData.limit, pageData.totalItems);
+        return new successRes.GetListSuccess(rooms, 'Rooms retrieved successfully', pagination).send(res);
+    } catch (error) {
+        logger.error(`Error getting rooms: ${error.message}`, {
+            stack: error.stack,
+            context: "RoomController.getRooms"
+        });
+        throw new errorRes.InternalServerError(`An error occurred while fetching rooms: ${error.message}`);
+    }
+};
+
+const createRoom = async (req, res) => {
+    try {
+        const roomData = req.body;
+        logger.debug(`Raw room data from request body: ${roomData}`);
+        // Làm sạch dữ liệu phòng
+        const cleanRoomData = cleanObjectData(roomData);
+        logger.debug(`Cleaned room data: ${cleanRoomData}`);
+        // Kiểm tra xem body có dữ liệu không
+        if (!cleanRoomData || Object.keys(cleanRoomData).length === 0) {
+            logger.warn('No room data provided in request body');
+            throw new errorRes.BadRequestError('No room data provided');
+        }
+        // Gọi service để tạo phòng mới
+        const newRoom = await roomService.createRoom(cleanRoomData);
+        logger.debug(`New room created: ${newRoom}`);
+        // Trả về phản hồi thành công
+        logger.info(`Room created successfully with ID: ${newRoom.id}`);
+        return new successRes.CreateSuccess(newRoom, 'Room created successfully').send(res);
+    } catch (error) {
+        logger.error(`Error creating room: ${error.message}`, {
+            stack: error.stack,
+            context: "RoomController.createRoom"
+        });
+        throw new errorRes.InternalServerError(`An error occurred while creating the room: ${error.message}`);   
+    }
+};
 
 // Lấy thông tin phòng theo ID
 const getRoomById = async (req, res) => {
@@ -16,13 +60,10 @@ const getRoomById = async (req, res) => {
         logger.debug(`Fetching room with ID: ${roomId}`);
         // call serveice to get room by id
         const room = await roomService.getRoomById(roomId, query);
-        if (!room) {
-            logger.warn(`Room with ID ${roomId} not found`);
-            throw new errorRes.NotFoundError(`Room with ID ${roomId} not found`);
-        }
+        // logger debug room data
         logger.debug(`Room data retrieved: ${room}`);
-        // Trả về phản hồi thành công
-        return new successRes.GetInfoSuccess(room, `Room ${roomId} retrieved successfully`).send(res);
+        // create pagination object
+        return new successRes.GetDetailSuccess(room, 'Room retrieved successfully').send(res);
     } catch (error) {
         logger.error(`Error getting room by ID: ${error.message}`, {
             stack: error.stack,
@@ -99,4 +140,4 @@ const updateRoomStatus = async (req, res) => {
     }
 };
 
-module.exports = { getRooms, getRoomById, updateRoom, updateRoomStatus };
+module.exports = { getRooms, getRoomById, updateRoom, updateRoomStatus, createRoom };

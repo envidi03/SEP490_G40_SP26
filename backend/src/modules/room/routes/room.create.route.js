@@ -3,7 +3,8 @@ const router = express.Router();
 const auth = require('../../../common/middlewares/index');
 const roomController = require('../controllers/room.controller');
 
-// router.get('/:roomId', auth.authenticate, auth.authorize("ADMIN_CLINIC"), roomController.getRoomById);
-router.get('/:roomId', roomController.getRoomById);
+// router.post('/', auth.authenticate, auth.authorize("ADMIN_CLINIC"), roomController.createRoom);
+
+router.post('/', roomController.createRoom);
 
 module.exports = router;
