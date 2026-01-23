@@ -186,7 +186,6 @@ const clinicController = require('../controllers/clinic.controller');
  *               statusCode: 500
  *               message: Internal server error
  */
-// router.patch('/:clinicId', auth.authenticate, auth.authorize("ADMIN_CLINIC"), clinicController.updateClinic);
-router.patch('/:clinicId', clinicController.updateClinic);
+router.patch('/:clinicId', auth.authenticate, auth.authorize("ADMIN_CLINIC"), clinicController.updateClinic);
 
 module.exports = router;
