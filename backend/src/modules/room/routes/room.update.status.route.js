@@ -5,7 +5,7 @@ const roomController = require('../controllers/room.controller');
 
 /**
  * @swagger
- * /rooms/{roomId}/status:
+ * /rooms/status/{roomId}:
  *   patch:
  *     summary: Update the status of a room by ID
  *     tags: [Rooms]
@@ -114,6 +114,6 @@ const roomController = require('../controllers/room.controller');
  *                   example: "BadRequestError: No status provided at updateRoomStatus (/path/to/controller.js:250:19)"
  */
 
-router.patch('/:roomId', auth.authenticate, auth.authorize("ADMIN_CLINIC"), roomController.updateRoomStatus);
+router.patch('/status/:roomId', auth.authenticate, auth.authorize("ADMIN_CLINIC"), roomController.updateRoomStatus);
 
 module.exports = router;
