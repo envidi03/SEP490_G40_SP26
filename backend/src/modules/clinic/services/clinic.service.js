@@ -10,10 +10,10 @@ const getInforClinics = async (id) => {
     const clinic = await Clinic.findById(id).select(
       "-__v -createdAt -updatedAt",
     );
-    logger.debug("Clinic data in service:", JSON.stringify(clinic));
+    logger.debug(`Clinic data in service: ${(clinic)}`);
     return clinic;
   } catch (error) {
-    logger.error("Error in getInforClinics service:", error);
+    logger.error(`Error in getInforClinics service: ${error}`);
     throw error;
   }
 };
@@ -25,13 +25,10 @@ const updateClinic = async (clinicId, updateData) => {
       new: true,
       runValidators: true,
     });
-    logger.debug(
-      "Updated clinic data in service:",
-      JSON.stringify(updatedClinic),
-    );
+    logger.debug(`Updated clinic data in service: ${(updatedClinic)}`);
     return updatedClinic;
   } catch (error) {
-    logger.error("Error in updateClinic service:", error);
+    logger.error(`Error in updateClinic service: ${error}`);
     throw error;
   }
 };

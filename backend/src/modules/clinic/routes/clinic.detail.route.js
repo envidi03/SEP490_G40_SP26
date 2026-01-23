@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const auth = require('./../../../common/middlewares/index');
+const auth = require('../../../common/middlewares/index');
 const clinicController = require('../controllers/clinic.controller');
 
 /**
