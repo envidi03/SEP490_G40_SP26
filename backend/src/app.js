@@ -18,6 +18,7 @@ const morganMiddleware = morgan(
   }
 );
 
+
 app.use(morganMiddleware);
 
 // CORS Configuration

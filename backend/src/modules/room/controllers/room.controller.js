@@ -60,7 +60,7 @@ const getRooms = async (req, res) => {
 // create room
 const createRoom = async (req, res) => {
     try {
-        const roomData = req.body;
+        const roomData = req.body || {};
 
         logger.debug('Raw room data from request body', {
             context: 'RoomController.createRoom',
@@ -128,7 +128,7 @@ const createRoom = async (req, res) => {
 const getRoomById = async (req, res) => {
     try {
         // Lấy roomId từ params
-        const roomId = req.params.roomId;
+        const {roomId} = req.params;
         const query = req.query;
 
         logger.debug('Fetching room with ID', {
@@ -161,12 +161,12 @@ const getRoomById = async (req, res) => {
     }
 };
 
-// Cập nhật thông tin phòng, không bao gồm trạng thái
+// Cập nhật thông tin phòng, không bao gồm status and history_used
 const updateRoom = async (req, res) => {
     try {
         // Lấy roomId từ params và dữ liệu cập nhật từ body
-        const roomId = req.params.roomId;
-        const updateData = req.body;
+        const {roomId} = req.params;
+        const updateData = req.body || {};
 
         logger.debug('Room update', {
             context: 'RoomController.updateRoom',
@@ -174,8 +174,8 @@ const updateRoom = async (req, res) => {
             dataUpdate: updateData
         });
 
-        // remove status from updateData if exists
-        const { status, ...rest } = updateData;
+        // remove status and history_used from updateData if exists
+        const { status, history_used, ...rest } = updateData;
 
         // Làm sạch dữ liệu cập nhật
         const cleanUpdateData = cleanObjectData(rest);
@@ -233,8 +233,8 @@ const updateRoom = async (req, res) => {
 const updateRoomStatus = async (req, res) => {
     try {
         // Lấy roomId từ params và trạng thái mới từ body
-        const roomId = req.params.roomId;
-        const { status } = req.body;
+        const {roomId} = req.params;
+        const { status } = req.body || {};
 
         logger.debug('Updating status for room', {
             context: 'RoomController.updateRoomStatus',
