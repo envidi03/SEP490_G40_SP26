@@ -17,12 +17,9 @@ const roomSchema = new Schema(
         
         history_used: [
             {
-                use_start: {
+                used_date: {
                     type: Date,
                     required: true
-                },
-                use_end: {
-                    type: Date
                 },
                 doctor_use: {
                     type: Schema.Types.ObjectId,

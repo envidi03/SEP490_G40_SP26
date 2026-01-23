@@ -63,7 +63,7 @@ const getRoomById = async (roomId, query) => {
 
     const skip = (historyPage - 1) * historyLimit;
 
-    logger.debug("Query data", {
+    logger.debug("Query data in service", {
       context: "RoomService.getRoomById",
       historyPage: historyPage,
       historyLimit: historyLimit,
@@ -81,9 +81,9 @@ const getRoomById = async (roomId, query) => {
     // 1. Xây dựng bộ lọc ngày tháng trước để tránh lỗi $and rỗng
     const dateFilters = [];
     if (startDate)
-      dateFilters.push({ "history_used.use_start": { $gte: startDate } });
+      dateFilters.push({ "history_used.used_date": { $gte: startDate } });
     if (endDate)
-      dateFilters.push({ "history_used.use_end": { $lte: endDate } });
+      dateFilters.push({ "history_used.used_date": { $lte: endDate } });
 
     // 2. Thực hiện Aggregate
     const result = await Room.aggregate([
@@ -99,19 +99,30 @@ const getRoomById = async (roomId, query) => {
         },
       },
       {
-        // Fix lỗi $and argument must be a non-empty array
+        /*
+          sau khi tách ra thì vẫn phải giữ lại các bản ghi không có history_used (như preserveNullAndEmptyArrays ở trên)
+          nên dùng { history_used: null }, để giữ lại các bản ghi này
+
+          đồng thời áp dụng thêm điều kiện lọc ngày tháng nếu người dùng có nhập ngày (thông qua dateFilters) 
+          nên dùng { history_used: { $exists: false } }, để giữ lại các bản ghi không có trường history_used
+
+          cuối cùng nếu người dùng có nhập ngày (startDate/endDate) thì áp dụng lọc ngày tháng (theo dateFilters)
+          nếu không nhập ngày thì trả về tất cả (dùng điều kiện luôn đúng { _id: { $exists: true } })
+        */
         $match: {
           $or: [
+            // (1) Giữ lại bản ghi nếu mảng rỗng (do unwind tạo ra null)
             { history_used: null },
-            { history_used: { $exists: false } },
-            // Nếu có ngày thì lọc theo mảng dateFilters, nếu không thì lấy tất cả
+            // (2) Giữ lại nếu trường này không tồn tại
+            { history_used: { $exists: false } }, 
+            // (3) Nếu người dùng có nhập ngày (startDate/endDate)
             dateFilters.length > 0
-              ? { $and: dateFilters }
-              : { _id: { $exists: true } },
+              ? { $and: dateFilters } // Thực hiện lọc theo ngày đã nhập
+              : { _id: { $exists: true } }, // Nếu KHÔNG nhập ngày, trả về một điều kiện luôn đúng (lấy tất cả)
           ],
         },
       },
-      { $sort: { "history_used.use_start": -1 } },
+      { $sort: { "history_used.used_date": -1 } },
       {
         $group: {
           _id: "$_id",
@@ -119,7 +130,9 @@ const getRoomById = async (roomId, query) => {
           status: { $first: "$status" },
           note: { $first: "$note" },
           clinic_id: { $first: "$clinic_id" },
-          // Dùng $cond để loại bỏ giá trị null khỏi mảng sau khi push
+          /*
+            Lọc bỏ các giá trị null trong mảng history_used (do preserveNullAndEmptyArrays tạo ra) 
+          */
           history_used_filtered: {
             $push: {
               $cond: [
