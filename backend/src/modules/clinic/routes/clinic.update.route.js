@@ -6,11 +6,11 @@ const clinicController = require('../controllers/clinic.controller');
 // update clinic
 /**
  * @swagger
- * /clinics/{clinicId}:
+ * /api/clinic/{clinicId}:
  *   patch:
  *     summary: Cập nhật thông tin phòng khám
  *     tags:
- *       - Clinics
+ *       - Clinic
  *     security:
  *       - bearerAuth: []
  *     parameters:
