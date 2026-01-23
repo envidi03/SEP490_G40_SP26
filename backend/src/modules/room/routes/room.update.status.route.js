@@ -96,8 +96,8 @@ const roomController = require('../controllers/room.controller');
  *                 stack:
  *                   type: string
  *                   example: "BadRequestError: Invalid status value. Must be one of: ACTIVE, INACTIVE, MAINTENANCE at updateRoomStatus (/path/to/controller.js:260:19)"
- *       400:
- *         description: Bad Request - No status provided
+ *       409:
+ *         description: Conflict - No status provided
  *         content:
  *           application/json:
  *             schema:
