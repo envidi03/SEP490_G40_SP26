@@ -8,13 +8,14 @@ const MainNavigation = () => {
     const [showProfileMenu, setShowProfileMenu] = useState(false);
     const navigate = useNavigate();
 
-    const handleLogout = () => {
-        logout();
+    const handleLogout = async () => {
+        await logout();
         setShowProfileMenu(false);
         navigate('/');
     };
-    const scrollToBooking = () => {
-        document.getElementById('booking')?.scrollIntoView({ behavior: 'smooth' });
+
+    const handleBookingClick = () => {
+        navigate('/book-appointment');
     };
     return (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -41,53 +42,53 @@ const MainNavigation = () => {
                         Về chúng tôi
                     </a>
 
-                    <a
-                        href="#price"
+                    <Link
+                        to="/pricing"
                         className="px-3 py-2 text-sm font-medium text-gray-700 hover:text-primary-600 hover:bg-gray-50 rounded-md transition-all"
                     >
                         Bảng giá
-                    </a>
+                    </Link>
 
                     <div className="relative group">
-                        <a
-                            href="#services"
+                        <Link
+                            to="/pricing"
                             className="px-3 py-2 text-sm font-medium text-gray-700 hover:text-primary-600 hover:bg-gray-50 rounded-md transition-all flex items-center gap-1"
                         >
                             Dịch vụ
                             <ChevronDown size={14} className="group-hover:rotate-180 transition-transform" />
-                        </a>
+                        </Link>
                         {/* Dropdown */}
-                        <div className="absolute left-0 top-full mt-1 w-56 bg-white rounded-lg shadow-lg border border-gray-100 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
+                        <div className="absolute left-0 top-full mt-1 w-56 bg-white rounded-lg shadow-lg border border-gray-100 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
                             <div className="py-1">
-                                <a href="#services" className="block px-4 py-2.5 text-sm text-gray-700 hover:bg-primary-50 hover:text-primary-600 transition-colors">Nha Khoa Tổng Quát</a>
-                                <a href="#services" className="block px-4 py-2.5 text-sm text-gray-700 hover:bg-primary-50 hover:text-primary-600 transition-colors">Nha Khoa Thẩm Mỹ</a>
-                                <a href="#services" className="block px-4 py-2.5 text-sm text-gray-700 hover:bg-primary-50 hover:text-primary-600 transition-colors">Niềng Răng</a>
-                                <a href="#services" className="block px-4 py-2.5 text-sm text-gray-700 hover:bg-primary-50 hover:text-primary-600 transition-colors">Cấy Ghép Implant</a>
-                                <a href="#services" className="block px-4 py-2.5 text-sm text-gray-700 hover:bg-primary-50 hover:text-primary-600 transition-colors">Nha Khoa Trẻ Em</a>
-                                <a href="#services" className="block px-4 py-2.5 text-sm text-gray-700 hover:bg-primary-50 hover:text-primary-600 transition-colors">Điều Trị Tủy</a>
+                                <Link to="/pricing" className="block px-4 py-2.5 text-sm text-gray-700 hover:bg-primary-50 hover:text-primary-600 transition-colors">Nha Khoa Tổng Quát</Link>
+                                <Link to="/service/rang-su-emax" className="block px-4 py-2.5 text-sm text-gray-700 hover:bg-primary-50 hover:text-primary-600 transition-colors">Nha Khoa Thẩm Mỹ</Link>
+                                <Link to="/service/nieng-rang-mac-cai-kim-loai" className="block px-4 py-2.5 text-sm text-gray-700 hover:bg-primary-50 hover:text-primary-600 transition-colors">Niềng Răng</Link>
+                                <Link to="/service/implant-straumann-slactive" className="block px-4 py-2.5 text-sm text-gray-700 hover:bg-primary-50 hover:text-primary-600 transition-colors">Cấy Ghép Implant</Link>
+                                <Link to="/pricing" className="block px-4 py-2.5 text-sm text-gray-700 hover:bg-primary-50 hover:text-primary-600 transition-colors">Nha Khoa Trẻ Em</Link>
+                                <Link to="/pricing" className="block px-4 py-2.5 text-sm text-gray-700 hover:bg-primary-50 hover:text-primary-600 transition-colors">Điều Trị Tủy</Link>
                             </div>
                         </div>
                     </div>
 
-                    <a
-                        href="#doctors"
+                    <Link
+                        to="/doctors"
                         className="px-3 py-2 text-sm font-medium text-gray-700 hover:text-primary-600 hover:bg-gray-50 rounded-md transition-all"
                     >
                         Bác sĩ
-                    </a>
+                    </Link>
 
-                    <a
-                        href="#contact"
+                    <Link
+                        to="/contact"
                         className="px-3 py-2 text-sm font-medium text-gray-700 hover:text-primary-600 hover:bg-gray-50 rounded-md transition-all"
                     >
                         Liên hệ
-                    </a>
+                    </Link>
                 </div>
 
                 {/* Right side CTAs */}
                 <div className="flex items-center gap-3">
                     <button
-                        onClick={scrollToBooking}
+                        onClick={handleBookingClick}
                         className="hidden md:flex items-center gap-2 px-5 py-2.5 bg-primary-600 text-white text-sm font-semibold rounded-lg hover:bg-primary-700 transition-all shadow-sm hover:shadow-md"
                     >
                         <Calendar size={16} />
