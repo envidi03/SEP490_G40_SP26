@@ -1,5 +1,3 @@
-
-
 import { useState } from "react"
 import { mockPatients, mockAppointments } from "../../utils/mockData"
 import { useAuth } from "../../contexts/AuthContext"
