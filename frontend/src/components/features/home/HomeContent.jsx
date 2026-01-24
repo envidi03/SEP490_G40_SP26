@@ -25,8 +25,6 @@ const HomeContent = () => {
             {/* Why Choose Us */}
             <WhyChooseUs />
 
-            {/* Contact Section */}
-            <ContactSection />
         </div>
     );
 };
