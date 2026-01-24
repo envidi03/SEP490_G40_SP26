@@ -8,8 +8,8 @@ export const AuthProvider = ({ children }) => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        // Check localStorage for saved user
-        const savedUser = localStorage.getItem('dcms_user');
+        // Check sessionStorage for saved user
+        const savedUser = sessionStorage.getItem('dcms_user');
         if (savedUser) {
             try {
                 const userData = JSON.parse(savedUser);
@@ -17,28 +17,36 @@ export const AuthProvider = ({ children }) => {
                 setIsAuthenticated(true);
             } catch (error) {
                 console.error('Error parsing saved user:', error);
-                localStorage.removeItem('dcms_user');
+                sessionStorage.removeItem('dcms_user');
             }
         }
+
+        // CLEANUP: Remove legacy localStorage user if exists
+        // This fixes the issue where user remains logged in after server restart due to old localStorage usage
+        const legacyUser = localStorage.getItem('user');
+        const legacyDcmsUser = localStorage.getItem('dcms_user');
+        if (legacyUser) localStorage.removeItem('user');
+        if (legacyDcmsUser) localStorage.removeItem('dcms_user');
+
         setLoading(false);
     }, []);
 
     const login = (userData) => {
         setUser(userData);
         setIsAuthenticated(true);
-        localStorage.setItem('dcms_user', JSON.stringify(userData));
+        sessionStorage.setItem('dcms_user', JSON.stringify(userData));
     };
 
     const logout = () => {
         setUser(null);
         setIsAuthenticated(false);
-        localStorage.removeItem('dcms_user');
+        sessionStorage.removeItem('dcms_user');
     };
 
     const updateUser = (updatedData) => {
         const newUserData = { ...user, ...updatedData };
         setUser(newUserData);
-        localStorage.setItem('dcms_user', JSON.stringify(newUserData));
+        sessionStorage.setItem('dcms_user', JSON.stringify(newUserData));
     };
 
     return (
@@ -64,5 +72,3 @@ export const useAuth = () => {
     }
     return context;
 };
-
-export default AuthContext;

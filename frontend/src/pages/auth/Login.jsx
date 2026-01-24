@@ -2,7 +2,6 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import authService from '../../services/authService';
-import { storage } from '../../services/storage';
 import { getDashboardRoute } from '../../utils/roleConfig';
 import Input from '../../components/ui/Input';
 import Toast from '../../components/ui/Toast';
@@ -46,9 +45,6 @@ const Login = () => {
                     role_id: role.id,
                     permissions: role.permissions
                 };
-
-                // Store user data in storage
-                storage.set('user', userData);
 
                 // Update auth context with user data
                 login(userData);

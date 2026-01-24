@@ -1,5 +1,5 @@
 import apiClient from './api';
-import { storage } from './storage';
+import { sessionStorage } from './storage';
 
 const authService = {
     /**
@@ -34,8 +34,8 @@ const authService = {
                 const accessToken = response.data?.token || response.token;
                 const refreshToken = response.data?.refreshToken || response.refreshToken;
 
-                storage.set('access_token', accessToken);
-                storage.set('refresh_token', refreshToken);
+                sessionStorage.set('access_token', accessToken);
+                sessionStorage.set('refresh_token', refreshToken);
             }
 
             return response;
@@ -55,8 +55,8 @@ const authService = {
         try {
             await apiClient.post('/api/auth/logout', { refreshToken });
         } finally {
-            storage.remove('access_token');
-            storage.remove('refresh_token');
+            sessionStorage.remove('access_token');
+            sessionStorage.remove('refresh_token');
         }
     },
 
@@ -70,7 +70,7 @@ const authService = {
             const response = await apiClient.post('/api/auth/refresh-token', { refreshToken });
 
             if (response.data.access_token) {
-                storage.set('access_token', response.data.access_token);
+                sessionStorage.set('access_token', response.data.access_token);
             }
 
             return response;
@@ -170,8 +170,8 @@ const authService = {
 
             // Save tokens
             if (response.data.access_token) {
-                storage.set('access_token', response.data.access_token);
-                storage.set('refresh_token', response.data.refresh_token);
+                sessionStorage.set('access_token', response.data.access_token);
+                sessionStorage.set('refresh_token', response.data.refresh_token);
             }
 
             return response;
