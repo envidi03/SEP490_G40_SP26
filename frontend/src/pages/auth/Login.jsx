@@ -1,8 +1,7 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import authService from '../../services/authService';
-import { storage } from '../../services/storage';
 import { getDashboardRoute } from '../../utils/roleConfig';
 import Input from '../../components/ui/Input';
 import Toast from '../../components/ui/Toast';
@@ -12,6 +11,7 @@ import { LogIn, User, Lock, Eye, EyeOff, ArrowLeft } from 'lucide-react';
 const Login = () => {
     const [username, setUsername] = React.useState('');
     const [password, setPassword] = React.useState('');
+    const [rememberMe, setRememberMe] = React.useState(false);
     const [error, setError] = React.useState('');
     const [loading, setLoading] = React.useState(false);
     const [showPassword, setShowPassword] = React.useState(false);
@@ -20,6 +20,14 @@ const Login = () => {
     const { login } = useAuth();
     const navigate = useNavigate();
 
+    useEffect(() => {
+        const savedUsername = localStorage.getItem('remembered_username');
+        if (savedUsername) {
+            setUsername(savedUsername);
+            setRememberMe(true);
+        }
+    }, []);
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
@@ -27,7 +35,7 @@ const Login = () => {
 
         try {
             // Call the login API
-            const response = await authService.login(username, password);
+            const response = await authService.login(username, password, rememberMe);
 
             // Backend returns: { status, message, data: { account, user, role, token, refreshToken } }
             const responseData = response.data || response;
@@ -47,11 +55,8 @@ const Login = () => {
                     permissions: role.permissions
                 };
 
-                // Store user data in storage
-                storage.set('user', userData);
-
                 // Update auth context with user data
-                login(userData);
+                login(userData, rememberMe);
 
                 // Show success toast
                 setShowToast(true);
@@ -62,6 +67,13 @@ const Login = () => {
 
                 // Redirect after showing toast based on role
                 setTimeout(() => {
+                    // Save username if remember me is checked
+                    if (rememberMe) {
+                        localStorage.setItem('remembered_username', username);
+                    } else {
+                        localStorage.removeItem('remembered_username');
+                    }
+
                     const dashboardRoute = getDashboardRoute(role.name);
                     console.log('🚀 Redirecting to:', dashboardRoute);
                     navigate(dashboardRoute);
@@ -192,7 +204,29 @@ const Login = () => {
                                 </div>
 
                                 {/* Forgot password */}
-                                <div className="text-right">
+                                {/* Remember Me & Forgot Password */}
+                                <div className="flex items-center justify-between">
+                                    <label className="flex items-center gap-2 cursor-pointer group select-none">
+                                        <div className="relative flex items-center">
+                                            <input
+                                                type="checkbox"
+                                                checked={rememberMe}
+                                                onChange={(e) => setRememberMe(e.target.checked)}
+                                                className="peer appearance-none w-5 h-5 border-2 border-gray-300 rounded-md checked:bg-primary-600 checked:border-primary-600 focus:ring-4 focus:ring-primary-100 transition-all cursor-pointer"
+                                            />
+                                            <svg
+                                                className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white opacity-0 peer-checked:opacity-100 transition-opacity pointer-events-none"
+                                                viewBox="0 0 12 12"
+                                                fill="none"
+                                            >
+                                                <path d="M10 3L4.5 8.5L2 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                            </svg>
+                                        </div>
+                                        <span className="text-sm text-gray-600 font-medium group-hover:text-gray-900 transition-colors">
+                                            Ghi nhớ đăng nhập
+                                        </span>
+                                    </label>
+
                                     <button
                                         type="button"
                                         onClick={() => navigate('/forgot-password')}
