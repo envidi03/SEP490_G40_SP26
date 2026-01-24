@@ -5,6 +5,7 @@ import PublicRoute from '../guards/PublicRoute';
 import VerifyEmail from '../../pages/auth/VerifyEmail';
 import ForgotPassword from '../../pages/auth/ForgotPassword';
 import Contact from '../../pages/public/Contact';
+import ServicesPricing from '../../pages/public/ServicesPricing';
 
 
 // Public routes - accessible without authentication
@@ -48,7 +49,19 @@ const publicRoutes = [
     },
     {
         path: '/contact',
-        element: <Contact />
+        element: (
+            <PublicRoute>
+                <Contact />
+            </PublicRoute>
+        )
+    },
+    {
+        path: '/pricing',
+        element: (
+            <PublicRoute>
+                <ServicesPricing />
+            </PublicRoute>
+        )
     }
 ];
 
