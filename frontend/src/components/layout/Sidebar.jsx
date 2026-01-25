@@ -12,7 +12,9 @@ import {
     Package,
     Clock,
     Building2,
-    DoorOpen
+    DoorOpen,
+    Briefcase,
+    ClipboardCheck
 } from 'lucide-react';
 import clsx from 'clsx';
 
@@ -21,7 +23,7 @@ const Sidebar = ({ role }) => {
 
 
     const menuItems = {
-        Admin: [
+        ADMIN_CLINIC: [
             { path: '/admin/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
             { path: '/admin/users', icon: UserCog, label: 'Bác sĩ & Trợ lý' },
             { path: '/admin/rooms', icon: DoorOpen, label: 'Phòng khám' },
@@ -30,14 +32,16 @@ const Sidebar = ({ role }) => {
             { path: '/admin/medicines', icon: Pill, label: 'Thuốc' },
             { path: '/admin/clinic-info', icon: Building2, label: 'Thông tin phòng khám' },
         ],
-        Doctor: [
-            { path: '/doctor/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-            { path: '/doctor/patients', icon: Users, label: 'Bệnh nhân' },
-            { path: '/doctor/appointments', icon: Calendar, label: 'Lịch hẹn' },
-            { path: '/doctor/treatments', icon: ClipboardList, label: 'Điều trị' },
-            { path: '/doctor/medicines', icon: Pill, label: 'Thuốc' },
+        DOCTOR: [
+            { path: '/dentist/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+            { path: '/dentist/patients', icon: Users, label: 'Bệnh nhân' },
+            { path: '/dentist/schedule', icon: Calendar, label: 'Lịch hẹn' },
+            { path: '/dentist/medical-records', icon: FileText, label: 'Hồ Sơ' },
+            { path: '/dentist/medical-record-approvals', icon: ClipboardCheck, label: 'Phê duyệt HS' },
+            { path: '/dentist/leave-requests', icon: Briefcase, label: 'Nghỉ Phép' },
+            { path: '/dentist/assistant-leave-requests', icon: UserCog, label: 'NP Trợ Lý' },
         ],
-        Receptionist: [
+        RECEPTIONIST: [
             { path: '/receptionist/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
             { path: '/receptionist/patients', icon: Users, label: 'Bệnh nhân' },
             { path: '/receptionist/appointments', icon: Calendar, label: 'Lịch hẹn' },
@@ -45,14 +49,14 @@ const Sidebar = ({ role }) => {
             { path: '/receptionist/services', icon: ClipboardList, label: 'Dịch vụ' },
             { path: '/receptionist/equipment', icon: Wrench, label: 'Thiết bị' },
         ],
-        Pharmacy: [
+        PHARMACY: [
             { path: '/pharmacy/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
             { path: '/pharmacy/medicines', icon: Pill, label: 'Quản lý thuốc' },
             { path: '/pharmacy/inventory', icon: Package, label: 'Tồn kho' },
             { path: '/pharmacy/prescriptions', icon: FileText, label: 'Đơn thuốc' },
             { path: '/pharmacy/requests', icon: ClipboardList, label: 'Yêu cầu bổ sung' },
         ],
-        Assistant: [
+        ASSISTANT: [
             { path: '/assistant/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
             { path: '/assistant/appointments', icon: Calendar, label: 'Lịch Khám' },
             { path: '/assistant/medical-records', icon: FileText, label: 'Hồ Sơ' },
@@ -60,7 +64,18 @@ const Sidebar = ({ role }) => {
         ],
     };
 
-    const items = menuItems[role] || menuItems.Admin;
+    // Try to find menu items for the role (case-insensitive fallback)
+    let items = menuItems[role];
+
+    // If no exact match, try case-insensitive match
+    if (!items && role) {
+        const roleUpper = role.toUpperCase();
+        const matchedKey = Object.keys(menuItems).find(key => key.toUpperCase() === roleUpper);
+        items = matchedKey ? menuItems[matchedKey] : menuItems.ADMIN_CLINIC;
+    } else if (!items) {
+        // If no role provided, default to admin
+        items = menuItems.ADMIN_CLINIC;
+    }
 
     return (
         <div className="w-64 bg-gray-900 text-white h-screen fixed left-0 top-0 overflow-y-auto">

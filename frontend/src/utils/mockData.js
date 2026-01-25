@@ -453,9 +453,9 @@ export const mockAppointments = [
         patient_id: '67890abc12345def67890005',
         doctor_id: '67890abc12345def67890002',
         room_id: 'room_001',
-        appointment_Date: '2026-01-15',
+        appointment_Date: '2026-01-22',
         appointment_Time: '09:00',
-        date: '2026-01-15', // Alias for dashboard compatibility
+        date: '2026-01-22', // Alias for dashboard compatibility
         time: '09:00', // Alias for dashboard compatibility
         reason: 'Đau răng số 6',
         notes: 'Bệnh nhân cảm thấy đau nhức khi nhai',
@@ -473,9 +473,9 @@ export const mockAppointments = [
         patient_id: '67890abc12345def67890006',
         doctor_id: '67890abc12345def67890003',
         room_id: 'room_002',
-        appointment_Date: '2026-01-15',
+        appointment_Date: '2026-01-23',
         appointment_Time: '10:30',
-        date: '2026-01-15',
+        date: '2026-01-23',
         time: '10:30',
         reason: 'Khám định kỳ',
         notes: 'Khám định kỳ 6 tháng',
@@ -492,9 +492,9 @@ export const mockAppointments = [
         patient_id: '67890abc12345def67890007',
         doctor_id: '67890abc12345def67890002',
         room_id: 'room_001',
-        appointment_Date: '2026-01-14',
+        appointment_Date: '2026-01-21',
         appointment_Time: '14:00',
-        date: '2026-01-14',
+        date: '2026-01-21',
         time: '14:00',
         reason: 'Trám răng',
         notes: 'Hoàn thành trám răng số 7',
@@ -511,9 +511,9 @@ export const mockAppointments = [
         patient_id: '67890abc12345def67890005',
         doctor_id: '67890abc12345def67890003',
         room_id: 'room_002',
-        appointment_Date: '2026-01-12',
+        appointment_Date: '2026-01-20',
         appointment_Time: '16:00',
-        date: '2026-01-12',
+        date: '2026-01-20',
         time: '16:00',
         reason: 'Lấy cao răng',
         notes: 'Bệnh nhân yêu cầu hủy',
@@ -523,6 +523,44 @@ export const mockAppointments = [
         patientName: 'Lê Văn Hoàng',
         patientPhone: '0967890123',
         doctorName: 'BS. Trần Thị Bình'
+    },
+    {
+        id: 'apt_005',
+        code: 'APT005',
+        patient_id: '67890abc12345def67890006',
+        doctor_id: '67890abc12345def67890002',
+        room_id: 'room_001',
+        appointment_Date: '2026-01-24',
+        appointment_Time: '11:00',
+        date: '2026-01-24',
+        time: '11:00',
+        reason: 'Nhổ răng khôn',
+        notes: 'Răng khôn mọc lệch cần nhổ',
+        status: 'Confirmed',
+        created_at: '2026-01-15T10:00:00Z',
+        updated_at: '2026-01-15T10:00:00Z',
+        patientName: 'Nguyễn Thị Lan',
+        patientPhone: '0978901234',
+        doctorName: 'BS. Nguyễn Văn Anh'
+    },
+    {
+        id: 'apt_006',
+        code: 'APT006',
+        patient_id: '67890abc12345def67890007',
+        doctor_id: '67890abc12345def67890002',
+        room_id: 'room_001',
+        appointment_Date: '2026-01-25',
+        appointment_Time: '15:30',
+        date: '2026-01-25',
+        time: '15:30',
+        reason: 'Tái khám',
+        notes: 'Tái khám sau trám răng',
+        status: 'Pending',
+        created_at: '2026-01-18T09:00:00Z',
+        updated_at: '2026-01-18T09:00:00Z',
+        patientName: 'Trần Minh Tuấn',
+        patientPhone: '0989012345',
+        doctorName: 'BS. Nguyễn Văn Anh'
     }
 ];
 
@@ -701,6 +739,169 @@ export const doctorsTeamData = [
     }
 ];
 
+// ==================== LEAVE REQUEST TABLE ====================
+/**
+ * Leave Request table - Staff leave requests
+ * Fields: user_id, type, startDate, endDate, reason, status, createdAt, approvedBy, approvedAt
+ */
+export const mockLeaveRequests = [
+    {
+        id: 'leave_001',
+        user_id: '67890abc12345def67890002', // BS. Nguyễn Văn Anh
+        type: 'ANNUAL_LEAVE',
+        startDate: '2026-02-01',
+        endDate: '2026-02-03',
+        reason: 'Nghỉ phép năm, về quê thăm gia đình',
+        status: 'APPROVED',
+        createdAt: '2026-01-15',
+        approvedBy: '67890abc12345def67890001', // Admin
+        approvedAt: '2026-01-16'
+    },
+    {
+        id: 'leave_002',
+        user_id: '67890abc12345def67890002', // BS. Nguyễn Văn Anh
+        type: 'SICK_LEAVE',
+        startDate: '2026-01-25',
+        endDate: '2026-01-25',
+        reason: 'Bị cảm sốt, cần nghỉ ngơi',
+        status: 'PENDING',
+        createdAt: '2026-01-24',
+        approvedBy: null,
+        approvedAt: null
+    },
+    {
+        id: 'leave_003',
+        user_id: '67890abc12345def67890003', // BS. Trần Thị Bình
+        type: 'PERSONAL_LEAVE',
+        startDate: '2026-01-28',
+        endDate: '2026-01-29',
+        reason: 'Giải quyết công việc cá nhân',
+        status: 'APPROVED',
+        createdAt: '2026-01-20',
+        approvedBy: '67890abc12345def67890001', // Admin
+        approvedAt: '2026-01-21'
+    },
+    {
+        id: 'leave_004',
+        user_id: '67890abc12345def67890010', // Võ Thị Lan (Assistant)
+        type: 'ANNUAL_LEAVE',
+        startDate: '2026-02-10',
+        endDate: '2026-02-12',
+        reason: 'Nghỉ phép năm',
+        status: 'REJECTED',
+        createdAt: '2026-01-18',
+        approvedBy: '67890abc12345def67890001',
+        approvedAt: '2026-01-19',
+        rejectionReason: 'Thời gian này cần đủ nhân sự'
+    },
+    {
+        id: 'leave_005',
+        user_id: '67890abc12345def67890010', // Võ Thị Lan (Assistant)
+        type: 'SICK_LEAVE',
+        startDate: '2026-01-22',
+        endDate: '2026-01-22',
+        reason: 'Khám sức khỏe định kỳ',
+        status: 'APPROVED',
+        createdAt: '2026-01-20',
+        approvedBy: '67890abc12345def67890001',
+        approvedAt: '2026-01-20'
+    },
+    {
+        id: 'leave_006',
+        user_id: '67890abc12345def67890010', // Võ Thị Lan (Assistant)
+        type: 'PERSONAL_LEAVE',
+        startDate: '2026-02-15',
+        endDate: '2026-02-16',
+        reason: 'Có việc gia đình',
+        status: 'PENDING',
+        createdAt: '2026-01-21',
+        approvedBy: null,
+        approvedAt: null
+    },
+    {
+        id: 'leave_007',
+        user_id: '67890abc12345def67890010', // Võ Thị Lan (Assistant)
+        type: 'ANNUAL_LEAVE',
+        startDate: '2026-03-01',
+        endDate: '2026-03-05',
+        reason: 'Đi du lịch cùng gia đình',
+        status: 'PENDING',
+        createdAt: '2026-01-21',
+        approvedBy: null,
+        approvedAt: null
+    }
+];
+
+// ==================== MEDICAL RECORD TABLE ====================
+/**
+ * Medical Record table - Patient medical records
+ * Fields: patient_id, doctor_id, appointment_id, created_by, diagnosis, treatment, 
+ *         notes, medications, status, approved_by, approved_at, created_at
+ */
+export const mockMedicalRecords = [
+    {
+        id: 'record_001',
+        patient_id: '67890abc12345def67890005', // Lê Văn Hoàng
+        doctor_id: '67890abc12345def67890002', // BS. Nguyễn Văn Anh
+        appointment_id: 'apt_001',
+        created_by: '67890abc12345def67890002', // Created by doctor
+        diagnosis: 'Sâu răng số 6, viêm tủy',
+        treatment: 'Điều trị tủy, trám răng',
+        notes: 'Bệnh nhân cần tái khám sau 1 tuần',
+        medications: 'Kháng sinh Amoxicillin 500mg, uống 3 lần/ngày',
+        status: 'APPROVED', // Auto-approved because created by doctor
+        approved_by: null,
+        approved_at: null,
+        created_at: '2026-01-15T10:30:00Z'
+    },
+    {
+        id: 'record_002',
+        patient_id: '67890abc12345def67890006', // Nguyễn Thị Lan
+        doctor_id: '67890abc12345def67890003', // BS. Trần Thị Bình
+        appointment_id: 'apt_002',
+        created_by: '67890abc12345def67890010', // Created by assistant
+        diagnosis: 'Viêm lợi nhẹ, cần lấy cao răng',
+        treatment: 'Lấy cao răng, vệ sinh răng miệng',
+        notes: 'Hướng dẫn bệnh nhân đánh răng đúng cách',
+        medications: 'Nước súc miệng Listerine',
+        status: 'PENDING', // Needs doctor approval
+        approved_by: null,
+        approved_at: null,
+        created_at: '2026-01-15T11:00:00Z'
+    },
+    {
+        id: 'record_003',
+        patient_id: '67890abc12345def67890007', // Trần Minh Tuấn
+        doctor_id: '67890abc12345def67890002', // BS. Nguyễn Văn Anh
+        appointment_id: 'apt_003',
+        created_by: '67890abc12345def67890010', // Created by assistant
+        diagnosis: 'Răng số 7 bị sâu sâu, cần trám',
+        treatment: 'Trám răng composite',
+        notes: 'Hoàn thành trám răng, không có biến chứng',
+        medications: 'Không',
+        status: 'APPROVED', // Approved by doctor
+        approved_by: '67890abc12345def67890002',
+        approved_at: '2026-01-14T16:00:00Z',
+        created_at: '2026-01-14T15:30:00Z'
+    },
+    {
+        id: 'record_004',
+        patient_id: '67890abc12345def67890005', // Lê Văn Hoàng
+        doctor_id: '67890abc12345def67890003', // BS. Trần Thị Bình
+        appointment_id: 'apt_004',
+        created_by: '67890abc12345def67890004', // Created by receptionist
+        diagnosis: 'Cao răng nhiều, viêm lợi',
+        treatment: 'Lấy cao răng toàn hàm',
+        notes: 'Cần tái khám sau 6 tháng',
+        medications: 'Nước súc miệng',
+        status: 'REJECTED',
+        approved_by: '67890abc12345def67890003',
+        approved_at: '2026-01-13T09:00:00Z',
+        rejectionReason: 'Chẩn đoán chưa chính xác, cần bổ sung thông tin về mức độ viêm lợi',
+        created_at: '2026-01-12T17:00:00Z'
+    }
+];
+
 // ==================== DERIVED DATA ====================
 /**
  * mockPatients - Derived from mockUsers where role is Patient
@@ -742,6 +943,71 @@ export const getUserWithAccountAndRole = (userId) => {
         role: role?.name || null,
         permissions: role?.permissions || []
     };
+};
+
+/**
+ * Get appointments by doctor ID
+ * @param {string} doctorId - Doctor's user ID
+ * @returns {Array} Filtered appointments for the doctor
+ */
+export const getAppointmentsByDoctor = (doctorId) => {
+    if (!doctorId) return [];
+    return mockAppointments.filter(apt => apt.doctor_id === doctorId);
+};
+
+/**
+ * Get medical records pending approval for a doctor
+ * @param {string} doctorId - Doctor's user ID
+ * @returns {Array} Filtered medical records pending approval with patient info
+ */
+export const getMedicalRecordsPendingApproval = (doctorId) => {
+    if (!doctorId) return [];
+
+    return mockMedicalRecords
+        .filter(record => record.doctor_id === doctorId && record.status === 'PENDING')
+        .map(record => {
+            // Get patient info
+            const patient = mockUsers.find(u => u.id === record.patient_id);
+            // Get appointment info
+            const appointment = mockAppointments.find(a => a.id === record.appointment_id);
+            // Get creator info
+            const creator = mockUsers.find(u => u.id === record.created_by);
+
+            return {
+                ...record,
+                patientName: patient?.full_name || 'Unknown',
+                patientPhone: patient?.phone || '',
+                appointmentDate: appointment?.date || '',
+                appointmentTime: appointment?.time || '',
+                creatorName: creator?.full_name || 'Unknown'
+            };
+        });
+};
+
+/**
+ * Get leave requests from assistants (for doctor to approve)
+ * @returns {Array} List of leave requests from assistants
+ */
+export const getAssistantLeaveRequests = () => {
+    // Find all users with role Assistant
+    const assistantIds = mockUsers
+        .filter(u => {
+            const account = mockAccounts.find(a => a.id === u.account_id);
+            return account && account.role_id === 'role_006'; // Assistant role
+        })
+        .map(u => u.id);
+
+    return mockLeaveRequests
+        .filter(req => assistantIds.includes(req.user_id))
+        .map(req => {
+            const user = mockUsers.find(u => u.id === req.user_id);
+            return {
+                ...req,
+                userName: user?.full_name || 'Unknown',
+                userEmail: user?.email || ''
+            };
+        })
+        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 };
 
 /**

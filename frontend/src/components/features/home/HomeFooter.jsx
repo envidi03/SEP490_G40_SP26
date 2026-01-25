@@ -103,8 +103,8 @@ const HomeFooter = () => {
                                     type="submit"
                                     disabled={subscribed}
                                     className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${subscribed
-                                            ? 'bg-green-500 text-white'
-                                            : 'bg-primary-500 hover:bg-primary-600 text-white'
+                                        ? 'bg-green-500 text-white'
+                                        : 'bg-primary-500 hover:bg-primary-600 text-white'
                                         }`}
                                 >
                                     {subscribed ? '✓' : 'Gửi'}
