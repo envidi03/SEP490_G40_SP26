@@ -6,6 +6,7 @@ import VerifyEmail from '../../pages/auth/VerifyEmail';
 import ForgotPassword from '../../pages/auth/ForgotPassword';
 import Contact from '../../pages/public/Contact';
 import ServicesPricing from '../../pages/public/ServicesPricing';
+import About from '../../pages/public/About';
 
 
 // Public routes - accessible without authentication
@@ -44,6 +45,14 @@ const publicRoutes = [
         element: (
             <PublicRoute>
                 <ForgotPassword />
+            </PublicRoute>
+        )
+    },
+    {
+        path: '/about',
+        element: (
+            <PublicRoute>
+                <About />
             </PublicRoute>
         )
     },
