@@ -34,12 +34,12 @@ const publicRoutes = [
     {
         path: '/verify-email',
         element: (
-            <PublicRoute>
+            <PublicRoute allowPatient={true}>
                 <VerifyEmail />
             </PublicRoute>
         )
     },
-    ,
+
     {
         path: '/forgot-password',
         element: (
@@ -51,7 +51,7 @@ const publicRoutes = [
     {
         path: '/about',
         element: (
-            <PublicRoute>
+            <PublicRoute allowPatient={true}>
                 <About />
             </PublicRoute>
         )
@@ -59,7 +59,7 @@ const publicRoutes = [
     {
         path: '/contact',
         element: (
-            <PublicRoute>
+            <PublicRoute allowPatient={true}>
                 <Contact />
             </PublicRoute>
         )
@@ -67,7 +67,7 @@ const publicRoutes = [
     {
         path: '/pricing',
         element: (
-            <PublicRoute>
+            <PublicRoute allowPatient={true}>
                 <ServicesPricing />
             </PublicRoute>
         )
