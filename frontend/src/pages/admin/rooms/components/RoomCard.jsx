@@ -94,7 +94,7 @@ const RoomCard = ({
                         <span>Sửa</span>
                     </button>
                     <button
-                        onClick={() => onDelete(room.id)}
+                        onClick={() => onDelete(room._id || room.id)}
                         className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-red-50 text-red-600 font-medium rounded-xl hover:bg-red-100 transition-all duration-200"
                     >
                         <Trash2 size={16} />

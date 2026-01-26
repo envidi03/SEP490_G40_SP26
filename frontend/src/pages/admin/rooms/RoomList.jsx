@@ -249,9 +249,6 @@ const RoomList = () => {
         setShowRoomModal(true);
     };
 
-    // ... (rest of handlers)
-
-    // ...
 
     <div>
         <label className="block text-sm font-semibold text-gray-700 mb-2">
@@ -278,7 +275,10 @@ const RoomList = () => {
     /**
      * Handler: Save room (add/edit)
      */
-    const handleSaveRoom = () => {
+    /**
+     * Handler: Save room (add/edit)
+     */
+    const handleSaveRoom = async () => {
         if (!roomForm.room_number.trim()) {
             setToast({
                 show: true,
@@ -288,58 +288,107 @@ const RoomList = () => {
             return;
         }
 
-        if (isEditMode) {
-            // Update room
-            setRooms(prev => prev.map(r =>
-                r.id === selectedRoom.id
-                    ? { ...r, ...roomForm }
-                    : r
-            ));
-            setToast({
-                show: true,
-                type: 'success',
-                message: '✅ Cập nhật phòng khám thành công!'
-            });
-        } else {
-            // Add new room
-            const newRoom = {
-                id: `room_${String(rooms.length + 1).padStart(3, '0')} `,
-                ...roomForm
-            };
-            setRooms(prev => [...prev, newRoom]);
-            setToast({
-                show: true,
-                type: 'success',
-                message: '✅ Thêm phòng khám mới thành công!'
-            });
-        }
+        try {
+            setLoading(true);
 
-        setShowRoomModal(false);
-        setSelectedRoom(null);
+            // Try to find a valid clinic_id from existing rooms if not set
+            let clinicIdToUse = roomForm.clinic_id;
+            if (!clinicIdToUse || clinicIdToUse === 'clinic_001') {
+                if (rooms.length > 0 && rooms[0].clinic_id) {
+                    clinicIdToUse = rooms[0].clinic_id;
+                }
+            }
+
+            const payload = {
+                ...roomForm,
+                clinic_id: clinicIdToUse
+            };
+
+            const roomId = selectedRoom?.id || selectedRoom?._id;
+
+            if (isEditMode) {
+                // Update room details (backend ignores status)
+                await roomService.updateRoom(roomId, payload);
+
+                // Check if status changed, if so, call updateStatus separately
+                if (selectedRoom.status !== payload.status) {
+                    await roomService.updateRoomStatus(roomId, payload.status);
+                }
+
+                setToast({
+                    show: true,
+                    type: 'success',
+                    message: '✅ Cập nhật phòng khám thành công!'
+                });
+            } else {
+                // Add new room
+                await roomService.createRoom(payload);
+                setToast({
+                    show: true,
+                    type: 'success',
+                    message: '✅ Thêm phòng khám mới thành công!'
+                });
+            }
+
+            // Refresh list
+            fetchRooms();
+            setShowRoomModal(false);
+            setSelectedRoom(null);
+        } catch (error) {
+            console.error('Save room error:', error);
+            const errorMsg = error.message || error.data?.message || 'Có lỗi xảy ra!';
+            setToast({
+                show: true,
+                type: 'error',
+                message: `❌ ${errorMsg}`
+            });
+        } finally {
+            setLoading(false);
+        }
     };
 
 
     /**
      * Handler: Delete room
      */
+    /**
+     * Handler: Delete room (Soft delete - change status to INACTIVE)
+     */
     const handleDeleteRoom = (roomId) => {
         setConfirmation({
             show: true,
             title: 'Xóa phòng khám',
-            message: 'Bạn có chắc chắn muốn xóa phòng này? Hành động này sẽ xóa cả lịch sử phân công và không thể hoàn tác.',
-            onConfirm: () => {
-                setRooms(prev => prev.filter(r => r.id !== roomId));
-                // Also remove assignments
-                setRoomAssignments(prev => prev.filter(a => a.room_id !== roomId));
-                setToast({
-                    show: true,
-                    type: 'success',
-                    message: '✅ Đã xóa phòng khám!'
-                });
-                setConfirmation(prev => ({ ...prev, show: false }));
+            message: 'Bạn có chắc chắn muốn xóa phòng khám này không? Hành động này không thể hoàn tác.',
+            onConfirm: async () => {
+                try {
+                    setLoading(true);
+                    // Soft delete by setting status to INACTIVE
+                    await roomService.updateRoomStatus(roomId, 'INACTIVE');
+
+                    setToast({
+                        show: true,
+                        type: 'success',
+                        message: '✅ Đã xóa phòng khám thành công!'
+                    });
+
+                    // Refresh list (will hide the INACTIVE room)
+                    fetchRooms();
+                } catch (error) {
+                    console.error('Delete room error:', error);
+                    setToast({
+                        show: true,
+                        type: 'error',
+                        message: '❌ Không thể xóa phòng khám!'
+                    });
+                } finally {
+                    setLoading(false);
+                    setConfirmation(prev => ({ ...prev, show: false }));
+                }
             }
         });
     };
+
+
 
     /**
      * Handler: Open assign doctor modal
@@ -477,9 +526,25 @@ const RoomList = () => {
                             getAssignedDoctors={getAssignedDoctors}
                             onAssignDoctor={handleAssignDoctor}
                             onRemoveAssignment={handleRemoveAssignment}
-                            onViewDetail={(r) => {
-                                setSelectedDetailRoom(r);
-                                setShowDetailModal(true);
+                            onViewDetail={async (r) => {
+                                try {
+                                    setLoading(true);
+                                    const response = await roomService.getRoomById(r._id || r.id);
+                                    // response.data could be the room object or wrapped in data property
+                                    // Based on previous patterns: response.data is the body
+                                    const roomDetail = response.data || response;
+                                    setSelectedDetailRoom(roomDetail);
+                                    setShowDetailModal(true);
+                                } catch (error) {
+                                    console.error('Fetch detail error:', error);
+                                    setToast({
+                                        show: true,
+                                        type: 'error',
+                                        message: '❌ Không thể tải chi tiết phòng!'
+                                    });
+                                } finally {
+                                    setLoading(false);
+                                }
                             }}
                             onEdit={handleEditRoom}
                             onDelete={handleDeleteRoom}

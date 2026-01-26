@@ -126,25 +126,35 @@ const RoomDetailModal = ({
                                         </tr>
                                     </thead>
                                     <tbody className="bg-white divide-y divide-gray-200">
-                                        {[
-                                            { date: '21/01/2026', time: '08:00 - 09:00', doctor: 'Dr. Nguyen Van A', patient: 'Tran Thi B', action: 'Khám tổng quát' },
-                                            { date: '21/01/2026', time: '09:30 - 10:30', doctor: 'Dr. Le Van C', patient: 'Hoang Van D', action: 'Niềng răng' },
-                                            { date: '20/01/2026', time: '14:00 - 15:00', doctor: 'Dr. Nguyen Van A', patient: 'Pham Thi E', action: 'Nhổ răng khôn' },
-                                            { date: '19/01/2026', time: '10:00 - 11:30', doctor: 'Dr. Tran Thi F', patient: 'Le Van G', action: 'Cấy ghép Implant' },
-                                            { date: '18/01/2026', time: '15:30 - 16:30', doctor: 'Dr. Le Van C', patient: 'Nguyen Van H', action: 'Tẩy trắng răng' },
-                                        ].map((item, idx) => (
-                                            <tr key={idx} className="hover:bg-gray-50 transition-colors">
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{item.date}</td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{item.time}</td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-600">{item.doctor}</td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{item.patient}</td>
-                                                <td className="px-6 py-4 whitespace-nowrap">
-                                                    <span className="px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-700">
-                                                        {item.action}
-                                                    </span>
+                                        {room.history_used && room.history_used.length > 0 ? (
+                                            room.history_used.map((item, idx) => (
+                                                <tr key={idx} className="hover:bg-gray-50 transition-colors">
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                        {new Date(item.used_date).toLocaleDateString('vi-VN')}
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                                                        {new Date(item.used_date).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-600">
+                                                        {item.doctor_use?.full_name || 'Bác sĩ'}
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                                                        --
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap">
+                                                        <span className="px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-700">
+                                                            {item.note || 'Sử dụng phòng'}
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                            ))
+                                        ) : (
+                                            <tr>
+                                                <td colSpan="5" className="px-6 py-8 text-center text-gray-500 italic">
+                                                    Chưa có lịch sử sử dụng
                                                 </td>
                                             </tr>
-                                        ))}
+                                        )}
                                     </tbody>
                                 </table>
                             </div>
