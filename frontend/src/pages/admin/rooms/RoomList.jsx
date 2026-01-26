@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { mockRooms, mockRoomUsers, mockUsers, mockAccounts } from '../../../utils/mockData';
+import roomService from '../../../services/roomService';
 
 import Toast from '../../../components/ui/Toast';
 import ConfirmationModal from '../../../components/ui/ConfirmationModal';
@@ -38,6 +39,13 @@ const RoomList = () => {
     const [doctorsList, setDoctorsList] = useState([]);
     const [assistantsList, setAssistantsList] = useState([]);
     const [toast, setToast] = useState({ show: false, type: 'success', message: '' });
+    const [loading, setLoading] = useState(false);
+    const [pagination, setPagination] = useState({
+        page: 1,
+        limit: 10,
+        totalItems: 0,
+        totalPages: 1
+    });
 
     // Confirmation State
     const [confirmation, setConfirmation] = useState({
@@ -71,16 +79,43 @@ const RoomList = () => {
     });
 
     // ========== EFFECTS ==========
-    useEffect(() => {
-        // Load rooms and fill missing new fields with defaults for mock data
-        const enrichedRooms = mockRooms.map(room => ({
-            ...room,
-            room_type: room.room_type || 'Phòng khám tiêu chuẩn',
-            equipment: room.equipment || 'Ghế nha khoa, Đèn LED, Máy X-Quang tại chỗ',
-            description: room.description || ''
-        }));
-        setRooms(enrichedRooms);
+    const fetchRooms = async () => {
+        try {
+            setLoading(true);
+            const response = await roomService.getRooms({
+                page: pagination.page,
+                limit: pagination.limit
+            });
 
+            if (response.data) {
+                // Assuming response structure matches: { data: [], pagination: {} }
+                // Need to adapt based on actual API response structure if simplified
+                const roomData = response.data.data || response.data;
+                setRooms(roomData);
+
+                if (response.data.pagination) {
+                    setPagination(prev => ({
+                        ...prev,
+                        ...response.data.pagination
+                    }));
+                }
+            }
+        } catch (error) {
+            console.error('Failed to fetch rooms:', error);
+            setToast({
+                show: true,
+                type: 'error',
+                message: '❌ Không thể tải danh sách phòng!'
+            });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchRooms();
+
+        // Mock data for assignments/doctors until those APIs are ready or if we still mock them
         setRoomAssignments(mockRoomUsers);
 
         // Get doctors (role_002)
@@ -96,7 +131,7 @@ const RoomList = () => {
             return account && account.role_id === 'role_006'; // Assistant role
         });
         setAssistantsList(assistants);
-    }, []);
+    }, [pagination.page]); // Refetch when page changes
 
     // ========== HELPER FUNCTIONS ==========
 
@@ -388,6 +423,35 @@ const RoomList = () => {
                         </p>
                     </div>
 
+                    {/* Pagination */}
+                    {rooms.length > 0 && (
+                        <div className="mt-8 flex justify-center items-center gap-2">
+                            <button
+                                onClick={() => setPagination(prev => ({ ...prev, page: Math.max(1, prev.page - 1) }))}
+                                disabled={pagination.page === 1}
+                                className={`px-4 py-2 rounded-lg border ${pagination.page === 1
+                                    ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
+                                    : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                                    }`}
+                            >
+                                Trước
+                            </button>
+                            <span className="text-gray-600 px-4">
+                                Trang {pagination.page} / {pagination.totalPages}
+                            </span>
+                            <button
+                                onClick={() => setPagination(prev => ({ ...prev, page: Math.min(prev.totalPages, prev.page + 1) }))}
+                                disabled={pagination.page === pagination.totalPages}
+                                className={`px-4 py-2 rounded-lg border ${pagination.page === pagination.totalPages
+                                    ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
+                                    : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                                    }`}
+                            >
+                                Sau
+                            </button>
+                        </div>
+                    )}
+
                     {/* Add Room Button */}
                     <button
                         onClick={handleAddRoom}
@@ -403,9 +467,9 @@ const RoomList = () => {
 
                 {/* Rooms Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {rooms.map(room => (
+                    {rooms.map((room, index) => (
                         <RoomCard
-                            key={room.id}
+                            key={room.id || index}
                             room={room}
                             getStatusIcon={getStatusIcon}
                             getStatusColor={getStatusColor}

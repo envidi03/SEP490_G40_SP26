@@ -58,12 +58,18 @@ const Login = () => {
                 // Update auth context with user data
                 login(userData, rememberMe);
 
+                // Save tokens
+                if (responseData.token) {
+                    const accessToken = responseData.token;
+                    const refreshToken = responseData.refreshToken;
+
+                    const targetStorage = rememberMe ? localStorage : sessionStorage;
+                    targetStorage.setItem('access_token', JSON.stringify(accessToken));
+                    targetStorage.setItem('refresh_token', JSON.stringify(refreshToken));
+                }
+
                 // Show success toast
                 setShowToast(true);
-
-                // Debug logging
-                console.log('🎭 Role Name:', role.name);
-                console.log('📍 Calculated Dashboard Route:', getDashboardRoute(role.name));
 
                 // Redirect after showing toast based on role
                 setTimeout(() => {
@@ -73,9 +79,7 @@ const Login = () => {
                     } else {
                         localStorage.removeItem('remembered_username');
                     }
-
                     const dashboardRoute = getDashboardRoute(role.name);
-                    console.log('🚀 Redirecting to:', dashboardRoute);
                     navigate(dashboardRoute);
                 }, 1500);
             } else {

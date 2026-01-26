@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { storage } from './storage';
+import { storage, sessionStorage } from './storage';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -15,7 +15,7 @@ const apiClient = axios.create({
 
 apiClient.interceptors.request.use(
     (config) => {
-        const token = storage.get('access_token');
+        const token = storage.get('access_token') || sessionStorage.get('access_token');
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
         }
