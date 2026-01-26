@@ -945,6 +945,167 @@ export const getUserWithAccountAndRole = (userId) => {
     };
 };
 
+// ==================== EQUIPMENT TABLE ====================
+/**
+ * Equipment table - Medical/Dental equipment in clinic
+ * Fields: equipment_name, equipment_type, serial_number, purchase_date, 
+ *         warranty_expiry, status, last_maintenance_date
+ */
+export const mockEquipment = [
+    {
+        id: 'equip_001',
+        equipment_name: 'Máy X-quang kỹ thuật số',
+        equipment_type: 'X-ray',
+        serial_number: 'XR-2024-001',
+        purchase_date: '2024-01-15',
+        warranty_expiry: '2027-01-15',
+        status: 'ACTIVE',
+        last_maintenance_date: '2025-12-20',
+        next_maintenance_date: '2026-03-20',
+        room_id: 'room_001'
+    },
+    {
+        id: 'equip_002',
+        equipment_name: 'Ghế nha khoa Multifunction',
+        equipment_type: 'Dental Chair',
+        serial_number: 'DC-2024-001',
+        purchase_date: '2024-02-01',
+        warranty_expiry: '2029-02-01',
+        status: 'ACTIVE',
+        last_maintenance_date: '2025-11-15',
+        next_maintenance_date: '2026-02-15',
+        room_id: 'room_001'
+    },
+    {
+        id: 'equip_003',
+        equipment_name: 'Máy cạo vôi siêu âm',
+        equipment_type: 'Ultrasonic Scaler',
+        serial_number: 'US-2024-001',
+        purchase_date: '2024-01-20',
+        warranty_expiry: '2026-01-20',
+        status: 'ACTIVE',
+        last_maintenance_date: '2026-01-10',
+        next_maintenance_date: '2026-07-10',
+        room_id: 'room_002'
+    },
+    {
+        id: 'equip_004',
+        equipment_name: 'Tủ tiệt trùng Autoclave',
+        equipment_type: 'Sterilizer',
+        serial_number: 'ST-2024-001',
+        purchase_date: '2024-03-10',
+        warranty_expiry: '2026-03-10',
+        status: 'ACTIVE',
+        last_maintenance_date: '2025-12-01',
+        next_maintenance_date: '2026-03-01',
+        room_id: null
+    },
+    {
+        id: 'equip_005',
+        equipment_name: 'Máy nén khí nha khoa',
+        equipment_type: 'Air Compressor',
+        serial_number: 'AC-2023-001',
+        purchase_date: '2023-12-01',
+        warranty_expiry: '2025-12-01',
+        status: 'MAINTENANCE',
+        last_maintenance_date: '2026-01-15',
+        next_maintenance_date: '2026-01-20',
+        room_id: null
+    },
+    {
+        id: 'equip_006',
+        equipment_name: 'Máy tẩy trắng răng Laser',
+        equipment_type: 'Laser Whitening',
+        serial_number: 'LW-2024-001',
+        purchase_date: '2024-05-20',
+        warranty_expiry: '2027-05-20',
+        status: 'ACTIVE',
+        last_maintenance_date: '2025-11-20',
+        next_maintenance_date: '2026-05-20',
+        room_id: 'room_003'
+    },
+    {
+        id: 'equip_007',
+        equipment_name: 'Máy khoan nha khoa tốc độ cao',
+        equipment_type: 'High Speed Handpiece',
+        serial_number: 'HP-2024-002',
+        purchase_date: '2024-04-15',
+        warranty_expiry: '2025-04-15',
+        status: 'ACTIVE',
+        last_maintenance_date: '2025-12-10',
+        next_maintenance_date: '2026-06-10',
+        room_id: 'room_002'
+    },
+    {
+        id: 'equip_008',
+        equipment_name: 'Máy scan 3D răng',
+        equipment_type: '3D Scanner',
+        serial_number: '3DS-2024-001',
+        purchase_date: '2024-06-01',
+        warranty_expiry: '2029-06-01',
+        status: 'ACTIVE',
+        last_maintenance_date: '2025-10-01',
+        next_maintenance_date: '2026-04-01',
+        room_id: 'room_001'
+    }
+];
+
+// ==================== EQUIPMENT USAGE HISTORY ====================
+/**
+ * Equipment Usage History - Track equipment usage
+ * Fields: equipment_id, used_by_user_id, used_date, purpose, duration
+ */
+export const mockEquipmentUsage = [
+    {
+        id: 'usage_001',
+        equipment_id: 'equip_001',
+        used_by_user_id: '67890abc12345def67890002', // Doctor
+        used_date: '2026-01-15',
+        purpose: 'X-quang răng cho bệnh nhân',
+        duration: 15 // minutes
+    },
+    {
+        id: 'usage_002',
+        equipment_id: 'equip_001',
+        used_by_user_id: '67890abc12345def67890003', // Doctor
+        used_date: '2026-01-14',
+        purpose: 'Chụp phim toàn hàm',
+        duration: 20
+    },
+    {
+        id: 'usage_003',
+        equipment_id: 'equip_002',
+        used_by_user_id: '67890abc12345def67890002',
+        used_date: '2026-01-15',
+        purpose: 'Khám và điều trị bệnh nhân',
+        duration: 60
+    },
+    {
+        id: 'usage_004',
+        equipment_id: 'equip_003',
+        used_by_user_id: '67890abc12345def67890002',
+        used_date: '2026-01-15',
+        purpose: 'Lấy cao răng',
+        duration: 30
+    },
+    {
+        id: 'usage_005',
+        equipment_id: 'equip_006',
+        used_by_user_id: '67890abc12345def67890003',
+        used_date: '2026-01-13',
+        purpose: 'Tẩy trắng răng cho bệnh nhân',
+        duration: 90
+    },
+    {
+        id: 'usage_006',
+        equipment_id: 'equip_008',
+        used_by_user_id: '67890abc12345def67890002',
+        used_date: '2026-01-12',
+        purpose: 'Scan 3D để làm răng sứ',
+        duration: 30
+    }
+];
+
 /**
  * Get appointments by doctor ID
  * @param {string} doctorId - Doctor's user ID
