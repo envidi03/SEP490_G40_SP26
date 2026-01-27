@@ -7,6 +7,7 @@ import ForgotPassword from '../../pages/auth/ForgotPassword';
 import Contact from '../../pages/public/Contact';
 import ServicesPricing from '../../pages/public/ServicesPricing';
 import About from '../../pages/public/About';
+import DoctorsList from '../../pages/public/DoctorsList';
 
 
 // Public routes - accessible without authentication
@@ -69,6 +70,14 @@ const publicRoutes = [
         element: (
             <PublicRoute allowPatient={true}>
                 <ServicesPricing />
+            </PublicRoute>
+        )
+    },
+    {
+        path: '/doctors',
+        element: (
+            <PublicRoute allowPatient={true}>
+                <DoctorsList />
             </PublicRoute>
         )
     }
