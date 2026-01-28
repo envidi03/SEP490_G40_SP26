@@ -36,8 +36,8 @@ const PatientTableSection = ({ patients, onViewPatient }) => {
       header: "Trạng thái",
       accessor: "status",
       render: (row) => (
-        <Badge variant={row.status === "active" ? "success" : "default"}>
-          {row.status === "active" ? "Hoạt động" : "Không hoạt động"}
+        <Badge variant={row.status === "ACTIVE" ? "success" : "default"}>
+          {row.status === "ACTIVE" ? "Hoạt động" : "Không hoạt động"}
         </Badge>
       ),
     },

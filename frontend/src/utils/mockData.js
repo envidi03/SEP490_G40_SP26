@@ -451,7 +451,7 @@ export const mockAppointments = [
         id: 'apt_001',
         code: 'APT001',
         patient_id: '67890abc12345def67890005',
-        doctor_id: '67890abc12345def67890002',
+        doctor_id: '696e3df17ea4d06340b4b5e1',
         room_id: 'room_001',
         appointment_Date: '2026-01-22',
         appointment_Time: '09:00',
@@ -490,7 +490,7 @@ export const mockAppointments = [
         id: 'apt_003',
         code: 'APT003',
         patient_id: '67890abc12345def67890007',
-        doctor_id: '67890abc12345def67890002',
+        doctor_id: '696e3df17ea4d06340b4b5e1',
         room_id: 'room_001',
         appointment_Date: '2026-01-21',
         appointment_Time: '14:00',
@@ -528,7 +528,7 @@ export const mockAppointments = [
         id: 'apt_005',
         code: 'APT005',
         patient_id: '67890abc12345def67890006',
-        doctor_id: '67890abc12345def67890002',
+        doctor_id: '696e3df17ea4d06340b4b5e1',
         room_id: 'room_001',
         appointment_Date: '2026-01-24',
         appointment_Time: '11:00',
@@ -547,7 +547,7 @@ export const mockAppointments = [
         id: 'apt_006',
         code: 'APT006',
         patient_id: '67890abc12345def67890007',
-        doctor_id: '67890abc12345def67890002',
+        doctor_id: '696e3df17ea4d06340b4b5e1',
         room_id: 'room_001',
         appointment_Date: '2026-01-25',
         appointment_Time: '15:30',
@@ -911,8 +911,9 @@ export const mockPatients = mockUsers
         const account = mockAccounts.find(a => a.id === user.account_id);
         return account && account.role_id === 'role_004'; // Patient role
     })
-    .map(user => ({
+    .map((user, index) => ({
         id: user.id,
+        code: `BN${String(index + 1).padStart(3, '0')}`,
         name: user.full_name,
         email: user.email,
         phone: user.phone,

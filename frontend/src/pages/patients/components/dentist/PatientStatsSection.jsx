@@ -15,7 +15,7 @@ const StatItem = ({ icon: Icon, label, value, color }) => (
 
 const PatientStatsSection = ({ patients, doctorAppointments }) => {
   const totalPatients = patients.length
-  const activePatients = patients.filter((p) => p.status === "active").length
+  const activePatients = patients.filter((p) => p.status === "ACTIVE").length
   const appointmentsCount = doctorAppointments.length
 
   return (
