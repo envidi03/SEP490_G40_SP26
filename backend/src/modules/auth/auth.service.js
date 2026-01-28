@@ -489,7 +489,12 @@ exports.googleAuth = async (googleToken, ip_address = 'unknown', user_agent = 'u
 
     const { sub: googleId, email, name, picture } = payload;
 
-    let account = await Account.findOne({ email }).populate('role_id');
+    let account = await Account.findOne({ email }).populate({
+        path: "role_id",
+        populate: {
+            path: "permissions"
+        }
+    });
 
     if (!account) {
         const defaultRole = await Role.findOne({ name: 'PATIENT' });
@@ -522,7 +527,12 @@ exports.googleAuth = async (googleToken, ip_address = 'unknown', user_agent = 'u
             email: email
         });
 
-        account = await Account.findById(account._id).populate('role_id');
+        account = await Account.findById(account._id).populate({
+            path: 'role_id',
+            populate: {
+                path: 'permissions'
+            }
+        });
     } else {
         const existingProvider = await AuthProvider.findOne({
             account_id: account._id,
@@ -585,6 +595,15 @@ exports.googleAuth = async (googleToken, ip_address = 'unknown', user_agent = 'u
             id: user._id,
             full_name: user.full_name,
             avatar_url: user.avatar_url
+        },
+        role: {
+            id: account.role_id._id,
+            name: account.role_id.name,
+            permissions: account.role_id.permissions.map(p => ({
+                code: p.code,
+                name: p.name,
+                module: p.module
+            }))
         },
         token,
         refreshToken

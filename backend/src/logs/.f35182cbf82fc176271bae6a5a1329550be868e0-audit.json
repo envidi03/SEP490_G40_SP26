@@ -1,0 +1,15 @@
+{
+    "keep": {
+        "days": true,
+        "amount": 14
+    },
+    "auditLog": "D:\\Respositories\\SEP490_G40_SP26\\backend\\src\\logs\\.f35182cbf82fc176271bae6a5a1329550be868e0-audit.json",
+    "files": [
+        {
+            "date": 1768873663712,
+            "name": "D:\\Respositories\\SEP490_G40_SP26\\backend\\src\\logs\\application-2026-01-20.log",
+            "hash": "f9e5c75d9ffc3cf1ffe913ef8b2e941347eea871f1a1d5fe9b57bc707ebe254e"
+        }
+    ],
+    "hashType": "sha256"
+}
