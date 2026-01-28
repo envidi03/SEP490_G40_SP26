@@ -8,6 +8,7 @@ import Contact from '../../pages/public/Contact';
 import ServicesPricing from '../../pages/public/ServicesPricing';
 import About from '../../pages/public/About';
 import DoctorsList from '../../pages/public/DoctorsList';
+import DoctorDetail from '../../pages/public/DoctorDetail';
 
 
 // Public routes - accessible without authentication
@@ -78,6 +79,14 @@ const publicRoutes = [
         element: (
             <PublicRoute allowPatient={true}>
                 <DoctorsList />
+            </PublicRoute>
+        )
+    },
+    {
+        path: '/doctor/:id',
+        element: (
+            <PublicRoute allowPatient={true}>
+                <DoctorDetail />
             </PublicRoute>
         )
     }
