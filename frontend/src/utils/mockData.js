@@ -945,6 +945,283 @@ export const getUserWithAccountAndRole = (userId) => {
     };
 };
 
+// ==================== EQUIPMENT TABLE ====================
+/**
+ * Equipment table - Medical/Dental equipment in clinic
+ * Fields: equipment_name, equipment_type, serial_number, purchase_date, 
+ *         warranty_expiry, status, last_maintenance_date
+ */
+export const mockEquipment = [
+    {
+        id: 'equip_001',
+        equipment_name: 'Máy X-quang kỹ thuật số',
+        equipment_type: 'X-ray',
+        serial_number: 'XR-2024-001',
+        purchase_date: '2024-01-15',
+        warranty_expiry: '2027-01-15',
+        status: 'ACTIVE',
+        last_maintenance_date: '2025-12-20',
+        next_maintenance_date: '2026-03-20',
+        room_id: 'room_001'
+    },
+    {
+        id: 'equip_002',
+        equipment_name: 'Ghế nha khoa Multifunction',
+        equipment_type: 'Dental Chair',
+        serial_number: 'DC-2024-001',
+        purchase_date: '2024-02-01',
+        warranty_expiry: '2029-02-01',
+        status: 'ACTIVE',
+        last_maintenance_date: '2025-11-15',
+        next_maintenance_date: '2026-02-15',
+        room_id: 'room_001'
+    },
+    {
+        id: 'equip_003',
+        equipment_name: 'Máy cạo vôi siêu âm',
+        equipment_type: 'Ultrasonic Scaler',
+        serial_number: 'US-2024-001',
+        purchase_date: '2024-01-20',
+        warranty_expiry: '2026-01-20',
+        status: 'ACTIVE',
+        last_maintenance_date: '2026-01-10',
+        next_maintenance_date: '2026-07-10',
+        room_id: 'room_002'
+    },
+    {
+        id: 'equip_004',
+        equipment_name: 'Tủ tiệt trùng Autoclave',
+        equipment_type: 'Sterilizer',
+        serial_number: 'ST-2024-001',
+        purchase_date: '2024-03-10',
+        warranty_expiry: '2026-03-10',
+        status: 'ACTIVE',
+        last_maintenance_date: '2025-12-01',
+        next_maintenance_date: '2026-03-01',
+        room_id: null
+    },
+    {
+        id: 'equip_005',
+        equipment_name: 'Máy nén khí nha khoa',
+        equipment_type: 'Air Compressor',
+        serial_number: 'AC-2023-001',
+        purchase_date: '2023-12-01',
+        warranty_expiry: '2025-12-01',
+        status: 'MAINTENANCE',
+        last_maintenance_date: '2026-01-15',
+        next_maintenance_date: '2026-01-20',
+        room_id: null
+    },
+    {
+        id: 'equip_006',
+        equipment_name: 'Máy tẩy trắng răng Laser',
+        equipment_type: 'Laser Whitening',
+        serial_number: 'LW-2024-001',
+        purchase_date: '2024-05-20',
+        warranty_expiry: '2027-05-20',
+        status: 'ACTIVE',
+        last_maintenance_date: '2025-11-20',
+        next_maintenance_date: '2026-05-20',
+        room_id: 'room_003'
+    },
+    {
+        id: 'equip_007',
+        equipment_name: 'Máy khoan nha khoa tốc độ cao',
+        equipment_type: 'High Speed Handpiece',
+        serial_number: 'HP-2024-002',
+        purchase_date: '2024-04-15',
+        warranty_expiry: '2025-04-15',
+        status: 'ACTIVE',
+        last_maintenance_date: '2025-12-10',
+        next_maintenance_date: '2026-06-10',
+        room_id: 'room_002'
+    },
+    {
+        id: 'equip_008',
+        equipment_name: 'Máy scan 3D răng',
+        equipment_type: '3D Scanner',
+        serial_number: '3DS-2024-001',
+        purchase_date: '2024-06-01',
+        warranty_expiry: '2029-06-01',
+        status: 'ACTIVE',
+        last_maintenance_date: '2025-10-01',
+        next_maintenance_date: '2026-04-01',
+        room_id: 'room_001'
+    }
+];
+
+// ==================== EQUIPMENT USAGE HISTORY ====================
+/**
+ * Equipment Usage History - Track equipment usage
+ * Fields: equipment_id, used_by_user_id, used_date, purpose, duration
+ */
+export const mockEquipmentUsage = [
+    {
+        id: 'usage_001',
+        equipment_id: 'equip_001',
+        used_by_user_id: '67890abc12345def67890002', // Doctor
+        used_date: '2026-01-15',
+        purpose: 'X-quang răng cho bệnh nhân',
+        duration: 15 // minutes
+    },
+    {
+        id: 'usage_002',
+        equipment_id: 'equip_001',
+        used_by_user_id: '67890abc12345def67890003', // Doctor
+        used_date: '2026-01-14',
+        purpose: 'Chụp phim toàn hàm',
+        duration: 20
+    },
+    {
+        id: 'usage_003',
+        equipment_id: 'equip_002',
+        used_by_user_id: '67890abc12345def67890002',
+        used_date: '2026-01-15',
+        purpose: 'Khám và điều trị bệnh nhân',
+        duration: 60
+    },
+    {
+        id: 'usage_004',
+        equipment_id: 'equip_003',
+        used_by_user_id: '67890abc12345def67890002',
+        used_date: '2026-01-15',
+        purpose: 'Lấy cao răng',
+        duration: 30
+    },
+    {
+        id: 'usage_005',
+        equipment_id: 'equip_006',
+        used_by_user_id: '67890abc12345def67890003',
+        used_date: '2026-01-13',
+        purpose: 'Tẩy trắng răng cho bệnh nhân',
+        duration: 90
+    },
+    {
+        id: 'usage_006',
+        equipment_id: 'equip_008',
+        used_by_user_id: '67890abc12345def67890002',
+        used_date: '2026-01-12',
+        purpose: 'Scan 3D để làm răng sứ',
+        duration: 30
+    }
+];
+
+// ==================== SERVICES TABLE ====================
+/**
+ * Services table - Dental services offered by clinic
+ * Fields: service_name, description, base_price, category, duration, status
+ */
+export const mockServices = [
+    {
+        id: 'service_001',
+        service_name: 'Khám tổng quát',
+        description: 'Khám và tư vấn sức khỏe răng miệng tổng quát',
+        base_price: 100000,
+        category: 'Khám và Tư vấn',
+        duration: 30, // minutes
+        status: 'ACTIVE'
+    },
+    {
+        id: 'service_002',
+        service_name: 'Trám răng Composite',
+        description: 'Trám răng bằng vật liệu composite thẩm mỹ',
+        base_price: 300000,
+        category: 'Trám răng',
+        duration: 45,
+        status: 'ACTIVE'
+    },
+    {
+        id: 'service_003',
+        service_name: 'Lấy cao răng',
+        description: 'Lấy cao răng và vệ sinh răng miệng',
+        base_price: 200000,
+        category: 'Vệ sinh răng miệng',
+        duration: 30,
+        status: 'ACTIVE'
+    },
+    {
+        id: 'service_004',
+        service_name: 'Nhổ răng khôn',
+        description: 'Nhổ răng khôn mọc lệch, mọc ngầm',
+        base_price: 1500000,
+        category: 'Phẫu thuật',
+        duration: 60,
+        status: 'ACTIVE'
+    },
+    {
+        id: 'service_005',
+        service_name: 'Tẩy trắng răng',
+        description: 'Tẩy trắng răng bằng công nghệ Laser',
+        base_price: 2500000,
+        category: 'Thẩm mỹ',
+        duration: 90,
+        status: 'ACTIVE'
+    },
+    {
+        id: 'service_006',
+        service_name: 'Niềng răng mắc cài kim loại',
+        description: 'Niềng răng chỉnh nha mắc cài kim loại truyền thống',
+        base_price: 25000000,
+        category: 'Chỉnh nha',
+        duration: 60,
+        status: 'ACTIVE'
+    },
+    {
+        id: 'service_007',
+        service_name: 'Niềng răng Invisalign',
+        description: 'Niềng răng trong suốt không mắc cài',
+        base_price: 80000000,
+        category: 'Chỉnh nha',
+        duration: 90,
+        status: 'ACTIVE'
+    },
+    {
+        id: 'service_008',
+        service_name: 'Cấy ghép Implant',
+        description: 'Cấy ghép răng Implant titan nguyên khối',
+        base_price: 15000000,
+        category: 'Phục hồi răng',
+        duration: 120,
+        status: 'ACTIVE'
+    },
+    {
+        id: 'service_009',
+        service_name: 'Bọc răng sứ Titan',
+        description: 'Bọc răng sứ Titan chất lượng cao',
+        base_price: 2000000,
+        category: 'Phục hồi răng',
+        duration: 60,
+        status: 'ACTIVE'
+    },
+    {
+        id: 'service_010',
+        service_name: 'Bọc răng sứ Zirconia',
+        description: 'Bọc răng sứ Zirconia cao cấp, thẩm mỹ tối ưu',
+        base_price: 4500000,
+        category: 'Phục hồi răng',
+        duration: 60,
+        status: 'ACTIVE'
+    },
+    {
+        id: 'service_011',
+        service_name: 'Điều trị tủy',
+        description: 'Điều trị tủy răng, lấy tủy và trám bít ống tủy',
+        base_price: 800000,
+        category: 'Nội nha',
+        duration: 90,
+        status: 'ACTIVE'
+    },
+    {
+        id: 'service_012',
+        service_name: 'Nhổ răng thường',
+        description: 'Nhổ răng sữa hoặc răng vĩnh viễn đơn giản',
+        base_price: 150000,
+        category: 'Phẫu thuật',
+        duration: 30,
+        status: 'ACTIVE'
+    }
+];
+
 /**
  * Get appointments by doctor ID
  * @param {string} doctorId - Doctor's user ID

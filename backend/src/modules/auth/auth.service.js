@@ -586,6 +586,7 @@ exports.googleAuth = async (googleToken, ip_address = 'unknown', user_agent = 'u
             full_name: user.full_name,
             avatar_url: user.avatar_url
         },
+        role: account.role_id,
         token,
         refreshToken
     };

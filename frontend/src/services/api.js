@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { storage } from './storage';
+import { storage, sessionStorage } from './storage';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -15,7 +15,7 @@ const apiClient = axios.create({
 
 apiClient.interceptors.request.use(
     (config) => {
-        const token = storage.get('access_token');
+        const token = storage.get('access_token') || sessionStorage.get('access_token');
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
         }
@@ -27,7 +27,11 @@ apiClient.interceptors.request.use(
 apiClient.interceptors.response.use(
     (response) => response.data,
     async (error) => {
-        if (error.response?.status === 401) {
+        const originalRequest = error.config;
+
+        // Only redirect if 401 AND it's NOT a login attempt
+        // (Login attempts return 401 on wrong password, we should let the component handle it)
+        if (error.response?.status === 401 && !originalRequest.url.includes('/auth/login')) {
             // Token expired - clear tokens and redirect to login
             storage.remove('access_token');
             storage.remove('refresh_token');

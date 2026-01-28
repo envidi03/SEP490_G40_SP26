@@ -7,6 +7,9 @@ import ForgotPassword from '../../pages/auth/ForgotPassword';
 import Contact from '../../pages/public/Contact';
 import ServicesPricing from '../../pages/public/ServicesPricing';
 import About from '../../pages/public/About';
+import DoctorsList from '../../pages/public/DoctorsList';
+import DoctorDetail from '../../pages/public/DoctorDetail';
+import BookAppointment from '../../pages/booking/BookAppointment';
 
 
 // Public routes - accessible without authentication
@@ -34,12 +37,12 @@ const publicRoutes = [
     {
         path: '/verify-email',
         element: (
-            <PublicRoute>
+            <PublicRoute allowPatient={true}>
                 <VerifyEmail />
             </PublicRoute>
         )
     },
-    ,
+
     {
         path: '/forgot-password',
         element: (
@@ -51,7 +54,7 @@ const publicRoutes = [
     {
         path: '/about',
         element: (
-            <PublicRoute>
+            <PublicRoute allowPatient={true}>
                 <About />
             </PublicRoute>
         )
@@ -59,7 +62,7 @@ const publicRoutes = [
     {
         path: '/contact',
         element: (
-            <PublicRoute>
+            <PublicRoute allowPatient={true}>
                 <Contact />
             </PublicRoute>
         )
@@ -67,8 +70,31 @@ const publicRoutes = [
     {
         path: '/pricing',
         element: (
-            <PublicRoute>
+            <PublicRoute allowPatient={true}>
                 <ServicesPricing />
+            </PublicRoute>
+        )
+    },
+    {
+        path: '/doctors',
+        element: (
+            <PublicRoute allowPatient={true}>
+                <DoctorsList />
+            </PublicRoute>
+        )
+    },
+    {
+        path: '/doctor/:id',
+        element: (
+            <PublicRoute allowPatient={true}>
+                <DoctorDetail />
+            </PublicRoute>
+        )
+    }, {
+        path: '/book-appointment',
+        element: (
+            <PublicRoute allowPatient={true}>
+                <BookAppointment />
             </PublicRoute>
         )
     }
