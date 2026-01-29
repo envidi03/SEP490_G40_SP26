@@ -1,7 +1,8 @@
 import AssistantLayout from '../../components/layout/AssistantLayout';
 import ProtectedRoute from '../guards/ProtectedRoute';
 import AssistantAppointments from '../../pages/assistant/AssistantAppointments';
-
+import AssistantMedicalRecords from '../../pages/assistant/AssistantMedicalRecords';
+import AssistantLeaveRequests from '../../pages/assistant/AssistantLeaveRequests';
 
 /**
  * Assistant Routes - Role-specific routes for Dental Assistant
@@ -25,6 +26,16 @@ const assistantRoutes = [
             <ProtectedRoute allowedRoles={['ASSISTANT']}>
                 <AssistantLayout>
                     <AssistantMedicalRecords />
+                </AssistantLayout>
+            </ProtectedRoute>
+        )
+    },
+    {
+        path: '/assistant/leave-requests',
+        element: (
+            <ProtectedRoute allowedRoles={['ASSISTANT']}>
+                <AssistantLayout>
+                    <AssistantLeaveRequests />
                 </AssistantLayout>
             </ProtectedRoute>
         )
