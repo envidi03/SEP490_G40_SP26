@@ -18,6 +18,16 @@ const assistantRoutes = [
                 </AssistantLayout>
             </ProtectedRoute>
         )
+    },
+    {
+        path: '/assistant/medical-records',
+        element: (
+            <ProtectedRoute allowedRoles={['ASSISTANT']}>
+                <AssistantLayout>
+                    <AssistantMedicalRecords />
+                </AssistantLayout>
+            </ProtectedRoute>
+        )
     }
 ];
 
