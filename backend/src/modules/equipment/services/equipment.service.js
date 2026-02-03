@@ -3,6 +3,7 @@ const errorRes = require("../../../common/errors");
 
 const EquipmentModel = require("../models/equipment.model");
 const Pagination = require("../../../common/responses/Pagination");
+const mongoose = require("mongoose");
 
 /*
     get list equipments with pagination and filter 
@@ -160,16 +161,13 @@ const getEquipmentById = async (id, query) => {
 
         // --- 3. AGGREGATION PIPELINE ---
         const result = await EquipmentModel.aggregate([
-            { $match: { _id: id } }, // Nếu id là ObjectId, hãy đảm bảo cast: new mongoose.Types.ObjectId(id)
+            { $match: { _id: new mongoose.Types.ObjectId(id) } },
             {
-                $project: {
-                    __v: 0,
-                    createdAt: 0,
-                    updatedAt: 0,
+                // Sử dụng $set để tính toán lại mảng mà không làm mất các trường khác
+                $set: {
                     maintenance_history: {
                         $slice: [
                             {
-                                // BƯỚC QUAN TRỌNG: $sortArray
                                 $sortArray: {
                                     input: {
                                         $filter: {
@@ -178,21 +176,20 @@ const getEquipmentById = async (id, query) => {
                                             cond: maintFilterExpression
                                         }
                                     },
-                                    sortBy: { maintence_date: sort_maintence_val }
+                                    sortBy: { maintenance_date: sort_maintence_val }
                                 }
                             },
                             skip_maintence,
                             limit_maintence
                         ]
                     },
-                    equipments_logs: {
+                    equipments_log: { // Đảm bảo đúng tên 'equipments_log' trong Schema của bạn
                         $slice: [
                             {
-                                // BƯỚC QUAN TRỌNG: $sortArray
                                 $sortArray: {
                                     input: {
                                         $filter: {
-                                            input: "$equipments_logs",
+                                            input: "$equipments_log",
                                             as: "item",
                                             cond: logFilterExpression
                                         }
@@ -204,6 +201,14 @@ const getEquipmentById = async (id, query) => {
                             limit_logs
                         ]
                     }
+                }
+            },
+            {
+                // Cuối cùng mới dùng $project để ẩn các trường metadata
+                $project: {
+                    __v: 0,
+                    createdAt: 0,
+                    updatedAt: 0
                 }
             }
         ]);

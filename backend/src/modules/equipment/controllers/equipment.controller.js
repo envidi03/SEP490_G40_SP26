@@ -48,8 +48,6 @@ const getEquipments = async (req, res) => {
     }
 };
 
-
-
 /*
     get equipment by id with 
         filter maintence_history 
@@ -115,7 +113,7 @@ const createEquipment = async (req, res) => {
                     context: 'EquipmentController.createEquipment',
                     field: field
                 });
-                throw new errorRes.BadRequestError(`Missing required field: ${field}`).send(res);
+                throw new errorRes.BadRequestError(`Missing required field: ${field}`);
             }
         }
         // check unique serial_number
@@ -125,7 +123,7 @@ const createEquipment = async (req, res) => {
                 context: 'EquipmentController.createEquipment',
                 serial_number: dataCreate.equipment_serial_number
             });
-            throw new errorRes.ConflictError('Serial number already exists').send(res);
+            throw new errorRes.ConflictError('Serial number already exists');
         }
         // check lengh of serial_number from 6 to 20
         if (dataCreate.equipment_serial_number.length < 6 || dataCreate.equipment_serial_number.length > 20) {
@@ -133,7 +131,7 @@ const createEquipment = async (req, res) => {
                 context: 'EquipmentController.createEquipment',
                 serial_number: dataCreate.equipment_serial_number
             });
-            throw new errorRes.BadRequestError('Serial number length must be between 6 and 20 characters').send(res);
+            throw new errorRes.BadRequestError('Serial number length must be between 6 and 20 characters');
         }
         // crate data
         const equipment = await EquipmentService.createEquipment(dataCreate);
