@@ -91,6 +91,9 @@ app.use('/api/room', roomRoute);
 const { equipmentRoute } = require('./modules/equipment');
 app.use('/api/equipment', equipmentRoute);
 
+const { serviceRoute } = require('./modules/service');
+app.use('/api/service', serviceRoute);
+
 // 404 Handler - Must be after all routes
 app.use((req, res, next) => {
     res.status(404).json({
