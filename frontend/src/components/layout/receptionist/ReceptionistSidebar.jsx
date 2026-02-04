@@ -10,7 +10,7 @@ import {
     Menu
 } from 'lucide-react';
 import clsx from 'clsx';
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuth } from '../../../contexts/AuthContext';
 
 const ReceptionistSidebar = () => {
     const location = useLocation();
