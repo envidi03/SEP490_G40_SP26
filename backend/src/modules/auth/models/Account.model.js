@@ -66,4 +66,4 @@ accountSchema.methods.comparePassword = function (candidatePassword) {
     return bcrypt.compare(candidatePassword, this.password);
 };
 
-module.exports = mongoose.models.Account || mongoose.model("Account", accountSchema);
+module.exports = mongoose.model("Account", accountSchema);
