@@ -3,21 +3,21 @@ const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const { OAuth2Client } = require('google-auth-library');
 
-const Account = require('../auth/models/Account.model');
-const AuthProvider = require('../auth/models/AuthProviders.model');
-const EmailVerification = require('../auth/models/EmailVerification.model');
-const LoginAttempt = require('../auth/models/LoginAttempt.model');
-const PasswordReset = require('../auth/models/PasswordReset.model');
-const Permission = require('../auth/models/Permission.model');
-const Role = require('../auth/models/Role.model');
-const Session = require('../auth/models/Session.model');
-const User = require('../auth/models/User.model');
+const Account = require('../models/account.model');
+const AuthProvider = require('../models/auth-provider.model');
+const EmailVerification = require('../models/email-verification.model');
+const LoginAttempt = require('../models/login-attempt.model');
+const PasswordReset = require('../models/password-reset.model');
+const Permission = require('../models/permission.model');
+const Role = require('../models/role.model');
+const Session = require('../models/session.model');
+const Profile = require('../models/profile.model');
 require('dotenv').config();
-const { signToken, signRefreshToken, verifyToken, hashToken } = require('../../common/utils/jwt');
+const { signToken, signRefreshToken, verifyToken, hashToken } = require('../../../common/utils/jwt');
 
-const { ValidationError, ConflictError, NotFoundError, UnauthorizedError, ForbiddenError } = require('../../common/errors');
+const { ValidationError, ConflictError, NotFoundError, UnauthorizedError, ForbiddenError } = require('../../../common/errors');
 
-const emailService = require('../../common/service/email.service');
+const emailService = require('../../../common/service/email.service');
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 exports.register = async (data) => {
@@ -90,7 +90,7 @@ exports.register = async (data) => {
         console.error('Failed to send verification email:', error);
     }
 
-    const user = await User.create({
+    const user = await Profile.create({
         account_id: account._id,
         full_name,
         dob: dob || null,
@@ -162,7 +162,7 @@ exports.resendVerificationEmail = async (email) => {
         expires_at: new Date(Date.now() + 60 * 60 * 1000)
     });
 
-    const user = await User.findOne({ account_id: account._id });
+    const user = await Profile.findOne({ account_id: account._id });
 
     try {
         await emailService.sendEmailVerificationEmail(
@@ -234,7 +234,7 @@ exports.login = async (data, ip_address = 'unknown', user_agent = 'unknown') => 
         throw new UnauthorizedError('Invalid password');
     }
 
-    const user = await User.findOne({ account_id: account._id });
+    const user = await Profile.findOne({ account_id: account._id });
     if (!user) {
         throw new NotFoundError('User not found');
     }
@@ -343,7 +343,7 @@ exports.refreshToken = async (refreshToken) => {
         throw new ForbiddenError('Account is not active');
     }
 
-    const user = await User.findById(session.user_id);
+    const user = await Profile.findById(session.user_id);
     if (!user) {
         throw new NotFoundError('User not found');
     }
@@ -375,7 +375,7 @@ exports.forgotPassword = async (email) => {
         expires_at: new Date(Date.now() + 15 * 60 * 1000)
     })
 
-    const user = await User.findOne({ account_id: account._id })
+    const user = await Profile.findOne({ account_id: account._id })
     try {
         await emailService.sendPasswordResetEmail(email, otp, user.full_name);
     } catch (error) {
@@ -514,7 +514,7 @@ exports.googleAuth = async (googleToken, ip_address = 'unknown', user_agent = 'u
             email_verified: true
         });
 
-        await User.create({
+        await Profile.create({
             account_id: account._id,
             full_name: name || '',
             avatar_url: picture || undefined
@@ -553,7 +553,7 @@ exports.googleAuth = async (googleToken, ip_address = 'unknown', user_agent = 'u
         }
     }
 
-    const user = await User.findOne({ account_id: account._id });
+    const user = await Profile.findOne({ account_id: account._id });
 
     const token = signToken({
         account_id: account._id,
