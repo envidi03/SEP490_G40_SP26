@@ -50,7 +50,7 @@ const profileSchema = new Schema(
             default: false
         }
     },
-    { timestamps: true, collection: "users" }
+    { timestamps: true, collection: "profiles" }
 );
 
 module.exports = mongoose.model("Profile", profileSchema);
