@@ -27,7 +27,7 @@ const accountSchema = new Schema(
             type: String,
             required: true,
             select: false
-        }, // select: false để không trả về password khi query thường
+        },
 
         role_id: {
             type: Schema.Types.ObjectId,
