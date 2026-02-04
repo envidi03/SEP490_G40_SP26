@@ -88,6 +88,8 @@ app.use('/api/clinic', clinicRoute);
 const { roomRoute } = require('./modules/room');
 app.use('/api/room', roomRoute);
 
+const { equipmentRoute } = require('./modules/equipment');
+app.use('/api/equipment', equipmentRoute);
 
 // 404 Handler - Must be after all routes
 app.use((req, res, next) => {
