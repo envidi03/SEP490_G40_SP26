@@ -1,6 +1,6 @@
 const { verifyToken } = require('../utils/jwt');
 const { UnauthorizedError, ForbiddenError } = require('../errors');
-const  Account = require('../../modules/auth/models/Account.model');
+const  Account = require('../../modules/auth/models/account.model');
 const logger = require('../utils/logger');
 
 

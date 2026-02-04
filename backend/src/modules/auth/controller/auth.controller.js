@@ -1,4 +1,4 @@
-const authService = require('./auth.service');
+const authService = require('../service/auth.service');
 
 exports.register = async (req, res, next) => {
     try {
