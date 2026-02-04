@@ -57,7 +57,7 @@ const getListService = async (query) => {
                         {
                             $project: {
                                 __v: 0,
-                                maintenance_history: 0,
+                                equipment_service: 0,
                             }
                         }
                     ],

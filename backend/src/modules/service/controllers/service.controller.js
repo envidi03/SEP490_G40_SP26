@@ -99,9 +99,13 @@ const createController = async (req, res) => {
         const cleanedData = cleanObjectData(dataCreate);
 
         // check required fields
+        // check required fields
         const requiredFields = ['service_name', 'price', 'duration'];
         for (const field of requiredFields) {
-            if (!(cleanedData[field].trim())) {
+            const value = cleanedData[field];
+
+            // Ép kiểu sang String để sử dụng .trim() an toàn cho cả Number và String
+            if (value === undefined || value === null || String(value).trim() === '') {
                 logger.warn(`Missing required field`, {
                     context: 'ServiceController.createService',
                     field: field
