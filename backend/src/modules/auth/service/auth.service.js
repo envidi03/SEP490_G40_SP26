@@ -173,7 +173,6 @@ exports.resendVerificationEmail = async (email) => {
     } catch (error) {
         console.error('Failed to send verification email:', error);
     }
-
     return {
         message: 'Verification email sent successfully'
     };
