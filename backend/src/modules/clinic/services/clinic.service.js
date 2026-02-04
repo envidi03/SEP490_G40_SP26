@@ -33,4 +33,14 @@ const updateClinic = async (clinicId, updateData) => {
   }
 };
 
-module.exports = { getInforClinics, updateClinic };
+const getAllClinics = async () => {
+  try {
+    const clinics = await Clinic.find().select("-__v -createdAt -updatedAt");
+    return clinics;
+  } catch (error) {
+    logger.error(`Error in getAllClinics service: ${error}`);
+    throw error;
+  }
+};
+
+module.exports = { getInforClinics, updateClinic, getAllClinics };
