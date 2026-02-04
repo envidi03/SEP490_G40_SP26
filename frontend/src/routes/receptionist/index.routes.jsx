@@ -1,5 +1,5 @@
 import ProtectedRoute from '../guards/ProtectedRoute';
-import ReceptionistLayout from '../../components/layout/ReceptionistLayout';
+import ReceptionistLayout from '../../components/layout/receptionist/ReceptionistLayout';
 // Receptionist Pages
 import ReceptionistPatients from '../../pages/receptionist/ReceptionistPatients';
 import ReceptionistAppointments from '../../pages/receptionist/ReceptionistAppointments';
