@@ -1,7 +1,7 @@
 const mongoose = require("mongoose");
 const { Schema } = mongoose;
 
-const userSchema = new Schema(
+const profileSchema = new Schema(
     {
         account_id: {
             type: Schema.Types.ObjectId,
@@ -20,7 +20,7 @@ const userSchema = new Schema(
         },
         gender: {
             type: String,
-            enum: ["male", "female", "other"]
+            enum: ["MALE", "FEMALE", "OTHER"]
         },
         address: {
             type: String
@@ -50,7 +50,7 @@ const userSchema = new Schema(
             default: false
         }
     },
-    { timestamps: true, collection: "users" }
+    { timestamps: true, collection: "profiles" }
 );
 
-module.exports = mongoose.model("User", userSchema);
+module.exports = mongoose.model("Profile", profileSchema);
