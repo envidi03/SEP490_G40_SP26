@@ -1,16 +1,10 @@
-// responses/success/index.js
-import BaseSuccess from "./BaseSuccess";
-import GetInfoSuccess from "./GetInfoSuccess";
-import GetListSuccess from "./GetListSuccess";
-import CreateSuccess from "./CreateSuccess";
-import UpdateSuccess from "./UpdateSuccess";
-import DeleteSuccess from "./DeleteSuccess";
+const GetDetailSuccess = require("./GetDetailSuccess");
 
-export {
-  BaseSuccess,
-  GetInfoSuccess,
-  GetListSuccess,
-  CreateSuccess,
-  UpdateSuccess,
-  DeleteSuccess
+module.exports = {
+  BaseSuccess: require("./BaseSuccess"),
+  GetDetailSuccess: require("./GetDetailSuccess"),
+  GetListSuccess: require("./GetListSuccess"),
+  CreateSuccess: require("./CreateSuccess"),
+  UpdateSuccess: require("./UpdateSuccess"),
+  DeleteSuccess: require("./DeleteSuccess"),
 };

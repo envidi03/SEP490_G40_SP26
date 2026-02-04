@@ -1,0 +1,132 @@
+import React from 'react';
+
+const RoomFormModal = ({
+    show,
+    isEditMode,
+    roomForm,
+    setRoomForm,
+    onClose,
+    onSave,
+    availableEquipment,
+    handleToggleEquipment
+}) => {
+    if (!show) return null;
+
+    return (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+            <div className="fixed inset-0 bg-black bg-opacity-50 transition-opacity backdrop-blur-sm" onClick={onClose} />
+            <div className="flex min-h-full items-center justify-center p-4">
+                <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-4xl transform transition-all">
+                    <div className="relative bg-gradient-to-br from-blue-600 to-indigo-700 text-white rounded-t-2xl p-6">
+                        <h2 className="text-2xl font-bold">
+                            {isEditMode ? 'Chỉnh sửa phòng' : 'Thêm phòng mới'}
+                        </h2>
+                        <p className="text-blue-100 mt-1">
+                            {isEditMode ? 'Cập nhật thông tin chi tiết phòng khám' : 'Điền đầy đủ thông tin để tạo phòng mới'}
+                        </p>
+                    </div>
+
+                    <div className="p-6 space-y-6 max-h-[75vh] overflow-y-auto custom-scrollbar">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                    Số phòng <span className="text-red-500">*</span>
+                                </label>
+                                <input
+                                    type="text"
+                                    value={roomForm.room_number}
+                                    onChange={(e) => setRoomForm({ ...roomForm, room_number: e.target.value })}
+                                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                                    placeholder="P101"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                    Trạng thái <span className="text-red-500">*</span>
+                                </label>
+                                <select
+                                    value={roomForm.status}
+                                    onChange={(e) => setRoomForm({ ...roomForm, status: e.target.value })}
+                                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all bg-white"
+                                >
+                                    <option value="ACTIVE">Hoạt động</option>
+                                    <option value="MAINTENANCE">Bảo trì</option>
+                                    <option value="INACTIVE">Ngừng hoạt động</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                Loại phòng
+                            </label>
+                            <select
+                                value={roomForm.room_type}
+                                onChange={(e) => setRoomForm({ ...roomForm, room_type: e.target.value })}
+                                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all bg-white"
+                            >
+                                <option value="Phòng khám tiêu chuẩn">Phòng khám tiêu chuẩn</option>
+                                <option value="Phòng phẫu thuật">Phòng phẫu thuật (Tiểu phẫu)</option>
+                                <option value="Phòng X-Quang">Phòng X-Quang</option>
+                                <option value="Phòng vô trùng">Phòng vô trùng</option>
+                                <option value="Phòng tư vấn">Phòng tư vấn</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                Trang thiết bị (Chọn các thiết bị có sẵn)
+                            </label>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 bg-gray-50 p-4 rounded-xl border border-gray-200 max-h-56 overflow-y-auto custom-scrollbar">
+                                {availableEquipment.map(item => (
+                                    <label key={item} className="flex items-center space-x-3 cursor-pointer hover:bg-white p-2 rounded-lg transition-colors">
+                                        <input
+                                            type="checkbox"
+                                            checked={roomForm.equipment ? roomForm.equipment.includes(item) : false}
+                                            onChange={() => handleToggleEquipment(item)}
+                                            className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500 border-gray-300 transition-all"
+                                        />
+                                        <span className="text-sm text-gray-700">{item}</span>
+                                    </label>
+                                ))}
+                            </div>
+                            <p className="text-xs text-gray-500 mt-2 italic">
+                                Đã chọn: {roomForm.equipment || 'Chưa chọn thiết bị nào'}
+                            </p>
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                Ghi chú / Mô tả
+                            </label>
+                            <textarea
+                                value={roomForm.description}
+                                onChange={(e) => setRoomForm({ ...roomForm, description: e.target.value })}
+                                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all h-28 resize-none"
+                                placeholder="Nhập ghi chú thêm về phòng này..."
+                            />
+                        </div>
+                    </div>
+
+                    <div className="bg-gray-50 px-6 py-4 rounded-b-2xl flex gap-3 justify-end">
+                        <button
+                            onClick={onClose}
+                            className="px-6 py-2.5 text-gray-700 font-medium rounded-xl hover:bg-gray-200 transition-colors"
+                        >
+                            Hủy
+                        </button>
+                        <button
+                            onClick={onSave}
+                            className="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-medium rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all shadow-lg hover:shadow-xl"
+                        >
+                            {isEditMode ? 'Cập nhật' : 'Thêm phòng'}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+export default RoomFormModal;

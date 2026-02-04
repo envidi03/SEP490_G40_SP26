@@ -1,5 +1,5 @@
 // responses/success/CreateSuccess.js
-import BaseSuccess from "./BaseSuccess";
+const BaseSuccess = require('./BaseSuccess');
 
 class CreateSuccess extends BaseSuccess {
   constructor(data, message = "Create success") {
@@ -11,4 +11,4 @@ class CreateSuccess extends BaseSuccess {
   }
 }
 
-export default CreateSuccess;
+module.exports = CreateSuccess;

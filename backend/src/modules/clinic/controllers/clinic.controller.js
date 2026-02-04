@@ -1,23 +1,61 @@
 const logger = require('../../../common/utils/logger');
-const error = require('../../../common/errors');
-const success = require('../../../common/success');
-const { default: Pagination } = require('../../../common/responses/Pagination');
+const errorRes = require('../../../common/errors');
+const successRes = require('../../../common/success');
+const Pagination = require('../../../common/responses/Pagination');
+const {cleanObjectData} = require('../../../common/utils/cleanObjectData');
+
+const clinicService = require('../services/clinic.service');
 
 const updateClinic = async (req, res) => {
     try {
         logger.info('Attempting to update clinic');
-        // Implementation here
+        const clinicId = req.params.clinicId;
+        const updateData = req.body;
+        
+        // Sửa: Dùng Template Literals để nối chuỗi ID và dữ liệu đã clean
+        logger.debug(`Clinic ID: ${clinicId}`);
+        logger.debug(`Update data: ${cleanObjectData(updateData)}`);
+
+        // 1. Kiểm tra xem body có dữ liệu không
+        if (!updateData || Object.keys(updateData).length === 0) {
+            throw new AppError.BadRequestError('No update data provided');
+        }
+
+        // 2. Gọi service để cập nhật clinic
+        const updatedClinic = await clinicService.updateClinic(clinicId, cleanObjectData(updateData));
+
+        // Sửa: Dùng Template Literals để hiển thị kết quả trả về
+        logger.debug(`Updated clinic: ${updatedClinic}`);
+        
+        logger.info(`Clinic ${clinicId} updated successfully`);
+        return new successRes.UpdateSuccess(updatedClinic, 'Clinic updated successfully').send(res);
     } catch (error) {
-        logger.error('Error updating clinic:', error);
+        // Sửa: Log chi tiết lỗi message
+        logger.error(`Error updating clinic: ${error.message}`, {
+            stack: error.stack,
+            context: 'ClinicController.updateClinic'
+        });
+        throw new errorRes.InternalServerError('An error occurred while updating the clinic');
     }
 };
 
 const getInforClinics = async (req, res) => {
     try {
-        logger.info('Fetching all clinics');
-        // Implementation here
+        logger.info('Fetching data clinic');
+        const clinicId = req.params.clinicId;
+        logger.debug(`Clinic ID from request params: ${clinicId}`);
+        const clicic = await clinicService.getInforClinics(clinicId);
+        if (!clicic) {
+            throw new errorRes.NotFoundError('No clinics found');
+        }
+        logger.debug(`Clinics data retrieved: ${clicic}`);
+        return new successRes.GetDetailSuccess(clicic, 'Clinics retrieved successfully').send(res);
     } catch (error) {
-        logger.error('Error getting all clinics:', error);
+        logger.error(`Error getting clinic data: ${error.message}`, {
+            stack: error.stack,
+            context: 'ClinicController.getInforClinics'
+        });
+        throw new errorRes.InternalServerError('An error occurred while fetching clinics');
     }
 };
 
