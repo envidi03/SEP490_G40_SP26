@@ -1,4 +1,4 @@
-import AssistantLayout from '../../components/layout/AssistantLayout';
+import AssistantLayout from '../../components/layout/assistant/AssistantLayout';
 import ProtectedRoute from '../guards/ProtectedRoute';
 import AssistantDashboard from '../../pages/dashboard/AssistantDashboard';
 
