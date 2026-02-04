@@ -2,19 +2,11 @@ import { Link, useLocation } from 'react-router-dom';
 import {
     LayoutDashboard,
     UserCog,
-    Users,
-    Calendar,
     ClipboardList,
-    DollarSign,
-    FileText,
     Pill,
     Wrench,
-    Package,
-    Clock,
     Building2,
     DoorOpen,
-    Briefcase,
-    ClipboardCheck
 } from 'lucide-react';
 import clsx from 'clsx';
 
@@ -31,37 +23,7 @@ const Sidebar = ({ role }) => {
             { path: '/admin/equipment', icon: Wrench, label: 'Thiết bị' },
             { path: '/admin/medicines', icon: Pill, label: 'Thuốc' },
             { path: '/admin/clinic-info', icon: Building2, label: 'Thông tin phòng khám' },
-        ],
-        DOCTOR: [
-            { path: '/dentist/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-            { path: '/dentist/patients', icon: Users, label: 'Bệnh nhân' },
-            { path: '/dentist/schedule', icon: Calendar, label: 'Lịch hẹn' },
-            { path: '/dentist/medical-records', icon: FileText, label: 'Hồ Sơ' },
-            { path: '/dentist/medical-record-approvals', icon: ClipboardCheck, label: 'Phê duyệt HS' },
-            { path: '/dentist/leave-requests', icon: Briefcase, label: 'Nghỉ Phép' },
-            { path: '/dentist/assistant-leave-requests', icon: UserCog, label: 'NP Trợ Lý' },
-        ],
-        RECEPTIONIST: [
-            { path: '/receptionist/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-            { path: '/receptionist/patients', icon: Users, label: 'Bệnh nhân' },
-            { path: '/receptionist/appointments', icon: Calendar, label: 'Lịch hẹn' },
-            { path: '/receptionist/invoices', icon: DollarSign, label: 'Hóa đơn' },
-            { path: '/receptionist/services', icon: ClipboardList, label: 'Dịch vụ' },
-            { path: '/receptionist/equipment', icon: Wrench, label: 'Thiết bị' },
-        ],
-        PHARMACY: [
-            { path: '/pharmacy/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-            { path: '/pharmacy/medicines', icon: Pill, label: 'Quản lý thuốc' },
-            { path: '/pharmacy/inventory', icon: Package, label: 'Tồn kho' },
-            { path: '/pharmacy/prescriptions', icon: FileText, label: 'Đơn thuốc' },
-            { path: '/pharmacy/requests', icon: ClipboardList, label: 'Yêu cầu bổ sung' },
-        ],
-        ASSISTANT: [
-            { path: '/assistant/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-            { path: '/assistant/appointments', icon: Calendar, label: 'Lịch Khám' },
-            { path: '/assistant/medical-records', icon: FileText, label: 'Hồ Sơ' },
-            { path: '/assistant/leave-requests', icon: Clock, label: 'Nghỉ Phép' },
-        ],
+        ]
     };
 
     // Try to find menu items for the role (case-insensitive fallback)
