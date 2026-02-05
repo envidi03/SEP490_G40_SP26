@@ -179,16 +179,18 @@ exports.resendVerificationEmail = async (email) => {
 };
 
 exports.login = async (data, ip_address = 'unknown', user_agent = 'unknown') => {
-    const { identifier, password, rememberMe } = data;
+    const { identifier, email, username, password, rememberMe } = data;
 
-    if (!identifier || !password) {
+    const loginIdentifier = identifier || email || username;
+
+    if (!loginIdentifier || !password) {
         throw new ValidationError('Email/Username and password are required');
     }
 
     const account = await Account.findOne({
         $or: [
-            { email: identifier },
-            { username: identifier }
+            { email: loginIdentifier },
+            { username: loginIdentifier }
         ]
     })
         .select('+password')
@@ -483,72 +485,102 @@ exports.googleAuth = async (googleToken, ip_address = 'unknown', user_agent = 'u
         });
         payload = ticket.getPayload();
     } catch (error) {
-        throw new UnauthorizedError('Invalid Google token');
+        console.error('Google token verification failed:', error.message);
+        console.error('GOOGLE_CLIENT_ID:', process.env.GOOGLE_CLIENT_ID);
+        console.error('Token received (first 50 chars):', googleToken?.substring(0, 50));
+        throw new UnauthorizedError(`Invalid Google token: ${error.message}`);
     }
 
     const { sub: googleId, email, name, picture } = payload;
 
-    let account = await Account.findOne({ email }).populate({
-        path: "role_id",
-        populate: {
-            path: "permissions"
-        }
+    // Check if this Google ID is already linked to another account
+    const existingGoogleProvider = await AuthProvider.findOne({
+        provider: 'google',
+        provider_user_id: googleId
     });
 
-    if (!account) {
-        const defaultRole = await Role.findOne({ name: 'PATIENT' });
-        if (!defaultRole) {
-            throw new NotFoundError('Default role not found');
-        }
-
-        const randomPassword = crypto.randomBytes(32).toString('hex');
-        const hashedPassword = await bcryptjs.hash(randomPassword, 10);
-
-        account = await Account.create({
-            username: `user_${Date.now()}`,
-            email,
-            password: hashedPassword,
-            status: 'ACTIVE',
-            role_id: defaultRole._id,
-            email_verified: true
-        });
-
-        await Profile.create({
-            account_id: account._id,
-            full_name: name || '',
-            avatar_url: picture || undefined
-        });
-
-        await AuthProvider.create({
-            account_id: account._id,
-            provider: 'google',
-            provider_user_id: googleId,
-            email: email
-        });
-
-        account = await Account.findById(account._id).populate({
-            path: 'role_id',
+    if (existingGoogleProvider) {
+        // Google ID already exists, use that account
+        account = await Account.findById(existingGoogleProvider.account_id).populate({
+            path: "role_id",
             populate: {
-                path: 'permissions'
+                path: "permissions"
             }
         });
+
+        if (!account) {
+            throw new NotFoundError('Account linked to this Google account not found');
+        }
+
+        if (account.status === 'INACTIVE') {
+            throw new ForbiddenError('Account is inactive');
+        }
     } else {
-        const existingProvider = await AuthProvider.findOne({
-            account_id: account._id,
-            provider: 'google'
+        // Google ID doesn't exist, check if email exists
+        account = await Account.findOne({ email }).populate({
+            path: "role_id",
+            populate: {
+                path: "permissions"
+            }
         });
 
-        if (!existingProvider) {
+        if (!account) {
+            // Create new account
+            const defaultRole = await Role.findOne({ name: 'PATIENT' });
+            if (!defaultRole) {
+                throw new NotFoundError('Default role not found');
+            }
+
+            const randomPassword = crypto.randomBytes(32).toString('hex');
+            const hashedPassword = await bcryptjs.hash(randomPassword, 10);
+
+            account = await Account.create({
+                username: `user_${Date.now()}`,
+                email,
+                password: hashedPassword,
+                status: 'ACTIVE',
+                role_id: defaultRole._id,
+                email_verified: true
+            });
+
+            await Profile.create({
+                account_id: account._id,
+                full_name: name || '',
+                avatar_url: picture || undefined
+            });
+
             await AuthProvider.create({
                 account_id: account._id,
                 provider: 'google',
                 provider_user_id: googleId,
                 email: email
             });
-        }
 
-        if (account.status === 'INACTIVE') {
-            throw new ForbiddenError('Account is inactive');
+            account = await Account.findById(account._id).populate({
+                path: 'role_id',
+                populate: {
+                    path: 'permissions'
+                }
+            });
+        } else {
+            // Account exists, link Google provider if not already linked
+            const existingProvider = await AuthProvider.findOne({
+                account_id: account._id,
+                provider: 'google'
+            });
+
+            if (!existingProvider) {
+                await AuthProvider.create({
+                    account_id: account._id,
+                    provider: 'google',
+                    provider_user_id: googleId,
+                    email: email
+                });
+            }
+
+            if (account.status === 'INACTIVE') {
+                throw new ForbiddenError('Account is inactive');
+            }
         }
     }
 
