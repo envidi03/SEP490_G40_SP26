@@ -58,12 +58,11 @@ const EquipmentList = () => {
     const [equipmentForm, setEquipmentForm] = useState({
         equipment_name: '',
         equipment_type: '',
-        serial_number: '',
+        equipment_serial_number: '',
         purchase_date: '',
-        warranty_expiry: '',
-        status: 'READY',
-        last_maintenance_date: '',
-        next_maintenance_date: ''
+        supplier: '',
+        warranty: '',
+        status: 'READY'
     });
 
     // ========== EFFECTS ==========
@@ -151,17 +150,6 @@ const EquipmentList = () => {
     };
 
     /**
-     * Check if maintenance is due soon
-     */
-    const isMaintenanceDue = (nextDate) => {
-        if (!nextDate) return false;
-        const today = new Date();
-        const next = new Date(nextDate);
-        const diffDays = Math.ceil((next - today) / (1000 * 60 * 60 * 24));
-        return diffDays <= 30 && diffDays >= 0;
-    };
-
-    /**
      * Get equipment usage history
      */
     const getUsageHistory = (equipmentId) => {
@@ -185,12 +173,11 @@ const EquipmentList = () => {
         setEquipmentForm({
             equipment_name: '',
             equipment_type: '',
-            serial_number: '',
+            equipment_serial_number: '',
             purchase_date: '',
-            warranty_expiry: '',
-            status: 'READY',
-            last_maintenance_date: '',
-            next_maintenance_date: ''
+            supplier: '',
+            warranty: '',
+            status: 'READY'
         });
         setShowEquipmentModal(true);
     };
@@ -288,8 +275,11 @@ const EquipmentList = () => {
     // Calculate statistics
     const totalEquipment = equipment.length;
     const readyEquipment = equipment.filter(e => e.status === 'READY').length;
+    const inUseEquipment = equipment.filter(e => e.status === 'IN_USE').length;
     const maintenanceCount = equipment.filter(e => e.status === 'MAINTENANCE').length;
-    const dueSoon = equipment.filter(e => isMaintenanceDue(e.next_maintenance_date)).length;
+    const repairingCount = equipment.filter(e => e.status === 'REPAIRING').length;
+    const faultyCount = equipment.filter(e => e.status === 'FAULTY').length;
+    const sterilizingCount = equipment.filter(e => e.status === 'STERILIZING').length;
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 p-6">
@@ -317,7 +307,7 @@ const EquipmentList = () => {
                 </div>
 
                 {/* Statistics */}
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
                     <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
                         <div className="flex items-center gap-4">
                             <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg">
@@ -344,6 +334,18 @@ const EquipmentList = () => {
 
                     <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
                         <div className="flex items-center gap-4">
+                            <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-blue-400 to-cyan-600 flex items-center justify-center shadow-lg">
+                                <Activity className="text-white" size={28} />
+                            </div>
+                            <div>
+                                <p className="text-sm font-medium text-gray-600">Đang sử dụng</p>
+                                <p className="text-3xl font-bold text-blue-600">{inUseEquipment}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
+                        <div className="flex items-center gap-4">
                             <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-yellow-500 to-orange-600 flex items-center justify-center shadow-lg">
                                 <AlertCircle className="text-white" size={28} />
                             </div>
@@ -356,12 +358,36 @@ const EquipmentList = () => {
 
                     <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
                         <div className="flex items-center gap-4">
+                            <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center shadow-lg">
+                                <Clock className="text-white" size={28} />
+                            </div>
+                            <div>
+                                <p className="text-sm font-medium text-gray-600">Đang sửa chữa</p>
+                                <p className="text-3xl font-bold text-orange-600">{repairingCount}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
+                        <div className="flex items-center gap-4">
                             <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-red-500 to-pink-600 flex items-center justify-center shadow-lg">
                                 <AlertTriangle className="text-white" size={28} />
                             </div>
                             <div>
-                                <p className="text-sm font-medium text-gray-600">Sắp bảo trì</p>
-                                <p className="text-3xl font-bold text-red-600">{dueSoon}</p>
+                                <p className="text-sm font-medium text-gray-600">Bị hỏng</p>
+                                <p className="text-3xl font-bold text-red-600">{faultyCount}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
+                        <div className="flex items-center gap-4">
+                            <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center shadow-lg">
+                                <PackageCheck className="text-white" size={28} />
+                            </div>
+                            <div>
+                                <p className="text-sm font-medium text-gray-600">Đang khử trùng</p>
+                                <p className="text-3xl font-bold text-purple-600">{sterilizingCount}</p>
                             </div>
                         </div>
                     </div>
@@ -459,7 +485,6 @@ const EquipmentList = () => {
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {filteredEquipment.map(equip => {
-                            const maintenanceDue = isMaintenanceDue(equip.next_maintenance_date);
                             const equipId = equip._id || equip.id;
                             const usageCount = equipmentUsage.filter(u => u.equipment_id === equipId).length;
 
@@ -469,7 +494,7 @@ const EquipmentList = () => {
                                     className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 group"
                                 >
                                     {/* Header */}
-                                    <div className="relative bg-gradient-to-br from-blue-600 to-indigo-700 text-white p-6">
+                                    <div className="bg-gradient-to-br from-blue-600 to-indigo-700 text-white p-6">
                                         <div className="flex items-start justify-between mb-3">
                                             <div className="flex-1">
                                                 <p className="text-xs text-blue-100 mb-1">{equip.equipment_type}</p>
@@ -477,11 +502,8 @@ const EquipmentList = () => {
                                                     {equip.equipment_name}
                                                 </h3>
                                             </div>
-                                            {maintenanceDue && (
-                                                <AlertTriangle size={24} className="text-yellow-300" />
-                                            )}
                                         </div>
-                                        <span className={`inline - block px - 3 py - 1 rounded - full text - xs font - semibold border ${getStatusColor(equip.status)} bg - white`}>
+                                        <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold border ${getStatusColor(equip.status)} bg-white`}>
                                             {getStatusText(equip.status)}
                                         </span>
                                     </div>
@@ -489,24 +511,44 @@ const EquipmentList = () => {
                                     {/* Body */}
                                     <div className="p-6 space-y-3">
                                         {/* Serial Number */}
-                                        <div>
-                                            <p className="text-xs text-gray-500 mb-1">Số serial</p>
-                                            <p className="text-sm font-mono font-semibold text-gray-900">
-                                                {equip.serial_number}
-                                            </p>
-                                        </div>
+                                        {equip.equipment_serial_number && (
+                                            <div>
+                                                <p className="text-xs text-gray-500 mb-1">Số serial</p>
+                                                <p className="text-sm font-mono font-semibold text-gray-900">
+                                                    {equip.equipment_serial_number}
+                                                </p>
+                                            </div>
+                                        )}
 
-                                        {/* Maintenance Info */}
-                                        {equip.next_maintenance_date && (
-                                            <div className={`p - 3 rounded - lg ${maintenanceDue ? 'bg-yellow-50 border border-yellow-200' : 'bg-gray-50'} `}>
+                                        {/* Supplier */}
+                                        {equip.supplier && (
+                                            <div>
+                                                <p className="text-xs text-gray-500 mb-1">Nhà cung cấp</p>
+                                                <p className="text-sm font-semibold text-gray-900">
+                                                    {equip.supplier}
+                                                </p>
+                                            </div>
+                                        )}
+
+                                        {/* Purchase Date */}
+                                        {equip.purchase_date && (
+                                            <div>
+                                                <p className="text-xs text-gray-500 mb-1">Ngày mua</p>
+                                                <p className="text-sm font-semibold text-gray-900">
+                                                    {formatDate(equip.purchase_date)}
+                                                </p>
+                                            </div>
+                                        )}
+
+                                        {/* Warranty */}
+                                        {equip.warranty && (
+                                            <div className="p-3 rounded-lg bg-gray-50">
                                                 <div className="flex items-center gap-2 mb-1">
-                                                    <Calendar size={14} className={maintenanceDue ? 'text-yellow-600' : 'text-gray-600'} />
-                                                    <p className="text-xs font-semibold text-gray-700">
-                                                        {maintenanceDue ? 'Sắp bảo trì' : 'Bảo trì tiếp theo'}
-                                                    </p>
+                                                    <Calendar size={14} className="text-gray-600" />
+                                                    <p className="text-xs font-semibold text-gray-700">Hạn bảo hành</p>
                                                 </div>
                                                 <p className="text-sm font-medium text-gray-900">
-                                                    {formatDate(equip.next_maintenance_date)}
+                                                    {formatDate(equip.warranty)}
                                                 </p>
                                             </div>
                                         )}
@@ -599,7 +641,7 @@ const EquipmentList = () => {
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
                                         <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                            Loại thiết bị
+                                            Loại thiết bị <span className="text-red-500">*</span>
                                         </label>
                                         <input
                                             type="text"
@@ -616,8 +658,8 @@ const EquipmentList = () => {
                                         </label>
                                         <input
                                             type="text"
-                                            value={equipmentForm.serial_number}
-                                            onChange={(e) => setEquipmentForm({ ...equipmentForm, serial_number: e.target.value })}
+                                            value={equipmentForm.equipment_serial_number}
+                                            onChange={(e) => setEquipmentForm({ ...equipmentForm, equipment_serial_number: e.target.value })}
                                             className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
                                             placeholder="XR-2024-001"
                                         />
@@ -639,41 +681,28 @@ const EquipmentList = () => {
 
                                     <div>
                                         <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                            Hết hạn bảo hành
+                                            Nhà cung cấp
                                         </label>
                                         <input
-                                            type="date"
-                                            value={equipmentForm.warranty_expiry}
-                                            onChange={(e) => setEquipmentForm({ ...equipmentForm, warranty_expiry: e.target.value })}
+                                            type="text"
+                                            value={equipmentForm.supplier}
+                                            onChange={(e) => setEquipmentForm({ ...equipmentForm, supplier: e.target.value })}
                                             className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                                            placeholder="Tên nhà cung cấp"
                                         />
                                     </div>
                                 </div>
 
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                            Bảo trì lần cuối
-                                        </label>
-                                        <input
-                                            type="date"
-                                            value={equipmentForm.last_maintenance_date}
-                                            onChange={(e) => setEquipmentForm({ ...equipmentForm, last_maintenance_date: e.target.value })}
-                                            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
-                                        />
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                            Bảo trì tiếp theo
-                                        </label>
-                                        <input
-                                            type="date"
-                                            value={equipmentForm.next_maintenance_date}
-                                            onChange={(e) => setEquipmentForm({ ...equipmentForm, next_maintenance_date: e.target.value })}
-                                            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
-                                        />
-                                    </div>
+                                <div>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                        Hạn bảo hành
+                                    </label>
+                                    <input
+                                        type="date"
+                                        value={equipmentForm.warranty}
+                                        onChange={(e) => setEquipmentForm({ ...equipmentForm, warranty: e.target.value })}
+                                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                                    />
                                 </div>
 
                                 <div>
