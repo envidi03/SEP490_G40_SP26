@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { mockEquipment, mockEquipmentUsage, mockUsers } from '../../../utils/mockData';
+import equipmentService from '../../../services/equipmentService';
+import { mockEquipmentUsage, mockUsers } from '../../../utils/mockData';
 import { formatDate } from '../../../utils/dateUtils';
 import Toast from '../../../components/ui/Toast';
 import {
@@ -41,6 +42,8 @@ const EquipmentList = () => {
     const [filteredEquipment, setFilteredEquipment] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
     const [toast, setToast] = useState({ show: false, type: 'success', message: '' });
 
     // Modals
@@ -58,17 +61,41 @@ const EquipmentList = () => {
         serial_number: '',
         purchase_date: '',
         warranty_expiry: '',
-        status: 'ACTIVE',
+        status: 'READY',
         last_maintenance_date: '',
         next_maintenance_date: ''
     });
 
     // ========== EFFECTS ==========
     useEffect(() => {
-        setEquipment(mockEquipment);
+        fetchEquipment();
+        // Still using mock data for usage history until backend API is ready
         setEquipmentUsage(mockEquipmentUsage);
-        setFilteredEquipment(mockEquipment);
     }, []);
+
+    /**
+     * Fetch equipment from API
+     */
+    const fetchEquipment = async () => {
+        try {
+            setLoading(true);
+            setError(null);
+            const response = await equipmentService.getEquipments();
+            const equipmentData = response.data || response;
+            setEquipment(equipmentData);
+            setFilteredEquipment(equipmentData);
+        } catch (err) {
+            console.error('Error fetching equipment:', err);
+            setError(err.message || 'Không thể tải danh sách thiết bị');
+            setToast({
+                show: true,
+                type: 'error',
+                message: '❌ Không thể tải danh sách thiết bị. Vui lòng thử lại!'
+            });
+        } finally {
+            setLoading(false);
+        }
+    };
 
     useEffect(() => {
         let filtered = equipment;
@@ -98,9 +125,12 @@ const EquipmentList = () => {
      */
     const getStatusColor = (status) => {
         const colors = {
-            'ACTIVE': 'bg-green-100 text-green-700 border-green-200',
+            'READY': 'bg-green-100 text-green-700 border-green-200',
+            'IN_USE': 'bg-blue-100 text-blue-700 border-blue-200',
             'MAINTENANCE': 'bg-yellow-100 text-yellow-700 border-yellow-200',
-            'INACTIVE': 'bg-red-100 text-red-700 border-red-200'
+            'REPAIRING': 'bg-orange-100 text-orange-700 border-orange-200',
+            'FAULTY': 'bg-red-100 text-red-700 border-red-200',
+            'STERILIZING': 'bg-purple-100 text-purple-700 border-purple-200'
         };
         return colors[status] || 'bg-gray-100 text-gray-700 border-gray-200';
     };
@@ -110,9 +140,12 @@ const EquipmentList = () => {
      */
     const getStatusText = (status) => {
         const texts = {
-            'ACTIVE': 'Hoạt động',
+            'READY': 'Sẵn sàng',
+            'IN_USE': 'Đang sử dụng',
             'MAINTENANCE': 'Bảo trì',
-            'INACTIVE': 'Ngừng sử dụng'
+            'REPAIRING': 'Đang sửa chữa',
+            'FAULTY': 'Bị hỏng',
+            'STERILIZING': 'Đang khử trùng'
         };
         return texts[status] || status;
     };
@@ -155,7 +188,7 @@ const EquipmentList = () => {
             serial_number: '',
             purchase_date: '',
             warranty_expiry: '',
-            status: 'ACTIVE',
+            status: 'READY',
             last_maintenance_date: '',
             next_maintenance_date: ''
         });
@@ -175,7 +208,7 @@ const EquipmentList = () => {
     /**
      * Handler: Save equipment
      */
-    const handleSaveEquipment = () => {
+    const handleSaveEquipment = async () => {
         if (!equipmentForm.equipment_name.trim()) {
             setToast({
                 show: true,
@@ -185,45 +218,60 @@ const EquipmentList = () => {
             return;
         }
 
-        if (isEditMode) {
-            setEquipment(prev => prev.map(e =>
-                e.id === selectedEquipment.id
-                    ? { ...e, ...equipmentForm }
-                    : e
-            ));
+        try {
+            if (isEditMode) {
+                // Update equipment
+                await equipmentService.updateEquipment(selectedEquipment._id || selectedEquipment.id, equipmentForm);
+                setToast({
+                    show: true,
+                    type: 'success',
+                    message: '✅ Cập nhật thiết bị thành công!'
+                });
+            } else {
+                // Create new equipment
+                await equipmentService.createEquipment(equipmentForm);
+                setToast({
+                    show: true,
+                    type: 'success',
+                    message: '✅ Thêm thiết bị mới thành công!'
+                });
+            }
+
+            // Refresh equipment list
+            await fetchEquipment();
+            setShowEquipmentModal(false);
+            setSelectedEquipment(null);
+        } catch (err) {
+            console.error('Error saving equipment:', err);
             setToast({
                 show: true,
-                type: 'success',
-                message: '✅ Cập nhật thiết bị thành công!'
-            });
-        } else {
-            const newEquipment = {
-                id: `equip_${String(equipment.length + 1).padStart(3, '0')} `,
-                ...equipmentForm
-            };
-            setEquipment(prev => [...prev, newEquipment]);
-            setToast({
-                show: true,
-                type: 'success',
-                message: '✅ Thêm thiết bị mới thành công!'
+                type: 'error',
+                message: `❌ ${isEditMode ? 'Cập nhật' : 'Thêm'} thiết bị thất bại!`
             });
         }
-
-        setShowEquipmentModal(false);
-        setSelectedEquipment(null);
     };
 
     /**
      * Handler: Delete equipment
      */
-    const handleDeleteEquipment = (equipId) => {
+    const handleDeleteEquipment = async (equipId) => {
         if (window.confirm('Bạn có chắc chắn muốn xóa thiết bị này?')) {
-            setEquipment(prev => prev.filter(e => e.id !== equipId));
-            setToast({
-                show: true,
-                type: 'success',
-                message: '✅ Đã xóa thiết bị!'
-            });
+            try {
+                // Note: Backend doesn't have delete endpoint yet, using local state for now
+                setEquipment(prev => prev.filter(e => e._id !== equipId && e.id !== equipId));
+                setToast({
+                    show: true,
+                    type: 'success',
+                    message: '✅ Đã xóa thiết bị!'
+                });
+            } catch (err) {
+                console.error('Error deleting equipment:', err);
+                setToast({
+                    show: true,
+                    type: 'error',
+                    message: '❌ Xóa thiết bị thất bại!'
+                });
+            }
         }
     };
 
@@ -239,7 +287,7 @@ const EquipmentList = () => {
 
     // Calculate statistics
     const totalEquipment = equipment.length;
-    const activeEquipment = equipment.filter(e => e.status === 'ACTIVE').length;
+    const readyEquipment = equipment.filter(e => e.status === 'READY').length;
     const maintenanceCount = equipment.filter(e => e.status === 'MAINTENANCE').length;
     const dueSoon = equipment.filter(e => isMaintenanceDue(e.next_maintenance_date)).length;
 
@@ -288,8 +336,8 @@ const EquipmentList = () => {
                                 <CheckCircle className="text-white" size={28} />
                             </div>
                             <div>
-                                <p className="text-sm font-medium text-gray-600">Đang hoạt động</p>
-                                <p className="text-3xl font-bold text-green-600">{activeEquipment}</p>
+                                <p className="text-sm font-medium text-gray-600">Sẵn sàng</p>
+                                <p className="text-3xl font-bold text-green-600">{readyEquipment}</p>
                             </div>
                         </div>
                     </div>
@@ -335,40 +383,68 @@ const EquipmentList = () => {
                         </div>
 
                         {/* Status Filter */}
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                             <button
                                 onClick={() => setStatusFilter('all')}
-                                className={`px - 4 py - 2 rounded - lg font - medium transition - all ${statusFilter === 'all'
+                                className={`px-4 py-2 rounded-lg font-medium transition-all ${statusFilter === 'all'
                                     ? 'bg-blue-600 text-white shadow-md'
                                     : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                                    } `}
+                                    }`}
                             >
                                 Tất cả
                             </button>
                             <button
-                                onClick={() => setStatusFilter('ACTIVE')}
-                                className={`px - 4 py - 2 rounded - lg font - medium transition - all ${statusFilter === 'ACTIVE'
+                                onClick={() => setStatusFilter('READY')}
+                                className={`px-4 py-2 rounded-lg font-medium transition-all ${statusFilter === 'READY'
                                     ? 'bg-green-600 text-white shadow-md'
                                     : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                                    } `}
+                                    }`}
                             >
-                                Hoạt động
+                                Sẵn sàng
+                            </button>
+                            <button
+                                onClick={() => setStatusFilter('IN_USE')}
+                                className={`px-4 py-2 rounded-lg font-medium transition-all ${statusFilter === 'IN_USE'
+                                    ? 'bg-blue-600 text-white shadow-md'
+                                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                    }`}
+                            >
+                                Đang dùng
                             </button>
                             <button
                                 onClick={() => setStatusFilter('MAINTENANCE')}
-                                className={`px - 4 py - 2 rounded - lg font - medium transition - all ${statusFilter === 'MAINTENANCE'
+                                className={`px-4 py-2 rounded-lg font-medium transition-all ${statusFilter === 'MAINTENANCE'
                                     ? 'bg-yellow-600 text-white shadow-md'
                                     : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                                    } `}
+                                    }`}
                             >
                                 Bảo trì
+                            </button>
+                            <button
+                                onClick={() => setStatusFilter('FAULTY')}
+                                className={`px-4 py-2 rounded-lg font-medium transition-all ${statusFilter === 'FAULTY'
+                                    ? 'bg-red-600 text-white shadow-md'
+                                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                    }`}
+                            >
+                                Bị hỏng
                             </button>
                         </div>
                     </div>
                 </div>
 
                 {/* Equipment Grid */}
-                {filteredEquipment.length === 0 ? (
+                {loading ? (
+                    <div className="bg-white rounded-2xl shadow-lg p-16 text-center">
+                        <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-blue-600 mx-auto mb-4"></div>
+                        <h3 className="text-2xl font-bold text-gray-900 mb-2">
+                            Đang tải...
+                        </h3>
+                        <p className="text-gray-600">
+                            Đang tải danh sách thiết bị
+                        </p>
+                    </div>
+                ) : filteredEquipment.length === 0 ? (
                     <div className="bg-white rounded-2xl shadow-lg p-16 text-center">
                         <Wrench className="text-gray-300 mx-auto mb-4" size={64} />
                         <h3 className="text-2xl font-bold text-gray-900 mb-2">
@@ -384,11 +460,12 @@ const EquipmentList = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {filteredEquipment.map(equip => {
                             const maintenanceDue = isMaintenanceDue(equip.next_maintenance_date);
-                            const usageCount = equipmentUsage.filter(u => u.equipment_id === equip.id).length;
+                            const equipId = equip._id || equip.id;
+                            const usageCount = equipmentUsage.filter(u => u.equipment_id === equipId).length;
 
                             return (
                                 <div
-                                    key={equip.id}
+                                    key={equipId}
                                     className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 group"
                                 >
                                     {/* Header */}
@@ -467,7 +544,7 @@ const EquipmentList = () => {
                                                 <Edit2 size={14} />
                                             </button>
                                             <button
-                                                onClick={() => handleDeleteEquipment(equip.id)}
+                                                onClick={() => handleDeleteEquipment(equipId)}
                                                 className="inline-flex items-center justify-center gap-2 px-3 py-2 bg-red-50 text-red-600 font-medium rounded-xl hover:bg-red-100 transition-all duration-200"
                                             >
                                                 <Trash2 size={14} />
@@ -608,9 +685,12 @@ const EquipmentList = () => {
                                         onChange={(e) => setEquipmentForm({ ...equipmentForm, status: e.target.value })}
                                         className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all bg-white"
                                     >
-                                        <option value="ACTIVE">Hoạt động</option>
+                                        <option value="READY">Sẵn sàng</option>
+                                        <option value="IN_USE">Đang sử dụng</option>
                                         <option value="MAINTENANCE">Bảo trì</option>
-                                        <option value="INACTIVE">Ngừng sử dụng</option>
+                                        <option value="REPAIRING">Đang sửa chữa</option>
+                                        <option value="FAULTY">Bị hỏng</option>
+                                        <option value="STERILIZING">Đang khử trùng</option>
                                     </select>
                                 </div>
                             </div>
