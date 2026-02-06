@@ -27,7 +27,7 @@ const accountSchema = new Schema(
             type: String,
             required: true,
             select: false
-        }, // select: false để không trả về password khi query thường
+        },
 
         role_id: {
             type: Schema.Types.ObjectId,
@@ -66,4 +66,4 @@ accountSchema.methods.comparePassword = function (candidatePassword) {
     return bcrypt.compare(candidatePassword, this.password);
 };
 
-module.exports = mongoose.model("Account", accountSchema);
+module.exports = mongoose.models.Account || mongoose.model("Account", accountSchema);
