@@ -11,7 +11,7 @@ const PasswordReset = require('../models/password-reset.model');
 const Role = require('../models/role.model');
 const Session = require('../models/session.model');
 const Profile = require('../models/profile.model');
-const Patient = require('../../patient/models/patient.model');
+const Patient = require('../../patient/model/patient.model');
 require('dotenv').config();
 const { signToken, signRefreshToken, verifyToken, hashToken } = require('../../../common/utils/jwt');
 
