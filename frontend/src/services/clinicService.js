@@ -28,6 +28,19 @@ const clinicService = {
         } catch (error) {
             throw error.response || error;
         }
+    },
+
+    /**
+     * Get all clinics
+     * @returns {Promise} API response
+     */
+    getAllClinics: async () => {
+        try {
+            const response = await apiClient.get('/api/clinic');
+            return response;
+        } catch (error) {
+            throw error.response || error;
+        }
     }
 };
 
