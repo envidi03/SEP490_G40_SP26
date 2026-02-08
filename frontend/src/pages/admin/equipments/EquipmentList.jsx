@@ -12,6 +12,7 @@ import EquipmentGrid from './components/EquipmentGrid';
 import EquipmentFormModal from './components/EquipmentFormModal';
 import EquipmentUsageModal from './components/EquipmentUsageModal';
 import EquipmentDetailModal from './modals/EquipmentDetailModal';
+import EquipmentPagination from './components/EquipmentPagination';
 
 /**
  * EquipmentList - Trang quản lý thiết bị nha khoa
@@ -63,10 +64,10 @@ const EquipmentList = () => {
         setEquipmentUsage(mockEquipmentUsage);
     }, []);
 
-    const fetchEquipment = async () => {
+    const fetchEquipment = async (page = 1, size = 10) => {
         try {
             setLoading(true);
-            const response = await equipmentService.getEquipments();
+            const response = await equipmentService.getEquipments({ page, size });
 
             // Update equipment data
             setEquipment(response.data);
@@ -87,6 +88,12 @@ const EquipmentList = () => {
         } finally {
             setLoading(false);
         }
+    };
+
+    // Page change handler
+    const handlePageChange = (page) => {
+        fetchEquipment(page, pagination.size);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
     // ========== FILTERING ==========
@@ -403,14 +410,14 @@ const EquipmentList = () => {
                     statusFilter={statusFilter}
                 />
 
-                {/* Results Count */}
-                {filteredEquipment.length > 0 && (
-                    <div className="mt-8 text-center">
-                        <p className="text-gray-600">
-                            Hiển thị <span className="font-bold text-blue-600">{filteredEquipment.length}</span> / {equipment.length} thiết bị
-                        </p>
-                    </div>
-                )}
+                {/* Pagination */}
+                <EquipmentPagination
+                    currentPage={pagination.page}
+                    totalPages={pagination.totalPages}
+                    totalItems={pagination.totalItems}
+                    pageSize={pagination.size}
+                    onPageChange={handlePageChange}
+                />
             </div>
 
             {/* Modals */}
