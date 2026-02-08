@@ -13,7 +13,6 @@ import EquipmentFormModal from './components/EquipmentFormModal';
 import EquipmentUsageModal from './components/EquipmentUsageModal';
 import EquipmentDetailModal from './modals/EquipmentDetailModal';
 import EquipmentPagination from './components/EquipmentPagination';
-import ConfirmationModal from '../../../components/ui/ConfirmationModal';
 
 /**
  * EquipmentList - Trang quản lý thiết bị nha khoa
@@ -22,7 +21,6 @@ import ConfirmationModal from '../../../components/ui/ConfirmationModal';
  * - Xem danh sách thiết bị
  * - Thêm thiết bị mới
  * - Cập nhật thông tin thiết bị
- * - Xóa thiết bị
  * - Xem lịch sử sử dụng thiết bị
  * - Theo dõi bảo trì
  * 
@@ -47,10 +45,6 @@ const EquipmentList = () => {
     const [selectedEquipment, setSelectedEquipment] = useState(null);
     const [selectedDetailEquipment, setSelectedDetailEquipment] = useState(null);
     const [isEditMode, setIsEditMode] = useState(false);
-
-    // Delete Confirmation
-    const [showDeleteModal, setShowDeleteModal] = useState(false);
-    const [equipmentToDelete, setEquipmentToDelete] = useState(null);
 
     // Equipment Form
     const [equipmentForm, setEquipmentForm] = useState({
@@ -315,42 +309,6 @@ const EquipmentList = () => {
         }
     };
 
-    const handleDeleteEquipment = (equipId) => {
-        setEquipmentToDelete(equipId);
-        setShowDeleteModal(true);
-    };
-
-    const confirmDeleteEquipment = async () => {
-        if (!equipmentToDelete) return;
-
-        try {
-            // Optimistic update
-            setEquipment(prev => prev.filter(e => e._id !== equipmentToDelete && e.id !== equipmentToDelete));
-            // Also need to update filtered equipment if necessary, but useEffect likely handles it or we should refetch
-            // For now, let's just refetch to be safe and consistent
-            // await equipmentService.deleteEquipment(equipmentToDelete); // Assuming service has this method
-
-            // Note: The previous code didn't actually call API, just local state. 
-            // If backend delete is not ready, we keep local delete.
-            // "Backend Delete Endpoint: Still pending backend implementation. Frontend currently handles deletion locally."
-
-            setToast({
-                show: true,
-                type: 'success',
-                message: '✅ Đã xóa thiết bị!'
-            });
-            setShowDeleteModal(false);
-            setEquipmentToDelete(null);
-        } catch (err) {
-            console.error('Error deleting equipment:', err);
-            setToast({
-                show: true,
-                type: 'error',
-                message: '❌ Xóa thiết bị thất bại!'
-            });
-        }
-    };
-
     const handleViewDetails = (equip) => {
         setSelectedDetailEquipment(equip);
         setShowDetailModal(true);
@@ -424,7 +382,6 @@ const EquipmentList = () => {
                     onViewDetails={handleViewDetails}
                     onViewUsage={handleViewUsage}
                     onEdit={handleEditEquipment}
-                    onDelete={handleDeleteEquipment}
                     getStatusColor={getStatusColor}
                     getStatusText={getStatusText}
                     formatDate={formatDate}
@@ -467,14 +424,6 @@ const EquipmentList = () => {
                 formatDate={formatDate}
                 getStatusColor={getStatusColor}
                 getStatusText={getStatusText}
-            />
-
-            <ConfirmationModal
-                show={showDeleteModal}
-                onClose={() => setShowDeleteModal(false)}
-                onConfirm={confirmDeleteEquipment}
-                title="Xác nhận xóa thiết bị"
-                message="Bạn có chắc chắn muốn xóa thiết bị này? Hành động này không thể hoàn tác."
             />
 
             {/* Toast Notification */}
