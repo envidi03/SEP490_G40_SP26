@@ -11,7 +11,7 @@ import EquipmentFilters from './components/EquipmentFilters';
 import EquipmentGrid from './components/EquipmentGrid';
 import EquipmentFormModal from './components/EquipmentFormModal';
 import EquipmentUsageModal from './components/EquipmentUsageModal';
-import EquipmentDetailModal from './modals/EquipmentDetailModal';
+import EquipmentDetailModal from './components/EquipmentDetailModal';
 import EquipmentPagination from './components/EquipmentPagination';
 
 /**
