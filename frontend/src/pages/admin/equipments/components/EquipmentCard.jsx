@@ -1,5 +1,5 @@
 import React from 'react';
-import { Calendar, Activity, Eye, History, Edit, Trash2 } from 'lucide-react';
+import { Calendar, Activity, Eye, History, Edit } from 'lucide-react';
 
 const EquipmentCard = ({
     equipment,
@@ -7,7 +7,6 @@ const EquipmentCard = ({
     onViewDetails,
     onViewUsage,
     onEdit,
-    onDelete,
     getStatusColor,
     getStatusText,
     formatDate
@@ -105,17 +104,10 @@ const EquipmentCard = ({
                 <div className="flex gap-2">
                     <button
                         onClick={() => onEdit(equipment)}
-                        className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-amber-50 text-amber-600 rounded-lg hover:bg-amber-100 transition-colors text-sm font-medium"
+                        className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-amber-50 text-amber-600 rounded-lg hover:bg-amber-100 transition-colors text-sm font-medium"
                     >
                         <Edit size={16} />
                         <span>Sửa</span>
-                    </button>
-                    <button
-                        onClick={() => onDelete(equipId)}
-                        className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors text-sm font-medium"
-                    >
-                        <Trash2 size={16} />
-                        <span>Xóa</span>
                     </button>
                 </div>
             </div>

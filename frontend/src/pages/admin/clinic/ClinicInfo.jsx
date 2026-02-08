@@ -225,24 +225,6 @@ const ClinicInfo = () => {
                     )}
                 </div>
 
-                {/* Status Banner */}
-                <div className={`rounded - 2xl p - 4 mb - 6 flex items - center gap - 3 ${formData.status === 'ACTIVE'
-                        ? 'bg-green-50 border border-green-200'
-                        : 'bg-red-50 border border-red-200'
-                    } `}>
-                    {formData.status === 'ACTIVE' ? (
-                        <>
-                            <CheckCircle className="text-green-600" size={24} />
-                            <span className="text-green-800 font-semibold">Phòng khám đang hoạt động</span>
-                        </>
-                    ) : (
-                        <>
-                            <AlertCircle className="text-red-600" size={24} />
-                            <span className="text-red-800 font-semibold">Phòng khám tạm ngừng hoạt động</span>
-                        </>
-                    )}
-                </div>
-
                 {/* Main Content Grid */}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     {/* Left Column - Basic Info */}

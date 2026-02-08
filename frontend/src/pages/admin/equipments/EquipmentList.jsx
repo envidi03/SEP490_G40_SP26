@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import equipmentService from '../../../services/equipmentService';
 import { mockEquipmentUsage, mockUsers } from '../../../utils/mockData';
-import { formatDate } from '../../../utils/dateUtils';
+import { formatDate, formatDateForInput } from '../../../utils/dateUtils';
 import Toast from '../../../components/ui/Toast';
 import { Wrench, Plus } from 'lucide-react';
 
@@ -11,7 +11,7 @@ import EquipmentFilters from './components/EquipmentFilters';
 import EquipmentGrid from './components/EquipmentGrid';
 import EquipmentFormModal from './components/EquipmentFormModal';
 import EquipmentUsageModal from './components/EquipmentUsageModal';
-import EquipmentDetailModal from './modals/EquipmentDetailModal';
+import EquipmentDetailModal from './components/EquipmentDetailModal';
 import EquipmentPagination from './components/EquipmentPagination';
 
 /**
@@ -21,7 +21,6 @@ import EquipmentPagination from './components/EquipmentPagination';
  * - Xem danh sách thiết bị
  * - Thêm thiết bị mới
  * - Cập nhật thông tin thiết bị
- * - Xóa thiết bị
  * - Xem lịch sử sử dụng thiết bị
  * - Theo dõi bảo trì
  * 
@@ -176,9 +175,10 @@ const EquipmentList = () => {
             equipment_name: equip.equipment_name || '',
             equipment_type: equip.equipment_type || '',
             equipment_serial_number: equip.equipment_serial_number || '',
-            purchase_date: equip.purchase_date || '',
+            // Format dates for input[type="date"]
+            purchase_date: formatDateForInput(equip.purchase_date),
             supplier: equip.supplier || '',
-            warranty: equip.warranty || '',
+            warranty: formatDateForInput(equip.warranty),
             status: equip.status || 'READY'
         });
         setShowEquipmentModal(true);
@@ -309,26 +309,6 @@ const EquipmentList = () => {
         }
     };
 
-    const handleDeleteEquipment = async (equipId) => {
-        if (window.confirm('Bạn có chắc chắn muốn xóa thiết bị này?')) {
-            try {
-                setEquipment(prev => prev.filter(e => e._id !== equipId && e.id !== equipId));
-                setToast({
-                    show: true,
-                    type: 'success',
-                    message: '✅ Đã xóa thiết bị!'
-                });
-            } catch (err) {
-                console.error('Error deleting equipment:', err);
-                setToast({
-                    show: true,
-                    type: 'error',
-                    message: '❌ Xóa thiết bị thất bại!'
-                });
-            }
-        }
-    };
-
     const handleViewDetails = (equip) => {
         setSelectedDetailEquipment(equip);
         setShowDetailModal(true);
@@ -402,7 +382,6 @@ const EquipmentList = () => {
                     onViewDetails={handleViewDetails}
                     onViewUsage={handleViewUsage}
                     onEdit={handleEditEquipment}
-                    onDelete={handleDeleteEquipment}
                     getStatusColor={getStatusColor}
                     getStatusText={getStatusText}
                     formatDate={formatDate}
