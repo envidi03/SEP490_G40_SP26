@@ -1,55 +1,58 @@
+
 /**
- * Format date to Vietnamese format (DD/MM/YYYY)
- * @param {string|Date} date - Date string or Date object
- * @returns {string} Formatted date string
+ * Format a date string or object to 'DD/MM/YYYY' format for display
+ * @param {string|Date} date - The date to format
+ * @returns {string} Formatted date string or 'N/A' if invalid
  */
 export const formatDate = (date) => {
-    if (!date) return '';
-
-    const d = new Date(date);
-    if (isNaN(d.getTime())) return date; // Return original if invalid
-
-    const day = String(d.getDate()).padStart(2, '0');
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const year = d.getFullYear();
-
-    return `${day}/${month}/${year}`;
+    if (!date) return 'N/A';
+    try {
+        const d = new Date(date);
+        if (isNaN(d.getTime())) return 'N/A';
+        return d.toLocaleDateString('vi-VN', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric'
+        });
+    } catch (error) {
+        return 'N/A';
+    }
 };
 
 /**
- * Format datetime to Vietnamese format (DD/MM/YYYY HH:mm)
- * @param {string|Date} datetime - Datetime string or Date object
- * @returns {string} Formatted datetime string
+ * Format a date string or object to 'DD/MM/YYYY HH:mm' format for display
+ * @param {string|Date} date - The date to format
+ * @returns {string} Formatted date time string or 'N/A' if invalid
  */
-export const formatDateTime = (datetime) => {
-    if (!datetime) return '';
-
-    const d = new Date(datetime);
-    if (isNaN(d.getTime())) return datetime; // Return original if invalid
-
-    const day = String(d.getDate()).padStart(2, '0');
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const year = d.getFullYear();
-    const hours = String(d.getHours()).padStart(2, '0');
-    const minutes = String(d.getMinutes()).padStart(2, '0');
-
-    return `${day}/${month}/${year} ${hours}:${minutes}`;
+export const formatDateTime = (date) => {
+    if (!date) return 'N/A';
+    try {
+        const d = new Date(date);
+        if (isNaN(d.getTime())) return 'N/A';
+        return d.toLocaleDateString('vi-VN', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    } catch (error) {
+        return 'N/A';
+    }
 };
 
 /**
- * Format date to input value format (YYYY-MM-DD)
- * @param {string|Date} date - Date string or Date object
- * @returns {string} Formatted date string for input[type="date"]
+ * Format a date string to 'YYYY-MM-DD' for input[type="date"] value
+ * @param {string|Date} date - The date to format
+ * @returns {string} Date string in YYYY-MM-DD format or empty string
  */
 export const formatDateForInput = (date) => {
     if (!date) return '';
-
-    const d = new Date(date);
-    if (isNaN(d.getTime())) return '';
-
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-
-    return `${year}-${month}-${day}`;
+    try {
+        const d = new Date(date);
+        if (isNaN(d.getTime())) return '';
+        return d.toISOString().split('T')[0];
+    } catch (error) {
+        return '';
+    }
 };

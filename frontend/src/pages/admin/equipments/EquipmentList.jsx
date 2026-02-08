@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import equipmentService from '../../../services/equipmentService';
 import { mockEquipmentUsage, mockUsers } from '../../../utils/mockData';
-import { formatDate } from '../../../utils/dateUtils';
+import { formatDate, formatDateForInput } from '../../../utils/dateUtils';
 import Toast from '../../../components/ui/Toast';
 import { Wrench, Plus } from 'lucide-react';
 
@@ -176,9 +176,10 @@ const EquipmentList = () => {
             equipment_name: equip.equipment_name || '',
             equipment_type: equip.equipment_type || '',
             equipment_serial_number: equip.equipment_serial_number || '',
-            purchase_date: equip.purchase_date || '',
+            // Format dates for input[type="date"]
+            purchase_date: formatDateForInput(equip.purchase_date),
             supplier: equip.supplier || '',
-            warranty: equip.warranty || '',
+            warranty: formatDateForInput(equip.warranty),
             status: equip.status || 'READY'
         });
         setShowEquipmentModal(true);
