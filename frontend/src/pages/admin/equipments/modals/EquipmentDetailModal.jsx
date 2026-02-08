@@ -45,7 +45,7 @@ const EquipmentDetailModal = ({ show, equipment, onClose, formatDate, getStatusC
                                     <Hash size={14} /> Số Serial
                                 </p>
                                 <p className="text-lg font-bold text-gray-900 font-mono">
-                                    {equipment.serial_number}
+                                    {equipment.equipment_serial_number || 'N/A'}
                                 </p>
                             </div>
                             <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
@@ -58,25 +58,25 @@ const EquipmentDetailModal = ({ show, equipment, onClose, formatDate, getStatusC
                             </div>
                         </div>
 
-                        {/* Maintenance Info */}
+                        {/* Supplier and Warranty */}
                         <div>
                             <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                                <Wrench size={16} className="text-blue-600" />
-                                Thông tin bảo trì
+                                <Box size={16} className="text-blue-600" />
+                                Thông tin bổ sung
                             </h3>
                             <div className="bg-blue-50/50 p-4 rounded-xl border border-blue-100 space-y-3">
-                                <div className="flex justify-between items-center">
-                                    <span className="text-sm text-gray-600">Bảo trì lần cuối:</span>
-                                    <span className="font-semibold text-gray-900">{formatDate(equipment.last_maintenance_date)}</span>
-                                </div>
-                                <div className="flex justify-between items-center">
-                                    <span className="text-sm text-gray-600">Bảo trì tiếp theo:</span>
-                                    <span className="font-semibold text-blue-600">{formatDate(equipment.next_maintenance_date)}</span>
-                                </div>
-                                <div className="flex justify-between items-center">
-                                    <span className="text-sm text-gray-600">Hết hạn bảo hành:</span>
-                                    <span className="font-semibold text-gray-900">{formatDate(equipment.warranty_expiry)}</span>
-                                </div>
+                                {equipment.supplier && (
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-sm text-gray-600">Nhà cung cấp:</span>
+                                        <span className="font-semibold text-gray-900">{equipment.supplier}</span>
+                                    </div>
+                                )}
+                                {equipment.warranty && (
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-sm text-gray-600">Hạn bảo hành:</span>
+                                        <span className="font-semibold text-blue-600">{formatDate(equipment.warranty)}</span>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>
