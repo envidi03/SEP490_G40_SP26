@@ -1,15 +1,18 @@
 import React, { useEffect } from 'react';
 import { CheckCircle, XCircle, Info, AlertTriangle, X } from 'lucide-react';
 
-const Toast = ({ type = 'success', message, onClose, duration = 3000 }) => {
+const Toast = ({ show = false, type = 'success', message, onClose, duration = 3000 }) => {
     useEffect(() => {
-        if (duration && onClose) {
+        if (show && duration && onClose) {
             const timer = setTimeout(() => {
                 onClose();
             }, duration);
             return () => clearTimeout(timer);
         }
-    }, [duration, onClose]);
+    }, [show, duration, onClose]);
+
+    // Don't render if show is false
+    if (!show) return null;
 
     const icons = {
         success: <CheckCircle size={20} />,
