@@ -54,23 +54,7 @@ const ServiceFormModal = ({
                             />
                         </div>
 
-                        <div className="grid grid-cols-2 gap-4">
-                            {/* Category */}
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                    Danh mục <span className="text-red-500">*</span>
-                                </label>
-                                <select
-                                    value={serviceForm.category}
-                                    onChange={(e) => setServiceForm({ ...serviceForm, category: e.target.value })}
-                                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all bg-white"
-                                >
-                                    {categories.map(cat => (
-                                        <option key={cat} value={cat}>{cat}</option>
-                                    ))}
-                                </select>
-                            </div>
-
+                        <div className="grid grid-cols-1 gap-4">
                             {/* Status */}
                             <div>
                                 <label className="block text-sm font-semibold text-gray-700 mb-2">
@@ -81,8 +65,8 @@ const ServiceFormModal = ({
                                     onChange={(e) => setServiceForm({ ...serviceForm, status: e.target.value })}
                                     className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all bg-white"
                                 >
-                                    <option value="ACTIVE">Hoạt động</option>
-                                    <option value="INACTIVE">Ngừng hoạt động</option>
+                                    <option value="AVAILABLE">Hoạt động (AVAILABLE)</option>
+                                    <option value="UNAVAILABLE">Ngừng hoạt động (UNAVAILABLE)</option>
                                 </select>
                             </div>
                         </div>
@@ -95,8 +79,8 @@ const ServiceFormModal = ({
                                 </label>
                                 <input
                                     type="number"
-                                    value={serviceForm.base_price}
-                                    onChange={(e) => setServiceForm({ ...serviceForm, base_price: e.target.value })}
+                                    value={serviceForm.price}
+                                    onChange={(e) => setServiceForm({ ...serviceForm, price: e.target.value })}
                                     className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
                                     placeholder="100000"
                                     min="0"

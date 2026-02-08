@@ -18,9 +18,6 @@ const ServiceDetailModal = ({ show, service, onClose, formatCurrency, getCategor
                             <X size={24} />
                         </button>
                         <div className="pr-8">
-                            <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold border mb-3 bg-white/20 border-white/30 text-white`}>
-                                {service.category}
-                            </span>
                             <h2 className="text-2xl font-bold">
                                 {service.service_name}
                             </h2>
@@ -36,7 +33,7 @@ const ServiceDetailModal = ({ show, service, onClose, formatCurrency, getCategor
                                     <DollarSign size={14} /> Giá dịch vụ
                                 </p>
                                 <p className="text-xl font-bold text-green-600">
-                                    {formatCurrency(service.base_price)}
+                                    {formatCurrency(service.price)}
                                 </p>
                             </div>
                             <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
@@ -60,7 +57,7 @@ const ServiceDetailModal = ({ show, service, onClose, formatCurrency, getCategor
                         {/* Status */}
                         <div className="flex items-center justify-between pt-4 border-t border-gray-100">
                             <span className="text-gray-600 font-medium">Trạng thái</span>
-                            {service.status === 'ACTIVE' ? (
+                            {service.status === 'AVAILABLE' ? (
                                 <div className="flex items-center gap-2 text-green-600 bg-green-50 px-3 py-1.5 rounded-full">
                                     <CheckCircle size={16} />
                                     <span className="text-sm font-semibold">Đang hoạt động</span>

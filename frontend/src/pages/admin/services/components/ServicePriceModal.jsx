@@ -25,7 +25,7 @@ const ServicePriceModal = ({
                         <div className="mb-4">
                             <p className="text-sm text-gray-600 mb-2">Giá hiện tại:</p>
                             <p className="text-2xl font-bold text-gray-900">
-                                {formatCurrency(selectedService?.base_price || 0)}
+                                {formatCurrency(selectedService?.price || 0)}
                             </p>
                         </div>
 
@@ -35,8 +35,8 @@ const ServicePriceModal = ({
                             </label>
                             <input
                                 type="number"
-                                value={priceForm.base_price}
-                                onChange={(e) => setPriceForm({ base_price: e.target.value })}
+                                value={priceForm.price}
+                                onChange={(e) => setPriceForm({ price: e.target.value })}
                                 className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all"
                                 placeholder="100000"
                                 min="0"

@@ -14,9 +14,6 @@ const ServiceCard = ({
         <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 group">
             {/* Header */}
             <div className="relative bg-gradient-to-br from-blue-600 to-indigo-700 text-white p-6">
-                <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold border mb-3 ${getCategoryColor(service.category)} bg-white`}>
-                    {service.category}
-                </span>
                 <h3 className="text-xl font-bold mb-2">
                     {service.service_name}
                 </h3>
@@ -42,7 +39,7 @@ const ServiceCard = ({
                         </button>
                     </div>
                     <p className="text-2xl font-bold text-green-600">
-                        {formatCurrency(service.base_price)}
+                        {formatCurrency(service.price)}
                     </p>
                 </div>
 
@@ -56,7 +53,7 @@ const ServiceCard = ({
 
                 {/* Status */}
                 <div className="flex items-center gap-2 mb-4">
-                    {service.status === 'ACTIVE' ? (
+                    {service.status === 'AVAILABLE' ? (
                         <>
                             <CheckCircle size={16} className="text-green-600" />
                             <span className="text-sm text-green-600 font-medium">Đang hoạt động</span>
@@ -86,7 +83,7 @@ const ServiceCard = ({
                         <span>Sửa</span>
                     </button>
                     <button
-                        onClick={() => onDelete(service.id)}
+                        onClick={() => onDelete(service._id)}
                         className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-red-50 text-red-600 font-medium rounded-xl hover:bg-red-100 transition-all duration-200"
                     >
                         <Trash2 size={16} />

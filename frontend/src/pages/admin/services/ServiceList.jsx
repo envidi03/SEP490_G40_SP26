@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { mockServices } from '../../../utils/mockData';
 import Toast from '../../../components/ui/Toast';
 import { Plus } from 'lucide-react';
 import { ClipboardList } from 'lucide-react';
+import serviceService from '../../../services/serviceService';
 
 // Components
 import ServiceStatistics from './components/ServiceStatistics';
@@ -16,11 +16,11 @@ import ServiceDetailModal from './components/ServiceDetailModal';
  * ServiceList - Trang quản lý dịch vụ nha khoa
  * 
  * Chức năng:
- * - Xem danh sách dịch vụ
- * - Thêm dịch vụ mới
- * - Cập nhật thông tin dịch vụ
- * - Cập nhật giá dịch vụ
- * - Xóa dịch vụ
+ * - Xem danh sách dịch vụ (API)
+ * - Thêm dịch vụ mới (API)
+ * - Cập nhật thông tin dịch vụ (API)
+ * - Cập nhật giá dịch vụ (API)
+ * - Xóa dịch vụ (API - Soft delete)
  * - Lọc theo danh mục
  * - Tìm kiếm dịch vụ
  * 
@@ -29,9 +29,14 @@ import ServiceDetailModal from './components/ServiceDetailModal';
 const ServiceList = () => {
     // ========== STATE MANAGEMENT ==========
     const [services, setServices] = useState([]);
-    const [filteredServices, setFilteredServices] = useState([]);
+    const [pagination, setPagination] = useState({
+        page: 1,
+        size: 5,
+        totalItems: 0,
+        totalPages: 0
+    });
+    const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
-    const [categoryFilter, setCategoryFilter] = useState('all');
     const [toast, setToast] = useState({ show: false, type: 'success', message: '' });
 
     // Modals
@@ -46,53 +51,61 @@ const ServiceList = () => {
     const [serviceForm, setServiceForm] = useState({
         service_name: '',
         description: '',
-        base_price: '',
-        category: 'Khám và Tư vấn',
+        price: '',
         duration: '',
-        status: 'ACTIVE'
+        status: 'AVAILABLE'
     });
 
     const [priceForm, setPriceForm] = useState({
-        base_price: ''
+        price: ''
     });
-
-    // Categories
-    const categories = [
-        'Khám và Tư vấn',
-        'Trám răng',
-        'Vệ sinh răng miệng',
-        'Phẫu thuật',
-        'Thẩm mỹ',
-        'Chỉnh nha',
-        'Phục hồi răng',
-        'Nội nha'
-    ];
 
     // ========== EFFECTS ==========
     useEffect(() => {
-        setServices(mockServices);
-        setFilteredServices(mockServices);
+        fetchServices(1); // Fetch first page on mount
     }, []);
 
+    // Debounce search
     useEffect(() => {
-        let filtered = services;
+        const delayDebounceFn = setTimeout(() => {
+            fetchServices(1); // Reset to page 1 on new search
+        }, 500);
 
-        // Filter by category
-        if (categoryFilter !== 'all') {
-            filtered = filtered.filter(s => s.category === categoryFilter);
+        return () => clearTimeout(delayDebounceFn);
+    }, [searchTerm]);
+
+    // ========== API CALLS ==========
+    const fetchServices = async (page = 1) => {
+        try {
+            setLoading(true);
+            const params = {
+                page,
+                limit: pagination.size,
+                search: searchTerm
+            };
+            const response = await serviceService.getAllServices(params);
+
+            // Backend trả về: { data: [...], pagination: { page, size, totalItems, totalPages } }
+            const data = response.data || [];
+            const pageData = response.pagination || { page: 1, size: 5, totalItems: 0, totalPages: 0 };
+
+            setServices(data);
+            setPagination(pageData);
+        } catch (error) {
+            console.error('Error fetching services:', error);
+            setToast({
+                show: true,
+                type: 'error',
+                message: '❌ Không thể tải danh sách dịch vụ.'
+            });
+        } finally {
+            setLoading(false);
         }
+    };
 
-        // Filter by search term
-        if (searchTerm) {
-            const searchLower = searchTerm.toLowerCase();
-            filtered = filtered.filter(s =>
-                s.service_name.toLowerCase().includes(searchLower) ||
-                s.description.toLowerCase().includes(searchLower)
-            );
-        }
-
-        setFilteredServices(filtered);
-    }, [searchTerm, categoryFilter, services]);
+    const handlePageChange = (newPage) => {
+        fetchServices(newPage);
+    };
 
     // ========== HELPER FUNCTIONS ==========
 
@@ -107,20 +120,10 @@ const ServiceList = () => {
     };
 
     /**
-     * Get category color
+     * Get category color (Now dummy function since category is removed from backend)
      */
-    const getCategoryColor = (category) => {
-        const colors = {
-            'Khám và Tư vấn': 'bg-blue-100 text-blue-700 border-blue-200',
-            'Trám răng': 'bg-green-100 text-green-700 border-green-200',
-            'Vệ sinh răng miệng': 'bg-cyan-100 text-cyan-700 border-cyan-200',
-            'Phẫu thuật': 'bg-red-100 text-red-700 border-red-200',
-            'Thẩm mỹ': 'bg-pink-100 text-pink-700 border-pink-200',
-            'Chỉnh nha': 'bg-purple-100 text-purple-700 border-purple-200',
-            'Phục hồi răng': 'bg-orange-100 text-orange-700 border-orange-200',
-            'Nội nha': 'bg-indigo-100 text-indigo-700 border-indigo-200'
-        };
-        return colors[category] || 'bg-gray-100 text-gray-700 border-gray-200';
+    const getCategoryColor = () => {
+        return 'bg-blue-100 text-blue-700 border-blue-200';
     };
 
     // ========== HANDLERS ==========
@@ -133,10 +136,9 @@ const ServiceList = () => {
         setServiceForm({
             service_name: '',
             description: '',
-            base_price: '',
-            category: 'Khám và Tư vấn',
+            price: '',
             duration: '',
-            status: 'ACTIVE'
+            status: 'AVAILABLE'
         });
         setShowServiceModal(true);
     };
@@ -150,8 +152,7 @@ const ServiceList = () => {
         setServiceForm({
             service_name: service.service_name,
             description: service.description,
-            base_price: service.base_price,
-            category: service.category,
+            price: service.price,
             duration: service.duration,
             status: service.status
         });
@@ -161,7 +162,7 @@ const ServiceList = () => {
     /**
      * Handler: Save service
      */
-    const handleSaveService = () => {
+    const handleSaveService = async () => {
         // Validation
         if (!serviceForm.service_name.trim()) {
             setToast({
@@ -172,7 +173,7 @@ const ServiceList = () => {
             return;
         }
 
-        if (!serviceForm.base_price || serviceForm.base_price <= 0) {
+        if (!serviceForm.price || serviceForm.price <= 0) {
             setToast({
                 show: true,
                 type: 'error',
@@ -181,49 +182,66 @@ const ServiceList = () => {
             return;
         }
 
-        if (isEditMode) {
-            // Update service
-            setServices(prev => prev.map(s =>
-                s.id === selectedService.id
-                    ? { ...s, ...serviceForm, base_price: Number(serviceForm.base_price), duration: Number(serviceForm.duration) }
-                    : s
-            ));
-            setToast({
-                show: true,
-                type: 'success',
-                message: '✅ Cập nhật dịch vụ thành công!'
-            });
-        } else {
-            // Add new service
-            const newService = {
-                id: `service_${String(services.length + 1).padStart(3, '0')}`,
+        try {
+            const serviceData = {
                 ...serviceForm,
-                base_price: Number(serviceForm.base_price),
+                price: Number(serviceForm.price),
                 duration: Number(serviceForm.duration)
             };
-            setServices(prev => [...prev, newService]);
+
+            if (isEditMode) {
+                // Update service
+                await serviceService.updateService(selectedService._id, serviceData);
+                setToast({
+                    show: true,
+                    type: 'success',
+                    message: '✅ Cập nhật dịch vụ thành công!'
+                });
+            } else {
+                // Add new service
+                await serviceService.createService(serviceData);
+                setToast({
+                    show: true,
+                    type: 'success',
+                    message: '✅ Thêm dịch vụ mới thành công!'
+                });
+            }
+
+            setShowServiceModal(false);
+            setSelectedService(null);
+            fetchServices(pagination.page); // Refresh current list
+        } catch (error) {
+            console.error('Error saving service:', error);
             setToast({
                 show: true,
-                type: 'success',
-                message: '✅ Thêm dịch vụ mới thành công!'
+                type: 'error',
+                message: error.response?.data?.message || '❌ Có lỗi xảy ra khi lưu dịch vụ.'
             });
         }
-
-        setShowServiceModal(false);
-        setSelectedService(null);
     };
 
     /**
-     * Handler: Delete service
+     * Handler: Delete service (Deactivate)
      */
-    const handleDeleteService = (serviceId) => {
-        if (window.confirm('Bạn có chắc chắn muốn xóa dịch vụ này?')) {
-            setServices(prev => prev.filter(s => s.id !== serviceId));
-            setToast({
-                show: true,
-                type: 'success',
-                message: '✅ Đã xóa dịch vụ!'
-            });
+    const handleDeleteService = async (serviceId) => {
+        if (window.confirm('Bạn có chắc chắn muốn xóa dịch vụ này? Hành động này sẽ chuyển trạng thái sang "Ngừng hoạt động".')) {
+            try {
+                // Using updateStatus to simulate delete as per serviceService implementation
+                await serviceService.updateServiceStatus(serviceId, 'UNAVAILABLE');
+                setToast({
+                    show: true,
+                    type: 'success',
+                    message: '✅ Đã xóa dịch vụ (chuyển sang ngừng hoạt động)!'
+                });
+                fetchServices(pagination.page); // Refresh list
+            } catch (error) {
+                console.error('Error deleting service:', error);
+                setToast({
+                    show: true,
+                    type: 'error',
+                    message: error.response?.data?.message || '❌ Có lỗi xảy ra khi xóa dịch vụ.'
+                });
+            }
         }
     };
 
@@ -233,7 +251,7 @@ const ServiceList = () => {
     const handleUpdatePrice = (service) => {
         setSelectedService(service);
         setPriceForm({
-            base_price: service.base_price
+            price: service.price
         });
         setShowPriceModal(true);
     };
@@ -241,8 +259,8 @@ const ServiceList = () => {
     /**
      * Handler: Save price
      */
-    const handleSavePrice = () => {
-        if (!priceForm.base_price || priceForm.base_price <= 0) {
+    const handleSavePrice = async () => {
+        if (!priceForm.price || priceForm.price <= 0) {
             setToast({
                 show: true,
                 type: 'error',
@@ -251,28 +269,35 @@ const ServiceList = () => {
             return;
         }
 
-        setServices(prev => prev.map(s =>
-            s.id === selectedService.id
-                ? { ...s, base_price: Number(priceForm.base_price) }
-                : s
-        ));
+        try {
+            await serviceService.updateService(selectedService._id, {
+                price: Number(priceForm.price)
+            });
 
-        setShowPriceModal(false);
-        setSelectedService(null);
-        setToast({
-            show: true,
-            type: 'success',
-            message: '✅ Cập nhật giá dịch vụ thành công!'
-        });
+            setShowPriceModal(false);
+            setSelectedService(null);
+            setToast({
+                show: true,
+                type: 'success',
+                message: '✅ Cập nhật giá dịch vụ thành công!'
+            });
+            fetchServices(pagination.page); // Refresh list
+        } catch (error) {
+            console.error('Error updating price:', error);
+            setToast({
+                show: true,
+                type: 'error',
+                message: error.response?.data?.message || '❌ Có lỗi xảy ra khi cập nhật giá.'
+            });
+        }
     };
 
     // ========== RENDER ==========
 
     // Calculate statistics
-    const totalServices = services.length;
-    const activeServices = services.filter(s => s.status === 'ACTIVE').length;
+    const activeServices = services.filter(s => s.status === 'AVAILABLE').length;
     const avgPrice = services.length > 0
-        ? services.reduce((sum, s) => sum + s.base_price, 0) / services.length
+        ? services.reduce((sum, s) => sum + Number(s.price || 0), 0) / services.length
         : 0;
 
     return (
@@ -300,40 +325,47 @@ const ServiceList = () => {
                     </button>
                 </div>
 
-                {/* Statistics Component */}
-                <ServiceStatistics
-                    totalServices={totalServices}
-                    activeServices={activeServices}
-                    avgPrice={avgPrice}
-                    formatCurrency={formatCurrency}
-                />
+                {loading ? (
+                    <div className="flex justify-center items-center h-64">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                    </div>
+                ) : (
+                    <>
+                        {/* Statistics Component */}
+                        <ServiceStatistics
+                            totalServices={pagination.totalItems} // Use total items from server
+                            activeServices={activeServices} // Note: This is only for current page execution
+                            avgPrice={avgPrice}
+                            formatCurrency={formatCurrency}
+                        />
 
-                {/* Filters Component */}
-                <ServiceFilters
-                    searchTerm={searchTerm}
-                    setSearchTerm={setSearchTerm}
-                    categoryFilter={categoryFilter}
-                    setCategoryFilter={setCategoryFilter}
-                    categories={categories}
-                />
+                        {/* Filters Component */}
+                        <ServiceFilters
+                            searchTerm={searchTerm}
+                            setSearchTerm={setSearchTerm}
+                            // categoryFilter={categoryFilter} // Removed
+                            // setCategoryFilter={setCategoryFilter} // Removed
+                            categories={[]} // Empty array as category is removed
+                        />
 
-                {/* Services Grid Component */}
-                <ServiceGrid
-                    services={filteredServices}
-                    filteredServicesLength={filteredServices.length}
-                    totalServicesLength={services.length}
-                    searchTerm={searchTerm}
-                    categoryFilter={categoryFilter}
-                    onViewDetails={(service) => {
-                        setSelectedDetailService(service);
-                        setShowDetailModal(true);
-                    }}
-                    onEdit={handleEditService}
-                    onDelete={handleDeleteService}
-                    onUpdatePrice={handleUpdatePrice}
-                    formatCurrency={formatCurrency}
-                    getCategoryColor={getCategoryColor}
-                />
+                        {/* Services Grid Component */}
+                        <ServiceGrid
+                            services={services}
+                            pagination={pagination}
+                            onPageChange={handlePageChange}
+                            searchTerm={searchTerm}
+                            onViewDetails={(service) => {
+                                setSelectedDetailService(service);
+                                setShowDetailModal(true);
+                            }}
+                            onEdit={handleEditService}
+                            onDelete={(id) => handleDeleteService(id)}
+                            onUpdatePrice={handleUpdatePrice}
+                            formatCurrency={formatCurrency}
+                            getCategoryColor={getCategoryColor}
+                        />
+                    </>
+                )}
             </div>
 
             {/* Service Form Modal */}
@@ -342,7 +374,7 @@ const ServiceList = () => {
                 isEditMode={isEditMode}
                 serviceForm={serviceForm}
                 setServiceForm={setServiceForm}
-                categories={categories}
+                categories={[]} // No categories
                 onSave={handleSaveService}
                 onClose={() => setShowServiceModal(false)}
             />

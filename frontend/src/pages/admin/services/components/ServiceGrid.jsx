@@ -1,13 +1,13 @@
 import React from 'react';
 import { ClipboardList } from 'lucide-react';
 import ServiceCard from './ServiceCard';
+import ServicePagination from './ServicePagination';
 
 const ServiceGrid = ({
     services,
-    filteredServicesLength,
-    totalServicesLength,
+    pagination,
+    onPageChange,
     searchTerm,
-    categoryFilter,
     onViewDetails,
     onEdit,
     onDelete,
@@ -23,8 +23,8 @@ const ServiceGrid = ({
                     Không tìm thấy dịch vụ
                 </h3>
                 <p className="text-gray-600">
-                    {searchTerm || categoryFilter !== 'all'
-                        ? 'Không có dịch vụ nào phù hợp với bộ lọc của bạn'
+                    {searchTerm
+                        ? 'Không có dịch vụ nào phù hợp với từ khóa tìm kiếm'
                         : 'Chưa có dịch vụ nào trong hệ thống'}
                 </p>
             </div>
@@ -36,7 +36,7 @@ const ServiceGrid = ({
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {services.map(service => (
                     <ServiceCard
-                        key={service.id}
+                        key={service._id}
                         service={service}
                         onViewDetails={onViewDetails}
                         onEdit={onEdit}
@@ -48,13 +48,15 @@ const ServiceGrid = ({
                 ))}
             </div>
 
-            {/* Results Count */}
-            {services.length > 0 && (
-                <div className="mt-8 text-center">
-                    <p className="text-gray-600">
-                        Hiển thị <span className="font-bold text-blue-600">{filteredServicesLength}</span> / {totalServicesLength} dịch vụ
-                    </p>
-                </div>
+            {/* Pagination */}
+            {pagination && (
+                <ServicePagination
+                    currentPage={pagination.page}
+                    totalPages={pagination.totalPages}
+                    totalItems={pagination.totalItems}
+                    pageSize={pagination.size}
+                    onPageChange={onPageChange}
+                />
             )}
         </>
     );

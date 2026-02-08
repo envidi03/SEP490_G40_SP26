@@ -16,31 +16,6 @@ const ServiceFilters = ({ searchTerm, setSearchTerm, categoryFilter, setCategory
                         className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
                     />
                 </div>
-
-                {/* Category Filter */}
-                <div className="flex items-center gap-2 flex-wrap">
-                    <button
-                        onClick={() => setCategoryFilter('all')}
-                        className={`px-4 py-2 rounded-lg font-medium transition-all ${categoryFilter === 'all'
-                            ? 'bg-blue-600 text-white shadow-md'
-                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                            }`}
-                    >
-                        Tất cả
-                    </button>
-                    {categories.map(cat => (
-                        <button
-                            key={cat}
-                            onClick={() => setCategoryFilter(cat)}
-                            className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${categoryFilter === cat
-                                ? 'bg-blue-600 text-white shadow-md'
-                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                                }`}
-                        >
-                            {cat}
-                        </button>
-                    ))}
-                </div>
             </div>
         </div>
     );
