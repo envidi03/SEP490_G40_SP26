@@ -54,6 +54,46 @@ const ServiceDetailModal = ({ show, service, onClose, formatCurrency, getCategor
                             </div>
                         </div>
 
+                        {/* Equipment Service List */}
+                        {service.equipment_service && service.equipment_service.length > 0 && (
+                            <div>
+                                <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                                    <svg className="w-4 h-4 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
+                                    </svg>
+                                    Thiết bị cần thiết ({service.equipment_service.length})
+                                </h3>
+                                <div className="space-y-2">
+                                    {service.equipment_service.map((item, index) => (
+                                        <div key={index} className="bg-purple-50 border border-purple-100 rounded-lg p-3">
+                                            <div className="flex justify-between items-start">
+                                                <div className="flex-1">
+                                                    <p className="font-medium text-gray-800">
+                                                        {item.equipment_id?.equipment_name || 'Thiết bị không xác định'}
+                                                    </p>
+                                                    {item.equipment_id?.equipment_type && (
+                                                        <p className="text-xs text-gray-500 mt-0.5">
+                                                            Loại: {item.equipment_id.equipment_type}
+                                                        </p>
+                                                    )}
+                                                    {item.note && (
+                                                        <p className="text-sm text-gray-600 mt-1">
+                                                            💡 {item.note}
+                                                        </p>
+                                                    )}
+                                                </div>
+                                                <div className="ml-3">
+                                                    <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-purple-600 text-white">
+                                                        x{item.required_qty}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
                         {/* Status */}
                         <div className="flex items-center justify-between pt-4 border-t border-gray-100">
                             <span className="text-gray-600 font-medium">Trạng thái</span>

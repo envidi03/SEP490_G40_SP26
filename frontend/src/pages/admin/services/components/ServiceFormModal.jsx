@@ -1,4 +1,5 @@
 import React from 'react';
+import EquipmentServiceSelector from './EquipmentServiceSelector';
 
 const ServiceFormModal = ({
     show,
@@ -54,6 +55,21 @@ const ServiceFormModal = ({
                             />
                         </div>
 
+                        {/* Icon */}
+                        <div>
+                            <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                Icon
+                            </label>
+                            <input
+                                type="text"
+                                value={serviceForm.icon || ''}
+                                onChange={(e) => setServiceForm({ ...serviceForm, icon: e.target.value })}
+                                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                                placeholder="icon-dental-service"
+                            />
+                            <p className="text-xs text-gray-500 mt-1">Tên class hoặc URL của icon</p>
+                        </div>
+
                         <div className="grid grid-cols-1 gap-4">
                             {/* Status */}
                             <div>
@@ -102,6 +118,12 @@ const ServiceFormModal = ({
                                 />
                             </div>
                         </div>
+
+                        {/* Equipment Service Selector */}
+                        <EquipmentServiceSelector
+                            equipmentServices={serviceForm.equipment_service || []}
+                            setEquipmentServices={(equipments) => setServiceForm({ ...serviceForm, equipment_service: equipments })}
+                        />
                     </div>
 
                     <div className="bg-gray-50 px-6 py-4 rounded-b-2xl flex gap-3 justify-end">

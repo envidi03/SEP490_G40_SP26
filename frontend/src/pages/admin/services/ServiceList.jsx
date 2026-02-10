@@ -53,6 +53,8 @@ const ServiceList = () => {
         description: '',
         price: '',
         duration: '',
+        icon: '',
+        equipment_service: [],
         status: 'AVAILABLE'
     });
 
@@ -138,6 +140,8 @@ const ServiceList = () => {
             description: '',
             price: '',
             duration: '',
+            icon: '',
+            equipment_service: [],
             status: 'AVAILABLE'
         });
         setShowServiceModal(true);
@@ -154,6 +158,8 @@ const ServiceList = () => {
             description: service.description,
             price: service.price,
             duration: service.duration,
+            icon: service.icon || '',
+            equipment_service: service.equipment_service || [],
             status: service.status
         });
         setShowServiceModal(true);
@@ -192,24 +198,24 @@ const ServiceList = () => {
             if (isEditMode) {
                 // Update service
                 await serviceService.updateService(selectedService._id, serviceData);
-                setToast({
-                    show: true,
-                    type: 'success',
-                    message: '✅ Cập nhật dịch vụ thành công!'
-                });
             } else {
                 // Add new service
                 await serviceService.createService(serviceData);
-                setToast({
-                    show: true,
-                    type: 'success',
-                    message: '✅ Thêm dịch vụ mới thành công!'
-                });
             }
 
+            // Close modal first
             setShowServiceModal(false);
             setSelectedService(null);
-            fetchServices(pagination.page); // Refresh current list
+
+            // Show toast notification
+            setToast({
+                show: true,
+                type: 'success',
+                message: isEditMode ? '✅ Cập nhật dịch vụ thành công!' : '✅ Thêm dịch vụ mới thành công!'
+            });
+
+            // Refresh list
+            fetchServices(pagination.page);
         } catch (error) {
             console.error('Error saving service:', error);
             setToast({
@@ -274,14 +280,19 @@ const ServiceList = () => {
                 price: Number(priceForm.price)
             });
 
+            // Close modal first
             setShowPriceModal(false);
             setSelectedService(null);
+
+            // Show toast notification
             setToast({
                 show: true,
                 type: 'success',
                 message: '✅ Cập nhật giá dịch vụ thành công!'
             });
-            fetchServices(pagination.page); // Refresh list
+
+            // Refresh list
+            fetchServices(pagination.page);
         } catch (error) {
             console.error('Error updating price:', error);
             setToast({
@@ -400,14 +411,13 @@ const ServiceList = () => {
             />
 
             {/* Toast Notification */}
-            {toast.show && (
-                <Toast
-                    type={toast.type}
-                    message={toast.message}
-                    onClose={() => setToast({ ...toast, show: false })}
-                    duration={3000}
-                />
-            )}
+            <Toast
+                show={toast.show}
+                type={toast.type}
+                message={toast.message}
+                onClose={() => setToast({ ...toast, show: false })}
+                duration={3000}
+            />
         </div>
     );
 };
