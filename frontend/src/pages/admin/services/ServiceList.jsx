@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Toast from '../../../components/ui/Toast';
-import { Plus } from 'lucide-react';
-import { ClipboardList } from 'lucide-react';
+import { Plus, ClipboardList } from 'lucide-react';
 import serviceService from '../../../services/serviceService';
 
 // Components
