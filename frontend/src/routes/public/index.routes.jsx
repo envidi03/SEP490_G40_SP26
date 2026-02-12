@@ -11,6 +11,8 @@ import DoctorsList from '../../pages/public/DoctorsList';
 import DoctorDetail from '../../pages/public/DoctorDetail';
 import BookAppointment from '../../pages/booking/BookAppointment';
 import PatientProfile from '../../pages/patients/PatientProfile';
+import PatientAppointments from '../../pages/patients/PatientAppointments';
+import PatientMedicalRecords from '../../pages/patients/PatientMedicalRecords';
 
 
 // Public routes - accessible without authentication
@@ -103,7 +105,15 @@ const publicRoutes = [
     {
         path: '/profile',
         element: <PatientProfile />
-    }
+    },
+    {
+        path: '/appointments',
+        element: <PatientAppointments />
+    },
+    {
+        path: '/medical-records',
+        element: <PatientMedicalRecords />
+    },
 ];
 
 export default publicRoutes;
