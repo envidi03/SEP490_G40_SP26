@@ -14,6 +14,19 @@ const roomSchema = new Schema(
             enum: ["ACTIVE", "INACTIVE", "MAINTENANCE"],
             default: "ACTIVE"
         },
+
+        room_service: [
+            {
+                service_id: {
+                    type: Schema.Types.ObjectId,
+                    ref: "Service", 
+                    required: true
+                },
+                note: {
+                    type: String
+                }
+            }
+        ],
         
         history_used: [
             {

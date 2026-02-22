@@ -44,6 +44,7 @@ const accountSchema = new Schema(
         },
 
         email_verified: { type: Boolean, default: false },
+        
         phone_number: {
             type: String,
             unique: true,

@@ -14,6 +14,8 @@ const Role = require('./models/role.model');
 const Session = require('./models/session.model');
 const Profile = require('./models/profile.model');
 
+const Model = require('./models/index.model');
+
 module.exports = {
     authRoutes,
 
@@ -29,5 +31,7 @@ module.exports = {
     Permission,
     Role,
     Session,
-    Profile
+    Profile,
+
+    Model
 };
