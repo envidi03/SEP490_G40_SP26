@@ -36,8 +36,10 @@ const getEquipments = async (req, res) => {
             page: pagination.page,
             size: pagination.size,
             totalItems: pagination.totalItems,
-        })
-        return new successRes.GetListSuccess(data, page, 'Equipments retrieved successfully').send(res);
+        });
+        const statistics = await EquipmentService.getStatistics();
+        
+        return new successRes.GetListSuccess(data, page, 'Equipments retrieved successfully', statistics).send(res);
     } catch (error) {
         logger.error('Error get equipment', {
             context: 'EquipmentController.getEquipments',
