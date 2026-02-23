@@ -97,6 +97,9 @@ app.use('/api/service', routeService);
 const { route: routeStaff } = require('./modules/staff');
 app.use('/api/staff', routeStaff);
 
+const { route: routeAppointment } = require('./modules/appointment');
+app.use('/api/appointment', routeAppointment);
+
 // 404 Handler - Must be after all routes
 app.use((req, res, next) => {
     res.status(404).json({
