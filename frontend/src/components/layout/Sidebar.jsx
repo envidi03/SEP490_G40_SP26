@@ -7,6 +7,11 @@ import {
     Wrench,
     Building2,
     DoorOpen,
+    Users,
+    Calendar,
+    FileText,
+    ClipboardCheck,
+    Briefcase
 } from 'lucide-react';
 import clsx from 'clsx';
 
@@ -23,6 +28,15 @@ const Sidebar = ({ role }) => {
             { path: '/admin/equipment', icon: Wrench, label: 'Thiết bị' },
             { path: '/admin/medicines', icon: Pill, label: 'Thuốc' },
             { path: '/admin/clinics', icon: Building2, label: 'Thông tin phòng khám' },
+        ],
+        Doctor: [
+            { path: '/dentist/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+            { path: '/dentist/patients', icon: Users, label: 'Bệnh nhân' },
+            { path: '/dentist/schedule', icon: Calendar, label: 'Lịch hẹn' },
+            { path: '/dentist/medical-records', icon: FileText, label: 'Hồ Sơ' },
+            { path: '/dentist/medical-record-approvals', icon: ClipboardCheck, label: 'Phê duyệt HS' },
+            { path: '/dentist/leave-requests', icon: Briefcase, label: 'Nghỉ Phép' },
+            { path: '/dentist/assistant-leave-requests', icon: UserCog, label: 'NP Trợ Lý' },
         ]
     };
 
