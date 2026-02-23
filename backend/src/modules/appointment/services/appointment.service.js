@@ -167,105 +167,169 @@ const getListService = async (query) => {
 };
 
 /*
-    get infor (
-        account: -password, -role_id, -email_verifiled, -__v
-        profile: -status, -__v
-        staff: -__v, -status
-        license: -__v
-    ) by staffId
+    get list appointment of patient with pagination and filter
+    (
+        search: search by full_name, phone, email;
+        filter: filter by status;
+        sort: sort by appointment_date;
+        page
+        limit
+    )
+    only get appointment with account_id
 */
-const getByIdService = async (staffId, query) => {
+const getListOfPatientService = async (query, account_id) => {
     try {
-        logger.debug("Fetching staff by id", {
-            context: "StaffService.getByIdService",
-            staffId: staffId,
+        logger.debug("Fetching list of patient appointments with query", {
+            context: "AppointmentService.getListOfPatientService",
             query: query,
+            account_id: account_id
+        });
+
+        // 1. Lấy và chuẩn hóa các tham số từ query
+        const search = query.search?.trim();
+        // Lấy status từ query.status (hoặc query.filter tùy cách bạn gọi URL, ở đây dùng query.status cho rõ ràng)
+        const statusFilter = query.status ? query.status.toUpperCase() : null; 
+        const sortOrder = query.sort === "desc" ? -1 : 1; 
+        
+        const page = Math.max(1, parseInt(query.page || 1));
+        const limit = Math.max(1, parseInt(query.limit || 5));
+        const skip = (page - 1) * limit;
+
+        // 2. Tìm Hồ sơ Bệnh nhân (Patient) dựa vào account_id
+        const patient = await PatientModel.findOne({ account_id: account_id });
+
+        // Nếu tài khoản này chưa có hồ sơ bệnh nhân, trả về mảng rỗng ngay lập tức
+        if (!patient) {
+            logger.warn("Patient profile not found for this account", {
+                context: "AppointmentService.getListOfPatientService",
+                account_id: account_id
+            });
+            return {
+                data: [],
+                pagination: {
+                    page: page,
+                    size: limit,
+                    totalItems: 0
+                }
+            };
+        }
+
+        // 3. Xây dựng điều kiện lọc (Match)
+        // SỬA LỖI: Sử dụng patient._id thay vì account_id
+        const matchCondition = { 
+            patient_id: patient._id 
+        };
+
+        // Lọc theo trạng thái (status)
+        if (statusFilter) {
+            matchCondition.status = statusFilter;
+        }
+
+        // Tìm kiếm (Search) theo tên, số điện thoại, email
+        if (search) {
+            const regexSearch = { $regex: search, $options: "i" };
+            matchCondition.$or = [
+                { full_name: regexSearch },
+                { phone: regexSearch },
+                { email: regexSearch }
+            ];
+        }
+
+        // 4. Xây dựng Aggregation Pipeline
+        const aggregatePipeline = [
+            { $match: matchCondition },
+            
+            // Sắp xếp theo ngày hẹn (appointment_date)
+            { $sort: { appointment_date: sortOrder } },
+            
+            // Phân trang
+            {
+                $facet: {
+                    data: [
+                        { $skip: skip },
+                        { $limit: limit },
+                        {
+                            $project: {
+                                __v: 0 // Loại bỏ trường __v dư thừa
+                            }
+                        }
+                    ],
+                    totalCount: [
+                        { $count: "count" }
+                    ]
+                }
+            }
+        ];
+
+        // 5. Thực thi truy vấn
+        const result = await AppointmentModel.aggregate(aggregatePipeline);
+
+        const appointments = result[0]?.data || [];
+        const totalItems = result[0]?.totalCount[0]?.count || 0;
+
+        return {
+            data: appointments,
+            pagination: {
+                page: page,
+                size: limit,
+                totalItems: totalItems
+            }
+        };
+
+    } catch (error) {
+        logger.error("Error getting list of patient appointments", {
+            context: "AppointmentService.getListOfPatientService",
+            message: error.message,
+            stack: error.stack
+        });
+        throw new errorRes.InternalServerError(
+            `An error occurred while fetching list of appointments: ${error.message}`
+        );
+    }
+};
+
+/*
+    get appointment by appointmentId
+*/
+const getByIdService = async (id) => {
+    try {
+        logger.debug("Fetching appointment by id", {
+            context: "AppointmentService.getByIdService",
+            appointmentId: id,
         });
 
         // --- 1. KIỂM TRA ĐỊNH DẠNG ID ---
-        if (!mongoose.Types.ObjectId.isValid(staffId)) {
-            throw new errorRes.BadRequestError("Invalid Staff ID format");
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            throw new errorRes.BadRequestError("Invalid Appointment ID format");
         }
 
-        // --- 2. AGGREGATION PIPELINE ---
-        const aggregateResult = await StaffModel.Staff.aggregate([
-            // 2.1 Tìm Staff theo ID
-            {
-                $match: { _id: new mongoose.Types.ObjectId(staffId) }
-            },
-            // 2.2 JOIN bảng Account (Quan hệ 1-1)
-            {
-                $lookup: {
-                    from: "accounts",
-                    localField: "account_id",
-                    foreignField: "_id",
-                    as: "account"
-                }
-            },
-            {
-                $addFields: { account: { $arrayElemAt: ["$account", 0] } }
-            },
-            // 2.3 JOIN bảng Profile (Quan hệ 1-1)
-            {
-                $lookup: {
-                    from: "profiles",
-                    localField: "profile_id",
-                    foreignField: "_id",
-                    as: "profile"
-                }
-            },
-            {
-                $addFields: { profile: { $arrayElemAt: ["$profile", 0] } }
-            },
-            // 2.4 JOIN bảng License (Quan hệ 1-N) -> Giữ nguyên kết quả là mảng
-            {
-                $lookup: {
-                    from: "licenses",
-                    localField: "_id",
-                    foreignField: "doctor_id",
-                    as: "licenses" // Đổi tên thành số nhiều để thể hiện đây là một List
-                }
-            },
-            // ĐÃ BỎ BƯỚC $addFields ($arrayElemAt) ở đây để licenses giữ nguyên là một mảng (List)
-            // --- 3. FORMAT DỮ LIỆU TRẢ VỀ ($project) ---
-            {
-                $project: {
-                    // Loại bỏ trường của Staff
-                    "__v": 0,
-                    "status": 0,
-                    // Loại bỏ trường của Account
-                    "account.password": 0,
-                    "account.role_id": 0,
-                    "account.email_verified": 0,
-                    "account.__v": 0,
-                    // Loại bỏ trường của Profile
-                    "profile.status": 0,
-                    "profile.__v": 0,
-                    // Loại bỏ trường __v trong từng object của mảng licenses
-                    // MongoDB hỗ trợ tự động áp dụng loại bỏ này cho toàn bộ phần tử trong mảng
-                    "licenses.__v": 0
-                }
-            }
-        ]);
+        // --- 2. TRUY VẤN DỮ LIỆU ---
+        const appointment = await AppointmentModel.findById(id)
+            .populate("patient_id") 
+            .populate("book_service.service_id")
+            .lean();
 
-        // --- 4. KIỂM TRA KẾT QUẢ ---
-        if (!aggregateResult || aggregateResult.length === 0) {
-            logger.warn("Staff not found", { context: "StaffService.getByIdService", staffId });
-            return null;
+        // --- 3. KIỂM TRA TỒN TẠI ---
+        if (!appointment) {
+            logger.warn("Appointment not found", {
+                context: "AppointmentService.getByIdService",
+                appointmentId: id,
+            });
+            throw new errorRes.NotFoundError("Appointment not found");
         }
 
-        const staffInfo = aggregateResult[0];
-
-        logger.debug("Staff fetched successfully", {
-            context: "StaffService.getByIdService",
-            staffId: staffId
+        logger.debug("Appointment fetched successfully", {
+            context: "AppointmentService.getByIdService",
+            appointmentId: id,
         });
 
-        return staffInfo;
+        // Đã sửa lỗi: Trả về đúng biến appointment thay vì staffInfo
+        return appointment; 
 
     } catch (error) {
-        logger.error("Error getting staff by id", {
-            context: "StaffService.getByIdService",
+        // Đã sửa lỗi: Cập nhật lại log lỗi cho đúng ngữ cảnh Appointment
+        logger.error("Error getting appointment by id", {
+            context: "AppointmentService.getByIdService",
             message: error.message,
             stack: error.stack,
         });
@@ -273,7 +337,7 @@ const getByIdService = async (staffId, query) => {
         if (error.statusCode) throw error;
 
         throw new errorRes.InternalServerError(
-            `An error occurred while fetching staff by id: ${error.message}`
+            `An error occurred while fetching appointment by id: ${error.message}`
         );
     }
 };
@@ -557,5 +621,6 @@ module.exports = {
     checkUniqueUsernameNotId,
     checkUniqueEmailNotId,
     getRoleById,
-    updateStaffStatusOnly
+    updateStaffStatusOnly,
+    getListOfPatientService
 };

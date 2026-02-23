@@ -48,33 +48,69 @@ const getListController = async (req, res) => {
     }
 };
 
+const getListOfPatientController = async (req, res) => {
+    try {
+        const queryParams = req.query;
+        const { account_id } = req.user;
+        if (!account_id) {
+            logger.warn('Missing account_id in token', {
+                context: 'AppointmentController.getListOfPatientController',
+                account_id: account_id
+            });
+            throw new errorRes.UnauthorizedError('Invalid token: account_id is missing');
+        }
+        
+        logger.debug('Get list appointment of patient request received', {
+            context: 'AppointmentController.getListOfPatientController',
+            query: queryParams,
+            account_id: account_id
+        });
+
+        const { data, pagination } = await ServiceProcess.getListOfPatientService(queryParams, account_id);
+
+        const paginationData = new Pagination({
+            page: pagination.page,
+            size: pagination.size,
+            totalItems: pagination.totalItems,
+        });
+
+        return new successRes.GetListSuccess(data, paginationData, 'Staff retrieved successfully').send(res);
+
+    } catch (error) {
+        logger.error('Error get staffs', {
+            context: 'AppointmentController.getListController',
+            message: error.message,
+            stack: error.stack
+        });
+        throw error;
+    }
+};
+
 /*
-    get infor staff, account, profile by staffId
+    get appointment by id
 */
 const getByIdController = async (req, res) => {
     try {
-        const { staffId: id } = req.params;
-        const queryParams = req.query;
-        logger.debug('Get service by id request received', {
+        const { id } = req.params;
+        logger.debug('Get appointment by id request received', {
             context: 'AppointmentController.getByIdController',
-            staffId: id,
-            query: queryParams
+            appointmentId: id,
         });
 
         // check id empty
         if (!id) {
-            logger.warn('Empty staff ID', {
+            logger.warn('Empty ID', {
                 context: 'AppointmentController.getByIdController',
-                serviceId: id
+                appointmentId: id
             });
-            throw new errorRes.BadRequestError('Staff ID is required');
+            throw new errorRes.BadRequestError('Appointment ID is required');
         }
 
         // Gọi service xử lý logic
-        const service = await ServiceProcess.getByIdService(id, queryParams);
-        return new successRes.GetDetailSuccess(service, 'Service retrieved successfully').send(res);
+        const service = await ServiceProcess.getByIdService(id);
+        return new successRes.GetDetailSuccess(service, 'Appointment retrieved successfully').send(res);
     } catch (error) {
-        logger.error('Error get staff by id', {
+        logger.error('Error get appointment by id', {
             context: 'AppointmentController.getByIdController',
             message: error.message,
             stack: error.stack
@@ -264,6 +300,7 @@ const updateStatusController = async (req, res) => {
 };
 
 module.exports = {
+    getListOfPatientController,
     getListController,
     getByIdController,
     createController,
