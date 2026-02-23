@@ -1,6 +1,9 @@
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import ProtectedRoute from '../guards/ProtectedRoute';
 import ProfilePage from '../../pages/profile/ProfilePage';
+import ReceptionistLayout from '../../components/layout/receptionist/ReceptionistLayout';
+import PharmacyLayout from '../../components/layout/PharmacyLayout';
+import AssistantLayout from '../../components/layout/assistant/AssistantLayout';
 
 /**
  * Profile Routes - Shared profile page for all roles
@@ -30,9 +33,9 @@ const profileRoutes = [
         path: '/receptionist/profile',
         element: (
             <ProtectedRoute allowedRoles={['RECEPTIONIST']}>
-                <DashboardLayout>
+                <ReceptionistLayout>
                     <ProfilePage />
-                </DashboardLayout>
+                </ReceptionistLayout>
             </ProtectedRoute>
         )
     },
@@ -40,9 +43,19 @@ const profileRoutes = [
         path: '/pharmacy/profile',
         element: (
             <ProtectedRoute allowedRoles={['PHARMACY']}>
-                <DashboardLayout>
+                <PharmacyLayout>
                     <ProfilePage />
-                </DashboardLayout>
+                </PharmacyLayout>
+            </ProtectedRoute>
+        )
+    },
+    {
+        path: '/assistant/profile',
+        element: (
+            <ProtectedRoute allowedRoles={['ASSISTANT']}>
+                <AssistantLayout>
+                    <ProfilePage />
+                </AssistantLayout>
             </ProtectedRoute>
         )
     }

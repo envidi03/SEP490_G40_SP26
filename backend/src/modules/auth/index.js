@@ -1,18 +1,20 @@
-const authRoutes = require('./auth.route');
+const authRoutes = require('./routes/auth.route');
 
-const authController = require('./auth.controller');
+const authController = require('./controller/auth.controller');
 
-const authService = require('./auth.service');
+const authService = require('./service/auth.service');
 
-const Account = require('./models/Account.model');
-const AuthProvider = require('./models/AuthProviders.model');
-const EmailVerification = require('./models/EmailVerification.model');
-const LoginAttempt = require('./models/LoginAttempt.model');
-const PasswordReset = require('./models/PasswordReset.model');
-const Permission = require('./models/Permission.model');
-const Role = require('./models/Role.model');
-const Session = require('./models/Session.model');
-const User = require('./models/User.model');
+const Account = require('./models/account.model');
+const AuthProvider = require('./models/auth-provider.model');
+const EmailVerification = require('./models/email-verification.model');
+const LoginAttempt = require('./models/login-attempt.model');
+const PasswordReset = require('./models/password-reset.model');
+const Permission = require('./models/permission.model');
+const Role = require('./models/role.model');
+const Session = require('./models/session.model');
+const Profile = require('./models/profile.model');
+
+const Model = require('./models/index.model');
 
 module.exports = {
     authRoutes,
@@ -29,5 +31,7 @@ module.exports = {
     Permission,
     Role,
     Session,
-    User
+    Profile,
+
+    Model
 };

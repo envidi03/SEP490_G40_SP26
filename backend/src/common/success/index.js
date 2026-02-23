@@ -1,5 +1,3 @@
-const GetDetailSuccess = require("./GetDetailSuccess");
-
 module.exports = {
   BaseSuccess: require("./BaseSuccess"),
   GetDetailSuccess: require("./GetDetailSuccess"),

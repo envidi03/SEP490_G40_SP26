@@ -1,25 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { mockEquipment, mockEquipmentUsage, mockUsers } from '../../../utils/mockData';
-import { formatDate } from '../../../utils/dateUtils';
+import equipmentService from '../../../services/equipmentService';
+import { mockEquipmentUsage, mockUsers } from '../../../utils/mockData';
+import { formatDate, formatDateForInput } from '../../../utils/dateUtils';
 import Toast from '../../../components/ui/Toast';
-import {
-    Wrench,
-    Plus,
-    Search,
-    Edit2,
-    Trash2,
-    Calendar,
-    CheckCircle,
-    AlertCircle,
-    Clock,
-    History,
-    PackageCheck,
-    AlertTriangle,
-    Activity,
-    Eye
-} from 'lucide-react';
+import { Wrench, Plus } from 'lucide-react';
 
-import EquipmentDetailModal from './modals/EquipmentDetailModal';
+// Components
+import EquipmentStatistics from './components/EquipmentStatistics';
+import EquipmentFilters from './components/EquipmentFilters';
+import EquipmentGrid from './components/EquipmentGrid';
+import EquipmentFormModal from './components/EquipmentFormModal';
+import EquipmentUsageModal from './components/EquipmentUsageModal';
+import EquipmentDetailModal from './components/EquipmentDetailModal';
+import EquipmentPagination from './components/EquipmentPagination';
 
 /**
  * EquipmentList - Trang quản lý thiết bị nha khoa
@@ -28,7 +21,6 @@ import EquipmentDetailModal from './modals/EquipmentDetailModal';
  * - Xem danh sách thiết bị
  * - Thêm thiết bị mới
  * - Cập nhật thông tin thiết bị
- * - Xóa thiết bị
  * - Xem lịch sử sử dụng thiết bị
  * - Theo dõi bảo trì
  * 
@@ -39,8 +31,11 @@ const EquipmentList = () => {
     const [equipment, setEquipment] = useState([]);
     const [equipmentUsage, setEquipmentUsage] = useState([]);
     const [filteredEquipment, setFilteredEquipment] = useState([]);
+    const [pagination, setPagination] = useState({ totalItems: 0, totalPages: 0, page: 1, size: 10 });
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
     const [toast, setToast] = useState({ show: false, type: 'success', message: '' });
 
     // Modals
@@ -51,131 +46,145 @@ const EquipmentList = () => {
     const [selectedDetailEquipment, setSelectedDetailEquipment] = useState(null);
     const [isEditMode, setIsEditMode] = useState(false);
 
-    // Form data
+    // Equipment Form
     const [equipmentForm, setEquipmentForm] = useState({
         equipment_name: '',
         equipment_type: '',
-        serial_number: '',
+        equipment_serial_number: '',
         purchase_date: '',
-        warranty_expiry: '',
-        status: 'ACTIVE',
-        last_maintenance_date: '',
-        next_maintenance_date: ''
+        supplier: '',
+        warranty: '',
+        status: 'READY'
     });
 
-    // ========== EFFECTS ==========
+    // ========== DATA FETCHING ==========
     useEffect(() => {
-        setEquipment(mockEquipment);
+        fetchEquipment();
         setEquipmentUsage(mockEquipmentUsage);
-        setFilteredEquipment(mockEquipment);
     }, []);
 
+    const fetchEquipment = async (page = 1, size = 10) => {
+        try {
+            setLoading(true);
+            const response = await equipmentService.getEquipments({ page, size });
+
+            // Update equipment data
+            setEquipment(response.data);
+            setFilteredEquipment(response.data);
+
+            // Update pagination info if available
+            if (response.pagination) {
+                setPagination(response.pagination);
+            }
+        } catch (err) {
+            console.error('Error fetching equipment:', err);
+            setError(err.message);
+            setToast({
+                show: true,
+                type: 'error',
+                message: '❌ Lỗi khi tải danh sách thiết bị!'
+            });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Page change handler
+    const handlePageChange = (page) => {
+        fetchEquipment(page, pagination.size);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    // ========== FILTERING ==========
     useEffect(() => {
         let filtered = equipment;
 
-        // Filter by status
-        if (statusFilter !== 'all') {
-            filtered = filtered.filter(e => e.status === statusFilter);
-        }
-
         // Filter by search term
         if (searchTerm) {
-            const searchLower = searchTerm.toLowerCase();
-            filtered = filtered.filter(e =>
-                e.equipment_name.toLowerCase().includes(searchLower) ||
-                e.equipment_type.toLowerCase().includes(searchLower) ||
-                e.serial_number.toLowerCase().includes(searchLower)
+            filtered = filtered.filter(equip =>
+                equip.equipment_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                (equip.equipment_serial_number || '').toLowerCase().includes(searchTerm.toLowerCase())
             );
+        }
+
+        // Filter by status
+        if (statusFilter !== 'all') {
+            filtered = filtered.filter(equip => equip.status === statusFilter);
         }
 
         setFilteredEquipment(filtered);
     }, [searchTerm, statusFilter, equipment]);
 
     // ========== HELPER FUNCTIONS ==========
-
-    /**
-     * Get status color
-     */
     const getStatusColor = (status) => {
         const colors = {
-            'ACTIVE': 'bg-green-100 text-green-700 border-green-200',
-            'MAINTENANCE': 'bg-yellow-100 text-yellow-700 border-yellow-200',
-            'INACTIVE': 'bg-red-100 text-red-700 border-red-200'
+            'READY': 'border-green-500 text-green-700',
+            'IN_USE': 'border-blue-500 text-blue-700',
+            'MAINTENANCE': 'border-yellow-500 text-yellow-700',
+            'REPAIRING': 'border-orange-500 text-orange-700',
+            'FAULTY': 'border-red-500 text-red-700',
+            'STERILIZING': 'border-purple-500 text-purple-700'
         };
-        return colors[status] || 'bg-gray-100 text-gray-700 border-gray-200';
+        return colors[status] || 'border-gray-500 text-gray-700';
     };
 
-    /**
-     * Get status text
-     */
     const getStatusText = (status) => {
         const texts = {
-            'ACTIVE': 'Hoạt động',
+            'READY': 'Sẵn sàng',
+            'IN_USE': 'Đang sử dụng',
             'MAINTENANCE': 'Bảo trì',
-            'INACTIVE': 'Ngừng sử dụng'
+            'REPAIRING': 'Đang sửa chữa',
+            'FAULTY': 'Bị hỏng',
+            'STERILIZING': 'Đang khử trùng'
         };
         return texts[status] || status;
     };
 
-    /**
-     * Check if maintenance is due soon
-     */
-    const isMaintenanceDue = (nextDate) => {
-        if (!nextDate) return false;
-        const today = new Date();
-        const next = new Date(nextDate);
-        const diffDays = Math.ceil((next - today) / (1000 * 60 * 60 * 24));
-        return diffDays <= 30 && diffDays >= 0;
-    };
-
-    /**
-     * Get equipment usage history
-     */
     const getUsageHistory = (equipmentId) => {
-        const usage = equipmentUsage.filter(u => u.equipment_id === equipmentId);
-        return usage.map(u => {
-            const user = mockUsers.find(user => user.id === u.used_by_user_id);
-            return {
-                ...u,
-                userName: user?.full_name || 'Unknown'
-            };
-        });
+        return equipmentUsage
+            .filter(u => u.equipment_id === equipmentId)
+            .map(u => {
+                const user = mockUsers.find(user => user.id === u.user_id);
+                return {
+                    ...u,
+                    userName: user?.full_name || 'Unknown'
+                };
+            });
     };
 
     // ========== HANDLERS ==========
-
-    /**
-     * Handler: Open add equipment modal
-     */
     const handleAddEquipment = () => {
         setIsEditMode(false);
+        setSelectedEquipment(null);
         setEquipmentForm({
             equipment_name: '',
             equipment_type: '',
-            serial_number: '',
+            equipment_serial_number: '',
             purchase_date: '',
-            warranty_expiry: '',
-            status: 'ACTIVE',
-            last_maintenance_date: '',
-            next_maintenance_date: ''
+            supplier: '',
+            warranty: '',
+            status: 'READY'
         });
         setShowEquipmentModal(true);
     };
 
-    /**
-     * Handler: Open edit equipment modal
-     */
     const handleEditEquipment = (equip) => {
         setIsEditMode(true);
         setSelectedEquipment(equip);
-        setEquipmentForm(equip);
+        setEquipmentForm({
+            equipment_name: equip.equipment_name || '',
+            equipment_type: equip.equipment_type || '',
+            equipment_serial_number: equip.equipment_serial_number || '',
+            // Format dates for input[type="date"]
+            purchase_date: formatDateForInput(equip.purchase_date),
+            supplier: equip.supplier || '',
+            warranty: formatDateForInput(equip.warranty),
+            status: equip.status || 'READY'
+        });
         setShowEquipmentModal(true);
     };
 
-    /**
-     * Handler: Save equipment
-     */
-    const handleSaveEquipment = () => {
+    const handleCreateEquipment = async () => {
         if (!equipmentForm.equipment_name.trim()) {
             setToast({
                 show: true,
@@ -185,64 +194,142 @@ const EquipmentList = () => {
             return;
         }
 
-        if (isEditMode) {
-            setEquipment(prev => prev.map(e =>
-                e.id === selectedEquipment.id
-                    ? { ...e, ...equipmentForm }
-                    : e
-            ));
+        if (!equipmentForm.equipment_type.trim()) {
             setToast({
                 show: true,
-                type: 'success',
-                message: '✅ Cập nhật thiết bị thành công!'
+                type: 'error',
+                message: '❌ Vui lòng nhập loại thiết bị!'
             });
-        } else {
-            const newEquipment = {
-                id: `equip_${String(equipment.length + 1).padStart(3, '0')} `,
-                ...equipmentForm
-            };
-            setEquipment(prev => [...prev, newEquipment]);
+            return;
+        }
+
+        try {
+            await equipmentService.createEquipment(equipmentForm);
             setToast({
                 show: true,
                 type: 'success',
                 message: '✅ Thêm thiết bị mới thành công!'
             });
-        }
 
-        setShowEquipmentModal(false);
-        setSelectedEquipment(null);
-    };
+            await fetchEquipment();
+            setShowEquipmentModal(false);
+            setSelectedEquipment(null);
+        } catch (err) {
+            console.error('Error creating equipment:', err);
 
-    /**
-     * Handler: Delete equipment
-     */
-    const handleDeleteEquipment = (equipId) => {
-        if (window.confirm('Bạn có chắc chắn muốn xóa thiết bị này?')) {
-            setEquipment(prev => prev.filter(e => e.id !== equipId));
+            let errorMessage = 'Thêm thiết bị thất bại!';
+
+            if (err.response?.data?.message) {
+                errorMessage = err.response.data.message;
+            } else if (err.data?.message) {
+                errorMessage = err.data.message;
+            } else if (err.message) {
+                errorMessage = err.message;
+            }
+
+            if (err.response?.status === 409 || err.statusCode === 409) {
+                errorMessage = 'Số serial đã tồn tại trong hệ thống!';
+            }
+
             setToast({
                 show: true,
-                type: 'success',
-                message: '✅ Đã xóa thiết bị!'
+                type: 'error',
+                message: `❌ ${errorMessage}`
             });
         }
     };
 
-    /**
-     * Handler: View usage history
-     */
+    const handleUpdateEquipment = async () => {
+        if (!equipmentForm.equipment_name.trim()) {
+            setToast({
+                show: true,
+                type: 'error',
+                message: '❌ Vui lòng nhập tên thiết bị!'
+            });
+            return;
+        }
+
+        if (!equipmentForm.equipment_type.trim()) {
+            setToast({
+                show: true,
+                type: 'error',
+                message: '❌ Vui lòng nhập loại thiết bị!'
+            });
+            return;
+        }
+
+        try {
+            await equipmentService.updateEquipment(selectedEquipment._id || selectedEquipment.id, equipmentForm);
+            setToast({
+                show: true,
+                type: 'success',
+                message: '✅ Cập nhật thiết bị thành công!'
+            });
+
+            await fetchEquipment();
+            setShowEquipmentModal(false);
+            setSelectedEquipment(null);
+        } catch (err) {
+            console.error('Error updating equipment:', err);
+
+            let errorMessage = 'Cập nhật thiết bị thất bại!';
+
+            if (err.response?.data?.message) {
+                errorMessage = err.response.data.message;
+            } else if (err.data?.message) {
+                errorMessage = err.data.message;
+            } else if (err.message) {
+                errorMessage = err.message;
+            }
+
+            if (err.response?.status === 409 || err.statusCode === 409) {
+                errorMessage = 'Số serial đã tồn tại trong hệ thống!';
+            }
+
+            setToast({
+                show: true,
+                type: 'error',
+                message: `❌ ${errorMessage}`
+            });
+        }
+    };
+
+    const handleSaveEquipment = () => {
+        if (isEditMode && selectedEquipment) {
+            handleUpdateEquipment();
+        } else if (!isEditMode && !selectedEquipment) {
+            handleCreateEquipment();
+        } else {
+            console.error('Invalid state: isEditMode and selectedEquipment mismatch');
+            setToast({
+                show: true,
+                type: 'error',
+                message: '❌ Lỗi trạng thái form. Vui lòng thử lại!'
+            });
+        }
+    };
+
+    const handleViewDetails = (equip) => {
+        setSelectedDetailEquipment(equip);
+        setShowDetailModal(true);
+    };
+
     const handleViewUsage = (equip) => {
         setSelectedEquipment(equip);
         setShowUsageModal(true);
     };
 
-    // ========== RENDER ==========
-
-    // Calculate statistics
-    const totalEquipment = equipment.length;
-    const activeEquipment = equipment.filter(e => e.status === 'ACTIVE').length;
+    // ========== STATISTICS ==========
+    // Use totalItems from pagination for accurate total count
+    const totalEquipment = pagination.totalItems || equipment.length;
+    const readyEquipment = equipment.filter(e => e.status === 'READY').length;
+    const inUseEquipment = equipment.filter(e => e.status === 'IN_USE').length;
     const maintenanceCount = equipment.filter(e => e.status === 'MAINTENANCE').length;
-    const dueSoon = equipment.filter(e => isMaintenanceDue(e.next_maintenance_date)).length;
+    const repairingCount = equipment.filter(e => e.status === 'REPAIRING').length;
+    const faultyCount = equipment.filter(e => e.status === 'FAULTY').length;
+    const sterilizingCount = equipment.filter(e => e.status === 'STERILIZING').length;
 
+    // ========== RENDER ==========
     return (
         <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 p-6">
             <div className="max-w-7xl mx-auto">
@@ -269,425 +356,67 @@ const EquipmentList = () => {
                 </div>
 
                 {/* Statistics */}
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
-                    <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
-                        <div className="flex items-center gap-4">
-                            <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg">
-                                <Wrench className="text-white" size={28} />
-                            </div>
-                            <div>
-                                <p className="text-sm font-medium text-gray-600">Tổng thiết bị</p>
-                                <p className="text-3xl font-bold text-blue-600">{totalEquipment}</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
-                        <div className="flex items-center gap-4">
-                            <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-green-500 to-teal-600 flex items-center justify-center shadow-lg">
-                                <CheckCircle className="text-white" size={28} />
-                            </div>
-                            <div>
-                                <p className="text-sm font-medium text-gray-600">Đang hoạt động</p>
-                                <p className="text-3xl font-bold text-green-600">{activeEquipment}</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
-                        <div className="flex items-center gap-4">
-                            <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-yellow-500 to-orange-600 flex items-center justify-center shadow-lg">
-                                <AlertCircle className="text-white" size={28} />
-                            </div>
-                            <div>
-                                <p className="text-sm font-medium text-gray-600">Đang bảo trì</p>
-                                <p className="text-3xl font-bold text-yellow-600">{maintenanceCount}</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
-                        <div className="flex items-center gap-4">
-                            <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-red-500 to-pink-600 flex items-center justify-center shadow-lg">
-                                <AlertTriangle className="text-white" size={28} />
-                            </div>
-                            <div>
-                                <p className="text-sm font-medium text-gray-600">Sắp bảo trì</p>
-                                <p className="text-3xl font-bold text-red-600">{dueSoon}</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                <EquipmentStatistics
+                    totalEquipment={totalEquipment}
+                    readyEquipment={readyEquipment}
+                    inUseEquipment={inUseEquipment}
+                    maintenanceCount={maintenanceCount}
+                    repairingCount={repairingCount}
+                    faultyCount={faultyCount}
+                    sterilizingCount={sterilizingCount}
+                />
 
                 {/* Filters */}
-                <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 mb-6">
-                    <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center">
-                        {/* Search */}
-                        <div className="relative flex-1 w-full">
-                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
-                            <input
-                                type="text"
-                                placeholder="Tìm kiếm thiết bị..."
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
-                            />
-                        </div>
-
-                        {/* Status Filter */}
-                        <div className="flex items-center gap-2">
-                            <button
-                                onClick={() => setStatusFilter('all')}
-                                className={`px - 4 py - 2 rounded - lg font - medium transition - all ${statusFilter === 'all'
-                                    ? 'bg-blue-600 text-white shadow-md'
-                                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                                    } `}
-                            >
-                                Tất cả
-                            </button>
-                            <button
-                                onClick={() => setStatusFilter('ACTIVE')}
-                                className={`px - 4 py - 2 rounded - lg font - medium transition - all ${statusFilter === 'ACTIVE'
-                                    ? 'bg-green-600 text-white shadow-md'
-                                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                                    } `}
-                            >
-                                Hoạt động
-                            </button>
-                            <button
-                                onClick={() => setStatusFilter('MAINTENANCE')}
-                                className={`px - 4 py - 2 rounded - lg font - medium transition - all ${statusFilter === 'MAINTENANCE'
-                                    ? 'bg-yellow-600 text-white shadow-md'
-                                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                                    } `}
-                            >
-                                Bảo trì
-                            </button>
-                        </div>
-                    </div>
-                </div>
+                <EquipmentFilters
+                    searchTerm={searchTerm}
+                    setSearchTerm={setSearchTerm}
+                    statusFilter={statusFilter}
+                    setStatusFilter={setStatusFilter}
+                />
 
                 {/* Equipment Grid */}
-                {filteredEquipment.length === 0 ? (
-                    <div className="bg-white rounded-2xl shadow-lg p-16 text-center">
-                        <Wrench className="text-gray-300 mx-auto mb-4" size={64} />
-                        <h3 className="text-2xl font-bold text-gray-900 mb-2">
-                            Không tìm thấy thiết bị
-                        </h3>
-                        <p className="text-gray-600">
-                            {searchTerm || statusFilter !== 'all'
-                                ? 'Không có thiết bị nào phù hợp với bộ lọc của bạn'
-                                : 'Chưa có thiết bị nào trong hệ thống'}
-                        </p>
-                    </div>
-                ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {filteredEquipment.map(equip => {
-                            const maintenanceDue = isMaintenanceDue(equip.next_maintenance_date);
-                            const usageCount = equipmentUsage.filter(u => u.equipment_id === equip.id).length;
+                <EquipmentGrid
+                    filteredEquipment={filteredEquipment}
+                    loading={loading}
+                    equipmentUsage={equipmentUsage}
+                    onViewDetails={handleViewDetails}
+                    onViewUsage={handleViewUsage}
+                    onEdit={handleEditEquipment}
+                    getStatusColor={getStatusColor}
+                    getStatusText={getStatusText}
+                    formatDate={formatDate}
+                    searchTerm={searchTerm}
+                    statusFilter={statusFilter}
+                />
 
-                            return (
-                                <div
-                                    key={equip.id}
-                                    className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 group"
-                                >
-                                    {/* Header */}
-                                    <div className="relative bg-gradient-to-br from-blue-600 to-indigo-700 text-white p-6">
-                                        <div className="flex items-start justify-between mb-3">
-                                            <div className="flex-1">
-                                                <p className="text-xs text-blue-100 mb-1">{equip.equipment_type}</p>
-                                                <h3 className="text-xl font-bold mb-2">
-                                                    {equip.equipment_name}
-                                                </h3>
-                                            </div>
-                                            {maintenanceDue && (
-                                                <AlertTriangle size={24} className="text-yellow-300" />
-                                            )}
-                                        </div>
-                                        <span className={`inline - block px - 3 py - 1 rounded - full text - xs font - semibold border ${getStatusColor(equip.status)} bg - white`}>
-                                            {getStatusText(equip.status)}
-                                        </span>
-                                    </div>
-
-                                    {/* Body */}
-                                    <div className="p-6 space-y-3">
-                                        {/* Serial Number */}
-                                        <div>
-                                            <p className="text-xs text-gray-500 mb-1">Số serial</p>
-                                            <p className="text-sm font-mono font-semibold text-gray-900">
-                                                {equip.serial_number}
-                                            </p>
-                                        </div>
-
-                                        {/* Maintenance Info */}
-                                        {equip.next_maintenance_date && (
-                                            <div className={`p - 3 rounded - lg ${maintenanceDue ? 'bg-yellow-50 border border-yellow-200' : 'bg-gray-50'} `}>
-                                                <div className="flex items-center gap-2 mb-1">
-                                                    <Calendar size={14} className={maintenanceDue ? 'text-yellow-600' : 'text-gray-600'} />
-                                                    <p className="text-xs font-semibold text-gray-700">
-                                                        {maintenanceDue ? 'Sắp bảo trì' : 'Bảo trì tiếp theo'}
-                                                    </p>
-                                                </div>
-                                                <p className="text-sm font-medium text-gray-900">
-                                                    {formatDate(equip.next_maintenance_date)}
-                                                </p>
-                                            </div>
-                                        )}
-
-                                        {/* Usage Count */}
-                                        <div className="flex items-center gap-2">
-                                            <Activity size={16} className="text-purple-600" />
-                                            <span className="text-sm text-gray-600">
-                                                Đã sử dụng: <span className="font-bold text-purple-600">{usageCount}</span> lần
-                                            </span>
-                                        </div>
-
-                                        {/* Actions */}
-                                        <div className="flex gap-2 pt-4 border-t border-gray-200">
-                                            <button
-                                                onClick={() => {
-                                                    setSelectedDetailEquipment(equip);
-                                                    setShowDetailModal(true);
-                                                }}
-                                                className="inline-flex items-center justify-center gap-2 px-3 py-2 bg-blue-50 text-blue-600 font-medium rounded-xl hover:bg-blue-100 transition-all duration-200"
-                                            >
-                                                <Eye size={14} />
-                                            </button>
-                                            <button
-                                                onClick={() => handleViewUsage(equip)}
-                                                className="flex-1 inline-flex items-center justify-center gap-2 px-3 py-2 bg-purple-50 text-purple-600 font-medium text-sm rounded-xl hover:bg-purple-100 transition-all duration-200"
-                                            >
-                                                <History size={14} />
-                                                <span>Lịch sử</span>
-                                            </button>
-                                            <button
-                                                onClick={() => handleEditEquipment(equip)}
-                                                className="inline-flex items-center justify-center gap-2 px-3 py-2 bg-green-50 text-green-600 font-medium rounded-xl hover:bg-green-100 transition-all duration-200"
-                                            >
-                                                <Edit2 size={14} />
-                                            </button>
-                                            <button
-                                                onClick={() => handleDeleteEquipment(equip.id)}
-                                                className="inline-flex items-center justify-center gap-2 px-3 py-2 bg-red-50 text-red-600 font-medium rounded-xl hover:bg-red-100 transition-all duration-200"
-                                            >
-                                                <Trash2 size={14} />
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            );
-                        })}
-                    </div>
-                )}
-
-                {/* Results Count */}
-                {filteredEquipment.length > 0 && (
-                    <div className="mt-8 text-center">
-                        <p className="text-gray-600">
-                            Hiển thị <span className="font-bold text-blue-600">{filteredEquipment.length}</span> / {equipment.length} thiết bị
-                        </p>
-                    </div>
-                )}
+                {/* Pagination */}
+                <EquipmentPagination
+                    currentPage={pagination.page}
+                    totalPages={pagination.totalPages}
+                    totalItems={pagination.totalItems}
+                    pageSize={pagination.size}
+                    onPageChange={handlePageChange}
+                />
             </div>
 
-            {/* Equipment Modal */}
-            {showEquipmentModal && (
-                <div className="fixed inset-0 z-50 overflow-y-auto">
-                    <div className="fixed inset-0 bg-black bg-opacity-50 transition-opacity backdrop-blur-sm" onClick={() => setShowEquipmentModal(false)} />
-                    <div className="flex min-h-full items-center justify-center p-4">
-                        <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl transform transition-all max-h-[90vh] overflow-y-auto">
-                            <div className="sticky top-0 bg-gradient-to-br from-blue-600 to-indigo-700 text-white rounded-t-2xl p-6 z-10">
-                                <h2 className="text-2xl font-bold">
-                                    {isEditMode ? 'Chỉnh sửa thiết bị' : 'Thêm thiết bị mới'}
-                                </h2>
-                                <p className="text-blue-100 mt-1">
-                                    {isEditMode ? 'Cập nhật thông tin thiết bị' : 'Điền thông tin để tạo thiết bị mới'}
-                                </p>
-                            </div>
+            {/* Modals */}
+            <EquipmentFormModal
+                show={showEquipmentModal}
+                isEditMode={isEditMode}
+                equipmentForm={equipmentForm}
+                setEquipmentForm={setEquipmentForm}
+                onSave={handleSaveEquipment}
+                onClose={() => setShowEquipmentModal(false)}
+            />
 
-                            <div className="p-6 space-y-4">
-                                <div>
-                                    <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                        Tên thiết bị <span className="text-red-500">*</span>
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={equipmentForm.equipment_name}
-                                        onChange={(e) => setEquipmentForm({ ...equipmentForm, equipment_name: e.target.value })}
-                                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
-                                        placeholder="Máy X-quang kỹ thuật số"
-                                    />
-                                </div>
+            <EquipmentUsageModal
+                show={showUsageModal}
+                equipment={selectedEquipment}
+                usageHistory={selectedEquipment ? getUsageHistory(selectedEquipment.id || selectedEquipment._id) : []}
+                onClose={() => setShowUsageModal(false)}
+                formatDate={formatDate}
+            />
 
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                            Loại thiết bị
-                                        </label>
-                                        <input
-                                            type="text"
-                                            value={equipmentForm.equipment_type}
-                                            onChange={(e) => setEquipmentForm({ ...equipmentForm, equipment_type: e.target.value })}
-                                            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
-                                            placeholder="X-ray"
-                                        />
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                            Số serial
-                                        </label>
-                                        <input
-                                            type="text"
-                                            value={equipmentForm.serial_number}
-                                            onChange={(e) => setEquipmentForm({ ...equipmentForm, serial_number: e.target.value })}
-                                            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
-                                            placeholder="XR-2024-001"
-                                        />
-                                    </div>
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                            Ngày mua
-                                        </label>
-                                        <input
-                                            type="date"
-                                            value={equipmentForm.purchase_date}
-                                            onChange={(e) => setEquipmentForm({ ...equipmentForm, purchase_date: e.target.value })}
-                                            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
-                                        />
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                            Hết hạn bảo hành
-                                        </label>
-                                        <input
-                                            type="date"
-                                            value={equipmentForm.warranty_expiry}
-                                            onChange={(e) => setEquipmentForm({ ...equipmentForm, warranty_expiry: e.target.value })}
-                                            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
-                                        />
-                                    </div>
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                            Bảo trì lần cuối
-                                        </label>
-                                        <input
-                                            type="date"
-                                            value={equipmentForm.last_maintenance_date}
-                                            onChange={(e) => setEquipmentForm({ ...equipmentForm, last_maintenance_date: e.target.value })}
-                                            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
-                                        />
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                            Bảo trì tiếp theo
-                                        </label>
-                                        <input
-                                            type="date"
-                                            value={equipmentForm.next_maintenance_date}
-                                            onChange={(e) => setEquipmentForm({ ...equipmentForm, next_maintenance_date: e.target.value })}
-                                            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
-                                        />
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                        Trạng thái <span className="text-red-500">*</span>
-                                    </label>
-                                    <select
-                                        value={equipmentForm.status}
-                                        onChange={(e) => setEquipmentForm({ ...equipmentForm, status: e.target.value })}
-                                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all bg-white"
-                                    >
-                                        <option value="ACTIVE">Hoạt động</option>
-                                        <option value="MAINTENANCE">Bảo trì</option>
-                                        <option value="INACTIVE">Ngừng sử dụng</option>
-                                    </select>
-                                </div>
-                            </div>
-
-                            <div className="sticky bottom-0 bg-gray-50 px-6 py-4 rounded-b-2xl flex gap-3 justify-end">
-                                <button
-                                    onClick={() => setShowEquipmentModal(false)}
-                                    className="px-6 py-2.5 text-gray-700 font-medium rounded-xl hover:bg-gray-200 transition-colors"
-                                >
-                                    Hủy
-                                </button>
-                                <button
-                                    onClick={handleSaveEquipment}
-                                    className="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-medium rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all shadow-lg hover:shadow-xl"
-                                >
-                                    {isEditMode ? 'Cập nhật' : 'Thêm thiết bị'}
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* Usage History Modal */}
-            {showUsageModal && selectedEquipment && (
-                <div className="fixed inset-0 z-50 overflow-y-auto">
-                    <div className="fixed inset-0 bg-black bg-opacity-50 transition-opacity backdrop-blur-sm" onClick={() => setShowUsageModal(false)} />
-                    <div className="flex min-h-full items-center justify-center p-4">
-                        <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl transform transition-all">
-                            <div className="relative bg-gradient-to-br from-purple-600 to-pink-700 text-white rounded-t-2xl p-6">
-                                <h2 className="text-2xl font-bold">Lịch sử sử dụng</h2>
-                                <p className="text-purple-100 mt-1">{selectedEquipment.equipment_name}</p>
-                            </div>
-
-                            <div className="p-6 max-h-96 overflow-y-auto">
-                                {getUsageHistory(selectedEquipment.id).length === 0 ? (
-                                    <div className="text-center py-8">
-                                        <History size={48} className="text-gray-300 mx-auto mb-3" />
-                                        <p className="text-gray-600">Chưa có lịch sử sử dụng</p>
-                                    </div>
-                                ) : (
-                                    <div className="space-y-3">
-                                        {getUsageHistory(selectedEquipment.id).map(usage => (
-                                            <div key={usage.id} className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                                                <div className="flex items-start justify-between mb-2">
-                                                    <div>
-                                                        <p className="font-semibold text-gray-900">{usage.userName}</p>
-                                                        <p className="text-sm text-gray-600">{usage.purpose}</p>
-                                                    </div>
-                                                    <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full">
-                                                        {usage.duration} phút
-                                                    </span>
-                                                </div>
-                                                <div className="flex items-center gap-2 text-xs text-gray-500">
-                                                    <Calendar size={12} />
-                                                    {formatDate(usage.used_date)}
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-
-                            <div className="bg-gray-50 px-6 py-4 rounded-b-2xl flex justify-end">
-                                <button
-                                    onClick={() => setShowUsageModal(false)}
-                                    className="px-6 py-2.5 text-gray-700 font-medium rounded-xl hover:bg-gray-200 transition-colors"
-                                >
-                                    Đóng
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* Equipment Detail Modal */}
             <EquipmentDetailModal
                 show={showDetailModal}
                 equipment={selectedDetailEquipment}
@@ -698,14 +427,12 @@ const EquipmentList = () => {
             />
 
             {/* Toast Notification */}
-            {toast.show && (
-                <Toast
-                    type={toast.type}
-                    message={toast.message}
-                    onClose={() => setToast({ ...toast, show: false })}
-                    duration={3000}
-                />
-            )}
+            <Toast
+                show={toast.show}
+                type={toast.type}
+                message={toast.message}
+                onClose={() => setToast({ ...toast, show: false })}
+            />
         </div>
     );
 };

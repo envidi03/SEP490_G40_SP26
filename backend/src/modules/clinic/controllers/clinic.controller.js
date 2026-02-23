@@ -2,7 +2,7 @@ const logger = require('../../../common/utils/logger');
 const errorRes = require('../../../common/errors');
 const successRes = require('../../../common/success');
 const Pagination = require('../../../common/responses/Pagination');
-const {cleanObjectData} = require('../../../common/utils/cleanObjectData');
+const { cleanObjectData } = require('../../../common/utils/cleanObjectData');
 
 const clinicService = require('../services/clinic.service');
 
@@ -11,7 +11,7 @@ const updateClinic = async (req, res) => {
         logger.info('Attempting to update clinic');
         const clinicId = req.params.clinicId;
         const updateData = req.body;
-        
+
         // Sửa: Dùng Template Literals để nối chuỗi ID và dữ liệu đã clean
         logger.debug(`Clinic ID: ${clinicId}`);
         logger.debug(`Update data: ${cleanObjectData(updateData)}`);
@@ -26,7 +26,7 @@ const updateClinic = async (req, res) => {
 
         // Sửa: Dùng Template Literals để hiển thị kết quả trả về
         logger.debug(`Updated clinic: ${updatedClinic}`);
-        
+
         logger.info(`Clinic ${clinicId} updated successfully`);
         return new successRes.UpdateSuccess(updatedClinic, 'Clinic updated successfully').send(res);
     } catch (error) {
@@ -59,4 +59,18 @@ const getInforClinics = async (req, res) => {
     }
 };
 
-module.exports = { updateClinic, getInforClinics };
+const getAllClinics = async (req, res) => {
+    try {
+        logger.info('Fetching all clinics');
+        const clinics = await clinicService.getAllClinics();
+        return new successRes.GetListSuccess(clinics, 'Clinics retrieved successfully').send(res);
+    } catch (error) {
+        logger.error(`Error getting all clinics: ${error.message}`, {
+            stack: error.stack,
+            context: 'ClinicController.getAllClinics'
+        });
+        throw new errorRes.InternalServerError('An error occurred while fetching clinics');
+    }
+};
+
+module.exports = { updateClinic, getInforClinics, getAllClinics };

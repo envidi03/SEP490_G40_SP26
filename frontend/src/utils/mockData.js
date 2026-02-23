@@ -1107,6 +1107,122 @@ export const mockEquipmentUsage = [
     }
 ];
 
+// ==================== SERVICES TABLE ====================
+/**
+ * Services table - Dental services offered by clinic
+ * Fields: service_name, description, base_price, category, duration, status
+ */
+export const mockServices = [
+    {
+        id: 'service_001',
+        service_name: 'Khám tổng quát',
+        description: 'Khám và tư vấn sức khỏe răng miệng tổng quát',
+        base_price: 100000,
+        category: 'Khám và Tư vấn',
+        duration: 30, // minutes
+        status: 'ACTIVE'
+    },
+    {
+        id: 'service_002',
+        service_name: 'Trám răng Composite',
+        description: 'Trám răng bằng vật liệu composite thẩm mỹ',
+        base_price: 300000,
+        category: 'Trám răng',
+        duration: 45,
+        status: 'ACTIVE'
+    },
+    {
+        id: 'service_003',
+        service_name: 'Lấy cao răng',
+        description: 'Lấy cao răng và vệ sinh răng miệng',
+        base_price: 200000,
+        category: 'Vệ sinh răng miệng',
+        duration: 30,
+        status: 'ACTIVE'
+    },
+    {
+        id: 'service_004',
+        service_name: 'Nhổ răng khôn',
+        description: 'Nhổ răng khôn mọc lệch, mọc ngầm',
+        base_price: 1500000,
+        category: 'Phẫu thuật',
+        duration: 60,
+        status: 'ACTIVE'
+    },
+    {
+        id: 'service_005',
+        service_name: 'Tẩy trắng răng',
+        description: 'Tẩy trắng răng bằng công nghệ Laser',
+        base_price: 2500000,
+        category: 'Thẩm mỹ',
+        duration: 90,
+        status: 'ACTIVE'
+    },
+    {
+        id: 'service_006',
+        service_name: 'Niềng răng mắc cài kim loại',
+        description: 'Niềng răng chỉnh nha mắc cài kim loại truyền thống',
+        base_price: 25000000,
+        category: 'Chỉnh nha',
+        duration: 60,
+        status: 'ACTIVE'
+    },
+    {
+        id: 'service_007',
+        service_name: 'Niềng răng Invisalign',
+        description: 'Niềng răng trong suốt không mắc cài',
+        base_price: 80000000,
+        category: 'Chỉnh nha',
+        duration: 90,
+        status: 'ACTIVE'
+    },
+    {
+        id: 'service_008',
+        service_name: 'Cấy ghép Implant',
+        description: 'Cấy ghép răng Implant titan nguyên khối',
+        base_price: 15000000,
+        category: 'Phục hồi răng',
+        duration: 120,
+        status: 'ACTIVE'
+    },
+    {
+        id: 'service_009',
+        service_name: 'Bọc răng sứ Titan',
+        description: 'Bọc răng sứ Titan chất lượng cao',
+        base_price: 2000000,
+        category: 'Phục hồi răng',
+        duration: 60,
+        status: 'ACTIVE'
+    },
+    {
+        id: 'service_010',
+        service_name: 'Bọc răng sứ Zirconia',
+        description: 'Bọc răng sứ Zirconia cao cấp, thẩm mỹ tối ưu',
+        base_price: 4500000,
+        category: 'Phục hồi răng',
+        duration: 60,
+        status: 'ACTIVE'
+    },
+    {
+        id: 'service_011',
+        service_name: 'Điều trị tủy',
+        description: 'Điều trị tủy răng, lấy tủy và trám bít ống tủy',
+        base_price: 800000,
+        category: 'Nội nha',
+        duration: 90,
+        status: 'ACTIVE'
+    },
+    {
+        id: 'service_012',
+        service_name: 'Nhổ răng thường',
+        description: 'Nhổ răng sữa hoặc răng vĩnh viễn đơn giản',
+        base_price: 150000,
+        category: 'Phẫu thuật',
+        duration: 30,
+        status: 'ACTIVE'
+    }
+];
+
 /**
  * Get appointments by doctor ID
  * @param {string} doctorId - Doctor's user ID

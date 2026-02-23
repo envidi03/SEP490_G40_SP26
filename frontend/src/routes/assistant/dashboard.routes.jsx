@@ -1,4 +1,4 @@
-import DashboardLayout from '../../components/layout/DashboardLayout';
+import AssistantLayout from '../../components/layout/assistant/AssistantLayout';
 import ProtectedRoute from '../guards/ProtectedRoute';
 import AssistantDashboard from '../../pages/dashboard/AssistantDashboard';
 
@@ -7,9 +7,9 @@ const dashboardRoutes = [
         path: '/assistant/dashboard',
         element: (
             <ProtectedRoute allowedRoles={['ASSISTANT', 'ADMIN_CLINIC']}>
-                <DashboardLayout>
+                <AssistantLayout>
                     <AssistantDashboard />
-                </DashboardLayout>
+                </AssistantLayout>
             </ProtectedRoute>
         )
     }

@@ -58,88 +58,52 @@ const getRoomById = async (roomId, query) => {
   try {
     const historyPage = parseInt(query.historyPage) || 1;
     const historyLimit = parseInt(query.historyLimit) || 5;
+    const serviceRoomPage = parseInt(query.serviceRoomPage) || 1;
+    const serviceRoomLimit = parseInt(query.serviceRoomLimit) || 5;
     const startDate = query.startDate ? new Date(query.startDate) : null;
     const endDate = query.endDate ? new Date(query.endDate) : null;
 
-    const skip = (historyPage - 1) * historyLimit;
+    const historySkip = (historyPage - 1) * historyLimit;
+    const serviceSkip = (serviceRoomPage - 1) * serviceRoomLimit;
 
+    // Log 1: Query data
     logger.debug("Query data in service", {
       context: "RoomService.getRoomById",
-      historyPage: historyPage,
-      historyLimit: historyLimit,
-      skip: skip,
-      startDate: startDate,
-      endDate: endDate,
+      historyPage, historyLimit, historySkip,
+      serviceRoomPage, serviceRoomLimit, serviceSkip,
+      startDate, endDate,
     });
 
+    // Log 2: Fetching start
     logger.info("Fetching room by ID in service", {
       context: "RoomService.getRoomById",
       roomId,
     });
 
-    // Build history_used filter
-    // 1. Xây dựng bộ lọc ngày tháng trước để tránh lỗi $and rỗng
-    const dateFilters = [];
-    if (startDate)
-      dateFilters.push({ "history_used.used_date": { $gte: startDate } });
-    if (endDate)
-      dateFilters.push({ "history_used.used_date": { $lte: endDate } });
-
-    // 2. Thực hiện Aggregate
-    const result = await Room.aggregate([
+    const aggregateResult = await Room.aggregate([
       {
-        // Fix lỗi Class constructor ObjectId cannot be invoked without 'new'
         $match: { _id: new mongoose.Types.ObjectId(roomId) },
       },
       {
-        // Fix lỗi mất dữ liệu khi mảng history_used rỗng
-        $unwind: {
-          path: "$history_used",
-          preserveNullAndEmptyArrays: true,
-        },
+        $addFields: {
+          // Sử dụng $ifNull để tránh lỗi khi history_used không tồn tại
+          safe_history: { $ifNull: ["$history_used", []] },
+          safe_services: { $ifNull: ["$room_service", []] }
+        }
       },
       {
-        /*
-          sau khi tách ra thì vẫn phải giữ lại các bản ghi không có history_used (như preserveNullAndEmptyArrays ở trên)
-          nên dùng { history_used: null }, để giữ lại các bản ghi này
-
-          đồng thời áp dụng thêm điều kiện lọc ngày tháng nếu người dùng có nhập ngày (thông qua dateFilters) 
-          nên dùng { history_used: { $exists: false } }, để giữ lại các bản ghi không có trường history_used
-
-          cuối cùng nếu người dùng có nhập ngày (startDate/endDate) thì áp dụng lọc ngày tháng (theo dateFilters)
-          nếu không nhập ngày thì trả về tất cả (dùng điều kiện luôn đúng { _id: { $exists: true } })
-        */
-        $match: {
-          $or: [
-            // (1) Giữ lại bản ghi nếu mảng rỗng (do unwind tạo ra null)
-            { history_used: null },
-            // (2) Giữ lại nếu trường này không tồn tại
-            { history_used: { $exists: false } }, 
-            // (3) Nếu người dùng có nhập ngày (startDate/endDate)
-            dateFilters.length > 0
-              ? { $and: dateFilters } // Thực hiện lọc theo ngày đã nhập
-              : { _id: { $exists: true } }, // Nếu KHÔNG nhập ngày, trả về một điều kiện luôn đúng (lấy tất cả)
-          ],
-        },
-      },
-      { $sort: { "history_used.used_date": -1 } },
-      {
-        $group: {
-          _id: "$_id",
-          room_number: { $first: "$room_number" },
-          status: { $first: "$status" },
-          note: { $first: "$note" },
-          clinic_id: { $first: "$clinic_id" },
-          /*
-            Lọc bỏ các giá trị null trong mảng history_used (do preserveNullAndEmptyArrays tạo ra) 
-          */
-          history_used_filtered: {
-            $push: {
-              $cond: [
-                { $gt: ["$history_used", null] },
-                "$history_used",
-                "$$REMOVE",
-              ],
+        $addFields: {
+          // Lọc mảng history_used sau khi đã đảm bảo nó là array
+          filtered_history: {
+            $filter: {
+              input: "$safe_history",
+              as: "h",
+              cond: {
+                $and: [
+                  startDate ? { $gte: ["$$h.used_date", startDate] } : { $literal: true },
+                  endDate ? { $lte: ["$$h.used_date", endDate] } : { $literal: true },
+                ],
+              },
             },
           },
         },
@@ -148,48 +112,73 @@ const getRoomById = async (roomId, query) => {
         $project: {
           room_number: 1,
           status: 1,
-          clinic_id: 1,
           note: 1,
-          // Tính tổng dựa trên mảng đã lọc
-          history_total: { $size: "$history_used_filtered" },
-          // Phân trang cho mảng history_used
+          clinic_id: 1,
+          // Đã an toàn để dùng $size vì filtered_history và safe_services luôn là array
+          history_total: { $size: "$filtered_history" },
+          service_total: { $size: "$safe_services" },
+
           history_used: {
-            $slice: ["$history_used_filtered", skip, historyLimit],
+            $slice: [
+              { $sortArray: { input: "$filtered_history", sortBy: { used_date: -1 } } },
+              historySkip,
+              historyLimit,
+            ],
+          },
+          room_service: {
+            $slice: ["$safe_services", serviceSkip, serviceRoomLimit],
           },
         },
       },
     ]);
 
+    // Log 3: Raw result
     logger.debug("Raw aggregation result", {
       context: "RoomService.getRoomById",
-      result,
+      result: aggregateResult,
     });
 
-    // get total history_used and room data
-    const { history_total, ...roomData } = result[0] || {};
-    const { history_used, ...roomInfo } = roomData || {};
+    if (!aggregateResult || aggregateResult.length === 0) return null;
 
-    const pagination = new Pagination({
+    const result = aggregateResult[0];
+
+    const historyPagination = new Pagination({
       page: historyPage,
       size: historyLimit,
-      totalItems: history_total || 0,
+      totalItems: result.history_total || 0,
     });
-    // format data to return
+
+    const servicePagination = new Pagination({
+      page: serviceRoomPage,
+      size: serviceRoomLimit,
+      totalItems: result.service_total || 0,
+    });
+
     const data = {
-      ...roomInfo,
+      _id: result._id,
+      room_number: result.room_number,
+      status: result.status,
+      note: result.note,
+      clinic_id: result.clinic_id,
       history_used: {
-        item: history_used || [],
-        pagination,
+        items: result.history_used || [],
+        pagination: historyPagination,
+      },
+      room_service: {
+        items: result.room_service || [],
+        pagination: servicePagination,
       },
     };
 
+    // Log 4: Final data
     logger.debug("Data submitted from aggregation", {
       context: "RoomService.getRoomById",
       data,
     });
 
-    return data || null;
+    return data;
   } catch (error) {
+    // Log 5: Error handling
     logger.error("Error in getRoomById service", {
       context: "RoomService.getRoomById",
       message: error.message,
@@ -243,6 +232,7 @@ const getRooms = async (query) => {
                 __v: 0,
                 createdAt: 0,
                 updatedAt: 0,
+                room_service: 0,
                 history_used: 0,
               },
             },
