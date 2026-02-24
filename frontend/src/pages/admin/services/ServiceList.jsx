@@ -149,17 +149,28 @@ const ServiceList = () => {
     /**
      * Handler: Open edit service modal
      */
-    const handleEditService = (service) => {
+    const handleEditService = async (service) => {
         setIsEditMode(true);
         setSelectedService(service);
+
+        // Fetch đầy đủ detail để lấy equipment_service (list API exclude trường này)
+        let fullService = service;
+        try {
+            const detail = await serviceService.getServiceById(service._id);
+            if (detail?.data) fullService = detail.data;
+        } catch (error) {
+            console.error('Error fetching service detail for edit:', error);
+            // fallback về list item nếu API lỗi
+        }
+
         setServiceForm({
-            service_name: service.service_name,
-            description: service.description,
-            price: service.price,
-            duration: service.duration,
-            icon: service.icon || '',
-            equipment_service: service.equipment_service || [],
-            status: service.status
+            service_name: fullService.service_name,
+            description: fullService.description,
+            price: fullService.price,
+            duration: fullService.duration,
+            icon: fullService.icon || '',
+            equipment_service: fullService.equipment_service || [],
+            status: fullService.status
         });
         setShowServiceModal(true);
     };
@@ -364,8 +375,13 @@ const ServiceList = () => {
                             pagination={pagination}
                             onPageChange={handlePageChange}
                             searchTerm={searchTerm}
-                            onViewDetails={(service) => {
-                                setSelectedDetailService(service);
+                            onViewDetails={async (service) => {
+                                try {
+                                    const detail = await serviceService.getServiceById(service._id, { limit: 100 });
+                                    setSelectedDetailService(detail?.data || service);
+                                } catch {
+                                    setSelectedDetailService(service);
+                                }
                                 setShowDetailModal(true);
                             }}
                             onEdit={handleEditService}

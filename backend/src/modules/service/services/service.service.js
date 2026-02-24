@@ -97,86 +97,29 @@ const getListService = async (query) => {
             limit
         )
 */
-const getByIdService = async (id, query) => {
+const getByIdService = async (id) => {
     try {
         logger.debug("Fetching service by id", {
             context: "ServiceService.getById",
             id: id,
-            query: query,
         });
 
-        // --- 1. CHUẨN BỊ THAM SỐ PHÂN TRANG ---
-        const page = Math.max(1, parseInt(query.page || 1));
-        const limit = Math.max(1, parseInt(query.limit || 5));
-        const skip = (page - 1) * limit;
+        const service = await ServiceModel
+            .findById(id)
+            .populate('equipment_service.equipment_id', 'equipment_name equipment_type serial_number status')
+            .lean();
 
-        // --- 2. AGGREGATION PIPELINE ---
-        const aggregateResult = await ServiceModel.aggregate([
-            {
-                $match: { _id: new mongoose.Types.ObjectId(id) }
-            },
-            {
-                // Bước đệm: Đảm bảo equipment_service luôn là mảng để không lỗi $size
-                $addFields: {
-                    safe_equipment: { $ifNull: ["$equipment_service", []] }
-                }
-            },
-            {
-                $project: {
-                    // Giữ lại các trường thông tin cơ bản của Service
-                    // Bạn có thể dùng $project: { password: 0 } hoặc liệt kê các trường muốn lấy:
-                    name: 1,
-                    code: 1,
-                    price: 1,
-                    description: 1,
-                    status: 1,
-                    clinic_id: 1,
-
-                    // Lấy tổng số lượng để tính toán phân trang
-                    total_equipment: { $size: "$safe_equipment" },
-
-                    // Thực hiện cắt mảng cho trang hiện tại
-                    equipment_items: {
-                        $slice: ["$safe_equipment", skip, limit]
-                    }
-                }
-            }
-        ]);
-
-        // --- 3. KIỂM TRA KẾT QUẢ ---
-        if (!aggregateResult || aggregateResult.length === 0) {
+        if (!service) {
             logger.warn("Service not found", { context: "ServiceService.getById", id });
             return null;
         }
 
-        const result = aggregateResult[0];
-
-        // --- 4. FORMAT DỮ LIỆU TRẢ VỀ ---
-        const data = {
-            _id: result._id,
-            name: result.name,
-            code: result.code,
-            price: result.price,
-            description: result.description,
-            status: result.status,
-            clinic_id: result.clinic_id,
-            // Cấu trúc lại mảng equipment_service kèm pagination
-            equipment_service: {
-                items: result.equipment_items || [],
-                pagination: new Pagination({
-                    page: page,
-                    size: limit,
-                    totalItems: result.total_equipment || 0,
-                }),
-            },
-        };
-
-        logger.debug("Service fetched successfully with pagination", {
+        logger.debug("Service fetched successfully", {
             context: "ServiceService.getById",
             serviceId: id
         });
 
-        return data;
+        return service;
 
     } catch (error) {
         logger.error("Error getting service by id", {
@@ -192,6 +135,7 @@ const getByIdService = async (id, query) => {
         );
     }
 };
+
 
 
 /**

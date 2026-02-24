@@ -20,10 +20,10 @@ const EquipmentServiceSelector = ({ equipmentServices = [], setEquipmentServices
     const fetchEquipments = async () => {
         try {
             setLoading(true);
-            // Filter by READY status
+            // Load tất cả equipment (không filter status) để dropdown hiển thị đủ
+            // kể cả thiết bị đang IN_USE nhưng đã được gắn với service này
             const response = await equipmentService.getEquipments({
-                filter: 'READY',
-                limit: 100  // Get more to support search
+                limit: 200
             });
             setAvailableEquipments(response.data || []);
         } catch (error) {
@@ -64,8 +64,14 @@ const EquipmentServiceSelector = ({ equipmentServices = [], setEquipmentServices
         eq.equipment_type?.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
+    // Normalize equipment_id: API trả về có thể là object {_id, name...} hoặc string
+    const normalizedEquipmentServices = equipmentServices.map(item => ({
+        ...item,
+        equipment_id: item.equipment_id?._id || item.equipment_id || ''
+    }));
+
     // Get already selected equipment IDs
-    const selectedIds = equipmentServices.map(es => es.equipment_id).filter(Boolean);
+    const selectedIds = normalizedEquipmentServices.map(es => es.equipment_id).filter(Boolean);
 
     // Filter out already selected equipments from dropdown
     const getAvailableForDropdown = (currentId) => {
@@ -73,6 +79,9 @@ const EquipmentServiceSelector = ({ equipmentServices = [], setEquipmentServices
             eq._id === currentId || !selectedIds.includes(eq._id)
         );
     };
+
+    // Dùng normalizedEquipmentServices để render
+    const displayList = normalizedEquipmentServices;
 
     return (
         <div className="space-y-4">
@@ -98,7 +107,7 @@ const EquipmentServiceSelector = ({ equipmentServices = [], setEquipmentServices
                 </div>
             ) : (
                 <div className="space-y-3">
-                    {equipmentServices.map((item, index) => (
+                    {displayList.map((item, index) => (
                         <div key={index} className="bg-gray-50 border border-gray-200 rounded-xl p-4 space-y-3">
                             {/* Equipment Selection */}
                             <div>
