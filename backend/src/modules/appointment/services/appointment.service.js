@@ -10,143 +10,79 @@ const AppointmentModel = require("./../models/appointment.model");
 const { model: ServiceModel } = require("../../service/index")
 
 const bcrypt = require('bcrypt');
-
 /*
-    get list with infor (
-        account: -password, -role_id, -email_verifiled, -__v
-        profile: -status, -__v
-    ) with pagination and filter 
+    get list appointment with pagination and filter
     (
-        search: search by username, phone_number, email, full_name, address; 
-        filter: filter by gender; 
-        sort: sort by full_name
-        page 
+        search: search by full_name, phone, email;
+        filter: filter by status;
+        sort: sort by appointment_date;
+        page
         limit
     )
 */
 const getListService = async (query) => {
     try {
+        logger.debug("Fetching list of appointments with query", {
+            context: "AppointmentService.getListService",
+            query: query,
+        });
+
+        // 1. Lấy và chuẩn hóa các tham số từ query
         const search = query.search?.trim();
-        const genderFilter = query.filter;
+        const statusFilter = query.status ? query.status.toUpperCase() : null;
         const sortOrder = query.sort === "desc" ? -1 : 1;
         const page = Math.max(1, parseInt(query.page || 1));
         const limit = Math.max(1, parseInt(query.limit || 5));
         const skip = (page - 1) * limit;
 
-        logger.debug("Fetching staff list with query (No Unwind)", {
-            context: "StaffService.getListService",
-            query: query,
-        });
+        // 2. Xây dựng điều kiện lọc (Match)
+        const matchCondition = {};
 
-        const pipeline = [
-            // 1. JOIN BẢNG ACCOUNT
-            {
-                $lookup: {
-                    from: "accounts",
-                    localField: "account_id",
-                    foreignField: "_id",
-                    as: "account_info"
-                }
-            },
-            // Thay thế $unwind: Lấy phần tử đầu tiên của mảng (vì quan hệ là 1-1)
-            {
-                $addFields: {
-                    account_info: { $arrayElemAt: ["$account_info", 0] }
-                }
-            },
+        // Lọc theo trạng thái (status)
+        if (statusFilter) {
+            matchCondition.status = statusFilter;
+        }
 
-            // 2. JOIN BẢNG PROFILE
+        // Tìm kiếm (Search) theo tên, số điện thoại, email
+        if (search) {
+            const regexSearch = { $regex: search, $options: "i" };
+            matchCondition.$or = [
+                { full_name: regexSearch },
+                { phone: regexSearch },
+                { email: regexSearch }
+            ];
+        }
+
+        // 3. Xây dựng Aggregation Pipeline
+        const aggregatePipeline = [
+            { $match: matchCondition },
+            { $sort: { appointment_date: sortOrder } },
             {
-                $lookup: {
-                    from: "profiles",
-                    localField: "profile_id",
-                    foreignField: "_id",
-                    as: "profile_info"
-                }
-            },
-            // Thay thế $unwind: Lấy phần tử đầu tiên của mảng
-            {
-                $addFields: {
-                    profile_info: { $arrayElemAt: ["$profile_info", 0] }
+                $facet: {
+                    data: [
+                        { $skip: skip },
+                        { $limit: limit },
+                        {
+                            $project: {
+                                __v: 0 
+                            }
+                        }
+                    ],
+                    totalCount: [
+                        { $count: "count" }
+                    ]
                 }
             }
         ];
 
-        // 3. ĐIỀU KIỆN LỌC (MATCH)
-        const matchCondition = {};
+        // 4. Thực thi truy vấn
+        const result = await AppointmentModel.aggregate(aggregatePipeline);
 
-        if (genderFilter) {
-            matchCondition["profile_info.gender"] = genderFilter;
-        }
-
-        if (search) {
-            const regexSearch = { $regex: search, $options: "i" };
-            matchCondition.$or = [
-                { "account_info.username": regexSearch },
-                { "account_info.email": regexSearch },
-                { "account_info.phone_number": regexSearch },
-                { "profile_info.full_name": regexSearch },
-                { "profile_info.address": regexSearch }
-            ];
-        }
-
-        if (Object.keys(matchCondition).length > 0) {
-            pipeline.push({ $match: matchCondition });
-        }
-
-        // 4. SẮP XẾP VÀ PHÂN TRANG (FACET)
-        pipeline.push({
-            $facet: {
-                data: [
-                    { $sort: { "profile_info.full_name": sortOrder } },
-                    { $skip: skip },
-                    { $limit: limit },
-                    {
-                        $project: {
-                            _id: 1,
-                            work_start: 1,
-                            work_end: 1,
-                            status: 1,
-
-                            // Chỉ định rõ các trường CẦN LẤY cho Account 
-                            // (Tự động loại bỏ password, role_id, email_verified, __v)
-                            account: {
-                                _id: "$account_info._id",
-                                username: "$account_info.username",
-                                email: "$account_info.email",
-                                phone_number: "$account_info.phone_number",
-                                status: "$account_info.status",
-                                createdAt: "$account_info.createdAt",
-                                updatedAt: "$account_info.updatedAt"
-                            },
-
-                            // Chỉ định rõ các trường CẦN LẤY cho Profile 
-                            // (Tự động loại bỏ status, __v)
-                            profile: {
-                                _id: "$profile_info._id",
-                                full_name: "$profile_info.full_name",
-                                address: "$profile_info.address",
-                                gender: "$profile_info.gender",
-                                dob: "$profile_info.dob",
-                                avatar_url: "$profile_info.avatar_url",
-                                createdAt: "$profile_info.createdAt",
-                                updatedAt: "$profile_info.updatedAt"
-                            }
-                        }
-                    }
-                ],
-                totalCount: [{ $count: "count" }]
-            }
-        });
-
-        // 5. THỰC THI
-        const result = await StaffModel.Staff.aggregate(pipeline);
-
-        const staffs = result[0]?.data || [];
+        const appointments = result[0]?.data || [];
         const totalItems = result[0]?.totalCount[0]?.count || 0;
 
         return {
-            data: staffs,
+            data: appointments,
             pagination: {
                 page: page,
                 size: limit,
@@ -155,13 +91,13 @@ const getListService = async (query) => {
         };
 
     } catch (error) {
-        logger.error("Error getting staff list", {
-            context: "StaffService.getListService",
+        logger.error("Error getting list of appointments", {
+            context: "AppointmentService.getListService",
             message: error.message,
             stack: error.stack
         });
         throw new errorRes.InternalServerError(
-            `An error occurred while fetching staff: ${error.message}`
+            `An error occurred while fetching list of appointments: ${error.message}`
         );
     }
 };
@@ -601,8 +537,8 @@ const updateStatusOnly = async (id, status) => {
     try {
         const newData = await AppointmentModel.findByIdAndUpdate(
             id,
-            { status: status }, 
-            { new: true } 
+            { status: status },
+            { new: true }
         );
 
         if (!newData) {

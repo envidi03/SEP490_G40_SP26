@@ -12,28 +12,27 @@ const ServiceProcess = require("../services/appointment.service");
 const { checkRequiredFields } = require("../../../utils/checkRequiredFields");
 
 /*
-    get list with infor (
-        account: -password, -role_id, -email_verifiled, -__v
-        profile: -status, -__v
-    ) with pagination and filter 
+    get list appointment of patient with pagination and filter
     (
-        search: search by name customer, ; 
-        filter: filter by gender; 
-        sort: sort by full_name
-        page 
+        search: search by full_name, phone, email;
+        filter: filter by status;
+        sort: sort by appointment_date;
+        page
         limit
     )
+    only get appointment with account_id
 */
 const getListController = async (req, res) => {
   try {
     const queryParams = req.query;
-    logger.debug("Get services request received", {
+
+    logger.debug("Get list appointment of patient request received", {
       context: "AppointmentController.getListController",
       query: queryParams,
     });
 
-    const { data, pagination } =
-      await ServiceProcess.getListService(queryParams);
+    const { data, pagination } = await ServiceProcess.getListService(queryParams);
+
     const paginationData = new Pagination({
       page: pagination.page,
       size: pagination.size,
@@ -43,10 +42,10 @@ const getListController = async (req, res) => {
     return new successRes.GetListSuccess(
       data,
       paginationData,
-      "Staff retrieved successfully",
+      "Appointment retrieved successfully",
     ).send(res);
   } catch (error) {
-    logger.error("Error get staffs", {
+    logger.error("Error get Appointment", {
       context: "AppointmentController.getListController",
       message: error.message,
       stack: error.stack,
@@ -100,10 +99,10 @@ const getListOfPatientController = async (req, res) => {
     return new successRes.GetListSuccess(
       data,
       paginationData,
-      "Staff retrieved successfully",
+      "Appointment retrieved successfully",
     ).send(res);
   } catch (error) {
-    logger.error("Error get staffs", {
+    logger.error("Error get Appointment", {
       context: "AppointmentController.getListController",
       message: error.message,
       stack: error.stack,
