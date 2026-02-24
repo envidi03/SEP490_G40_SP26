@@ -64,7 +64,7 @@ const getListService = async (query) => {
                         { $limit: limit },
                         {
                             $project: {
-                                __v: 0 
+                                __v: 0
                             }
                         }
                     ],
@@ -533,30 +533,70 @@ const checkUniqueEmailNotId = async (email, accountId) => {
 };
 
 // Service riêng cho việc update nhanh status
+/*
+    Update Status and Auto-generate Queue Number
+*/
 const updateStatusOnly = async (id, status) => {
     try {
-        const newData = await AppointmentModel.findByIdAndUpdate(
-            id,
-            { status: status },
-            { new: true }
-        );
+        let newData = null;
 
+        // --- KỊCH BẢN 1: BỆNH NHÂN CHECK-IN TẠI QUẦY ---
+        if (status === "CHECKED_IN") {
+            // Bước 1: Phải tìm lịch hẹn trước để lấy ngày khám (appointment_date)
+            const existingAppt = await AppointmentModel.findById(id);
+            
+            if (!existingAppt) {
+                throw new errorRes.NotFoundError("Appointment not found");
+            }
+
+            // Bảo vệ API (Idempotent): Nếu khách ấn Check-in 2 lần liên tiếp, 
+            // hoặc đã có số rồi thì không cấp số mới, trả về kết quả luôn.
+            if (existingAppt.status === "CHECKED_IN" && existingAppt.queue_number) {
+                return existingAppt; 
+            }
+
+            // Bước 2: Gọi hàm sinh số thứ tự thông minh từ Model
+            const nextNumber = await AppointmentModel.getNextQueueNumber(existingAppt.appointment_date);
+            
+            // Bước 3: Cập nhật ĐỒNG THỜI cả trạng thái và số thứ tự
+            newData = await AppointmentModel.findByIdAndUpdate(
+                id,
+                { 
+                    status: status,
+                    queue_number: nextNumber 
+                },
+                { new: true } // Trả về object sau khi đã update xong
+            );
+        } 
+        
+        // --- KỊCH BẢN 2: CÁC TRẠNG THÁI KHÁC (SCHEDULED, COMPLETED, CANCELLED...) ---
+        else {
+            newData = await AppointmentModel.findByIdAndUpdate(
+                id,
+                { status: status },
+                { new: true }
+            );
+        }
+
+        // --- KIỂM TRA LẠI KẾT QUẢ ---
         if (!newData) {
-            throw new errorRes.NotFoundError("Appointment not found");
+            throw new errorRes.NotFoundError("Appointment not found or update failed");
         }
 
         return newData;
 
     } catch (error) {
-        logger.error("Error cannot update status appointment.", {
+        logger.error("Error updating appointment status.", {
             context: "AppointmentService.updateStatusOnly",
             appointmentId: id,
-            status: status
+            status: status,
+            message: error.message
         });
 
-        if (error.statusCode) throw error; // Ném tiếp lỗi NotFoundError nếu có
-
-        // Đã sửa cú pháp nối chuỗi lỗi
+        // Ném tiếp các lỗi đã được định nghĩa (ví dụ: NotFoundError)
+        if (error.statusCode) throw error;
+        
+        // Bắt các lỗi hệ thống (Database lỗi, rớt mạng...)
         throw new errorRes.InternalServerError(`Update fails: ${error.message}`);
     }
 };

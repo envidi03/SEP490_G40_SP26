@@ -181,6 +181,10 @@ const createController = async (req, res) => {
       cleanedData,
       account_id,
     );
+    if (!newAppointment) {
+      logger.warn ("")
+      throw new errorRes.BadRequestError("Create new appointment fails.")
+    }
     // 3. Trả về response
     return new successRes.CreateSuccess(newAppointment).send(res);
   } catch (error) {

@@ -3,6 +3,7 @@ const cors = require('cors');
 const morgan = require('morgan');
 require('dotenv').config();
 const logger = require('./common/utils/logger');
+const initAppointmentJobs = require('./modules/appointment/jobs/appointmentJob');
 
 const app = express();
 app.set('trust proxy', true);
@@ -17,6 +18,8 @@ const morganMiddleware = morgan(
     },
   }
 );
+
+initAppointmentJobs();
 
 
 app.use(morganMiddleware);
@@ -98,6 +101,7 @@ const { route: routeStaff } = require('./modules/staff');
 app.use('/api/staff', routeStaff);
 
 const { route: routeAppointment } = require('./modules/appointment');
+
 app.use('/api/appointment', routeAppointment);
 
 // 404 Handler - Must be after all routes
