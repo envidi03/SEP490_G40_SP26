@@ -196,8 +196,7 @@ const createController = async (req, res) => {
 // update staff by accountId
 const updateController = async (req, res) => {
   try {
-    // 1. Lấy ID từ params và đổi tên thành accountId cho rõ nghĩa
-    const { id: accountId } = req.params;
+    const { id } = req.params;
     const dataUpdate = req.body || {};
 
     // 2. Làm sạch dữ liệu
@@ -297,17 +296,24 @@ const updateController = async (req, res) => {
 const updateStatusController = async (req, res) => {
   try {
     // 1. Lấy ID (Giả định đây là accountId)
-    const { id: accountId } = req.params;
+    const { id } = req.params;
     const { status } = req.body || {};
 
-    logger.debug("Update staff status request received", {
+    logger.debug("Update appointment status request received", {
       context: "AppointmentController.updateStatusController",
-      accountId: accountId,
+      appointmentId: id,
       status: status,
     });
 
     // 2. Validate Status
-    const validStatuses = ["ACTIVE", "INACTIVE"];
+    const validStatuses = [
+        "SCHEDULED", 
+        "CHECKED_IN", 
+        "IN_CONSULTATION", 
+        "COMPLETED", 
+        "CANCELLED", 
+        "NO_SHOW"
+    ];
 
     if (!status || !validStatuses.includes(status)) {
       logger.warn("Invalid or missing status value", {
