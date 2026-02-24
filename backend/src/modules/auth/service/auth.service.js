@@ -8,17 +8,19 @@ const AuthProvider = require('../models/auth-provider.model');
 const EmailVerification = require('../models/email-verification.model');
 const LoginAttempt = require('../models/login-attempt.model');
 const PasswordReset = require('../models/password-reset.model');
-const Permission = require('../models/permission.model');
 const Role = require('../models/role.model');
 const Session = require('../models/session.model');
 const Profile = require('../models/profile.model');
+const Patient = require('../../patient/model/patient.model');
 require('dotenv').config();
 const { signToken, signRefreshToken, verifyToken, hashToken } = require('../../../common/utils/jwt');
 
 const { ValidationError, ConflictError, NotFoundError, UnauthorizedError, ForbiddenError } = require('../../../common/errors');
 
 const emailService = require('../../../common/service/email.service');
+const logger = require('../../../common/utils/logger');
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+const mongoose = require('mongoose');
 
 exports.register = async (data) => {
     const { username, email, password, phone_number, full_name, dob, gender, address, avatar_url } = data;
@@ -61,61 +63,86 @@ exports.register = async (data) => {
 
     const hashPassword = await bcryptjs.hash(password, 10);
 
-    const account = await Account.create({
-        username,
-        email,
-        password: hashPassword,
-        phone_number,
-        status: "PENDING",
-        role_id: defaultRole._id,
-        email_verified: false
-    });
-
-    const verificationToken = crypto.randomBytes(32).toString('hex');
-    const hashedToken = crypto.createHash('sha256').update(verificationToken).digest('hex');
-
-    await EmailVerification.create({
-        account_id: account._id,
-        token_hash: hashedToken,
-        expires_at: new Date(Date.now() + 60 * 60 * 1000)
-    });
+    const session = await mongoose.startSession();
+    session.startTransaction();
 
     try {
-        await emailService.sendEmailVerificationEmail(
+        const [account] = await Account.create([{
+            username,
             email,
-            verificationToken,
-            full_name
-        );
+            password: hashPassword,
+            phone_number,
+            status: "PENDING",
+            role_id: defaultRole._id,
+            email_verified: false
+        }], { session });
+
+        const verificationToken = crypto.randomBytes(32).toString('hex');
+        const hashedToken = crypto.createHash('sha256').update(verificationToken).digest('hex');
+
+        await EmailVerification.create([{
+            account_id: account._id,
+            token_hash: hashedToken,
+            expires_at: new Date(Date.now() + 60 * 60 * 1000)
+        }], { session });
+
+        try {
+            await emailService.sendEmailVerificationEmail(
+                email,
+                verificationToken,
+                full_name
+            );
+        } catch (error) {
+            console.error('Failed to send verification email:', error);
+        }
+
+        const [user] = await Profile.create([{
+            account_id: account._id,
+            full_name,
+            dob: dob || null,
+            gender: gender || null,
+            address: address || null,
+            avatar_url: avatar_url || '',
+            is_patient: true,
+            is_doctor: false
+        }], { session });
+
+        const [patient] = await Patient.create([{
+            account_id: account._id,
+            profile_id: user._id,
+            status: "active",
+        }], { session });
+
+        await session.commitTransaction();
+
+        return {
+            account: {
+                id: account._id,
+                username: account.username,
+                email: account.email,
+                status: account.status,
+                email_verified: account.email_verified
+            },
+            user: {
+                id: user._id,
+                full_name: user.full_name,
+                dob: user.dob,
+                gender: user.gender
+            },
+            patient: {
+                id: patient._id,
+                profile_id: patient.profile_id,
+                status: patient.status
+            }
+        };
     } catch (error) {
-        console.error('Failed to send verification email:', error);
+        await session.abortTransaction();
+        throw error;
+    } finally {
+        session.endSession();
     }
 
-    const user = await Profile.create({
-        account_id: account._id,
-        full_name,
-        dob: dob || null,
-        gender: gender || null,
-        address: address || null,
-        avatar_url: avatar_url || '',
-        is_patient: true,
-        is_doctor: false
-    });
 
-    return {
-        account: {
-            id: account._id,
-            username: account.username,
-            email: account.email,
-            status: account.status,
-            email_verified: account.email_verified
-        },
-        user: {
-            id: user._id,
-            full_name: user.full_name,
-            dob: user.dob,
-            gender: user.gender
-        }
-    };
 };
 
 exports.verifyEmail = async (token) => {
@@ -179,6 +206,9 @@ exports.resendVerificationEmail = async (email) => {
 };
 
 exports.login = async (data, ip_address = 'unknown', user_agent = 'unknown') => {
+    logger.debug("data", {
+        data: data
+    })
     const { identifier, email, username, password, rememberMe } = data;
 
     const loginIdentifier = identifier || email || username;
@@ -200,7 +230,9 @@ exports.login = async (data, ip_address = 'unknown', user_agent = 'unknown') => 
                 path: 'permissions'
             }
         });
-
+    logger.debug("account", {
+        account: account
+    })
     if (!account) {
         throw new NotFoundError('Email or password is incorrect');
     }

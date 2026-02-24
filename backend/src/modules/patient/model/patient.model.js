@@ -36,12 +36,11 @@ const patientSchema = new Schema(
 );
 
 // Tự động tạo patient_code trước khi save
-patientSchema.pre('save', async function (next) {
+patientSchema.pre('save', async function () {
     if (!this.patient_code) {
         const count = await mongoose.model('Patient').countDocuments();
         this.patient_code = `PT${String(count + 1).padStart(6, '0')}`;
     }
-    next();
 });
 
 module.exports = mongoose.model("Patient", patientSchema);
