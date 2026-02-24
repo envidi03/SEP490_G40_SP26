@@ -28,17 +28,14 @@ const UserMobileCard = ({ user, roleConfig, statusConfig, onView, onEdit, onLock
                     <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
                             <h3 className="font-semibold text-gray-900 truncate">{user.fullName}</h3>
-                            {user.emailVerified && (
-                                <UserCheck className="text-green-600 flex-shrink-0" size={16} />
-                            )}
                         </div>
                         <p className="text-sm text-gray-500 truncate">@{user.username}</p>
                         <div className="flex gap-2 mt-2">
                             <Badge className={roleConfig[user.role]?.color}>
-                                {roleConfig[user.role]?.label}
+                                {roleConfig[user.role]?.label || user.role}
                             </Badge>
                             <Badge className={statusConfig[user.status]?.color}>
-                                {statusConfig[user.status]?.label}
+                                {statusConfig[user.status]?.label || user.status}
                             </Badge>
                         </div>
                     </div>
@@ -52,11 +49,11 @@ const UserMobileCard = ({ user, roleConfig, statusConfig, onView, onEdit, onLock
                     </div>
                     <div className="flex items-center gap-2 text-gray-600">
                         <Phone size={16} className="flex-shrink-0" />
-                        <span>{user.phone}</span>
+                        <span>{user.phone || '—'}</span>
                     </div>
                     <div className="flex items-center gap-2 text-gray-600">
                         <Calendar size={16} className="flex-shrink-0" />
-                        <span className="text-xs">{formatDateTime(user.lastLogin)}</span>
+                        <span className="text-xs">{user.createdAt ? new Date(user.createdAt).toLocaleDateString('vi-VN') : '—'}</span>
                     </div>
                 </div>
 
@@ -76,7 +73,7 @@ const UserMobileCard = ({ user, roleConfig, statusConfig, onView, onEdit, onLock
                         <Edit size={16} />
                         Sửa
                     </button>
-                    {user.status === 'active' ? (
+                    {user.status === 'ACTIVE' ? (
                         <button
                             onClick={() => onLockUnlock(user)}
                             className="flex-1 px-3 py-2 bg-yellow-50 text-yellow-600 rounded-lg hover:bg-yellow-100 flex items-center justify-center gap-2 text-sm font-medium"
@@ -93,7 +90,7 @@ const UserMobileCard = ({ user, roleConfig, statusConfig, onView, onEdit, onLock
                             Mở
                         </button>
                     )}
-                    {user.role !== 'Admin' && (
+                    {user.role !== 'ADMIN_CLINIC' && (
                         <button
                             onClick={() => onDelete(user)}
                             className="px-3 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 flex items-center justify-center"

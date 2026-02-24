@@ -31,19 +31,13 @@ const UserDetailModal = ({ isOpen, onClose, user, roleConfig, statusConfig }) =>
                         </div>
                         <div className="flex-1">
                             <h3 className="text-xl font-semibold text-gray-900 mb-2">{user.fullName}</h3>
-                            <div className="flex gap-2 mb-3">
-                                <Badge className={roleConfig[user.role]?.color}>
-                                    {roleConfig[user.role]?.label}
+                            <div className="flex flex-wrap gap-2 mb-3">
+                                <Badge className={roleConfig[user.role]?.color || 'bg-gray-100 text-gray-800'}>
+                                    {roleConfig[user.role]?.label || user.role || 'Không rõ'}
                                 </Badge>
-                                <Badge className={statusConfig[user.status]?.color}>
-                                    {statusConfig[user.status]?.label}
+                                <Badge className={statusConfig[user.status]?.color || 'bg-gray-100 text-gray-800'}>
+                                    {statusConfig[user.status]?.label || user.status}
                                 </Badge>
-                                {user.emailVerified && (
-                                    <Badge className="bg-green-100 text-green-800 flex items-center gap-1">
-                                        <CheckCircle size={14} />
-                                        Email xác thực
-                                    </Badge>
-                                )}
                             </div>
                         </div>
                     </div>
@@ -68,7 +62,7 @@ const UserDetailModal = ({ isOpen, onClose, user, roleConfig, statusConfig }) =>
                                 <Phone size={14} />
                                 Số điện thoại
                             </label>
-                            <p className="mt-1 text-gray-900">{user.phone}</p>
+                            <p className="mt-1 text-gray-900">{user.phone || '—'}</p>
                         </div>
 
                         <div>
@@ -76,7 +70,7 @@ const UserDetailModal = ({ isOpen, onClose, user, roleConfig, statusConfig }) =>
                                 <Shield size={14} />
                                 Vai trò
                             </label>
-                            <p className="mt-1 text-gray-900">{roleConfig[user.role]?.label}</p>
+                            <p className="mt-1 text-gray-900">{roleConfig[user.role]?.label || user.role || '—'}</p>
                         </div>
 
                         <div>
@@ -90,61 +84,51 @@ const UserDetailModal = ({ isOpen, onClose, user, roleConfig, statusConfig }) =>
                         <div>
                             <label className="text-sm font-medium text-gray-600 flex items-center gap-1">
                                 <Calendar size={14} />
-                                Đăng nhập cuối
+                                Ngày sinh
                             </label>
-                            <p className="mt-1 text-gray-900">{formatDateTime(user.lastLogin)}</p>
+                            <p className="mt-1 text-gray-900">{user.dob ? formatDate(user.dob) : '—'}</p>
                         </div>
+
+                        {user.address && (
+                            <div className="col-span-2">
+                                <label className="text-sm font-medium text-gray-600">Địa chỉ</label>
+                                <p className="mt-1 text-gray-900">{user.address}</p>
+                            </div>
+                        )}
                     </div>
 
-                    {/* Doctor Certificate - Only for Doctors */}
-                    {user.role === 'Doctor' && (user.certificateUrl || user.certificate) && (
+                    {/* Doctor Licenses */}
+                    {user.licenses && user.licenses.length > 0 && (
                         <div className="border-t border-gray-200 pt-6">
                             <label className="text-sm font-semibold text-gray-700 flex items-center gap-2 mb-3">
                                 <FileText size={16} className="text-purple-600" />
-                                Chứng chỉ hành nghề
+                                Chứng chỉ hành nghề ({user.licenses.length})
                             </label>
-
-                            <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-                                {user.certificateUrl ? (
-                                    user.certificateUrl.endsWith('.pdf') ? (
-                                        <div className="flex items-center gap-3">
-                                            <div className="flex-shrink-0 w-16 h-16 bg-red-100 rounded flex items-center justify-center">
-                                                <FileText className="text-red-600" size={32} />
+                            <div className="space-y-3">
+                                {user.licenses.map((license, index) => (
+                                    <div key={license._id || index} className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                                        <div className="flex items-start gap-3">
+                                            <div className="flex-shrink-0 w-12 h-12 bg-purple-100 rounded flex items-center justify-center">
+                                                <FileText className="text-purple-600" size={24} />
                                             </div>
-                                            <div className="flex-1">
-                                                <p className="text-sm font-medium text-gray-900">Chứng chỉ (PDF)</p>
-                                                <a
-                                                    href={user.certificateUrl}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    className="text-sm text-purple-600 hover:text-purple-700 underline"
-                                                >
-                                                    Xem file PDF
-                                                </a>
-                                            </div>
-                                        </div>
-                                    ) : (
-                                        <div>
-                                            <img
-                                                src={user.certificateUrl}
-                                                alt="Chứng chỉ hành nghề"
-                                                className="w-full max-w-md mx-auto rounded-lg border border-gray-300 shadow-sm"
-                                            />
-                                            <div className="mt-2 text-center">
-                                                <a
-                                                    href={user.certificateUrl}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    className="text-sm text-purple-600 hover:text-purple-700 underline"
-                                                >
-                                                    Xem ảnh full size
-                                                </a>
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-sm font-medium text-gray-900">Số GCN: {license.license_number || '—'}</p>
+                                                <p className="text-xs text-gray-600 mt-1">Cấp bởi: {license.issued_by || '—'}</p>
+                                                <p className="text-xs text-gray-600">Ngày cấp: {license.issued_date ? formatDate(license.issued_date) : '—'}</p>
+                                                {license.document_url && (
+                                                    <a
+                                                        href={license.document_url}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="text-xs text-purple-600 hover:text-purple-700 underline mt-1 inline-block"
+                                                    >
+                                                        Xem tài liệu
+                                                    </a>
+                                                )}
                                             </div>
                                         </div>
-                                    )
-                                ) : (
-                                    <p className="text-sm text-gray-600 italic">Chưa upload chứng chỉ</p>
-                                )}
+                                    </div>
+                                ))}
                             </div>
                         </div>
                     )}

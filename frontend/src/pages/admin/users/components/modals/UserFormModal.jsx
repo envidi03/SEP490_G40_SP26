@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, RefreshCw, Copy, CheckCircle, Eye, EyeOff, FileText, Upload, Trash2 } from 'lucide-react';
+import staffService from '../../../../../services/staffService';
 
 /**
  * Generate a strong random password
@@ -25,22 +26,39 @@ const generatePassword = () => {
 };
 
 const UserFormModal = ({ isOpen, onClose, onSubmit, user, mode = 'add' }) => {
+    const [roles, setRoles] = useState([]);
     const [formData, setFormData] = useState({
         fullName: '',
         username: '',
         email: '',
         phone: '',
-        role: 'Receptionist',
-        status: 'active',
+        role_id: '',
+        gender: 'OTHER',
+        dob: '',
+        address: '',
         password: '',
         certificate: null,
         certificateUrl: '',
+        avatar: null,
     });
 
     const [errors, setErrors] = useState({});
     const [showPassword, setShowPassword] = useState(false);
     const [copied, setCopied] = useState(false);
     const [certificatePreview, setCertificatePreview] = useState(null);
+    const [avatarPreview, setAvatarPreview] = useState(null);
+
+    // Fetch roles khi mở form
+    useEffect(() => {
+        if (isOpen && mode === 'add') {
+            staffService.getRoles()
+                .then(res => {
+                    const data = res?.data || [];
+                    setRoles(data);
+                })
+                .catch(() => setRoles([])); // fallback nếu API chưa có
+        }
+    }, [isOpen, mode]);
 
     // Generate password when opening add mode
     useEffect(() => {
@@ -50,24 +68,34 @@ const UserFormModal = ({ isOpen, onClose, onSubmit, user, mode = 'add' }) => {
                 username: user.username || '',
                 email: user.email || '',
                 phone: user.phone || '',
-                role: user.role || 'Receptionist',
-                status: user.status || 'active',
+                role_id: '',
+                gender: user.gender || 'OTHER',
+                dob: user.dob ? user.dob.split('T')[0] : '',
+                address: user.address || '',
                 password: '',
                 certificate: null,
-                certificateUrl: user.certificateUrl || '',
+                certificateUrl: '',
+                avatar: null,
             });
-            setCertificatePreview(user.certificateUrl || null);
+            setCertificatePreview(
+                user.licenses && user.licenses.length > 0
+                    ? (user.licenses[0].document_url || null)
+                    : null
+            );
         } else if (mode === 'add') {
             setFormData({
                 fullName: '',
                 username: '',
                 email: '',
                 phone: '',
-                role: 'Receptionist',
-                status: 'active',
+                role_id: '',
+                gender: 'OTHER',
+                dob: '',
+                address: '',
                 password: generatePassword(),
                 certificate: null,
                 certificateUrl: '',
+                avatar: null,
             });
             setCertificatePreview(null);
         }
@@ -78,19 +106,15 @@ const UserFormModal = ({ isOpen, onClose, onSubmit, user, mode = 'add' }) => {
 
     const handleSubmit = (e) => {
         e.preventDefault();
-
-        // Validation
         const newErrors = {};
-
-        if (mode === 'add' && !formData.password) {
-            newErrors.password = 'Vui lòng tạo mật khẩu';
+        if (mode === 'add') {
+            if (!formData.role_id) newErrors.role_id = 'Vui lòng chọn vai trò';
+            if (!formData.password) newErrors.password = 'Vui lòng tạo mật khẩu';
         }
-
         if (Object.keys(newErrors).length > 0) {
             setErrors(newErrors);
             return;
         }
-
         onSubmit(formData);
     };
 
@@ -236,7 +260,39 @@ const UserFormModal = ({ isOpen, onClose, onSubmit, user, mode = 'add' }) => {
                             )}
                         </div>
 
-                        {/* Auto-generated Password - Only for Add mode */}
+                        {/* Role Selector - Only for Add mode */}
+                        {mode === 'add' && (
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Vai trò <span className="text-red-500">*</span>
+                                </label>
+                                <select
+                                    name="role_id"
+                                    value={formData.role_id}
+                                    onChange={handleChange}
+                                    required
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                                >
+                                    <option value="">-- Chọn vai trò --</option>
+                                    {roles.length > 0 ? (
+                                        roles.map(role => (
+                                            <option key={role._id} value={role._id}>
+                                                {{
+                                                    'ADMIN_CLINIC': 'Quản trị viên',
+                                                    'DOCTOR': 'Bác sĩ',
+                                                    'RECEPTIONIST': 'Lễ tân',
+                                                    'PHARMACIST': 'Dược sĩ',
+                                                    'ASSISTANT': 'Trợ lý'
+                                                }[role.name] || role.name}
+                                            </option>
+                                        ))
+                                    ) : (
+                                        <option value="" disabled>Đang tải danh sách vai trò...</option>
+                                    )}
+                                </select>
+                                {errors.role_id && <p className="text-xs text-red-500 mt-1">{errors.role_id}</p>}
+                            </div>
+                        )}
                         {mode === 'add' && (
                             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                                 <label className="block text-sm font-semibold text-gray-700 mb-2">
@@ -336,114 +392,77 @@ const UserFormModal = ({ isOpen, onClose, onSubmit, user, mode = 'add' }) => {
                             </div>
                         </div>
 
-                        {/* Role & Status */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Vai trò <span className="text-red-500">*</span>
-                                </label>
-                                <select
-                                    name="role"
-                                    value={formData.role}
-                                    onChange={handleChange}
-                                    required
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                                >
-                                    <option value="Admin">Quản trị viên</option>
-                                    <option value="Doctor">Bác sĩ</option>
-                                    <option value="Receptionist">Lễ tân</option>
-                                    <option value="Pharmacy">Dược sĩ</option>
-                                    <option value="Assistant">Trợ lý</option>
-                                    <option value="Patient">Bệnh nhân</option>
-                                </select>
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Trạng thái <span className="text-red-500">*</span>
-                                </label>
-                                <select
-                                    name="status"
-                                    value={formData.status}
-                                    onChange={handleChange}
-                                    required
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                                >
-                                    <option value="active">Hoạt động</option>
-                                    <option value="inactive">Tạm khóa</option>
-                                    <option value="pending">Chờ xác thực</option>
-                                </select>
-                            </div>
-                        </div>
-
                         {/* Certificate Upload - Only for Doctor */}
-                        {formData.role === 'Doctor' && (
-                            <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-                                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                    Chứng chỉ hành nghề {mode === 'add' && <span className="text-gray-500 text-xs">(Tùy chọn)</span>}
-                                </label>
-                                <p className="text-xs text-gray-600 mb-3">
-                                    Upload chứng chỉ hành nghề bác sĩ (JPG, PNG hoặc PDF, tối đa 5MB)
-                                </p>
+                        {(mode === 'add'
+                            ? roles.find(r => r._id === formData.role_id)?.name === 'DOCTOR'
+                            : user?.role === 'DOCTOR'
+                        ) && (
+                                <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                        Chứng chỉ hành nghề {mode === 'add' && <span className="text-gray-500 text-xs">(Tùy chọn)</span>}
+                                    </label>
+                                    <p className="text-xs text-gray-600 mb-3">
+                                        Upload chứng chỉ hành nghề bác sĩ (JPG, PNG hoặc PDF, tối đa 5MB)
+                                    </p>
 
-                                {!certificatePreview ? (
-                                    <div>
-                                        <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-purple-300 border-dashed rounded-lg cursor-pointer bg-white hover:bg-purple-50 transition-colors">
-                                            <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                                                <Upload className="w-10 h-10 mb-2 text-purple-500" />
-                                                <p className="mb-2 text-sm text-gray-600">
-                                                    <span className="font-semibold">Click để upload</span> hoặc kéo thả file
-                                                </p>
-                                                <p className="text-xs text-gray-500">JPG, PNG hoặc PDF (Max 5MB)</p>
-                                            </div>
-                                            <input
-                                                type="file"
-                                                className="hidden"
-                                                accept="image/jpeg,image/jpg,image/png,application/pdf"
-                                                onChange={handleCertificateChange}
-                                            />
-                                        </label>
-                                        {errors.certificate && (
-                                            <p className="text-xs text-red-500 mt-2">{errors.certificate}</p>
-                                        )}
-                                    </div>
-                                ) : (
-                                    <div className="bg-white border-2 border-purple-300 rounded-lg p-4">
-                                        <div className="flex items-start gap-3">
-                                            {certificatePreview === 'PDF' ? (
-                                                <div className="flex-shrink-0 w-16 h-16 bg-red-100 rounded flex items-center justify-center">
-                                                    <FileText className="text-red-600" size={32} />
+                                    {!certificatePreview ? (
+                                        <div>
+                                            <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-purple-300 border-dashed rounded-lg cursor-pointer bg-white hover:bg-purple-50 transition-colors">
+                                                <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                                                    <Upload className="w-10 h-10 mb-2 text-purple-500" />
+                                                    <p className="mb-2 text-sm text-gray-600">
+                                                        <span className="font-semibold">Click để upload</span> hoặc kéo thả file
+                                                    </p>
+                                                    <p className="text-xs text-gray-500">JPG, PNG hoặc PDF (Max 5MB)</p>
                                                 </div>
-                                            ) : (
-                                                <img
-                                                    src={certificatePreview}
-                                                    alt="Certificate preview"
-                                                    className="flex-shrink-0 w-16 h-16 object-cover rounded border border-gray-200"
+                                                <input
+                                                    type="file"
+                                                    className="hidden"
+                                                    accept="image/jpeg,image/jpg,image/png,application/pdf"
+                                                    onChange={handleCertificateChange}
                                                 />
+                                            </label>
+                                            {errors.certificate && (
+                                                <p className="text-xs text-red-500 mt-2">{errors.certificate}</p>
                                             )}
-                                            <div className="flex-1 min-w-0">
-                                                <p className="text-sm font-medium text-gray-900 truncate">
-                                                    {formData.certificate?.name || 'Chứng chỉ đã upload'}
-                                                </p>
-                                                <p className="text-xs text-gray-500">
-                                                    {formData.certificate?.size
-                                                        ? `${(formData.certificate.size / 1024).toFixed(1)} KB`
-                                                        : 'File đã lưu'}
-                                                </p>
-                                            </div>
-                                            <button
-                                                type="button"
-                                                onClick={handleRemoveCertificate}
-                                                className="flex-shrink-0 p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                                                title="Xóa file"
-                                            >
-                                                <Trash2 size={18} />
-                                            </button>
                                         </div>
-                                    </div>
-                                )}
-                            </div>
-                        )}
+                                    ) : (
+                                        <div className="bg-white border-2 border-purple-300 rounded-lg p-4">
+                                            <div className="flex items-start gap-3">
+                                                {certificatePreview === 'PDF' ? (
+                                                    <div className="flex-shrink-0 w-16 h-16 bg-red-100 rounded flex items-center justify-center">
+                                                        <FileText className="text-red-600" size={32} />
+                                                    </div>
+                                                ) : (
+                                                    <img
+                                                        src={certificatePreview}
+                                                        alt="Certificate preview"
+                                                        className="flex-shrink-0 w-16 h-16 object-cover rounded border border-gray-200"
+                                                    />
+                                                )}
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-sm font-medium text-gray-900 truncate">
+                                                        {formData.certificate?.name || 'Chứng chỉ đã upload'}
+                                                    </p>
+                                                    <p className="text-xs text-gray-500">
+                                                        {formData.certificate?.size
+                                                            ? `${(formData.certificate.size / 1024).toFixed(1)} KB`
+                                                            : 'File đã lưu'}
+                                                    </p>
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={handleRemoveCertificate}
+                                                    className="flex-shrink-0 p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                                    title="Xóa file"
+                                                >
+                                                    <Trash2 size={18} />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                     </div>
 
                     {/* Footer */}

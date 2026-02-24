@@ -10,7 +10,8 @@ import {
     UserCheck,
     Mail,
     Phone,
-    Calendar
+    Calendar,
+    Users
 } from 'lucide-react';
 
 const UserTableRow = ({ user, roleConfig, statusConfig, onView, onEdit, onLockUnlock, onDelete }) => {
@@ -21,19 +22,10 @@ const UserTableRow = ({ user, roleConfig, statusConfig, onView, onEdit, onLockUn
             <td className="px-6 py-4">
                 <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center flex-shrink-0">
-                        {RoleIcon && <RoleIcon className="text-primary-600" size={20} />}
+                        {RoleIcon ? <RoleIcon className="text-primary-600" size={20} /> : <Users size={20} className="text-primary-600" />}
                     </div>
                     <div className="min-w-0">
-                        <div className="font-medium text-gray-900 flex items-center gap-2">
-                            <span className="truncate">{user.fullName}</span>
-                            {user.emailVerified && (
-                                <UserCheck
-                                    className="text-green-600 flex-shrink-0"
-                                    size={16}
-                                    title="Email đã xác thực"
-                                />
-                            )}
-                        </div>
+                        <div className="font-medium text-gray-900 truncate">{user.fullName}</div>
                         <div className="text-sm text-gray-500 truncate">@{user.username}</div>
                     </div>
                 </div>
@@ -46,7 +38,7 @@ const UserTableRow = ({ user, roleConfig, statusConfig, onView, onEdit, onLockUn
                     </div>
                     <div className="flex items-center gap-2 text-sm text-gray-600">
                         <Phone size={14} className="flex-shrink-0" />
-                        {user.phone}
+                        {user.phone || '—'}
                     </div>
                 </div>
             </td>
@@ -57,13 +49,13 @@ const UserTableRow = ({ user, roleConfig, statusConfig, onView, onEdit, onLockUn
             </td>
             <td className="px-6 py-4 whitespace-nowrap">
                 <Badge className={statusConfig[user.status]?.color}>
-                    {statusConfig[user.status]?.label}
+                    {statusConfig[user.status]?.label || user.status}
                 </Badge>
             </td>
             <td className="px-6 py-4 whitespace-nowrap">
-                <div className="flex items-center gap-1 text-sm text-gray-600">
-                    <Calendar size={14} />
-                    {formatDateTime(user.lastLogin)}
+                <div className="flex items-center gap-2 text-sm text-gray-500">
+                    <Calendar size={14} className="flex-shrink-0" />
+                    {user.createdAt ? formatDateTime(user.createdAt) : '—'}
                 </div>
             </td>
             <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
@@ -82,7 +74,7 @@ const UserTableRow = ({ user, roleConfig, statusConfig, onView, onEdit, onLockUn
                     >
                         <Edit size={18} />
                     </button>
-                    {user.status === 'active' ? (
+                    {user.status === 'ACTIVE' ? (
                         <button
                             onClick={() => onLockUnlock(user)}
                             className="text-yellow-600 hover:text-yellow-900"
@@ -97,15 +89,6 @@ const UserTableRow = ({ user, roleConfig, statusConfig, onView, onEdit, onLockUn
                             title="Mở khóa"
                         >
                             <Unlock size={18} />
-                        </button>
-                    )}
-                    {user.role !== 'ADMIN_CLINIC' && (
-                        <button
-                            onClick={() => onDelete(user)}
-                            className="text-red-600 hover:text-red-900"
-                            title="Xóa"
-                        >
-                            <Trash2 size={18} />
                         </button>
                     )}
                 </div>

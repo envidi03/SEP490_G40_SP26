@@ -36,12 +36,11 @@ const UserFilters = ({
                         onChange={onRoleChange}
                     >
                         <option value="all">Tất cả vai trò</option>
-                        <option value="Admin">Quản trị viên</option>
-                        <option value="Doctor">Bác sĩ</option>
-                        <option value="Receptionist">Lễ tân</option>
-                        <option value="Pharmacy">Dược sĩ</option>
-                        <option value="Assistant">Trợ lý</option>
-                        <option value="Patient">Bệnh nhân</option>
+                        <option value="ADMIN_CLINIC">Quản trị viên</option>
+                        <option value="DOCTOR">Bác sĩ</option>
+                        <option value="RECEPTIONIST">Lễ tân</option>
+                        <option value="PHARMACIST">Dược sĩ</option>
+                        <option value="ASSISTANT">Trợ lý</option>
                     </select>
 
                     <select
@@ -50,9 +49,8 @@ const UserFilters = ({
                         onChange={onStatusChange}
                     >
                         <option value="all">Tất cả trạng thái</option>
-                        <option value="active">Hoạt động</option>
-                        <option value="inactive">Tạm khóa</option>
-                        <option value="pending">Chờ xác thực</option>
+                        <option value="ACTIVE">Hoạt động</option>
+                        <option value="INACTIVE">Tạm khóa</option>
                     </select>
                 </div>
             </div>
