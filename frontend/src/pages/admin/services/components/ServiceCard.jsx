@@ -13,13 +13,35 @@ const ServiceCard = ({
     return (
         <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 group">
             {/* Header */}
-            <div className="relative bg-gradient-to-br from-blue-600 to-indigo-700 text-white p-6">
-                <h3 className="text-xl font-bold mb-2">
-                    {service.service_name}
-                </h3>
-                <p className="text-blue-100 text-sm line-clamp-2">
-                    {service.description}
-                </p>
+            <div className="relative text-white">
+                {service.icon ? (
+                    <div className="relative h-44 overflow-hidden">
+                        <img
+                            src={service.icon}
+                            alt={service.service_name}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        />
+                        {/* Overlay gradient để text đọc được */}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
+                        <div className="absolute bottom-0 left-0 right-0 p-4">
+                            <h3 className="text-xl font-bold mb-1 drop-shadow">
+                                {service.service_name}
+                            </h3>
+                            <p className="text-white/80 text-sm line-clamp-2 drop-shadow">
+                                {service.description}
+                            </p>
+                        </div>
+                    </div>
+                ) : (
+                    <div className="bg-gradient-to-br from-blue-600 to-indigo-700 p-6">
+                        <h3 className="text-xl font-bold mb-2">
+                            {service.service_name}
+                        </h3>
+                        <p className="text-blue-100 text-sm line-clamp-2">
+                            {service.description}
+                        </p>
+                    </div>
+                )}
             </div>
 
             {/* Body */}

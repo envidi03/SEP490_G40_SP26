@@ -10,18 +10,42 @@ const ServiceDetailModal = ({ show, service, onClose, formatCurrency, getCategor
             <div className="flex min-h-full items-center justify-center p-4">
                 <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg transform transition-all">
                     {/* Header */}
-                    <div className="relative bg-gradient-to-br from-blue-600 to-indigo-700 text-white rounded-t-2xl p-6">
-                        <button
-                            onClick={onClose}
-                            className="absolute top-4 right-4 text-white/80 hover:text-white transition-colors"
-                        >
-                            <X size={24} />
-                        </button>
-                        <div className="pr-8">
-                            <h2 className="text-2xl font-bold">
-                                {service.service_name}
-                            </h2>
-                        </div>
+                    <div className="relative rounded-t-2xl overflow-hidden text-white">
+                        {service.icon ? (
+                            <div className="relative h-56">
+                                <img
+                                    src={service.icon}
+                                    alt={service.service_name}
+                                    className="w-full h-full object-cover"
+                                />
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/30 to-transparent" />
+                                <button
+                                    onClick={onClose}
+                                    className="absolute top-4 right-4 bg-black/40 hover:bg-black/60 text-white rounded-full p-1.5 transition-colors backdrop-blur-sm"
+                                >
+                                    <X size={20} />
+                                </button>
+                                <div className="absolute bottom-0 left-0 right-0 p-5">
+                                    <h2 className="text-2xl font-bold drop-shadow">
+                                        {service.service_name}
+                                    </h2>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="bg-gradient-to-br from-blue-600 to-indigo-700 p-6">
+                                <button
+                                    onClick={onClose}
+                                    className="absolute top-4 right-4 text-white/80 hover:text-white transition-colors"
+                                >
+                                    <X size={24} />
+                                </button>
+                                <div className="pr-8">
+                                    <h2 className="text-2xl font-bold">
+                                        {service.service_name}
+                                    </h2>
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     {/* Body */}
