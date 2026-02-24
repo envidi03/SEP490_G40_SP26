@@ -187,27 +187,7 @@ const UserList = () => {
         setConfirmModalOpen(true);
     };
 
-    const handleDeleteUser = (user) => {
-        setSelectedUser(user);
-        setConfirmAction({
-            type: 'delete',
-            title: 'Xóa người dùng',
-            message: `Bạn có chắc muốn xóa người dùng ${user.fullName}? Hành động này sẽ khóa tài khoản vĩnh viễn.`,
-            confirmText: 'Xóa',
-            confirmColor: 'red',
-            onConfirm: async () => {
-                try {
-                    await staffService.updateStaffStatus(user.accountId, 'INACTIVE');
-                    showToast('success', '✅ Đã xóa người dùng!');
-                    fetchUsers(pagination.page);
-                } catch (error) {
-                    showToast('error', error?.message || '❌ Có lỗi xảy ra khi xóa.');
-                }
-                setConfirmModalOpen(false);
-            }
-        });
-        setConfirmModalOpen(true);
-    };
+
 
     const handleFormSubmit = async (formData) => {
         try {
@@ -288,7 +268,6 @@ const UserList = () => {
                         onView={handleViewUser}
                         onEdit={handleEditUser}
                         onLockUnlock={handleLockUnlock}
-                        onDelete={handleDeleteUser}
                     />
 
                     {/* Mobile Card */}
@@ -299,7 +278,6 @@ const UserList = () => {
                         onView={handleViewUser}
                         onEdit={handleEditUser}
                         onLockUnlock={handleLockUnlock}
-                        onDelete={handleDeleteUser}
                     />
 
                     {/* Pagination */}

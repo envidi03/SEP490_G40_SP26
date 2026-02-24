@@ -4,7 +4,6 @@ import Badge from '../../../../components/ui/Badge';
 import { formatDateTime } from '../../../../utils/dateUtils';
 import {
     Edit,
-    Trash2,
     Eye,
     Lock,
     Unlock,
@@ -14,7 +13,7 @@ import {
     Calendar
 } from 'lucide-react';
 
-const UserMobileCard = ({ user, roleConfig, statusConfig, onView, onEdit, onLockUnlock, onDelete }) => {
+const UserMobileCard = ({ user, roleConfig, statusConfig, onView, onEdit, onLockUnlock }) => {
     const RoleIcon = roleConfig[user.role]?.icon;
 
     return (
@@ -88,14 +87,6 @@ const UserMobileCard = ({ user, roleConfig, statusConfig, onView, onEdit, onLock
                         >
                             <Unlock size={16} />
                             Mở
-                        </button>
-                    )}
-                    {user.role !== 'ADMIN_CLINIC' && (
-                        <button
-                            onClick={() => onDelete(user)}
-                            className="px-3 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 flex items-center justify-center"
-                        >
-                            <Trash2 size={16} />
                         </button>
                     )}
                 </div>

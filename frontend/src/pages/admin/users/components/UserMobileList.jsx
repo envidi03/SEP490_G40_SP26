@@ -3,7 +3,7 @@ import Card from '../../../../components/ui/Card';
 import { Users } from 'lucide-react';
 import UserMobileCard from './UserMobileCard';
 
-const UserMobileList = ({ users, roleConfig, statusConfig, onView, onEdit, onLockUnlock, onDelete }) => {
+const UserMobileList = ({ users, roleConfig, statusConfig, onView, onEdit, onLockUnlock }) => {
     return (
         <div className="lg:hidden space-y-4">
             {users.length === 0 ? (
@@ -23,7 +23,6 @@ const UserMobileList = ({ users, roleConfig, statusConfig, onView, onEdit, onLoc
                         onView={onView}
                         onEdit={onEdit}
                         onLockUnlock={onLockUnlock}
-                        onDelete={onDelete}
                     />
                 ))
             )}
