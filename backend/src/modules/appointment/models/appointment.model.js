@@ -10,8 +10,9 @@ const appointmentSchema = new Schema(
         },
         doctor_id: {
             type: Schema.Types.ObjectId,
-            ref: "Staff", // Giả định bạn có model Staff cho bác sĩ
-            required: true
+            ref: "Staff", 
+            required: false,
+            default: null
         },
         full_name: {
             type: String,
@@ -26,7 +27,8 @@ const appointmentSchema = new Schema(
         email: {
             type: String,
             trim: true,
-            lowercase: true
+            lowercase: true,
+            trim: true
         },
         appointment_date: {
             type: Date,

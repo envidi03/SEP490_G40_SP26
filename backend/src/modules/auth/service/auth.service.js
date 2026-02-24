@@ -18,6 +18,7 @@ const { signToken, signRefreshToken, verifyToken, hashToken } = require('../../.
 const { ValidationError, ConflictError, NotFoundError, UnauthorizedError, ForbiddenError } = require('../../../common/errors');
 
 const emailService = require('../../../common/service/email.service');
+const logger = require('../../../common/utils/logger');
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 const mongoose = require('mongoose');
 
@@ -205,6 +206,9 @@ exports.resendVerificationEmail = async (email) => {
 };
 
 exports.login = async (data, ip_address = 'unknown', user_agent = 'unknown') => {
+    logger.debug("data", {
+        data: data
+    })
     const { identifier, email, username, password, rememberMe } = data;
 
     const loginIdentifier = identifier || email || username;
@@ -226,7 +230,9 @@ exports.login = async (data, ip_address = 'unknown', user_agent = 'unknown') => 
                 path: 'permissions'
             }
         });
-
+    logger.debug("account", {
+        account: account
+    })
     if (!account) {
         throw new NotFoundError('Email or password is incorrect');
     }
