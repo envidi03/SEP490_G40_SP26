@@ -5,8 +5,9 @@ const appointmentSchema = new Schema(
     {
         patient_id: {
             type: Schema.Types.ObjectId,
-            ref: "Patient", // Giả định bạn có model Patient
-            required: true
+            ref: "Patient", 
+            required: false,
+            default: null
         },
         doctor_id: {
             type: Schema.Types.ObjectId,

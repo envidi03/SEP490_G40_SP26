@@ -336,6 +336,53 @@ const createService = async (dataCreate, account_id) => {
     }
 };
 
+const staffCreateService = async (dataCreate) => {
+    try {
+        logger.debug("raw data to create", {
+            context: "appointmentService.staffCreateService",
+            dataCreate: dataCreate,
+        });
+        // check duplicate appointment by 'full_name', 'phone', 'email',  'appointment_date', 'appointment_time'
+        const duplicateQuery = {
+            full_name: dataCreate.full_name,
+            phone: dataCreate.phone,
+            email: dataCreate.email,
+            appointment_date: dataCreate.appointment_date,
+            appointment_time: dataCreate.appointment_time,
+            status: { $nin: ['CANCELLED', 'NO_SHOW'] } // Bỏ qua lịch đã hủy
+        };
+        const isDuplicatePatient = await AppointmentModel.findOne(duplicateQuery);
+        if (isDuplicatePatient) {
+            throw new Error(`Patient ${dataCreate.full_name} already has an appointment scheduled for ${dataCreate.appointment_time}. Please do not book a duplicate appointment.`);
+        }
+        // check id service
+        if (dataCreate.book_service && Array.isArray(dataCreate.book_service)) {
+            for (const service of dataCreate.book_service) {
+                const serviceExist = await ServiceModel.findById(service.service_id);
+
+                if (!serviceExist) {
+                    logger.warn(`ID service not found: ${service.service_id}`, {
+                        context: "AppointmentService.staffCreateService",
+                        account_id: account_id,
+                        service_id: service.service_id
+                    });
+                    throw new errorRes.NotFoundError(`Service not found! ID: ${service.service_id}`);
+                }
+            }
+        }
+        // Tạo lịch hẹn mới
+        const newAppointment = await AppointmentModel.create(dataCreate);
+        return newAppointment;
+    } catch (error) {
+        logger.error("Error at staff create new appointment.", {
+            context: "AppointmentService.staffCreateService",
+            message: error.message,
+            stack: error.stack,
+        });
+        throw new errorRes.InternalServerError(`Error: ${error.message}`);
+    }
+};
+
 /**
  * Update an existing service
  * 
@@ -469,70 +516,6 @@ const updateService = async (accountId, data) => {
         session.endSession();
     }
 };
-
-const getRoleById = async (id) => {
-    try {
-        if (!id) return null;
-        const role = await AuthModel.Role.findById(id);
-        return role;
-    } catch (error) {
-        logger.error("Error getting role by id", {
-            context: "StaffService.getRoleById",
-            message: error.message,
-            stack: error.stack,
-        });
-        throw new errorRes.InternalServerError(
-            `An error occurred while getting role by id: ${error.message}`
-        );
-    }
-};
-
-// Kiểm tra License Number (trong model Staff hoặc License)
-const checkUniqueLicenseNumber = async (license_number) => {
-    const exists = await StaffModel.License.findOne({ license_number });
-    return !!exists; // Trả về true nếu tìm thấy, false nếu không
-};
-
-// Kiểm tra Username (trong model Account)
-const checkUniqueUsername = async (username) => {
-    const exists = await AuthModel.Account.findOne({ username });
-    return !!exists;
-};
-
-// Kiểm tra Email (trong model Account)
-const checkUniqueEmail = async (email) => {
-    const exists = await AuthModel.Account.findOne({ email });
-    return !!exists;
-};
-
-// Kiểm tra License Number cho người khác (loại trừ License hiện tại theo ID)
-const checkUniqueLicenseNumberNotId = async (license_number, licenseId) => {
-    const exists = await StaffModel.License.findOne({
-        license_number,
-        _id: { $ne: licenseId } // $ne = Not Equal (Không bằng ID hiện tại)
-    });
-    return !!exists;
-};
-
-// Kiểm tra Username cho người khác (loại trừ Account hiện tại)
-const checkUniqueUsernameNotId = async (username, accountId) => {
-    const exists = await AuthModel.Account.findOne({
-        username,
-        _id: { $ne: accountId }
-    });
-    return !!exists;
-};
-
-// Kiểm tra Email cho người khác (loại trừ Account hiện tại)
-const checkUniqueEmailNotId = async (email, accountId) => {
-    const exists = await AuthModel.Account.findOne({
-        email,
-        _id: { $ne: accountId }
-    });
-    return !!exists;
-};
-
-// Service riêng cho việc update nhanh status
 /*
     Update Status and Auto-generate Queue Number
 */
@@ -544,7 +527,7 @@ const updateStatusOnly = async (id, status) => {
         if (status === "CHECKED_IN") {
             // Bước 1: Phải tìm lịch hẹn trước để lấy ngày khám (appointment_date)
             const existingAppt = await AppointmentModel.findById(id);
-            
+
             if (!existingAppt) {
                 throw new errorRes.NotFoundError("Appointment not found");
             }
@@ -552,23 +535,23 @@ const updateStatusOnly = async (id, status) => {
             // Bảo vệ API (Idempotent): Nếu khách ấn Check-in 2 lần liên tiếp, 
             // hoặc đã có số rồi thì không cấp số mới, trả về kết quả luôn.
             if (existingAppt.status === "CHECKED_IN" && existingAppt.queue_number) {
-                return existingAppt; 
+                return existingAppt;
             }
 
             // Bước 2: Gọi hàm sinh số thứ tự thông minh từ Model
             const nextNumber = await AppointmentModel.getNextQueueNumber(existingAppt.appointment_date);
-            
+
             // Bước 3: Cập nhật ĐỒNG THỜI cả trạng thái và số thứ tự
             newData = await AppointmentModel.findByIdAndUpdate(
                 id,
-                { 
+                {
                     status: status,
-                    queue_number: nextNumber 
+                    queue_number: nextNumber
                 },
                 { new: true } // Trả về object sau khi đã update xong
             );
-        } 
-        
+        }
+
         // --- KỊCH BẢN 2: CÁC TRẠNG THÁI KHÁC (SCHEDULED, COMPLETED, CANCELLED...) ---
         else {
             newData = await AppointmentModel.findByIdAndUpdate(
@@ -595,7 +578,7 @@ const updateStatusOnly = async (id, status) => {
 
         // Ném tiếp các lỗi đã được định nghĩa (ví dụ: NotFoundError)
         if (error.statusCode) throw error;
-        
+
         // Bắt các lỗi hệ thống (Database lỗi, rớt mạng...)
         throw new errorRes.InternalServerError(`Update fails: ${error.message}`);
     }
@@ -608,13 +591,7 @@ module.exports = {
     getByIdService,
     createService,
     updateService,
-    checkUniqueLicenseNumber,
-    checkUniqueUsername,
-    checkUniqueEmail,
-    checkUniqueLicenseNumberNotId,
-    checkUniqueUsernameNotId,
-    checkUniqueEmailNotId,
-    getRoleById,
     updateStatusOnly,
-    getListOfPatientService
+    getListOfPatientService,
+    staffCreateService
 };

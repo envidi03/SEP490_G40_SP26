@@ -182,7 +182,7 @@ const createController = async (req, res) => {
       account_id,
     );
     if (!newAppointment) {
-      logger.warn ("")
+      logger.warn("Failed to create new appointment");
       throw new errorRes.BadRequestError("Create new appointment fails.")
     }
     // 3. Trả về response
@@ -196,6 +196,53 @@ const createController = async (req, res) => {
   }
 };
 
+// staff create appointment (không cần token, vì có thể nhân viên tạo lịch cho bệnh nhân qua điện thoại hoặc trực tiếp tại quầy lễ tân)
+const staffCreateController = async (req, res) => {
+  try {
+    const dataCreate = req.body || {};
+    const cleanedData = cleanObjectData(dataCreate);
+
+    // 1. Khai báo các fields bắt buộc dựa theo Schema
+    const requiredFields = [
+      "full_name",
+      "phone",
+      "email",
+      "appointment_date",
+      "appointment_time",
+    ];
+
+    // Kiểm tra validation cơ bản
+    checkRequiredFields(requiredFields, cleanedData, this, "createController");
+    // Validate mảng book_service nếu client có gửi kèm dịch vụ
+    if (cleanedData.book_service && Array.isArray(cleanedData.book_service)) {
+      cleanedData.book_service.forEach((item, index) => {
+        if (!item.service_id || item.unit_price === undefined) {
+          throw new Error(
+            `service at the index ${index + 1} is missing service_id or unit_price`,
+          );
+        }
+      });
+    }
+    // 2. Chuyển dữ liệu sang Service để xử lý logic nghiệp vụ
+    const newAppointment = await ServiceProcess.staffCreateService( cleanedData );
+    if (!newAppointment) {
+      logger.warn("Failed to create new appointment", {
+        context: "appointmentController.staffCreateController",
+        data: cleanedData,
+        newAppointment: newAppointment,
+      });
+      throw new errorRes.BadRequestError("Create new appointment fails.")
+    }
+    // 3. Trả về response
+    return new successRes.CreateSuccess(newAppointment).send(res);
+  } catch (error) {
+    logger.error("Error staff create new appointment controller", {
+      context: "appointmentController.staffCreateController",
+      message: error.message,
+    });
+    throw error; // Ném lỗi ra để middleware error handler tổng bắt lấy
+  }
+};
 // update staff by accountId
 const updateController = async (req, res) => {
   try {
@@ -366,4 +413,5 @@ module.exports = {
   createController,
   updateController,
   updateStatusController,
+  staffCreateController
 };
