@@ -51,6 +51,21 @@ const getListService = async (query) => {
                 }
             },
 
+            // 2b. JOIN BẢNG ROLES (dựa theo role_id của account)
+            {
+                $lookup: {
+                    from: "roles",
+                    localField: "account_info.role_id",
+                    foreignField: "_id",
+                    as: "role_info"
+                }
+            },
+            {
+                $addFields: {
+                    role_info: { $arrayElemAt: ["$role_info", 0] }
+                }
+            },
+
             // 2. JOIN BẢNG PROFILE
             {
                 $lookup: {
@@ -104,8 +119,7 @@ const getListService = async (query) => {
                             work_end: 1,
                             status: 1,
 
-                            // Chỉ định rõ các trường CẦN LẤY cho Account 
-                            // (Tự động loại bỏ password, role_id, email_verified, __v)
+                            // Bao gồm role_id (với name) để frontend hiển thị vai trò
                             account: {
                                 _id: "$account_info._id",
                                 username: "$account_info.username",
@@ -113,7 +127,11 @@ const getListService = async (query) => {
                                 phone_number: "$account_info.phone_number",
                                 status: "$account_info.status",
                                 createdAt: "$account_info.createdAt",
-                                updatedAt: "$account_info.updatedAt"
+                                updatedAt: "$account_info.updatedAt",
+                                role_id: {
+                                    _id: "$role_info._id",
+                                    name: "$role_info.name"
+                                }
                             },
 
                             // Chỉ định rõ các trường CẦN LẤY cho Profile 
@@ -219,27 +237,48 @@ const getByIdService = async (staffId, query) => {
                     from: "licenses",
                     localField: "_id",
                     foreignField: "doctor_id",
-                    as: "licenses" // Đổi tên thành số nhiều để thể hiện đây là một List
+                    as: "licenses"
                 }
             },
-            // ĐÃ BỎ BƯỚC $addFields ($arrayElemAt) ở đây để licenses giữ nguyên là một mảng (List)
+            // 2.5 JOIN bảng Role (Quan hệ 1-1, dựa theo account.role_id)
+            {
+                $lookup: {
+                    from: "roles",
+                    localField: "account.role_id",
+                    foreignField: "_id",
+                    as: "role_info"
+                }
+            },
+            {
+                $addFields: {
+                    role_info: { $arrayElemAt: ["$role_info", 0] },
+                    "account.role_id": {
+                        $let: {
+                            vars: { r: { $arrayElemAt: ["$role_info", 0] } },
+                            in: {
+                                _id: "$$r._id",
+                                name: "$$r.name"
+                            }
+                        }
+                    }
+                }
+            },
             // --- 3. FORMAT DỮ LIỆU TRẢ VỀ ($project) ---
             {
                 $project: {
-                    // Loại bỏ trường của Staff
                     "__v": 0,
                     "status": 0,
-                    // Loại bỏ trường của Account
+                    // Loại bỏ trường nhạy cảm của Account (giữ lại role_id đã được populate)
                     "account.password": 0,
-                    "account.role_id": 0,
                     "account.email_verified": 0,
                     "account.__v": 0,
                     // Loại bỏ trường của Profile
                     "profile.status": 0,
                     "profile.__v": 0,
                     // Loại bỏ trường __v trong từng object của mảng licenses
-                    // MongoDB hỗ trợ tự động áp dụng loại bỏ này cho toàn bộ phần tử trong mảng
-                    "licenses.__v": 0
+                    "licenses.__v": 0,
+                    // Loại bỏ role_info tạm (đã được đặt vào account.role_id)
+                    "role_info": 0
                 }
             }
         ]);
@@ -573,6 +612,23 @@ const updateStaffStatusOnly = async (accountId, status) => {
 
 
 
+// Lấy danh sách roles phù hợp cho nhân viên (loại bỏ PATIENT)
+const getStaffRoles = async () => {
+    try {
+        const roles = await AuthModel.Role.find(
+            { name: { $in: ['ADMIN_CLINIC', 'DOCTOR', 'RECEPTIONIST', 'PHARMACIST', 'ASSISTANT'] } },
+            { _id: 1, name: 1, description: 1 }
+        ).sort({ name: 1 });
+        return roles;
+    } catch (error) {
+        logger.error('Error getting staff roles', {
+            context: 'StaffService.getStaffRoles',
+            message: error.message
+        });
+        throw error;
+    }
+};
+
 module.exports = {
     getListService,
     getByIdService,
@@ -585,5 +641,6 @@ module.exports = {
     checkUniqueUsernameNotId,
     checkUniqueEmailNotId,
     getRoleById,
-    updateStaffStatusOnly
+    updateStaffStatusOnly,
+    getStaffRoles
 };
