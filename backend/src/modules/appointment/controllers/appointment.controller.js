@@ -292,10 +292,10 @@ const updateController = async (req, res) => {
   }
 };
 
-// update equipment status only
+// update appointment status only
 const updateStatusController = async (req, res) => {
   try {
-    // 1. Lấy ID (Giả định đây là accountId)
+    // 1. Lấy ID của Appointment
     const { id } = req.params;
     const { status } = req.body || {};
 
@@ -307,12 +307,12 @@ const updateStatusController = async (req, res) => {
 
     // 2. Validate Status
     const validStatuses = [
-        "SCHEDULED", 
-        "CHECKED_IN", 
-        "IN_CONSULTATION", 
-        "COMPLETED", 
-        "CANCELLED", 
-        "NO_SHOW"
+      "SCHEDULED",
+      "CHECKED_IN",
+      "IN_CONSULTATION",
+      "COMPLETED",
+      "CANCELLED",
+      "NO_SHOW"
     ];
 
     if (!status || !validStatuses.includes(status)) {
@@ -322,34 +322,32 @@ const updateStatusController = async (req, res) => {
         allowed: validStatuses,
       });
       throw new errorRes.BadRequestError(
-        `Invalid status. Allowed values: ${validStatuses.join(", ")}`,
+        `Invalid status. Allowed values: ${validStatuses.join(", ")}`
       );
     }
 
-    // 3. Gọi Service cập nhật
-    // Lưu ý: updateService trả về object chứa { account, profile, staff, license }
-    const result = await ServiceProcess.updateStaffStatusOnly(accountId, {
-      status,
-    });
+    // 3. Gọi Service cập nhật (Đã sửa lỗi: truyền trực tiếp biến status dạng chuỗi)
+    const result = await ServiceProcess.updateStatusOnly(id, status);
 
     // Kiểm tra kết quả
-    if (!result || !result.staff) {
-      throw new errorRes.NotFoundError("Staff not found");
+    if (!result) {
+      throw new errorRes.NotFoundError("Appointment not found or update failed");
     }
 
-    logger.info("Staff status updated successfully", {
+    logger.info("Appointment status updated successfully", {
       context: "AppointmentController.updateStatusController",
-      staffId: result.staff._id,
-      newStatus: result.staff.status,
+      appointmentId: result._id,
+      newStatus: result.status,
     });
 
     // 4. Trả về kết quả
     return new successRes.UpdateSuccess(
       result,
-      "Staff status updated successfully",
+      "Appointment status updated successfully"
     ).send(res);
+
   } catch (error) {
-    logger.error("Error update staff status", {
+    logger.error("Error updating appointment status", {
       context: "AppointmentController.updateStatusController",
       message: error.message,
       stack: error.stack,

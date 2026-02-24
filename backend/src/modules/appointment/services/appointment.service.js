@@ -188,9 +188,9 @@ const getListOfPatientService = async (query, account_id) => {
         // 1. Lấy và chuẩn hóa các tham số từ query
         const search = query.search?.trim();
         // Lấy status từ query.status (hoặc query.filter tùy cách bạn gọi URL, ở đây dùng query.status cho rõ ràng)
-        const statusFilter = query.status ? query.status.toUpperCase() : null; 
-        const sortOrder = query.sort === "desc" ? -1 : 1; 
-        
+        const statusFilter = query.status ? query.status.toUpperCase() : null;
+        const sortOrder = query.sort === "desc" ? -1 : 1;
+
         const page = Math.max(1, parseInt(query.page || 1));
         const limit = Math.max(1, parseInt(query.limit || 5));
         const skip = (page - 1) * limit;
@@ -216,8 +216,8 @@ const getListOfPatientService = async (query, account_id) => {
 
         // 3. Xây dựng điều kiện lọc (Match)
         // SỬA LỖI: Sử dụng patient._id thay vì account_id
-        const matchCondition = { 
-            patient_id: patient._id 
+        const matchCondition = {
+            patient_id: patient._id
         };
 
         // Lọc theo trạng thái (status)
@@ -238,10 +238,10 @@ const getListOfPatientService = async (query, account_id) => {
         // 4. Xây dựng Aggregation Pipeline
         const aggregatePipeline = [
             { $match: matchCondition },
-            
+
             // Sắp xếp theo ngày hẹn (appointment_date)
             { $sort: { appointment_date: sortOrder } },
-            
+
             // Phân trang
             {
                 $facet: {
@@ -305,7 +305,7 @@ const getByIdService = async (id) => {
 
         // --- 2. TRUY VẤN DỮ LIỆU ---
         const appointment = await AppointmentModel.findById(id)
-            .populate("patient_id") 
+            .populate("patient_id")
             .populate("book_service.service_id")
             .lean();
 
@@ -324,7 +324,7 @@ const getByIdService = async (id) => {
         });
 
         // Đã sửa lỗi: Trả về đúng biến appointment thay vì staffInfo
-        return appointment; 
+        return appointment;
 
     } catch (error) {
         // Đã sửa lỗi: Cập nhật lại log lỗi cho đúng ngữ cảnh Appointment
@@ -381,7 +381,7 @@ const createService = async (dataCreate, account_id) => {
                 if (!serviceExist) {
                     logger.warn(`ID service not found: ${service.service_id}`, {
                         context: "AppointmentService.createService",
-                        account_id: account_id, 
+                        account_id: account_id,
                         service_id: service.service_id
                     });
                     throw new errorRes.NotFoundError(`Service not found! ID: ${service.service_id}`);
@@ -597,14 +597,32 @@ const checkUniqueEmailNotId = async (email, accountId) => {
 };
 
 // Service riêng cho việc update nhanh status
-const updateStaffStatusOnly = async (accountId, status) => {
-    const staff = await StaffModel.Staff.findOneAndUpdate(
-        { account_id: accountId },
-        { status: status },
-        { new: true } // Trả về data mới
-    );
-    if (!staff) throw new errorRes.NotFoundError("Staff not found");
-    return staff;
+const updateStatusOnly = async (id, status) => {
+    try {
+        const newData = await AppointmentModel.findByIdAndUpdate(
+            id,
+            { status: status }, 
+            { new: true } 
+        );
+
+        if (!newData) {
+            throw new errorRes.NotFoundError("Appointment not found");
+        }
+
+        return newData;
+
+    } catch (error) {
+        logger.error("Error cannot update status appointment.", {
+            context: "AppointmentService.updateStatusOnly",
+            appointmentId: id,
+            status: status
+        });
+
+        if (error.statusCode) throw error; // Ném tiếp lỗi NotFoundError nếu có
+
+        // Đã sửa cú pháp nối chuỗi lỗi
+        throw new errorRes.InternalServerError(`Update fails: ${error.message}`);
+    }
 };
 
 
@@ -621,6 +639,6 @@ module.exports = {
     checkUniqueUsernameNotId,
     checkUniqueEmailNotId,
     getRoleById,
-    updateStaffStatusOnly,
+    updateStatusOnly,
     getListOfPatientService
 };
