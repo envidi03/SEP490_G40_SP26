@@ -34,3 +34,17 @@ exports.getLowStockMedicines = async (limit = 3) => {
     ).sort({ quantity: 1 })
         .limit(limit)
 }
+
+exports.getNearExpiredMedicines = async (days = 30) => {
+    const today = new Date();
+    const future = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
+
+    return await Medicine.find(
+        {
+            expiry_date: { $gte: today, $lte: future },
+        },
+        { medicine_name: 1, expiry_date: 1, quantity: 1 }
+    ).sort({ expiry_date: 1 })
+}
+
+
