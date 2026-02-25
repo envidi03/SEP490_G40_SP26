@@ -3,8 +3,6 @@ const router = express.Router();
 const auth = require('../../../common/middlewares/index');
 const controller = require('../controllers/appointment.controller');
 
-router.post('/', auth.authenticate, auth.authorize("PATIENT"), controller.createController);
-
-router.post('/staff', controller.staffCreateController);
+router.get('/:id', controller.getByIdController);
 
 module.exports = router;

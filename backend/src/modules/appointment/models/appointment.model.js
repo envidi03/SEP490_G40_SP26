@@ -5,8 +5,9 @@ const appointmentSchema = new Schema(
     {
         patient_id: {
             type: Schema.Types.ObjectId,
-            ref: "Patient", // Giả định bạn có model Patient
-            required: true
+            ref: "Patient", 
+            required: false,
+            default: null
         },
         doctor_id: {
             type: Schema.Types.ObjectId,
@@ -27,8 +28,7 @@ const appointmentSchema = new Schema(
         email: {
             type: String,
             trim: true,
-            lowercase: true,
-            trim: true
+            lowercase: true
         },
         appointment_date: {
             type: Date,
@@ -78,8 +78,37 @@ const appointmentSchema = new Schema(
     }
 );
 
-// Tạo index để tối ưu truy vấn theo ngày và bác sĩ
+// Đánh index để tăng tốc độ truy vấn
 appointmentSchema.index({ appointment_date: 1, doctor_id: 1 });
 appointmentSchema.index({ phone: 1 });
+
+// --- ĐÃ SỬA LỖI LOGIC Ở ĐÂY ---
+// Hàm static để lấy số thứ tự lớn nhất trong ngày
+appointmentSchema.statics.getNextQueueNumber = async function(date) {
+    // 1. Tạo mốc bắt đầu ngày (00:00:00.000)
+    const startOfDay = new Date(date);
+    startOfDay.setHours(0, 0, 0, 0);
+
+    // 2. Tạo mốc kết thúc ngày (23:59:59.999)
+    const endOfDay = new Date(date);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    // 3. Tìm lịch hẹn có queue_number lớn nhất TRONG KHOẢNG thời gian đó
+    const lastAppointment = await this.findOne({
+        appointment_date: {
+            $gte: startOfDay, // >= Đầu ngày
+            $lte: endOfDay    // <= Cuối ngày
+        },
+        queue_number: { $exists: true, $ne: null } // Chỉ tìm những người đã được cấp số
+    })
+    .sort({ queue_number: -1 }) // Sắp xếp giảm dần để lấy số to nhất đưa lên đầu
+    .select('queue_number')
+    .lean();
+
+    // 4. Nếu chưa có ai check-in hôm đó, trả về 1, ngược lại cộng thêm 1
+    return lastAppointment && lastAppointment.queue_number 
+        ? lastAppointment.queue_number + 1 
+        : 1;
+};
 
 module.exports = mongoose.model("Appointment", appointmentSchema);
