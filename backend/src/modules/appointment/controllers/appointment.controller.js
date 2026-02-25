@@ -242,7 +242,7 @@ const staffCreateController = async (req, res) => {
     ).send(res);
 
   } catch (error) {
-    logger.error("Error staff create new appointment controller", {
+    logger.error("Error appointm create new appointment controller", {
       context: "appointmentController.staffCreateController",
       message: error.message,
     });
@@ -339,7 +339,7 @@ const updateController = async (req, res) => {
     return new successRes.UpdateSuccess(updated).send(res);
   } catch (error) {
     // Logging lỗi chi tiết để debug
-    logger.error("Error update staff", {
+    logger.error("Error update appointmet", {
       context: "AppointmentController.updateController",
       message: error.message,
       stack: error.stack, // Nên log thêm stack trace để dễ sửa lỗi

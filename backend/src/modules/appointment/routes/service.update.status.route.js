@@ -5,6 +5,4 @@ const controller = require('../controllers/appointment.controller');
 
 router.patch('/status/:id', controller.updateStatusController);
 
-router.patch('/checkin', controller.checkinController);
-
 module.exports = router;
