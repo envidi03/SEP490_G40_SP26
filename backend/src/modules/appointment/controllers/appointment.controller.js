@@ -353,7 +353,7 @@ const updateStatusController = async (req, res) => {
   try {
     // 1. Lấy ID của Appointment
     const { id } = req.params;
-    const { status } = req.body || {};
+    const { status, doctorId } = req.body || {};
 
     logger.debug("Update appointment status request received", {
       context: "AppointmentController.updateStatusController",
@@ -382,8 +382,21 @@ const updateStatusController = async (req, res) => {
       );
     }
 
+    if (status === "IN_CONSULTATION") {
+      if (!doctorId) {
+        logger.warn("Missing doctorId for IN_CONSULTATION status", {
+          context: "AppointmentController.updateStatusController",
+          status: status,
+        });
+        throw new errorRes.BadRequestError(
+          "doctorId is required when status is IN_CONSULTATION"
+        );
+      }
+      
+    }
+
     // 3. Gọi Service cập nhật (Đã sửa lỗi: truyền trực tiếp biến status dạng chuỗi)
-    const result = await ServiceProcess.updateStatusOnly(id, status);
+    const result = await ServiceProcess.updateStatusOnly(id, status, doctorId);
 
     // Kiểm tra kết quả
     if (!result) {

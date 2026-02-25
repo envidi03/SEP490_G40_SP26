@@ -544,7 +544,7 @@ const updateService = async (accountId, data) => {
 /*
     Update Status and Auto-generate Queue Number
 */
-const updateStatusOnly = async (id, status) => {
+const updateStatusOnly = async (id, status, doctorId = null) => {
     try {
         let newData = null;
 
@@ -575,13 +575,17 @@ const updateStatusOnly = async (id, status) => {
                 },
                 { new: true } // Trả về object sau khi đã update xong
             );
-        }
+        } 
 
-        // --- KỊCH BẢN 2: CÁC TRẠNG THÁI KHÁC (SCHEDULED, COMPLETED, CANCELLED...) ---
+        // --- KỊCH BẢN 2: CÁC TRẠNG THÁI KHÁC (SCHEDULED, IN_CONSULTATION, COMPLETED, CANCELLED...) ---
         else {
+            const updateData = { status: status };
+            if (doctorId) {
+                updateData.doctor_id = doctorId;
+            }
             newData = await AppointmentModel.findByIdAndUpdate(
                 id,
-                { status: status },
+                updateData, 
                 { new: true }
             );
         }
