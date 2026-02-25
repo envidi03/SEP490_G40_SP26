@@ -596,24 +596,17 @@ const createLeaveRequestService = async (accountId, payload) => {
 };
 
 // View leave request
-const getLeaveRequestService = async (accountId, query) => {
-  const { page = 1, limit = 10, status } = query;
-
+const getLeaveRequestService = async (accountId) => {
   // 1. Lấy staff theo account_id
   const staff = await StaffModel.Staff.findOne({ account_id: accountId });
   if (!staff) throw new errorRes.NotFoundError("Staff not found");
 
   const filter = { staff_id: staff._id };
-  if (status) filter.status = status;
-
-  const total = await leaveRequestModel.countDocuments(filter);
 
   const data = await leaveRequestModel.find(filter)
     .sort({ createdAt: -1 })
-    .skip((page - 1) * limit)
-    .limit(Number(limit));
 
-  return new Pagination(data, total, page, limit);
+  return data;
 };
 
 // Edit leave request (chỉ cho phép sửa khi còn PENDING)

@@ -410,14 +410,14 @@ const createLeaveController = async (req, res) => {
 //get leave request for staff
 const getLeaveRequestController = async (req, res) => {
   try {
-    const { id: accountId } = req.params;
+    const accountId = req.user?.account_id;
 
     const result = await ServiceProcess.getLeaveRequestService(
       accountId,
       req.query
     );
 
-    return new successRes.GetSuccess(
+    return new successRes.GetListSuccess(
       result,
       "Get leave requests successfully"
     ).send(res);
