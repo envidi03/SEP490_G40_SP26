@@ -10,5 +10,6 @@ const cpUpload = upload.fields([
 ]);
 router.patch('/:id', cpUpload, controller.updateController);
 router.patch('/leave/:id', controller.editLeaveRequestController);
+router.patch('/leave/cancel/:id', controller.cancelLeaveRequestController);
 
 module.exports = router;

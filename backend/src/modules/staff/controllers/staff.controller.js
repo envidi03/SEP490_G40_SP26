@@ -457,6 +457,31 @@ const editLeaveRequestController = async (req, res) => {
   }
 };
 
+//cancel leave request for staff
+const cancelLeaveRequestController = async (req, res) => {
+  try {
+    const { id: accountId } = req.params;
+    const { id: leaveId } = req.params;
+
+    const result = await ServiceProcess.cancelLeaveRequestService(
+      accountId,
+      leaveId
+    );
+
+    return new successRes.UpdateSuccess(
+      result,
+      "Cancel leave request successfully"
+    ).send(res);
+
+  } catch (error) {
+    logger.error("Cancel leave error", {
+      context: "LeaveController.cancelLeaveRequestController",
+      message: error.message,
+    });
+    throw error;
+  }
+};
+
 module.exports = {
     getListController,
     getByIdController,
@@ -465,5 +490,6 @@ module.exports = {
     updateStatusController,
     createLeaveController,
     getLeaveRequestController,
-    editLeaveRequestController
+    editLeaveRequestController,
+    cancelLeaveRequestController
 };

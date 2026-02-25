@@ -645,6 +645,25 @@ const editLeaveRequestService = async (accountId, leaveId, payload) => {
   return leave;
 };
 
+// Cancel leave request (chỉ cho phép cancel khi còn PENDING)
+const cancelLeaveRequestService = async (accountId, leaveId) => {
+  const staff = await StaffModel.Staff.findOne({ account_id: accountId });
+  if (!staff) throw new errorRes.NotFoundError("Staff not found");
+
+  const leave = await leaveRequestModel.findById(leaveId);
+  if (!leave) throw new errorRes.NotFoundError("Leave request not found");
+
+  if (leave.status !== "PENDING") {
+    throw new errorRes.BadRequestError("Only PENDING request can be cancelled");
+  }
+
+  leave.status = "CANCELLED";
+
+  await leave.save();
+
+  return leave;
+};
+
 module.exports = {
     getListService,
     getByIdService,
@@ -652,6 +671,7 @@ module.exports = {
     createLeaveRequestService,
     getLeaveRequestService,
     editLeaveRequestService,
+    cancelLeaveRequestService,
     updateService,
     checkUniqueLicenseNumber,
     checkUniqueUsername,
