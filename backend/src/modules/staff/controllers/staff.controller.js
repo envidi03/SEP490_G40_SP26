@@ -431,6 +431,32 @@ const getLeaveRequestController = async (req, res) => {
   }
 };
 
+//edit leave request for staff
+const editLeaveRequestController = async (req, res) => {
+  try {
+    const { id: accountId } = req.params;
+    const { id: leaveId } = req.params;
+
+    const result = await ServiceProcess.editLeaveRequestService(
+      accountId,
+      leaveId,
+      req.body
+    );
+
+    return new successRes.UpdateSuccess(
+      result,
+      "Update leave request successfully"
+    ).send(res);
+
+  } catch (error) {
+    logger.error("Edit leave error", {
+      context: "LeaveController.editLeaveRequestController",
+      message: error.message,
+    });
+    throw error;
+  }
+};
+
 module.exports = {
     getListController,
     getByIdController,
@@ -438,5 +464,6 @@ module.exports = {
     updateController,
     updateStatusController,
     createLeaveController,
-    getLeaveRequestController
+    getLeaveRequestController,
+    editLeaveRequestController
 };

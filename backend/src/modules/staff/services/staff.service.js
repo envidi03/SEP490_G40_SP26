@@ -616,12 +616,42 @@ const getLeaveRequestService = async (accountId, query) => {
   return new Pagination(data, total, page, limit);
 };
 
+// Edit leave request (chỉ cho phép sửa khi còn PENDING)
+const editLeaveRequestService = async (accountId, leaveId, payload) => {
+  const staff = await StaffModel.Staff.findOne({ account_id: accountId });
+  if (!staff) throw new errorRes.NotFoundError("Staff not found");
+
+  const leave = await leaveRequestModel.findById(leaveId);
+  if (!leave) throw new errorRes.NotFoundError("Leave request not found");
+
+  // Chỉ cho sửa khi PENDING
+  if (leave.status !== "PENDING") {
+    throw new errorRes.BadRequestError("Only PENDING request can be edited");
+  }
+
+  // Validate ngày
+  if (
+    payload.startedDate &&
+    payload.endDate &&
+    new Date(payload.startedDate) > new Date(payload.endDate)
+  ) {
+    throw new errorRes.BadRequestError("End date must be after start date");
+  }
+
+  Object.assign(leave, payload);
+
+  await leave.save();
+
+  return leave;
+};
+
 module.exports = {
     getListService,
     getByIdService,
     createService,
     createLeaveRequestService,
     getLeaveRequestService,
+    editLeaveRequestService,
     updateService,
     checkUniqueLicenseNumber,
     checkUniqueUsername,
