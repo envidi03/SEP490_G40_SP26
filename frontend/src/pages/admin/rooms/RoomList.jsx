@@ -59,25 +59,10 @@ const RoomList = () => {
     const [roomForm, setRoomForm] = useState({
         room_number: '',
         status: 'ACTIVE',
-        clinic_id: 'clinic_001',
-        room_type: 'Phòng khám tiêu chuẩn',
-        equipment: '',
-        description: ''
+        clinic_id: '',
+        room_service: [],
+        note: ''
     });
-
-    // ========== HELPER CONSTANTS ==========
-    const AVAILABLE_EQUIPMENT = [
-        'Ghế nha khoa',
-        'Máy X-Quang',
-        'Đèn trám răng',
-        'Camera nội soi',
-        'Máy cạo vôi răng',
-        'Máy nội nha',
-        'Máy hút phẫu thuật',
-        'Màn hình hiển thị TV',
-        'Máy tiệt trùng',
-        'Tủ dụng cụ y tế'
-    ];
 
     // ========== DATA FETCHING ==========
     const fetchRooms = async () => {
@@ -143,28 +128,15 @@ const RoomList = () => {
         return icons[status] || AlertCircle;
     };
 
-    const handleToggleEquipment = (item) => {
-        const currentEquipments = roomForm.equipment
-            ? roomForm.equipment.split(', ').filter(Boolean)
-            : [];
-
-        const newEquipments = currentEquipments.includes(item)
-            ? currentEquipments.filter(e => e !== item)
-            : [...currentEquipments, item];
-
-        setRoomForm({ ...roomForm, equipment: newEquipments.join(', ') });
-    };
-
     // ========== HANDLERS ==========
     const handleAddRoom = () => {
         setIsEditMode(false);
         setRoomForm({
             room_number: '',
             status: 'ACTIVE',
-            clinic_id: 'clinic_001',
-            room_type: 'Phòng khám tiêu chuẩn',
-            equipment: 'Ghế nha khoa, Đèn trám răng',
-            description: ''
+            clinic_id: rooms[0]?.clinic_id || '',
+            room_service: [],
+            note: ''
         });
         setShowRoomModal(true);
     };
@@ -176,9 +148,8 @@ const RoomList = () => {
             room_number: room.room_number,
             status: room.status,
             clinic_id: room.clinic_id,
-            room_type: room.room_type || 'Phòng khám tiêu chuẩn',
-            equipment: room.equipment || '',
-            description: room.description || ''
+            room_service: room.room_service || [],
+            note: room.note || ''
         });
         setShowRoomModal(true);
     };
@@ -191,39 +162,43 @@ const RoomList = () => {
 
         try {
             setLoading(true);
-
-            let clinicIdToUse = roomForm.clinic_id;
-            if (!clinicIdToUse || clinicIdToUse === 'clinic_001') {
-                if (rooms.length > 0 && rooms[0].clinic_id) {
-                    clinicIdToUse = rooms[0].clinic_id;
-                }
-            }
-
-            const payload = { ...roomForm, clinic_id: clinicIdToUse };
             const roomId = selectedRoom?.id || selectedRoom?._id;
 
             if (isEditMode) {
-                await roomService.updateRoom(roomId, payload);
-                if (selectedRoom.status !== payload.status) {
-                    await roomService.updateRoomStatus(roomId, payload.status);
+                const { status, ...restPayload } = roomForm;
+                await roomService.updateRoom(roomId, restPayload);
+
+                if (selectedRoom.status !== status) {
+                    await roomService.updateRoomStatus(roomId, status);
                 }
-                setToast({ show: true, type: 'success', message: '✅ Cập nhật phòng khám thành công!' });
             } else {
-                await roomService.createRoom(payload);
-                setToast({ show: true, type: 'success', message: '✅ Thêm phòng khám mới thành công!' });
+                await roomService.createRoom(roomForm);
             }
 
-            fetchRooms();
+            // Đóng modal và reset state ngay
             setShowRoomModal(false);
             setSelectedRoom(null);
+
+            // Hiển thị toast sau khi đóng modal
+            setToast({
+                show: true,
+                type: 'success',
+                message: isEditMode ? '✅ Cập nhật phòng khám thành công!' : '✅ Thêm phòng khám mới thành công!'
+            });
+
         } catch (error) {
             console.error('Save room error:', error);
-            const errorMsg = error.message || error.data?.message || 'Có lỗi xảy ra!';
+            const errData = error?.data || error?.response?.data || error;
+            const errorMsg = errData?.message || error?.message || 'Có lỗi xảy ra!';
             setToast({ show: true, type: 'error', message: `❌ ${errorMsg}` });
         } finally {
             setLoading(false);
+            // Luôn fetch lại dù thành công hay thất bại — ngoài try/catch để không ảnh hưởng toast
+            fetchRooms();
         }
     };
+
+
 
     const handleDeleteRoom = (roomId) => {
         setConfirmation({
@@ -347,8 +322,6 @@ const RoomList = () => {
                 setRoomForm={setRoomForm}
                 onClose={() => setShowRoomModal(false)}
                 onSave={handleSaveRoom}
-                availableEquipment={AVAILABLE_EQUIPMENT}
-                handleToggleEquipment={handleToggleEquipment}
             />
 
             {/* Room Detail Modal */}
@@ -374,7 +347,7 @@ const RoomList = () => {
                 <Toast
                     type={toast.type}
                     message={toast.message}
-                    onClose={() => setToast({ ...toast, show: false })}
+                    onClose={() => setToast(prev => ({ ...prev, show: false }))}
                     duration={3000}
                 />
             )}

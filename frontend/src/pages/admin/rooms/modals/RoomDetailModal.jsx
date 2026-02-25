@@ -41,7 +41,7 @@ const RoomDetailModal = ({
                 ...(eDate && { endDate: eDate }),
             };
             const res = await roomService.getRoomById(room._id, params);
-            setDetail(res?.data?.data || null);
+            setDetail(res?.data || null);
         } catch (err) {
             console.error('Error fetching room detail:', err);
         } finally {
@@ -149,7 +149,7 @@ const RoomDetailModal = ({
                                             <thead className="bg-gray-50">
                                                 <tr>
                                                     <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">#</th>
-                                                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Dịch vụ ID</th>
+                                                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Tên dịch vụ</th>
                                                     <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Ghi chú</th>
                                                 </tr>
                                             </thead>
@@ -157,7 +157,7 @@ const RoomDetailModal = ({
                                                 {serviceItems.map((item, idx) => (
                                                     <tr key={idx} className="hover:bg-gray-50">
                                                         <td className="px-4 py-3 text-sm text-gray-500">{(servicePage - 1) * SERVICE_LIMIT + idx + 1}</td>
-                                                        <td className="px-4 py-3 text-sm font-mono text-gray-700">{item.service_id || '—'}</td>
+                                                        <td className="px-4 py-3 text-sm font-medium text-gray-800">{item.service_name || item.service_id || '—'}</td>
                                                         <td className="px-4 py-3 text-sm text-gray-600">{item.note || '—'}</td>
                                                     </tr>
                                                 ))}
