@@ -382,10 +382,34 @@ const updateStatusController = async (req, res) => {
     }
 };
 
+const createLeaveController = async (req, res) => {
+  try {
+    const { id: accountId } = req.params;
+
+    const result = await ServiceProcess.createLeaveRequestService(
+      accountId,
+      req.body
+    );
+
+    return new successRes.CreateSuccess(
+      result,
+      "Create leave request successfully"
+    ).send(res);
+
+  } catch (error) {
+    logger.error("Create leave error", {
+      context: "LeaveController.createLeaveController",
+      message: error.message,
+    });
+    throw error;
+  }
+};
+
 module.exports = {
     getListController,
     getByIdController,
     createController,
     updateController,
-    updateStatusController
+    updateStatusController,
+    createLeaveController
 };

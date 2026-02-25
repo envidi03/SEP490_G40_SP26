@@ -6,6 +6,7 @@ const Pagination = require("../../../common/responses/Pagination");
 const StaffModel = require("../models/index.model");
 const { Model: AuthModel } = require("../../../modules/auth/index");
 const bcrypt = require('bcrypt');
+const leaveRequestModel = require("../models/leaveRequest.model");
 
 /*
     get list with infor (
@@ -571,12 +572,34 @@ const updateStaffStatusOnly = async (accountId, status) => {
     return staff;
 };
 
+// Create leave request service
+const createLeaveRequestService = async (accountId, payload) => {
+  // 1. Tìm staff theo account_id
+  const staff = await StaffModel.Staff.findOne({ account_id: accountId });
 
+  if (!staff) {
+    throw new errorRes.NotFoundError("Staff not found");
+  }
+
+  // 2. Kiểm tra ngày hợp lệ
+  if (new Date(payload.startedDate) > new Date(payload.endDate)) {
+    throw new errorRes.BadRequestError("End date must be after start date");
+  }
+
+  // 3. Tạo leave request
+  const leave = await leaveRequestModel.create({
+    ...payload,
+    staff_id: staff._id,
+  });
+
+  return leave;
+};
 
 module.exports = {
     getListService,
     getByIdService,
     createService,
+    createLeaveRequestService,
     updateService,
     checkUniqueLicenseNumber,
     checkUniqueUsername,
