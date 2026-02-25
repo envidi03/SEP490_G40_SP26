@@ -6,7 +6,7 @@ const patientSchema = new Schema(
         account_id: {
             type: Schema.Types.ObjectId,
             ref: "Account",
-            required: true,
+            required: false,
             unique: true,
             index: true
         },
@@ -14,7 +14,7 @@ const patientSchema = new Schema(
         profile_id: {
             type: Schema.Types.ObjectId,
             ref: "Profile",
-            required: true,
+            required: false,
             unique: true,
             index: true
         },

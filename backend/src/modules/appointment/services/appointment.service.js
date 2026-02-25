@@ -10,6 +10,8 @@ const AppointmentModel = require("./../models/appointment.model");
 const { model: ServiceModel } = require("../../service/index")
 
 const bcrypt = require('bcrypt');
+const emailService = require("../../../common/service/email.service");
+
 /*
     get list appointment with pagination and filter
     (
@@ -326,6 +328,16 @@ const createService = async (dataCreate, account_id) => {
         }
         // Tạo lịch hẹn mới
         const newAppointment = await AppointmentModel.create(dataCreate);
+        // --- 5. GỬI EMAIL XÁC NHẬN ĐẶT LỊCH (Fire and Forget) ---
+        if (newAppointment.email) {
+            const formattedDate = new Date(newAppointment.appointment_date).toLocaleDateString('vi-VN');
+            emailService.sendBookingConfirmationEmail(
+                newAppointment.email,
+                newAppointment.full_name,
+                formattedDate,
+                newAppointment.appointment_time
+            ).catch(err => logger.error("Lỗi gửi email đặt lịch:", { message: err.message }));
+        }
         return newAppointment;
     } catch (error) {
         logger.error("Error at create new appointment.", {
@@ -338,24 +350,25 @@ const createService = async (dataCreate, account_id) => {
 
 const staffCreateService = async (dataCreate) => {
     try {
-        logger.debug("raw data to create", {
-            context: "appointmentService.staffCreateService",
+        logger.debug("Raw data to create", {
+            context: "AppointmentService.staffCreateService",
             dataCreate: dataCreate,
         });
-        // check duplicate appointment by 'full_name', 'phone', 'email',  'appointment_date', 'appointment_time'
+
+        // 1. Check duplicate appointment
         const duplicateQuery = {
             full_name: dataCreate.full_name,
             phone: dataCreate.phone,
-            email: dataCreate.email,
             appointment_date: dataCreate.appointment_date,
             appointment_time: dataCreate.appointment_time,
-            status: { $nin: ['CANCELLED', 'NO_SHOW'] } // Bỏ qua lịch đã hủy
+            status: { $nin: ['CANCELLED', 'NO_SHOW', 'COMPLETED'] }
         };
         const isDuplicatePatient = await AppointmentModel.findOne(duplicateQuery);
         if (isDuplicatePatient) {
-            throw new Error(`Patient ${dataCreate.full_name} already has an appointment scheduled for ${dataCreate.appointment_time}. Please do not book a duplicate appointment.`);
+            throw new errorRes.ConflictError(`Patient ${dataCreate.full_name} already has an appointment scheduled for ${dataCreate.appointment_time}.`);
         }
-        // check id service
+
+        // 2. Check valid services
         if (dataCreate.book_service && Array.isArray(dataCreate.book_service)) {
             for (const service of dataCreate.book_service) {
                 const serviceExist = await ServiceModel.findById(service.service_id);
@@ -363,22 +376,33 @@ const staffCreateService = async (dataCreate) => {
                 if (!serviceExist) {
                     logger.warn(`ID service not found: ${service.service_id}`, {
                         context: "AppointmentService.staffCreateService",
-                        account_id: account_id,
                         service_id: service.service_id
+                        // ĐÃ SỬA BUG CỦA BẠN: Xóa biến account_id gây crash app ở đây
                     });
                     throw new errorRes.NotFoundError(`Service not found! ID: ${service.service_id}`);
                 }
             }
         }
-        // Tạo lịch hẹn mới
+
+        // 3. (Quan trọng) Hỗ trợ cấp STT nếu lễ tân tạo lịch hẹn đến thẳng phòng khám
+        if (dataCreate.status === "CHECKED_IN") {
+            const nextNumber = await AppointmentModel.getNextQueueNumber(dataCreate.appointment_date);
+            dataCreate.queue_number = nextNumber;
+        }
+
+        // 4. Tạo lịch hẹn mới
         const newAppointment = await AppointmentModel.create(dataCreate);
         return newAppointment;
+
     } catch (error) {
         logger.error("Error at staff create new appointment.", {
             context: "AppointmentService.staffCreateService",
             message: error.message,
             stack: error.stack,
         });
+
+        // Đã sửa để ném ra đúng HTTP Status (Ví dụ: 409 Conflict, 404 Not Found)
+        if (error.statusCode) throw error;
         throw new errorRes.InternalServerError(`Error: ${error.message}`);
     }
 };
@@ -516,6 +540,7 @@ const updateService = async (accountId, data) => {
         session.endSession();
     }
 };
+
 /*
     Update Status and Auto-generate Queue Number
 */
@@ -584,7 +609,76 @@ const updateStatusOnly = async (id, status) => {
     }
 };
 
+const checkinService = async (data) => {
+    try {
+        // 1. TẠO MỐC THỜI GIAN CỦA NGÀY HÔM NAY (Từ 00:00 đến 23:59)
+        const today = new Date(); // Lấy ngày giờ hiện tại
+        const startOfDay = new Date(today.setHours(0, 0, 0, 0));
+        const endOfDay = new Date(today.setHours(23, 59, 59, 999));
 
+        // 2. TÌM TẤT CẢ CÁC LỊCH HẸN TRONG HÔM NAY (Cho phép cả lịch chưa khám và lịch đến muộn)
+        const appointments = await AppointmentModel.find({
+            full_name: data.full_name,
+            phone: data.phone,
+            status: { $in: ["SCHEDULED", "NO_SHOW"] },
+            appointment_date: {
+                $gte: startOfDay,
+                $lte: endOfDay
+            }
+        }).sort({ appointment_time: 1 });
+
+        // Nếu không có lịch nào trong hôm nay
+        if (!appointments || appointments.length === 0) {
+            throw new errorRes.NotFoundError("You do not have any scheduled appointments for TODAY. Please check the date or contact the receptionist.");
+        }
+
+        const checkedInResults = [];
+
+        // 3. LẶP QUA TỪNG LỊCH TRONG HÔM NAY ĐỂ CẤP SỐ & CHECK-IN
+        for (const appt of appointments) {
+            // Sinh số thứ tự cho từng lịch (Vì có thể khám ở nhiều phòng/dịch vụ khác nhau)
+            const nextNumber = await AppointmentModel.getNextQueueNumber(appt.appointment_date);
+
+            const updatedAppt = await AppointmentModel.findByIdAndUpdate(
+                appt._id,
+                {
+                    status: "CHECKED_IN",
+                    queue_number: nextNumber
+                },
+                { new: true }
+            );
+
+            checkedInResults.push(updatedAppt);
+
+            // GỬI EMAIL THÔNG BÁO CHO KHÁCH HÀNG
+            if (updatedAppt.email) {
+                emailService.sendCheckinEmail(
+                    updatedAppt.email,
+                    updatedAppt.full_name,
+                    updatedAppt.queue_number,
+                ).catch(err => logger.error("Lỗi gửi email check-in:", err.message));
+            }
+        }
+
+        logger.info(`Patient self check-in successful for ${checkedInResults.length} appointments`, {
+            context: "AppointmentService.checkinService",
+            phone: data.phone
+        });
+
+        // 4. TRẢ VỀ MẢNG CÁC LỊCH ĐÃ CHECK-IN ĐỂ HIỂN THỊ LÊN MÀN HÌNH
+        return checkedInResults;
+
+    } catch (error) {
+        logger.error("Error at checkinService", {
+            context: "AppointmentService.checkinService",
+            message: error.message,
+            data: data
+        });
+
+        if (error.statusCode) throw error;
+        throw new errorRes.InternalServerError(`Check-in fails: ${error.message}`);
+    }
+};
 
 module.exports = {
     getListService,
@@ -593,5 +687,6 @@ module.exports = {
     updateService,
     updateStatusOnly,
     getListOfPatientService,
-    staffCreateService
+    staffCreateService,
+    checkinService
 };

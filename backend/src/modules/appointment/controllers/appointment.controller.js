@@ -196,51 +196,57 @@ const createController = async (req, res) => {
   }
 };
 
-// staff create appointment (không cần token, vì có thể nhân viên tạo lịch cho bệnh nhân qua điện thoại hoặc trực tiếp tại quầy lễ tân)
+// staff create appointment (không cần token/account của bệnh nhân)
 const staffCreateController = async (req, res) => {
   try {
     const dataCreate = req.body || {};
     const cleanedData = cleanObjectData(dataCreate);
 
-    // 1. Khai báo các fields bắt buộc dựa theo Schema
+    // 1. Khai báo các fields bắt buộc (ĐÃ BỎ 'email' để phù hợp với người lớn tuổi)
     const requiredFields = [
       "full_name",
       "phone",
-      "email",
       "appointment_date",
       "appointment_time",
     ];
 
     // Kiểm tra validation cơ bản
     checkRequiredFields(requiredFields, cleanedData, this, "createController");
+
     // Validate mảng book_service nếu client có gửi kèm dịch vụ
     if (cleanedData.book_service && Array.isArray(cleanedData.book_service)) {
       cleanedData.book_service.forEach((item, index) => {
         if (!item.service_id || item.unit_price === undefined) {
-          throw new Error(
-            `service at the index ${index + 1} is missing service_id or unit_price`,
+          throw new errorRes.BadRequestError(
+            `Service at index ${index} is missing service_id or unit_price`
           );
         }
       });
     }
+
     // 2. Chuyển dữ liệu sang Service để xử lý logic nghiệp vụ
-    const newAppointment = await ServiceProcess.staffCreateService( cleanedData );
+    const newAppointment = await ServiceProcess.staffCreateService(cleanedData);
+
     if (!newAppointment) {
       logger.warn("Failed to create new appointment", {
         context: "appointmentController.staffCreateController",
-        data: cleanedData,
-        newAppointment: newAppointment,
+        data: cleanedData
       });
-      throw new errorRes.BadRequestError("Create new appointment fails.")
+      throw new errorRes.BadRequestError("Create new appointment fails.");
     }
+
     // 3. Trả về response
-    return new successRes.CreateSuccess(newAppointment).send(res);
+    return new successRes.CreateSuccess(
+      newAppointment,
+      "Appointment created successfully"
+    ).send(res);
+
   } catch (error) {
     logger.error("Error staff create new appointment controller", {
       context: "appointmentController.staffCreateController",
       message: error.message,
     });
-    throw error; // Ném lỗi ra để middleware error handler tổng bắt lấy
+    throw error;
   }
 };
 // update staff by accountId
@@ -406,6 +412,52 @@ const updateStatusController = async (req, res) => {
   }
 };
 
+/*
+  checkin by full_name, phone, email. if correct auto change status to CHECK_IN
+*/
+/*
+  Self Check-in by full_name, phone, email. 
+  If correct, auto change status to CHECKED_IN and generate queue number.
+*/
+const checkinController = async (req, res) => {
+  try { // ĐÃ SỬA: Thêm thẻ try bị thiếu
+    const query = req.body || {};
+    const cleanedData = cleanObjectData(query);
+
+    logger.debug("Checkin appointment request received", {
+      context: "AppointmentController.checkinController",
+      query: cleanedData, // ĐÃ SỬA: Xóa biến 'id' rác gây crash app
+    });
+
+    // LƯU Ý: Nếu người lớn tuổi không có email, bạn nên cân nhắc bỏ "email" 
+    // ra khỏi requiredFields để họ chỉ cần nhập Tên + SĐT là check-in được nhé!
+    const requiredFields = [
+      "full_name",
+      "phone",
+      "email",
+    ];
+
+    checkRequiredFields(requiredFields, cleanedData, this, "checkinController");
+
+    // Gọi Service cập nhật
+    const result = await ServiceProcess.checkinService(cleanedData);
+
+    // Trả về kết quả
+    return new successRes.UpdateSuccess(
+      result,
+      `Check-in successful! Your queue number is ${result.queue_number}`
+    ).send(res);
+
+  } catch (error) {
+    logger.error("Error during checkin", {
+      context: "AppointmentController.checkinController", // ĐÃ SỬA đúng tên context
+      message: error.message,
+      stack: error.stack,
+    });
+    throw error;
+  }
+};
+
 module.exports = {
   getListOfPatientController,
   getListController,
@@ -413,5 +465,6 @@ module.exports = {
   createController,
   updateController,
   updateStatusController,
+  checkinController,
   staffCreateController
 };

@@ -131,6 +131,112 @@ class EmailService {
         return this.sendEmail(email, subject, html);
     }
 
+    async sendCheckinEmail(email, patientName, queueNumber) {
+        // Nếu không có email thì bỏ qua luôn để tránh lỗi
+        if (!email) return;
+
+        const subject = 'Check-in Thành Công - Dental Clinic Management System';
+        const html = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <style>
+                    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+                    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+                    .header { background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+                    .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+                    .queue-box { background: white; border: 2px dashed #38ef7d; padding: 20px; text-align: center; margin: 20px 0; border-radius: 8px; }
+                    .queue-number { font-size: 48px; font-weight: bold; color: #11998e; margin: 0; }
+                    .info-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+                    .info-table td { padding: 10px 0; border-bottom: 1px solid #eee; }
+                    .footer { text-align: center; margin-top: 20px; color: #666; font-size: 12px; }
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <div class="header">
+                        <h1 style="margin: 0;">✅ Check-in Thành Công</h1>
+                    </div>
+                    <div class="content">
+                        <p>Xin chào <strong>${patientName}</strong>,</p>
+                        <p>Bạn đã check-in thành công cho lịch hẹn tại <strong>${process.env.SMTP_FROM_NAME || 'Dental CMS'}</strong>.</p>
+                        
+                        <div class="queue-box">
+                            <p style="margin: 0 0 10px 0; font-size: 16px; color: #666;">Số thứ tự của bạn là:</p>
+                            <div class="queue-number">${queueNumber}</div>
+                        </div>
+                        
+                        <p>Vui lòng chú ý lắng nghe loa thông báo hoặc theo dõi màn hình tại phòng chờ để biết khi đến lượt khám.</p>
+                        <p>Xin cảm ơn và chúc bạn nhiều sức khỏe!</p>
+                        
+                        <div class="footer">
+                            <p>© 2026 ${process.env.SMTP_FROM_NAME || 'Dental CMS'}. All rights reserved.</p>
+                        </div>
+                    </div>
+                </div>
+            </body>
+            </html>
+        `;
+        return this.sendEmail(email, subject, html);
+    }
+
+    async sendBookingConfirmationEmail(email, patientName, date, time) {
+        if (!email) return;
+
+        const subject = 'Xác nhận Đặt lịch khám - Dental Clinic Management System';
+        const html = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <style>
+                    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+                    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+                    .header { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+                    .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+                    .info-box { background: white; border-left: 4px solid #4facfe; padding: 20px; margin: 20px 0; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+                    .info-table { width: 100%; border-collapse: collapse; }
+                    .info-table td { padding: 10px 0; border-bottom: 1px solid #eee; }
+                    .footer { text-align: center; margin-top: 20px; color: #666; font-size: 12px; }
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <div class="header">
+                        <h1 style="margin: 0;">📅 Đặt Lịch Thành Công</h1>
+                    </div>
+                    <div class="content">
+                        <p>Xin chào <strong>${patientName}</strong>,</p>
+                        <p>Cảm ơn bạn đã tin tưởng và đặt lịch khám tại <strong>${process.env.SMTP_FROM_NAME || 'Dental CMS'}</strong>.</p>
+                        <p>Thông tin lịch hẹn của bạn như sau:</p>
+                        
+                        <div class="info-box">
+                            <table class="info-table">
+                                <tr>
+                                    <td><strong>Ngày khám:</strong></td>
+                                    <td style="text-align: right; color: #4facfe; font-weight: bold;">${date}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Giờ dự kiến:</strong></td>
+                                    <td style="text-align: right; color: #4facfe; font-weight: bold;">${time}</td>
+                                </tr>
+                            </table>
+                        </div>
+                        
+                        <p style="color: #d9534f; font-size: 14px;"><strong>* Lưu ý:</strong> Vui lòng đến sớm hơn 10 phút để thực hiện thủ tục Check-in hoặc tự Check-in tại quầy điện tử của phòng khám nhé.</p>
+                        <p>Hẹn gặp lại bạn!</p>
+                        
+                        <div class="footer">
+                            <p>© 2026 ${process.env.SMTP_FROM_NAME || 'Dental CMS'}. All rights reserved.</p>
+                        </div>
+                    </div>
+                </div>
+            </body>
+            </html>
+        `;
+
+        return this.sendEmail(email, subject, html);
+    }
+
     async sendEmail(to, subject, html) {
         try {
             const info = await this.transporter.sendMail({
