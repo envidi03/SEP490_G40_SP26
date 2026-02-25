@@ -20,3 +20,17 @@ exports.getDashboardStats = async () => {
         lowStockCount: lowStock
     }
 }
+
+exports.getLowStockMedicines = async (limit = 3) => {
+    return await Medicine.find({
+        $expr: { $lte: ["$quantity", "$min_quantity"] },
+        quantity: { $gt: 0 }
+    },
+        {
+            medicine_name: 1,
+            quantity: 1,
+            min_quantity: 1,
+        }
+    ).sort({ quantity: 1 })
+        .limit(limit)
+}
