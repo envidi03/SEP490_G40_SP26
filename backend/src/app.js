@@ -9,13 +9,13 @@ app.set('trust proxy', true);
 
 // Override stream của Morgan để bắn log vào Winston thay vì console.log
 const morganMiddleware = morgan(
-  ':method :url :status :res[content-length] - :response-time ms',
-  {
-    stream: {
-      // Configure Morgan to use our custom logger with the http severity
-      write: (message) => logger.info(message.trim()),
-    },
-  }
+    ':method :url :status :res[content-length] - :response-time ms',
+    {
+        stream: {
+            // Configure Morgan to use our custom logger with the http severity
+            write: (message) => logger.info(message.trim()),
+        },
+    }
 );
 
 
@@ -100,6 +100,8 @@ app.use('/api/staff', routeStaff);
 const { route: routeAppointment } = require('./modules/appointment');
 app.use('/api/appointment', routeAppointment);
 
+const { inventoryRoute } = require('./modules/inventory');
+app.use('/api/inventory', inventoryRoute);
 // 404 Handler - Must be after all routes
 app.use((req, res, next) => {
     res.status(404).json({
