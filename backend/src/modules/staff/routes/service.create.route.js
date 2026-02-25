@@ -10,5 +10,7 @@ const cpUpload = upload.fields([
     { name: 'license', maxCount: 10 }
 ]);
 router.post('/', cpUpload, controller.createController);
+router.post('/leave', controller.createLeaveController);
+
 
 module.exports = router;

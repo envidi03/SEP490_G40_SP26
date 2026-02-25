@@ -382,6 +382,8 @@ const updateStatusController = async (req, res) => {
     }
 };
 
+
+//create leave request for staff
 const createLeaveController = async (req, res) => {
   try {
     const { id: accountId } = req.params;
@@ -405,11 +407,36 @@ const createLeaveController = async (req, res) => {
   }
 };
 
+//get leave request for staff
+const getLeaveRequestController = async (req, res) => {
+  try {
+    const { id: accountId } = req.params;
+
+    const result = await ServiceProcess.getLeaveRequestService(
+      accountId,
+      req.query
+    );
+
+    return new successRes.GetSuccess(
+      result,
+      "Get leave requests successfully"
+    ).send(res);
+
+  } catch (error) {
+    logger.error("View leave error", {
+      context: "LeaveController.viewLeaveRequestController",
+      message: error.message,
+    });
+    throw error;
+  }
+};
+
 module.exports = {
     getListController,
     getByIdController,
     createController,
     updateController,
     updateStatusController,
-    createLeaveController
+    createLeaveController,
+    getLeaveRequestController
 };
