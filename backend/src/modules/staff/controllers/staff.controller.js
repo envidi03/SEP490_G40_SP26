@@ -386,7 +386,7 @@ const updateStatusController = async (req, res) => {
 //create leave request for staff
 const createLeaveController = async (req, res) => {
   try {
-    const { id: accountId } = req.params;
+    const accountId = req.user?.account_id;
 
     const result = await ServiceProcess.createLeaveRequestService(
       accountId,
