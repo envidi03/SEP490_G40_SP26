@@ -472,35 +472,6 @@ const RoomList = () => {
                         </p>
                     </div>
 
-                    {/* Pagination */}
-                    {rooms.length > 0 && (
-                        <div className="mt-8 flex justify-center items-center gap-2">
-                            <button
-                                onClick={() => setPagination(prev => ({ ...prev, page: Math.max(1, prev.page - 1) }))}
-                                disabled={pagination.page === 1}
-                                className={`px-4 py-2 rounded-lg border ${pagination.page === 1
-                                    ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
-                                    : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
-                                    }`}
-                            >
-                                Trước
-                            </button>
-                            <span className="text-gray-600 px-4">
-                                Trang {pagination.page} / {pagination.totalPages}
-                            </span>
-                            <button
-                                onClick={() => setPagination(prev => ({ ...prev, page: Math.min(prev.totalPages, prev.page + 1) }))}
-                                disabled={pagination.page === pagination.totalPages}
-                                className={`px-4 py-2 rounded-lg border ${pagination.page === pagination.totalPages
-                                    ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
-                                    : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
-                                    }`}
-                            >
-                                Sau
-                            </button>
-                        </div>
-                    )}
-
                     {/* Add Room Button */}
                     <button
                         onClick={handleAddRoom}
@@ -552,6 +523,36 @@ const RoomList = () => {
                         >
                             <Plus size={20} />
                             <span>Thêm phòng đầu tiên</span>
+                        </button>
+                    </div>
+                )}
+
+
+                {/* Pagination */}
+                {rooms.length > 0 && (
+                    <div className="mt-8 flex justify-center items-center gap-2">
+                        <button
+                            onClick={() => setPagination(prev => ({ ...prev, page: Math.max(1, prev.page - 1) }))}
+                            disabled={pagination.page === 1}
+                            className={`px-4 py-2 rounded-lg border ${pagination.page === 1
+                                ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
+                                : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                                }`}
+                        >
+                            Trước
+                        </button>
+                        <span className="text-gray-600 px-4">
+                            Trang {pagination.page} / {pagination.totalPages}
+                        </span>
+                        <button
+                            onClick={() => setPagination(prev => ({ ...prev, page: Math.min(prev.totalPages, prev.page + 1) }))}
+                            disabled={pagination.page === pagination.totalPages}
+                            className={`px-4 py-2 rounded-lg border ${pagination.page === pagination.totalPages
+                                ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
+                                : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                                }`}
+                        >
+                            Sau
                         </button>
                     </div>
                 )}
