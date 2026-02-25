@@ -412,7 +412,6 @@ const EquipmentList = () => {
                 show={showDetailModal}
                 equipment={selectedDetailEquipment}
                 onClose={() => setShowDetailModal(false)}
-                formatDate={formatDate}
                 getStatusColor={getStatusColor}
                 getStatusText={getStatusText}
             />

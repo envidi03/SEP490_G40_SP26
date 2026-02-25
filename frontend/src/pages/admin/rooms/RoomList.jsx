@@ -526,25 +526,9 @@ const RoomList = () => {
                             getAssignedDoctors={getAssignedDoctors}
                             onAssignDoctor={handleAssignDoctor}
                             onRemoveAssignment={handleRemoveAssignment}
-                            onViewDetail={async (r) => {
-                                try {
-                                    setLoading(true);
-                                    const response = await roomService.getRoomById(r._id || r.id);
-                                    // response.data could be the room object or wrapped in data property
-                                    // Based on previous patterns: response.data is the body
-                                    const roomDetail = response.data || response;
-                                    setSelectedDetailRoom(roomDetail);
-                                    setShowDetailModal(true);
-                                } catch (error) {
-                                    console.error('Fetch detail error:', error);
-                                    setToast({
-                                        show: true,
-                                        type: 'error',
-                                        message: '❌ Không thể tải chi tiết phòng!'
-                                    });
-                                } finally {
-                                    setLoading(false);
-                                }
+                            onViewDetail={(r) => {
+                                setSelectedDetailRoom(r);
+                                setShowDetailModal(true);
                             }}
                             onEdit={handleEditRoom}
                             onDelete={handleDeleteRoom}
