@@ -89,4 +89,48 @@ router.get("/dashboard/stats", dashboardController.getDashboardStats);
  */
 router.get("/dashboard/low-stock", dashboardController.getLowStockMedicines);
 
+/**
+ * @swagger
+ * /api/inventory/dashboard/near-expired:
+ *   get:
+ *     summary: Lấy danh sách thuốc sắp hết hạn
+ *     tags: [Inventory]
+ *     parameters:
+ *       - in: query
+ *         name: days
+ *         schema:
+ *           type: integer
+ *           default: 30
+ *         description: Số ngày tính từ hôm nay
+ *     responses:
+ *       200:
+ *         description: Thành công
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       medicine_name:
+ *                         type: string
+ *                         example: Paracetamol 500mg
+ *                       expiry_date:
+ *                         type: string
+ *                         format: date
+ *                         example: 2026-03-10
+ *                       quantity:
+ *                         type: number
+ *                         example: 80
+ *       500:
+ *         description: Lỗi server
+ */
+router.get("/dashboard/near-expired", dashboardController.getNearExpiredMedicines);
+
 module.exports = router;
