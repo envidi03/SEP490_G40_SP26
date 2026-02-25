@@ -434,7 +434,7 @@ const getLeaveRequestController = async (req, res) => {
 //edit leave request for staff
 const editLeaveRequestController = async (req, res) => {
   try {
-    const { id: accountId } = req.params;
+    const accountId = req.user?.account_id;
     const { id: leaveId } = req.params;
 
     const result = await ServiceProcess.editLeaveRequestService(
@@ -460,7 +460,7 @@ const editLeaveRequestController = async (req, res) => {
 //cancel leave request for staff
 const cancelLeaveRequestController = async (req, res) => {
   try {
-    const { id: accountId } = req.params;
+    const accountId = req.user?.account_id;
     const { id: leaveId } = req.params;
 
     const result = await ServiceProcess.cancelLeaveRequestService(

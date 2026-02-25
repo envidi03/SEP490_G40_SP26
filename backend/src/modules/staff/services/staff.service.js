@@ -643,7 +643,11 @@ const cancelLeaveRequestService = async (accountId, leaveId) => {
   const staff = await StaffModel.Staff.findOne({ account_id: accountId });
   if (!staff) throw new errorRes.NotFoundError("Staff not found");
 
-  const leave = await leaveRequestModel.findById(leaveId);
+  const leave = await leaveRequestModel.findOne({
+    _id: leaveId,
+    staff_id: staff._id,
+  });
+  
   if (!leave) throw new errorRes.NotFoundError("Leave request not found");
 
   if (leave.status !== "PENDING") {

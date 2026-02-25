@@ -9,7 +9,7 @@ const cpUpload = upload.fields([
     { name: 'license', maxCount: 10 }
 ]);
 router.patch('/:id', cpUpload, controller.updateController);
-router.patch('/leave/:id', controller.editLeaveRequestController);
-router.patch('/leave/cancel/:id', controller.cancelLeaveRequestController);
+router.patch('/leave/:id', auth.authenticate, auth.authorize("DOCTOR", "ASSISTANT"), controller.editLeaveRequestController);
+router.patch('/leave/cancel/:id', auth.authenticate, auth.authorize("DOCTOR", "ASSISTANT"), controller.cancelLeaveRequestController);
 
 module.exports = router;
