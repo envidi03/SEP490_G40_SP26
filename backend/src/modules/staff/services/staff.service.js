@@ -601,14 +601,24 @@ const checkUniqueEmailNotId = async (email, accountId) => {
 
 // Service riêng cho việc update nhanh status
 const updateStaffStatusOnly = async (accountId, status) => {
-    const staff = await StaffModel.Staff.findOneAndUpdate(
-        { account_id: accountId },
-        { status: status },
-        { new: true } // Trả về data mới
+    // Frontend đọc account.status → phải update Account model
+    const updatedAccount = await AuthModel.Account.findByIdAndUpdate(
+        accountId,
+        { $set: { status } },
+        { new: true }
     );
-    if (!staff) throw new errorRes.NotFoundError("Staff not found");
-    return staff;
+    if (!updatedAccount) throw new errorRes.NotFoundError("Account not found");
+
+    // Đồng bộ Staff.status
+    await StaffModel.Staff.findOneAndUpdate(
+        { account_id: accountId },
+        { $set: { status } },
+        { new: true }
+    );
+
+    return updatedAccount;
 };
+
 
 
 

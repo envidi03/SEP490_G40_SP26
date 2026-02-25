@@ -370,17 +370,17 @@ const updateStatusController = async (req, res) => {
 
         // 3. Gọi Service cập nhật
         // Lưu ý: updateService trả về object chứa { account, profile, staff, license }
-        const result = await ServiceProcess.updateStaffStatusOnly(accountId, { status });
+        const result = await ServiceProcess.updateStaffStatusOnly(accountId, status);
 
         // Kiểm tra kết quả
-        if (!result || !result.staff) {
+        if (!result) {
             throw new errorRes.NotFoundError('Staff not found');
         }
 
         logger.info('Staff status updated successfully', {
             context: 'StaffController.updateStatusController',
-            staffId: result.staff._id,
-            newStatus: result.staff.status
+            staffId: result._id,
+            newStatus: result.status
         });
 
         // 4. Trả về kết quả
