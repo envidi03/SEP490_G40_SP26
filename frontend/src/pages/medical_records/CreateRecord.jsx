@@ -29,14 +29,6 @@ const CreateRecord = () => {
     const handleSubmit = async (formData) => {
         setIsSubmitting(true);
         try {
-            // Simulate API call
-            console.log('Submitting record:', {
-                patientId: id,
-                doctorId: user.id,
-                ...formData,
-                date: new Date().toISOString()
-            });
-
             // Simulate delay
             await new Promise(resolve => setTimeout(resolve, 1000));
 

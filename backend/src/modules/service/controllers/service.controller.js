@@ -74,7 +74,7 @@ const getByIdController = async (req, res) => {
         }
 
         // Gọi service xử lý logic
-        const service = await ServiceProcess.getByIdService(id, queryParams);
+        const service = await ServiceProcess.getByIdService(id);
         return new successRes.GetDetailSuccess(service, 'Service retrieved successfully').send(res);
     } catch (error) {
         logger.error('Error get service by id', {
@@ -178,9 +178,6 @@ const updateController = async (req, res) => {
             serviceData: serviceData
         });
 
-        // remove status and equipment_service if exists
-        const { status, equipment_service, ...restData } = serviceData;
-
         // check id empty
         if (!id) {
             logger.warn('Empty service ID', {
@@ -189,8 +186,8 @@ const updateController = async (req, res) => {
             });
             throw new errorRes.BadRequestError('Service ID is required');
         }
-        // clean data
-        const cleanedData = cleanObjectData(restData);
+        // clean data (cho phép status và equipment_service)
+        const cleanedData = cleanObjectData(serviceData);
         if (Object.keys(cleanedData).length === 0) {
             logger.warn('No data provided for update', {
                 context: 'ServiceController.update',

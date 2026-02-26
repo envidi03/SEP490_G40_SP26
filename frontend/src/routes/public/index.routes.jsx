@@ -9,7 +9,11 @@ import ServicesPricing from '../../pages/public/ServicesPricing';
 import About from '../../pages/public/About';
 import DoctorsList from '../../pages/public/DoctorsList';
 import DoctorDetail from '../../pages/public/DoctorDetail';
+import ServiceDetail from '../../pages/public/ServiceDetail';
 import BookAppointment from '../../pages/booking/BookAppointment';
+import PatientProfile from '../../pages/patients/PatientProfile';
+import PatientAppointments from '../../pages/patients/PatientAppointments';
+import PatientMedicalRecords from '../../pages/patients/PatientMedicalRecords';
 
 
 // Public routes - accessible without authentication
@@ -76,6 +80,14 @@ const publicRoutes = [
         )
     },
     {
+        path: '/service/:id',
+        element: (
+            <PublicRoute allowPatient={true}>
+                <ServiceDetail />
+            </PublicRoute>
+        )
+    },
+    {
         path: '/doctors',
         element: (
             <PublicRoute allowPatient={true}>
@@ -90,14 +102,27 @@ const publicRoutes = [
                 <DoctorDetail />
             </PublicRoute>
         )
-    }, {
+    },
+    {
         path: '/book-appointment',
         element: (
             <PublicRoute allowPatient={true}>
                 <BookAppointment />
             </PublicRoute>
         )
-    }
+    },
+    {
+        path: '/profile',
+        element: <PatientProfile />
+    },
+    {
+        path: '/appointments',
+        element: <PatientAppointments />
+    },
+    {
+        path: '/medical-records',
+        element: <PatientMedicalRecords />
+    },
 ];
 
 export default publicRoutes;

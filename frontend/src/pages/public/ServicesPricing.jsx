@@ -1,14 +1,25 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import PublicLayout from '../../components/layout/PublicLayout';
 import Breadcrumb from '../../components/ui/Breadcrumb';
+import serviceService from '../../services/serviceService';
 
-// Helper function to convert service name to URL-friendly ID
+// Helper: format số tiền VND
+const formatPrice = (price) => {
+    if (price === null || price === undefined) return 'Liên hệ';
+    return new Intl.NumberFormat('vi-VN', {
+        style: 'currency',
+        currency: 'VND',
+        maximumFractionDigits: 0,
+    }).format(price);
+};
+
+// Helper: convert service name to URL slug
 const toUrlFriendly = (name) => {
     return name
         .toLowerCase()
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "") // Remove diacritics
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
         .replace(/đ/g, 'd')
         .replace(/[^a-z0-9\s-]/g, '')
         .replace(/\s+/g, '-')
@@ -16,201 +27,226 @@ const toUrlFriendly = (name) => {
         .trim();
 };
 
-// Mock services data - organized by category
-const servicesData = [
-    {
-        category: 'Niềng răng',
-        services: [
-            { name: 'Hàm duy trì Vivera', price: '4.130.000đ - 5.300.000đ', type: 'Lần' },
-            { name: 'Gói niềng răng mắc cài kim loại tự động', price: '40.000.000đ - 58.000.000đ', type: 'Lần' },
-            { name: 'Gói niềng răng mắc cài kim loại', price: '32.000.000đ - 48.000.000đ', type: 'Lần' },
-            { name: 'Gói niềng trong suốt Essentials by Invisalign', price: '60.000.000đ - 71.000.000đ', type: 'Lần' },
-            { name: 'Gói niềng răng trong suốt Invisalign Comprehensive (5 năm)', price: '127.000.000đ - 133.000.000đ', type: 'Lần', discount: '77.350.000đ - 79.300.000đ' },
-            { name: 'Gói niềng răng trong suốt Invisalign Moderate', price: '77.000.000đ - 101.000.000đ', type: 'Lần' },
-            { name: 'Dịch vụ niềng răng trong suốt Invisalign Lite', price: '58.000.000đ - 77.000.000đ', type: 'Lần' },
-        ]
-    },
-    {
-        category: 'Trồng răng Implant',
-        services: [
-            { name: 'Hệ thống Implant Straumann dòng BLT SLactive', price: '39.000.000đ', type: 'Lần' },
-            { name: 'Hệ thống Implant Straumann dòng BLT SLA', price: '34.000.000đ', type: 'Lần' },
-            { name: 'Hệ thống Implant Neodent dòng Acqua', price: '25.000.000đ - 27.000.000đ', type: 'Lần' },
-            { name: 'Hệ thống Implant Dentium dòng Super Line', price: '15.900.000đ - 17.000.000đ', type: 'Lần' },
-            { name: 'Cấy ghép Implant trọn gói Platinum Combo', price: '56.000.000đ - 59.000.000đ', type: 'Lần' },
-            { name: 'Cấy ghép Implant trọn gói Gold Combo', price: '29.000.000đ - 33.000.000đ', type: 'Lần' },
-            { name: 'Cấy ghép Implant trọn gói Silver Combo', price: '20.000.000đ - 30.000.000đ', type: 'Lần' },
-        ]
-    },
-    {
-        category: 'Nha khoa thẩm mỹ',
-        services: [
-            { name: 'Răng sứ Emax thẩm mỹ', price: '6.500.000đ - 7.000.000đ', type: 'Lần' },
-            { name: 'Bọc sứ/Chụp sứ Zircad Prime/Lava (BH 10 năm)', price: '9.000.000đ - 11.000.000đ', type: 'Lần' },
-            { name: 'Bọc sứ Lisi thẩm mỹ (BH 5 năm)', price: '10.000.000đ - 11.000.000đ', type: 'Lần' },
-            { name: 'Dán sứ Veneer Emax thẩm mỹ (BH 5 năm)', price: '8.000.000đ', type: 'Lần' },
-            { name: 'Trám răng bằng sứ Emax Inlay/Onlay (BH 5 năm)', price: '2.700.000đ - 5.300.000đ', type: 'Lần' },
-            { name: 'Tẩy trắng răng Laser Express', price: '2.200.000đ - 2.500.000đ', type: 'Lần' },
-            { name: 'Tẩy trắng răng Zoom Laser', price: 'Liên hệ', type: 'Lần' },
-        ]
-    },
-    {
-        category: 'Nha khoa tổng quát',
-        services: [
-            { name: 'Điều trị nha chu', price: '480.000đ - 1.600.000đ', type: 'Lần' },
-            { name: 'Nhổ răng khôn', price: '950.000đ - 5.900.000đ', type: 'Lần' },
-            { name: 'Nhổ răng thường', price: '290.000đ - 1.350.000đ', type: 'Lần' },
-            { name: 'Điều trị tủy lại', price: '2.000.000đ - 4.000.000đ', type: 'Lần' },
-            { name: 'Điều trị tủy', price: '800.000đ - 2.500.000đ', type: 'Lần' },
-            { name: 'Lấy cao răng', price: '300.000đ - 400.000đ', type: 'Lần' },
-            { name: 'Điều trị viêm lợi', price: '1.050.000đ - 1.200.000đ', type: 'Lần' },
-            { name: 'Hàn trám răng sâu mặt nhai', price: '350.000đ - 450.000đ', type: 'Lần' },
-            { name: 'Hàn trám có răng', price: '1.250.000đ - 1.400.000đ', type: 'Lần' },
-        ]
-    },
-    {
-        category: 'Nha khoa trẻ em',
-        services: [
-            { name: 'Gói đầu tư tương lai (1-18 tuổi)', price: '39.000.000đ', type: 'Lần' },
-            { name: 'Gói định hình nụ cười', price: '25.000.000đ', type: 'Lần' },
-            { name: 'Gói khởi đầu bảo vệ', price: '2.100.000đ', type: 'Lần' },
-            { name: 'Gói chăm sóc trẻ thay răng theo năm', price: '2.100.000đ - 2.500.000đ', type: 'Lần' },
-            { name: 'Gói tiền chỉnh nha bằng khay niềng Invisalign First', price: '74.000.000đ - 84.000.000đ', type: 'Lần' },
-            { name: 'Hàn trám răng sữa', price: '159.000đ - 270.000đ', type: 'Lần' },
-            { name: 'Nhổ răng sữa', price: '50.000đ - 210.000đ', type: 'Lần' },
-        ]
-    }
-];
+// Loading skeleton row
+const SkeletonRow = () => (
+    <tr className="border-b border-gray-200 animate-pulse">
+        <td className="px-4 py-3"><div className="h-4 bg-gray-200 rounded w-3/4" /></td>
+        <td className="px-4 py-3"><div className="h-4 bg-gray-200 rounded w-1/2" /></td>
+        <td className="px-4 py-3"><div className="h-4 bg-gray-200 rounded w-1/4" /></td>
+        <td className="px-4 py-3"><div className="h-4 bg-gray-200 rounded w-12 mx-auto" /></td>
+    </tr>
+);
 
 const ServicesPricing = () => {
-    const [activeTab, setActiveTab] = useState('all');
+    const [services, setServices] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+    const [search, setSearch] = useState('');
+    const [statusFilter, setStatusFilter] = useState('AVAILABLE');
+
+    // Fetch toàn bộ services từ API (không phân trang, lấy limit lớn)
+    useEffect(() => {
+        const fetchServices = async () => {
+            try {
+                setLoading(true);
+                setError(null);
+                const response = await serviceService.getAllServices({
+                    limit: 100,
+                    page: 1,
+                    status: statusFilter || undefined,
+                    search: search || undefined,
+                });
+                // response từ apiClient đã unwrap .data (interceptor trả response.data)
+                // shape: { status, data: [...], pagination: {...} }
+                setServices(response?.data || []);
+            } catch (err) {
+                setError('Không thể tải danh sách dịch vụ. Vui lòng thử lại sau.');
+                console.error('Fetch services error:', err);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchServices();
+    }, [search, statusFilter]);
+
+    // Lọc trên client theo search nếu cần
+    const filteredServices = services.filter((s) =>
+        s.service_name?.toLowerCase().includes(search.toLowerCase())
+    );
 
     return (
         <PublicLayout>
-            {/* Main Content */}
             <div className="bg-gray-50 py-8">
                 {/* Breadcrumb */}
-                <Breadcrumb items={[
-                    { label: 'Trang chủ', path: '/' },
-                    { label: 'Bảng giá dịch vụ' }
-                ]} />
+                <Breadcrumb
+                    items={[
+                        { label: 'Trang chủ', path: '/' },
+                        { label: 'Bảng giá dịch vụ' },
+                    ]}
+                />
 
-                {/* Content */}
                 <div className="max-w-7xl mx-auto px-4">
                     {/* Title */}
                     <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-6">
-                        Bảng giá dịch vụ vụ làm răng mới nhất 2025
+                        Bảng giá dịch vụ nha khoa mới nhất 2025
                     </h1>
 
-                    {/* Dropdown Select */}
-                    <div className="flex items-center gap-4 mb-6">
-                        <label className="text-sm font-medium text-gray-700 whitespace-nowrap">
-                            Chọn dịch vụ
-                        </label>
-                        <select
-                            value={activeTab}
-                            onChange={(e) => setActiveTab(e.target.value)}
-                            className="flex-1 max-w-md px-4 py-2.5 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white text-gray-900"
-                        >
-                            <option value="all">Tất cả dịch vụ</option>
-                            <option value="nieng-rang">Niềng răng</option>
-                            <option value="implant">Trồng răng Implant</option>
-                            <option value="tham-my">Nha khoa thẩm mỹ</option>
-                            <option value="tong-quat">Nha khoa tổng quát</option>
-                            <option value="tre-em">Nha khoa trẻ em</option>
-                        </select>
+                    {/* Filters */}
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-6">
+                        {/* Search */}
+                        <div className="flex-1 w-full sm:max-w-sm">
+                            <input
+                                type="text"
+                                placeholder="Tìm kiếm dịch vụ..."
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                                className="w-full px-4 py-2.5 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white text-gray-900"
+                            />
+                        </div>
+
+                        {/* Status Filter */}
+                        <div className="flex items-center gap-2">
+                            <label className="text-sm font-medium text-gray-700 whitespace-nowrap">
+                                Trạng thái:
+                            </label>
+                            <select
+                                value={statusFilter}
+                                onChange={(e) => setStatusFilter(e.target.value)}
+                                className="px-3 py-2.5 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 bg-white text-gray-900 text-sm"
+                            >
+                                <option value="">Tất cả</option>
+                                <option value="AVAILABLE">Đang cung cấp</option>
+                                <option value="UNAVAILABLE">Tạm ngưng</option>
+                            </select>
+                        </div>
                     </div>
 
-                    {/* Content Area */}
+                    {/* Content Grid */}
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                         {/* Table Section */}
                         <div className="lg:col-span-2">
                             <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-                                {servicesData
-                                    .filter(categoryData => {
-                                        if (activeTab === 'all') return true;
-                                        const categoryMap = {
-                                            'nieng-rang': 'Niềng răng',
-                                            'implant': 'Trồng răng Implant',
-                                            'tham-my': 'Nha khoa thẩm mỹ',
-                                            'tong-quat': 'Nha khoa tổng quát',
-                                            'tre-em': 'Nha khoa trẻ em'
-                                        };
-                                        return categoryData.category === categoryMap[activeTab];
-                                    })
-                                    .map((categoryData, idx) => (
-                                        <div key={idx}>
-                                            {/* Category Header */}
-                                            <div className="bg-[#3b4a7a] text-white px-4 py-3">
-                                                <h2 className="font-semibold">{categoryData.category}</h2>
-                                            </div>
+                                {/* Table Header */}
+                                <div className="bg-[#3b4a7a] text-white px-4 py-3 flex items-center justify-between">
+                                    <h2 className="font-semibold">Danh sách dịch vụ</h2>
+                                    {!loading && (
+                                        <span className="text-sm text-blue-200">
+                                            {filteredServices.length} dịch vụ
+                                        </span>
+                                    )}
+                                </div>
 
-                                            {/* Services Table */}
-                                            <div className="overflow-x-auto">
-                                                <table className="w-full">
-                                                    <thead className="bg-[#5a6a94] text-white text-sm">
-                                                        <tr>
-                                                            <th className="px-4 py-2 text-left font-medium">Dịch vụ</th>
-                                                            <th className="px-4 py-2 text-left font-medium">Giá</th>
-                                                            <th className="px-4 py-2 text-left font-medium w-20">Loại</th>
-                                                            <th className="px-4 py-2 text-center font-medium w-24"></th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody>
-                                                        {categoryData.services.map((service, serviceIdx) => (
-                                                            <tr
-                                                                key={serviceIdx}
-                                                                className="border-b border-gray-200 hover:bg-gray-50 transition-colors"
+                                <div className="overflow-x-auto">
+                                    <table className="w-full">
+                                        <thead className="bg-[#5a6a94] text-white text-sm">
+                                            <tr>
+                                                <th className="px-4 py-2 text-left font-medium">Tên dịch vụ</th>
+                                                <th className="px-4 py-2 text-left font-medium">Giá</th>
+                                                <th className="px-4 py-2 text-left font-medium w-24">Thời gian</th>
+                                                <th className="px-4 py-2 text-left font-medium w-28">Trạng thái</th>
+                                                <th className="px-4 py-2 text-center font-medium w-20"></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {/* Loading State */}
+                                            {loading && (
+                                                <>
+                                                    {[...Array(6)].map((_, i) => (
+                                                        <SkeletonRow key={i} />
+                                                    ))}
+                                                </>
+                                            )}
+
+                                            {/* Error State */}
+                                            {!loading && error && (
+                                                <tr>
+                                                    <td colSpan={5} className="px-4 py-12 text-center">
+                                                        <div className="text-red-500 mb-2 text-2xl">⚠️</div>
+                                                        <p className="text-red-600 font-medium">{error}</p>
+                                                        <button
+                                                            onClick={() => setStatusFilter(statusFilter)} // trigger re-fetch
+                                                            className="mt-3 text-sm text-primary-600 hover:underline"
+                                                        >
+                                                            Thử lại
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            )}
+
+                                            {/* Empty State */}
+                                            {!loading && !error && filteredServices.length === 0 && (
+                                                <tr>
+                                                    <td colSpan={5} className="px-4 py-12 text-center">
+                                                        <div className="text-gray-400 text-3xl mb-2">🦷</div>
+                                                        <p className="text-gray-500">
+                                                            {search
+                                                                ? `Không tìm thấy dịch vụ nào với từ khóa "${search}"`
+                                                                : 'Chưa có dịch vụ nào được đăng ký'}
+                                                        </p>
+                                                    </td>
+                                                </tr>
+                                            )}
+
+                                            {/* Data Rows */}
+                                            {!loading && !error &&
+                                                filteredServices.map((service, idx) => (
+                                                    <tr
+                                                        key={service._id || idx}
+                                                        className="border-b border-gray-200 hover:bg-gray-50 transition-colors"
+                                                    >
+                                                        <td className="px-4 py-3 text-sm text-gray-900">
+                                                            <div className="flex items-center gap-2">
+                                                                {service.icon && (
+                                                                    <img
+                                                                        src={service.icon}
+                                                                        alt=""
+                                                                        className="w-8 h-8 rounded object-cover flex-shrink-0"
+                                                                    />
+                                                                )}
+                                                                <span>{service.service_name}</span>
+                                                            </div>
+                                                        </td>
+                                                        <td className="px-4 py-3 text-sm font-semibold text-primary-700">
+                                                            {formatPrice(service.price)}
+                                                        </td>
+                                                        <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">
+                                                            {service.duration
+                                                                ? `${service.duration} phút`
+                                                                : '—'}
+                                                        </td>
+                                                        <td className="px-4 py-3">
+                                                            <span
+                                                                className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${service.status === 'AVAILABLE'
+                                                                        ? 'bg-green-100 text-green-700'
+                                                                        : 'bg-red-100 text-red-600'
+                                                                    }`}
                                                             >
-                                                                <td className="px-4 py-3 text-sm text-gray-900">
-                                                                    {service.name}
-                                                                    {service.discount && (
-                                                                        <span className="ml-2 px-2 py-0.5 bg-red-100 text-red-600 text-xs rounded">
-                                                                            Giảm giá
-                                                                        </span>
-                                                                    )}
-                                                                </td>
-                                                                <td className="px-4 py-3 text-sm">
-                                                                    {service.discount ? (
-                                                                        <div>
-                                                                            <span className="line-through text-gray-400 text-xs block">
-                                                                                {service.price}
-                                                                            </span>
-                                                                            <span className="text-red-600 font-semibold">
-                                                                                {service.discount}
-                                                                            </span>
-                                                                        </div>
-                                                                    ) : (
-                                                                        <span className="text-gray-900 font-medium">
-                                                                            {service.price}
-                                                                        </span>
-                                                                    )}
-                                                                </td>
-                                                                <td className="px-4 py-3 text-sm text-gray-600">
-                                                                    {service.type}
-                                                                </td>
-                                                                <td className="px-4 py-3 text-center">
-                                                                    <Link
-                                                                        to={`/service/${toUrlFriendly(service.name)}`}
-                                                                        className="text-primary-600 hover:text-primary-700 font-medium text-sm hover:underline"
-                                                                    >
-                                                                        Chi tiết
-                                                                    </Link>
-                                                                </td>
-                                                            </tr>
-                                                        ))}
-                                                    </tbody>
-                                                </table>
-                                            </div>
-                                        </div>
-                                    ))}
+                                                                {service.status === 'AVAILABLE'
+                                                                    ? 'Đang cung cấp'
+                                                                    : 'Tạm ngưng'}
+                                                            </span>
+                                                        </td>
+                                                        <td className="px-4 py-3 text-center">
+                                                            <Link
+                                                                to={`/service/${service._id || toUrlFriendly(service.service_name)}`}
+                                                                className="text-primary-600 hover:text-primary-700 font-medium text-sm hover:underline"
+                                                            >
+                                                                Chi tiết
+                                                            </Link>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
                         </div>
 
-                        {/* Sidebar - Image & Info */}
+                        {/* Sidebar */}
                         <div className="lg:col-span-1">
                             <div className="bg-white rounded-lg shadow-sm overflow-hidden sticky top-4">
-                                {/* Clinic Image */}
+                                {/* Clinic banner */}
                                 <div className="aspect-video bg-gradient-to-br from-primary-100 to-primary-200 flex items-center justify-center">
                                     <div className="text-center p-6">
                                         <div className="text-4xl mb-2">🦷</div>
@@ -248,8 +284,9 @@ const ServicesPricing = () => {
                     {/* Note */}
                     <div className="mt-8 p-4 bg-yellow-50 border-l-4 border-yellow-400 rounded">
                         <p className="text-sm text-yellow-800">
-                            <strong>Lưu ý:</strong> Giá dịch vụ có thể thay đổi tùy theo tình trạng răng miệng và phương pháp điều trị cụ thể.
-                            Vui lòng liên hệ để được tư vấn chi tiết và chính xác nhất.
+                            <strong>Lưu ý:</strong> Giá dịch vụ có thể thay đổi tùy theo tình trạng
+                            răng miệng và phương pháp điều trị cụ thể. Vui lòng liên hệ để được tư
+                            vấn chi tiết và chính xác nhất.
                         </p>
                     </div>
                 </div>

@@ -329,6 +329,20 @@ const updateController = async (req, res) => {
     }
 };
 
+// get available roles for staff creation
+const getRolesController = async (req, res) => {
+    try {
+        const roles = await ServiceProcess.getStaffRoles();
+        return new successRes.GetListSuccess(roles, null, 'Roles retrieved successfully').send(res);
+    } catch (error) {
+        logger.error('Error get roles', {
+            context: 'StaffController.getRolesController',
+            message: error.message
+        });
+        throw error;
+    }
+};
+
 // update equipment status only
 const updateStatusController = async (req, res) => {
     try {
@@ -343,8 +357,8 @@ const updateStatusController = async (req, res) => {
         });
 
         // 2. Validate Status
-        const validStatuses = ["ACTIVE", "INACTIVE"]; 
-        
+        const validStatuses = ["ACTIVE", "INACTIVE"];
+
         if (!status || !validStatuses.includes(status)) {
             logger.warn('Invalid or missing status value', {
                 context: 'StaffController.updateStatusController',
@@ -356,17 +370,17 @@ const updateStatusController = async (req, res) => {
 
         // 3. Gọi Service cập nhật
         // Lưu ý: updateService trả về object chứa { account, profile, staff, license }
-        const result = await ServiceProcess.updateStaffStatusOnly(accountId, { status });
+        const result = await ServiceProcess.updateStaffStatusOnly(accountId, status);
 
         // Kiểm tra kết quả
-        if (!result || !result.staff) {
-             throw new errorRes.NotFoundError('Staff not found');
+        if (!result) {
+            throw new errorRes.NotFoundError('Staff not found');
         }
 
         logger.info('Staff status updated successfully', {
             context: 'StaffController.updateStatusController',
-            staffId: result.staff._id,
-            newStatus: result.staff.status
+            staffId: result._id,
+            newStatus: result.status
         });
 
         // 4. Trả về kết quả
@@ -387,5 +401,6 @@ module.exports = {
     getByIdController,
     createController,
     updateController,
-    updateStatusController
+    updateStatusController,
+    getRolesController
 };

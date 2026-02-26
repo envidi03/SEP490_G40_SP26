@@ -32,6 +32,7 @@ const EquipmentList = () => {
     const [equipmentUsage, setEquipmentUsage] = useState([]);
     const [filteredEquipment, setFilteredEquipment] = useState([]);
     const [pagination, setPagination] = useState({ totalItems: 0, totalPages: 0, page: 1, size: 10 });
+    const [statistics, setStatistics] = useState({ total: 0, ready: 0, in_use: 0, maintenance: 0, repairing: 0, faulty: 0, sterilizing: 0 });
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
     const [loading, setLoading] = useState(true);
@@ -75,6 +76,11 @@ const EquipmentList = () => {
             // Update pagination info if available
             if (response.pagination) {
                 setPagination(response.pagination);
+            }
+
+            // Update statistics from API (accurate across all pages)
+            if (response.statistics) {
+                setStatistics(response.statistics);
             }
         } catch (err) {
             console.error('Error fetching equipment:', err);
@@ -320,14 +326,7 @@ const EquipmentList = () => {
     };
 
     // ========== STATISTICS ==========
-    // Use totalItems from pagination for accurate total count
-    const totalEquipment = pagination.totalItems || equipment.length;
-    const readyEquipment = equipment.filter(e => e.status === 'READY').length;
-    const inUseEquipment = equipment.filter(e => e.status === 'IN_USE').length;
-    const maintenanceCount = equipment.filter(e => e.status === 'MAINTENANCE').length;
-    const repairingCount = equipment.filter(e => e.status === 'REPAIRING').length;
-    const faultyCount = equipment.filter(e => e.status === 'FAULTY').length;
-    const sterilizingCount = equipment.filter(e => e.status === 'STERILIZING').length;
+    // Statistics come directly from API (accurate across all pages in DB)
 
     // ========== RENDER ==========
     return (
@@ -356,15 +355,7 @@ const EquipmentList = () => {
                 </div>
 
                 {/* Statistics */}
-                <EquipmentStatistics
-                    totalEquipment={totalEquipment}
-                    readyEquipment={readyEquipment}
-                    inUseEquipment={inUseEquipment}
-                    maintenanceCount={maintenanceCount}
-                    repairingCount={repairingCount}
-                    faultyCount={faultyCount}
-                    sterilizingCount={sterilizingCount}
-                />
+                <EquipmentStatistics statistics={statistics} />
 
                 {/* Filters */}
                 <EquipmentFilters
@@ -421,7 +412,6 @@ const EquipmentList = () => {
                 show={showDetailModal}
                 equipment={selectedDetailEquipment}
                 onClose={() => setShowDetailModal(false)}
-                formatDate={formatDate}
                 getStatusColor={getStatusColor}
                 getStatusText={getStatusText}
             />

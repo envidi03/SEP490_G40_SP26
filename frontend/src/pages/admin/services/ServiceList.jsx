@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Toast from '../../../components/ui/Toast';
-import { Plus } from 'lucide-react';
-import { ClipboardList } from 'lucide-react';
+import { Plus, ClipboardList } from 'lucide-react';
 import serviceService from '../../../services/serviceService';
 
 // Components
@@ -53,6 +52,8 @@ const ServiceList = () => {
         description: '',
         price: '',
         duration: '',
+        icon: '',
+        equipment_service: [],
         status: 'AVAILABLE'
     });
 
@@ -138,6 +139,8 @@ const ServiceList = () => {
             description: '',
             price: '',
             duration: '',
+            icon: '',
+            equipment_service: [],
             status: 'AVAILABLE'
         });
         setShowServiceModal(true);
@@ -146,15 +149,28 @@ const ServiceList = () => {
     /**
      * Handler: Open edit service modal
      */
-    const handleEditService = (service) => {
+    const handleEditService = async (service) => {
         setIsEditMode(true);
         setSelectedService(service);
+
+        // Fetch đầy đủ detail để lấy equipment_service (list API exclude trường này)
+        let fullService = service;
+        try {
+            const detail = await serviceService.getServiceById(service._id);
+            if (detail?.data) fullService = detail.data;
+        } catch (error) {
+            console.error('Error fetching service detail for edit:', error);
+            // fallback về list item nếu API lỗi
+        }
+
         setServiceForm({
-            service_name: service.service_name,
-            description: service.description,
-            price: service.price,
-            duration: service.duration,
-            status: service.status
+            service_name: fullService.service_name,
+            description: fullService.description,
+            price: fullService.price,
+            duration: fullService.duration,
+            icon: fullService.icon || '',
+            equipment_service: fullService.equipment_service || [],
+            status: fullService.status
         });
         setShowServiceModal(true);
     };
@@ -192,24 +208,24 @@ const ServiceList = () => {
             if (isEditMode) {
                 // Update service
                 await serviceService.updateService(selectedService._id, serviceData);
-                setToast({
-                    show: true,
-                    type: 'success',
-                    message: '✅ Cập nhật dịch vụ thành công!'
-                });
             } else {
                 // Add new service
                 await serviceService.createService(serviceData);
-                setToast({
-                    show: true,
-                    type: 'success',
-                    message: '✅ Thêm dịch vụ mới thành công!'
-                });
             }
 
+            // Close modal first
             setShowServiceModal(false);
             setSelectedService(null);
-            fetchServices(pagination.page); // Refresh current list
+
+            // Show toast notification
+            setToast({
+                show: true,
+                type: 'success',
+                message: isEditMode ? '✅ Cập nhật dịch vụ thành công!' : '✅ Thêm dịch vụ mới thành công!'
+            });
+
+            // Refresh list
+            fetchServices(pagination.page);
         } catch (error) {
             console.error('Error saving service:', error);
             setToast({
@@ -274,14 +290,19 @@ const ServiceList = () => {
                 price: Number(priceForm.price)
             });
 
+            // Close modal first
             setShowPriceModal(false);
             setSelectedService(null);
+
+            // Show toast notification
             setToast({
                 show: true,
                 type: 'success',
                 message: '✅ Cập nhật giá dịch vụ thành công!'
             });
-            fetchServices(pagination.page); // Refresh list
+
+            // Refresh list
+            fetchServices(pagination.page);
         } catch (error) {
             console.error('Error updating price:', error);
             setToast({
@@ -354,8 +375,13 @@ const ServiceList = () => {
                             pagination={pagination}
                             onPageChange={handlePageChange}
                             searchTerm={searchTerm}
-                            onViewDetails={(service) => {
-                                setSelectedDetailService(service);
+                            onViewDetails={async (service) => {
+                                try {
+                                    const detail = await serviceService.getServiceById(service._id, { limit: 100 });
+                                    setSelectedDetailService(detail?.data || service);
+                                } catch {
+                                    setSelectedDetailService(service);
+                                }
                                 setShowDetailModal(true);
                             }}
                             onEdit={handleEditService}
@@ -400,14 +426,13 @@ const ServiceList = () => {
             />
 
             {/* Toast Notification */}
-            {toast.show && (
-                <Toast
-                    type={toast.type}
-                    message={toast.message}
-                    onClose={() => setToast({ ...toast, show: false })}
-                    duration={3000}
-                />
-            )}
+            <Toast
+                show={toast.show}
+                type={toast.type}
+                message={toast.message}
+                onClose={() => setToast({ ...toast, show: false })}
+                duration={3000}
+            />
         </div>
     );
 };

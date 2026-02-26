@@ -114,10 +114,8 @@ const getRoomById = async (roomId, query) => {
           status: 1,
           note: 1,
           clinic_id: 1,
-          // Đã an toàn để dùng $size vì filtered_history và safe_services luôn là array
           history_total: { $size: "$filtered_history" },
           service_total: { $size: "$safe_services" },
-
           history_used: {
             $slice: [
               { $sortArray: { input: "$filtered_history", sortBy: { used_date: -1 } } },
@@ -125,12 +123,61 @@ const getRoomById = async (roomId, query) => {
               historyLimit,
             ],
           },
-          room_service: {
+          // Lấy slice trước rồi lookup để tránh lookup toàn bộ
+          room_service_paged: {
             $slice: ["$safe_services", serviceSkip, serviceRoomLimit],
           },
         },
       },
+      // Unwind room_service_paged để lookup từng item
+      {
+        $unwind: {
+          path: "$room_service_paged",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      // Lookup service name
+      {
+        $lookup: {
+          from: "services",
+          localField: "room_service_paged.service_id",
+          foreignField: "_id",
+          as: "room_service_paged.service_info",
+        },
+      },
+      // Thêm service_name vào từng item
+      {
+        $addFields: {
+          "room_service_paged.service_name": {
+            $ifNull: [
+              { $arrayElemAt: ["$room_service_paged.service_info.service_name", 0] },
+              "Không xác định",
+            ],
+          },
+        },
+      },
+      // Group lại thành array
+      {
+        $group: {
+          _id: "$_id",
+          room_number: { $first: "$room_number" },
+          status: { $first: "$status" },
+          note: { $first: "$note" },
+          clinic_id: { $first: "$clinic_id" },
+          history_total: { $first: "$history_total" },
+          service_total: { $first: "$service_total" },
+          history_used: { $first: "$history_used" },
+          room_service: {
+            $push: {
+              service_id: "$room_service_paged.service_id",
+              service_name: "$room_service_paged.service_name",
+              note: "$room_service_paged.note",
+            },
+          },
+        },
+      },
     ]);
+
 
     // Log 3: Raw result
     logger.debug("Raw aggregation result", {

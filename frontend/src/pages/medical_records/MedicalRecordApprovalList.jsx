@@ -19,8 +19,6 @@ const MedicalRecordApprovalList = () => {
     }, [records, filter]);
 
     const handleApprove = async (recordId) => {
-        // In a real app, this would call an API
-        console.log('Approving record:', recordId);
 
         setRecords(prevRecords =>
             prevRecords.map(record =>
@@ -35,8 +33,6 @@ const MedicalRecordApprovalList = () => {
     };
 
     const handleReject = async (recordId, reason) => {
-        // In a real app, this would call an API
-        console.log('Rejecting record:', recordId, 'Reason:', reason);
 
         setRecords(prevRecords =>
             prevRecords.map(record =>
@@ -118,8 +114,8 @@ const MedicalRecordApprovalList = () => {
                     <button
                         onClick={() => setFilter('ALL')}
                         className={`px-4 py-2 rounded-lg font-medium transition-colors ${filter === 'ALL'
-                                ? 'bg-blue-600 text-white'
-                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                             }`}
                     >
                         Tất cả ({stats.total})
@@ -127,8 +123,8 @@ const MedicalRecordApprovalList = () => {
                     <button
                         onClick={() => setFilter('PENDING')}
                         className={`px-4 py-2 rounded-lg font-medium transition-colors ${filter === 'PENDING'
-                                ? 'bg-yellow-600 text-white'
-                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                            ? 'bg-yellow-600 text-white'
+                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                             }`}
                     >
                         Chờ duyệt ({stats.pending})
@@ -136,8 +132,8 @@ const MedicalRecordApprovalList = () => {
                     <button
                         onClick={() => setFilter('REVIEWED')}
                         className={`px-4 py-2 rounded-lg font-medium transition-colors ${filter === 'REVIEWED'
-                                ? 'bg-blue-600 text-white'
-                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                             }`}
                     >
                         Đã xem xét ({stats.approved + stats.rejected})

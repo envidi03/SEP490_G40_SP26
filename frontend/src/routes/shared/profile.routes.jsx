@@ -5,9 +5,6 @@ import ReceptionistLayout from '../../components/layout/receptionist/Receptionis
 import PharmacyLayout from '../../components/layout/PharmacyLayout';
 import AssistantLayout from '../../components/layout/assistant/AssistantLayout';
 
-/**
- * Profile Routes - Shared profile page for all roles
- */
 const profileRoutes = [
     {
         path: '/admin/profile',
