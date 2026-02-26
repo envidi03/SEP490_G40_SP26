@@ -23,6 +23,7 @@ const bcrypt = require('bcrypt');
 const getListService = async (query) => {
     try {
         const search = query.search?.trim();
+        const roleFilter = query.role_name?.trim().toUpperCase(); // Nhận filter và tự động Upper Case chuẩn hóa
         const genderFilter = query.filter;
         const sortOrder = query.sort === "desc" ? -1 : 1;
         const page = Math.max(1, parseInt(query.page || 1));
@@ -88,6 +89,11 @@ const getListService = async (query) => {
 
         if (genderFilter) {
             matchCondition["profile_info.gender"] = genderFilter;
+        }
+
+        // MỚI: Filter chính xác theo Tên Role (VD: "DOCTOR")
+        if (roleFilter) {
+            matchCondition["role_info.name"] = roleFilter;
         }
 
         if (search) {
