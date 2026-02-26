@@ -48,3 +48,20 @@ exports.createMedicine = async (req, res) => {
         });
     }
 };
+
+exports.updateMedicine = async (req, res) => {
+    try {
+        const medicine = await medicineService.updateMedicine(req.params.id, req.body);
+        return res.status(200).json({
+            success: true,
+            message: "Cập nhật thuốc thành công",
+            data: medicine
+        });
+    } catch (error) {
+        const statusCode = error.statusCode || (error.name === "ValidationError" ? 400 : 500);
+        return res.status(statusCode).json({
+            success: false,
+            message: error.message
+        });
+    }
+};

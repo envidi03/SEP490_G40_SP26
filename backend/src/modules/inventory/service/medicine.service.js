@@ -120,3 +120,71 @@ exports.createMedicine = async (data) => {
     const medicine = new Medicine(data);
     return await medicine.save();
 };
+
+/**
+ * Cập nhật thông tin thuốc
+ */
+exports.updateMedicine = async (id, data) => {
+    const medicine = await Medicine.findById(id);
+    if (!medicine) {
+        const error = new Error("Không tìm thấy thuốc");
+        error.statusCode = 404;
+        throw error;
+    }
+
+    // Validate số nếu có gửi lên
+    if (data.price !== undefined) {
+        if (isNaN(Number(data.price)) || Number(data.price) < 0) {
+            const error = new Error("Giá phải là số hợp lệ và không được âm");
+            error.statusCode = 400;
+            throw error;
+        }
+    }
+
+    if (data.quantity !== undefined) {
+        if (isNaN(Number(data.quantity)) || Number(data.quantity) < 0) {
+            const error = new Error("Số lượng tồn kho phải là số hợp lệ và không được âm");
+            error.statusCode = 400;
+            throw error;
+        }
+    }
+
+    if (data.min_quantity !== undefined) {
+        if (isNaN(Number(data.min_quantity)) || Number(data.min_quantity) < 0) {
+            const error = new Error("Tồn kho tối thiểu phải là số hợp lệ và không được âm");
+            error.statusCode = 400;
+            throw error;
+        }
+    }
+
+    if (data.expiry_date !== undefined) {
+        const expiryDate = new Date(data.expiry_date);
+        if (isNaN(expiryDate.getTime())) {
+            const error = new Error("Hạn sử dụng không hợp lệ");
+            error.statusCode = 400;
+            throw error;
+        }
+    }
+
+    // Kiểm tra trùng tên (trừ chính nó)
+    if (data.medicine_name) {
+        const duplicate = await Medicine.findOne({
+            medicine_name: { $regex: new RegExp(`^${data.medicine_name}$`, "i") },
+            _id: { $ne: id }
+        });
+        if (duplicate) {
+            const error = new Error("Thuốc với tên này đã tồn tại trong hệ thống");
+            error.statusCode = 409;
+            throw error;
+        }
+    }
+
+    // Cập nhật các trường được gửi lên
+    Object.keys(data).forEach((key) => {
+        if (key !== "_id" && key !== "medicine_restock_requests") {
+            medicine[key] = data[key];
+        }
+    });
+
+    return await medicine.save();
+};

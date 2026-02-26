@@ -192,6 +192,63 @@ router.get("/medicines/categories", medicineController.getCategories);
  */
 router.post("/medicines", medicineController.createMedicine);
 
+/**
+ * @swagger
+ * /api/inventory/medicines/{id}:
+ *   put:
+ *     summary: Cập nhật thông tin thuốc
+ *     tags: [Inventory]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID của thuốc
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               medicine_name:
+ *                 type: string
+ *               category:
+ *                 type: string
+ *               dosage:
+ *                 type: string
+ *               unit:
+ *                 type: string
+ *               price:
+ *                 type: number
+ *               manufacturer:
+ *                 type: string
+ *               distributor:
+ *                 type: string
+ *               batch_number:
+ *                 type: string
+ *               expiry_date:
+ *                 type: string
+ *                 format: date
+ *               quantity:
+ *                 type: number
+ *               min_quantity:
+ *                 type: number
+ *     responses:
+ *       200:
+ *         description: Cập nhật thành công
+ *       400:
+ *         description: Dữ liệu không hợp lệ
+ *       404:
+ *         description: Không tìm thấy thuốc
+ *       409:
+ *         description: Trùng tên thuốc
+ *       500:
+ *         description: Lỗi server
+ */
+router.put("/medicines/:id", medicineController.updateMedicine);
+
 // ======================== DASHBOARD ROUTES ========================
 
 /**
