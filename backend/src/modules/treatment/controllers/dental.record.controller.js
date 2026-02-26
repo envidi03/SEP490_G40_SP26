@@ -53,7 +53,28 @@ const editDentalRecordController = async (req, res) => {
   }
 };
 
+const getDentalRecordsController = async (req, res) => {
+  try {
+    const accountId = req.user.account_id;
+
+    const result = await ServiceProcess.getDentalRecordsService(
+      accountId,
+      req.query
+    );
+
+    return new successRes.Success(result).send(res);
+
+  } catch (error) {
+    logger.error("Get dental records error", {
+      context: "DentalRecordController.getDentalRecordsController",
+      message: error.message,
+    });
+    throw error;
+  }
+};
+
 module.exports = {
   createDentalRecordController,
   editDentalRecordController,
+  getDentalRecordsController,
 };

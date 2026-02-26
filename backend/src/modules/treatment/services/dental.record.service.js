@@ -55,7 +55,42 @@ const editDentalRecordService = async (accountId, recordId, payload = {}) => {
   return record;
 };
 
+const getDentalRecordsService = async (accountId, query) => {
+  const page = parseInt(query.page) || 1;
+  const limit = parseInt(query.limit) || 10;
+
+  const staff = await StaffModel.Staff.findOne({ account_id: accountId });
+  if (!staff) throw new errorRes.NotFoundError("Staff not found");
+
+  const filter = { created_by: staff._id };
+
+  if (query.patient_id) {
+    filter.patient_id = query.patient_id;
+  }
+
+  if (query.status) {
+    filter.status = query.status;
+  }
+
+  const total = await DentalRecordModel.countDocuments(filter);
+
+  const data = await DentalRecordModel.find(filter)
+    .populate("patient_id")
+    .sort({ createdAt: -1 })
+    .skip((page - 1) * limit)
+    .limit(limit);
+
+  return {
+    page,
+    size: limit,
+    totalItems: total,
+    totalPages: Math.ceil(total / limit),
+    data,
+  };
+};
+
 module.exports = { 
     createDentalRecordService, 
-    editDentalRecordService 
+    editDentalRecordService,
+    getDentalRecordsService
 };
