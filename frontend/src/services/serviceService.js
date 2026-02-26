@@ -10,6 +10,15 @@ const serviceService = {
         }
     },
 
+    getServiceById: async (id, params = {}) => {
+        try {
+            const response = await apiClient.get(`/api/service/${id}`, { params });
+            return response;
+        } catch (error) {
+            throw error;
+        }
+    },
+
     createService: async (serviceData) => {
         try {
             const response = await apiClient.post('/api/service', serviceData);

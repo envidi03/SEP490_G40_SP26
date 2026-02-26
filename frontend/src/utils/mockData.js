@@ -238,6 +238,171 @@ export const mockAccounts = [
     }
 ];
 
+// ==================== MEDICINES TABLE ====================
+/**
+ * Medicines table - Pharmaceutical products in clinic
+ * Fields: medicine_name, medicine_type, dosage, manufacturer, 
+ *         quantity, unit, expiry_date, batch_number, price, status
+ */
+export const mockMedicines = [
+    {
+        id: 'med_001',
+        medicine_name: 'Paracetamol 500mg',
+        medicine_type: 'Giảm đau, hạ sốt',
+        dosage: '500mg',
+        manufacturer: 'DHG Pharma',
+        quantity: 500,
+        unit: 'Viên',
+        expiry_date: '2026-12-31',
+        batch_number: 'PCT-2024-001',
+        price: 500,
+        status: 'AVAILABLE'
+    },
+    {
+        id: 'med_002',
+        medicine_name: 'Amoxicillin 500mg',
+        medicine_type: 'Kháng sinh',
+        dosage: '500mg',
+        manufacturer: 'Teva Vietnam',
+        quantity: 300,
+        unit: 'Viên',
+        expiry_date: '2026-08-15',
+        batch_number: 'AMX-2024-002',
+        price: 2000,
+        status: 'AVAILABLE'
+    },
+    {
+        id: 'med_003',
+        medicine_name: 'Ibuprofen 400mg',
+        medicine_type: 'Giảm đau, kháng viêm',
+        dosage: '400mg',
+        manufacturer: 'Sanofi Vietnam',
+        quantity: 200,
+        unit: 'Viên',
+        expiry_date: '2027-03-20',
+        batch_number: 'IBU-2024-003',
+        price: 1500,
+        status: 'AVAILABLE'
+    },
+    {
+        id: 'med_004',
+        medicine_name: 'Lidocaine 2% (Gây tê)',
+        medicine_type: 'Thuốc gây tê',
+        dosage: '2%',
+        manufacturer: 'AstraZeneca',
+        quantity: 50,
+        unit: 'Lọ',
+        expiry_date: '2026-02-28',
+        batch_number: 'LID-2024-004',
+        price: 35000,
+        status: 'AVAILABLE'
+    },
+    {
+        id: 'med_005',
+        medicine_name: 'Chlorhexidine 0.2%',
+        medicine_type: 'Thuốc súc miệng kháng khuẩn',
+        dosage: '0.2%',
+        manufacturer: 'Colgate-Palmolive',
+        quantity: 100,
+        unit: 'Chai',
+        expiry_date: '2026-06-30',
+        batch_number: 'CHX-2024-005',
+        price: 45000,
+        status: 'AVAILABLE'
+    },
+    {
+        id: 'med_006',
+        medicine_name: 'Metronidazole 250mg',
+        medicine_type: 'Kháng sinh',
+        dosage: '250mg',
+        manufacturer: 'Pymepharco',
+        quantity: 150,
+        unit: 'Viên',
+        expiry_date: '2026-01-30',
+        batch_number: 'MTZ-2024-006',
+        price: 1200,
+        status: 'EXPIRING_SOON'
+    },
+    {
+        id: 'med_007',
+        medicine_name: 'Calcium Carbonate 500mg',
+        medicine_type: 'Bổ sung canxi',
+        dosage: '500mg',
+        manufacturer: 'US Pharma',
+        quantity: 350,
+        unit: 'Viên',
+        expiry_date: '2027-09-15',
+        batch_number: 'CAL-2024-007',
+        price: 800,
+        status: 'AVAILABLE'
+    },
+    {
+        id: 'med_008',
+        medicine_name: 'Vitamin C 1000mg',
+        medicine_type: 'Vitamin',
+        dosage: '1000mg',
+        manufacturer: 'Abbott Vietnam',
+        quantity: 400,
+        unit: 'Viên',
+        expiry_date: '2027-11-30',
+        batch_number: 'VTC-2024-008',
+        price: 600,
+        status: 'AVAILABLE'
+    },
+    {
+        id: 'med_009',
+        medicine_name: 'Hydrogen Peroxide 3%',
+        medicine_type: 'Dung dịch sát trùng',
+        dosage: '3%',
+        manufacturer: 'Phong Phú',
+        quantity: 80,
+        unit: 'Chai',
+        expiry_date: '2026-04-15',
+        batch_number: 'H2O2-2024-009',
+        price: 15000,
+        status: 'AVAILABLE'
+    },
+    {
+        id: 'med_010',
+        medicine_name: 'Fluoride Gel',
+        medicine_type: 'Bôi trơn răng',
+        dosage: '1.23%',
+        manufacturer: '3M ESPE',
+        quantity: 30,
+        unit: 'Tuýp',
+        expiry_date: '2026-02-10',
+        batch_number: 'FLU-2024-010',
+        price: 85000,
+        status: 'EXPIRING_SOON'
+    },
+    {
+        id: 'med_011',
+        medicine_name: 'Dexamethasone 0.5mg',
+        medicine_type: 'Kháng viêm corticoid',
+        dosage: '0.5mg',
+        manufacturer: 'Merap',
+        quantity: 10,
+        unit: 'Viên',
+        expiry_date: '2026-01-25',
+        batch_number: 'DEX-2024-011',
+        price: 3000,
+        status: 'LOW_STOCK'
+    },
+    {
+        id: 'med_012',
+        medicine_name: 'Composite Filling Material',
+        medicine_type: 'Vật liệu nha khoa',
+        dosage: 'N/A',
+        manufacturer: 'Kerr Dental',
+        quantity: 25,
+        unit: 'Bộ',
+        expiry_date: '2027-06-30',
+        batch_number: 'CMP-2024-012',
+        price: 450000,
+        status: 'AVAILABLE'
+    }
+];
+
 // ==================== ROLE TABLE ====================
 /**
  * Role table - User roles

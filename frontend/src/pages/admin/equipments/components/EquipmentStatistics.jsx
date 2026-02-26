@@ -1,61 +1,53 @@
 import React from 'react';
 import { Package, CheckCircle, Activity, Wrench, AlertTriangle, XCircle, PackageCheck } from 'lucide-react';
 
-const EquipmentStatistics = ({
-    totalEquipment,
-    readyEquipment,
-    inUseEquipment,
-    maintenanceCount,
-    repairingCount,
-    faultyCount,
-    sterilizingCount
-}) => {
+const EquipmentStatistics = ({ statistics = {} }) => {
     const stats = [
         {
             label: 'Tổng thiết bị',
-            value: totalEquipment,
+            value: statistics.total ?? 0,
             icon: Package,
             gradient: 'from-indigo-500 to-purple-600',
             color: 'indigo-600'
         },
         {
             label: 'Sẵn sàng',
-            value: readyEquipment,
+            value: statistics.ready ?? 0,
             icon: CheckCircle,
             gradient: 'from-green-500 to-emerald-600',
             color: 'green-600'
         },
         {
             label: 'Đang sử dụng',
-            value: inUseEquipment,
+            value: statistics.in_use ?? 0,
             icon: Activity,
             gradient: 'from-blue-500 to-cyan-600',
             color: 'blue-600'
         },
         {
             label: 'Bảo trì',
-            value: maintenanceCount,
+            value: statistics.maintenance ?? 0,
             icon: Wrench,
             gradient: 'from-yellow-500 to-orange-600',
             color: 'yellow-600'
         },
         {
             label: 'Đang sửa chữa',
-            value: repairingCount,
+            value: statistics.repairing ?? 0,
             icon: AlertTriangle,
             gradient: 'from-orange-500 to-red-600',
             color: 'orange-600'
         },
         {
             label: 'Bị hỏng',
-            value: faultyCount,
+            value: statistics.faulty ?? 0,
             icon: XCircle,
             gradient: 'from-red-500 to-rose-600',
             color: 'red-600'
         },
         {
             label: 'Đang khử trùng',
-            value: sterilizingCount,
+            value: statistics.sterilizing ?? 0,
             icon: PackageCheck,
             gradient: 'from-purple-500 to-indigo-600',
             color: 'purple-600'

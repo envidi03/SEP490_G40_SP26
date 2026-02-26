@@ -21,13 +21,7 @@ const DentistAppointmentList = () => {
   const [selectedAppointment, setSelectedAppointment] = useState(null)
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false)
 
-  // Debug logging
-  console.log('🔍 DentistAppointmentList - User:', user);
-  console.log('🔍 User ID:', user?.id);
-
   const doctorAppointments = getAppointmentsByDoctor(user?.id)
-  console.log('📅 Doctor Appointments:', doctorAppointments);
-  console.log('📊 Total appointments found:', doctorAppointments.length);
 
   const filteredAppointments = useMemo(() => {
     return doctorAppointments.filter((apt) => {

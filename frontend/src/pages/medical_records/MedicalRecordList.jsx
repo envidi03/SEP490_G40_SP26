@@ -51,14 +51,6 @@ const MedicalRecordList = () => {
     const handleSubmitRecord = async (formData) => {
         setIsSubmitting(true);
         try {
-            // Simulate API call
-            console.log('Creating record for appointment:', selectedAppointmentForCreate.id);
-            console.log('Data:', {
-                ...formData,
-                patient_id: selectedAppointmentForCreate.patient_id,
-                doctor_id: user.id,
-                appointment_id: selectedAppointmentForCreate.id
-            });
 
             // Simulate delay
             await new Promise(resolve => setTimeout(resolve, 1000));
