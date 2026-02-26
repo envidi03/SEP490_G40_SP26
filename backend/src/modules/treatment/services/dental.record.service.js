@@ -5,6 +5,7 @@ const Pagination = require("../../../common/responses/Pagination");
 
 const StaffModel = require("../../staff/models/staff.model");
 const DentalRecordModel = require("../models/dental-record.model");
+require("../../patient/model/patient.model");
 
 const createDentalRecordService = async (accountId, payload) => {
   const staff = await StaffModel.findOne({ account_id: accountId });

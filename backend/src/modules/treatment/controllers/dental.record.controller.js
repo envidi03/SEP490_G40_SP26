@@ -62,7 +62,7 @@ const getDentalRecordsController = async (req, res) => {
       req.query
     );
 
-    return new successRes.Success(result).send(res);
+    return new successRes.GetListSuccess(result).send(res);
 
   } catch (error) {
     logger.error("Get dental records error", {
