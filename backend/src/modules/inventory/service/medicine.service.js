@@ -132,7 +132,6 @@ exports.updateMedicine = async (id, data) => {
         throw error;
     }
 
-    // Validate số nếu có gửi lên
     if (data.price !== undefined) {
         if (isNaN(Number(data.price)) || Number(data.price) < 0) {
             const error = new Error("Giá phải là số hợp lệ và không được âm");
@@ -166,7 +165,6 @@ exports.updateMedicine = async (id, data) => {
         }
     }
 
-    // Kiểm tra trùng tên (trừ chính nó)
     if (data.medicine_name) {
         const duplicate = await Medicine.findOne({
             medicine_name: { $regex: new RegExp(`^${data.medicine_name}$`, "i") },
@@ -179,7 +177,6 @@ exports.updateMedicine = async (id, data) => {
         }
     }
 
-    // Cập nhật các trường được gửi lên
     Object.keys(data).forEach((key) => {
         if (key !== "_id" && key !== "medicine_restock_requests") {
             medicine[key] = data[key];
