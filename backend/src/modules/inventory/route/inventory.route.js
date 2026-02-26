@@ -272,6 +272,163 @@ router.put("/medicines/:id", medicineController.updateMedicine);
  */
 router.get("/medicines/:id", medicineController.getMedicineById);
 
+// ======================== RESTOCK REQUEST ROUTES ========================
+
+/**
+ * @swagger
+ * /api/inventory/medicines/{id}/restock-requests:
+ *   post:
+ *     summary: Tạo yêu cầu bổ sung thuốc
+ *     tags: [Inventory]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID của thuốc cần bổ sung
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - request_by
+ *               - quantity_requested
+ *               - reason
+ *             properties:
+ *               request_by:
+ *                 type: string
+ *                 description: ID của nhân viên yêu cầu
+ *                 example: 60d5ec49f1b2c72b9c8e4d3a
+ *               quantity_requested:
+ *                 type: number
+ *                 example: 200
+ *               priority:
+ *                 type: string
+ *                 enum: [low, medium, high]
+ *                 default: medium
+ *               reason:
+ *                 type: string
+ *                 example: Tồn kho thấp, cần bổ sung gấp
+ *               note:
+ *                 type: string
+ *                 example: Ghi chú thêm
+ *     responses:
+ *       201:
+ *         description: Tạo yêu cầu thành công
+ *       400:
+ *         description: Dữ liệu không hợp lệ
+ *       404:
+ *         description: Không tìm thấy thuốc
+ *       500:
+ *         description: Lỗi server
+ */
+router.post("/medicines/:id/restock-requests", medicineController.createRestockRequest);
+
+/**
+ * @swagger
+ * /api/inventory/restock-requests:
+ *   get:
+ *     summary: Lấy danh sách tất cả yêu cầu bổ sung thuốc
+ *     tags: [Inventory]
+ *     parameters:
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [pending, accept, reject, completed]
+ *         description: Lọc theo trạng thái
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *     responses:
+ *       200:
+ *         description: Thành công
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       medicine_name:
+ *                         type: string
+ *                       quantity_requested:
+ *                         type: number
+ *                       current_quantity:
+ *                         type: number
+ *                       priority:
+ *                         type: string
+ *                       status:
+ *                         type: string
+ *                       request_by_name:
+ *                         type: string
+ *                       created_at:
+ *                         type: string
+ *                         format: date-time
+ *       500:
+ *         description: Lỗi server
+ */
+router.get("/restock-requests", medicineController.getRestockRequests);
+
+/**
+ * @swagger
+ * /api/inventory/medicines/{id}/restock-requests/{requestId}:
+ *   patch:
+ *     summary: Cập nhật trạng thái yêu cầu bổ sung thuốc
+ *     tags: [Inventory]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID của thuốc
+ *       - in: path
+ *         name: requestId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID của yêu cầu bổ sung
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - status
+ *             properties:
+ *               status:
+ *                 type: string
+ *                 enum: [pending, accept, reject, completed]
+ *                 example: accept
+ *     responses:
+ *       200:
+ *         description: Cập nhật thành công
+ *       400:
+ *         description: Trạng thái không hợp lệ
+ *       404:
+ *         description: Không tìm thấy yêu cầu
+ *       500:
+ *         description: Lỗi server
+ */
+router.patch("/medicines/:id/restock-requests/:requestId", medicineController.updateRestockRequestStatus);
+
 // ======================== DASHBOARD ROUTES ========================
 
 /**

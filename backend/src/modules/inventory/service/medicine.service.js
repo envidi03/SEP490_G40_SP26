@@ -198,3 +198,172 @@ exports.getMedicineById = async (id) => {
     }
     return medicine;
 };
+
+/**
+ * Tạo yêu cầu bổ sung thuốc
+ */
+exports.createRestockRequest = async (medicineId, data) => {
+    const medicine = await Medicine.findById(medicineId);
+    if (!medicine) {
+        const error = new Error("Không tìm thấy thuốc");
+        error.statusCode = 404;
+        throw error;
+    }
+
+    if (!data.request_by) {
+        const error = new Error("Thiếu thông tin người yêu cầu");
+        error.statusCode = 400;
+        throw error;
+    }
+
+    if (!data.quantity_requested || isNaN(Number(data.quantity_requested)) || Number(data.quantity_requested) < 1) {
+        const error = new Error("Số lượng yêu cầu phải là số hợp lệ và lớn hơn 0");
+        error.statusCode = 400;
+        throw error;
+    }
+
+    if (!data.reason || !data.reason.trim()) {
+        const error = new Error("Vui lòng nhập lý do yêu cầu");
+        error.statusCode = 400;
+        throw error;
+    }
+
+    if (data.priority && !["low", "medium", "high"].includes(data.priority)) {
+        const error = new Error("Mức độ ưu tiên không hợp lệ (low, medium, high)");
+        error.statusCode = 400;
+        throw error;
+    }
+
+    medicine.medicine_restock_requests.push({
+        request_by: data.request_by,
+        quantity_requested: Number(data.quantity_requested),
+        priority: data.priority || "medium",
+        reason: data.reason.trim(),
+        note: data.note || null
+    });
+
+    await medicine.save();
+
+    const newRequest = medicine.medicine_restock_requests[medicine.medicine_restock_requests.length - 1];
+    return {
+        ...newRequest.toObject(),
+        medicine_name: medicine.medicine_name,
+        current_quantity: medicine.quantity
+    };
+};
+
+/**
+ * Lấy danh sách tất cả yêu cầu bổ sung thuốc (across all medicines)
+ */
+exports.getRestockRequests = async ({ status, page = 1, limit = 10 }) => {
+    const pipeline = [
+        { $unwind: "$medicine_restock_requests" },
+    ];
+
+    // Filter theo status
+    if (status && status.trim()) {
+        pipeline.push({
+            $match: { "medicine_restock_requests.status": status.trim() }
+        });
+    }
+
+    // Sort theo ngày tạo mới nhất
+    pipeline.push({ $sort: { "medicine_restock_requests.created_at": -1 } });
+
+    // Đếm tổng
+    const countPipeline = [...pipeline, { $count: "total" }];
+    const countResult = await Medicine.aggregate(countPipeline);
+    const totalCount = countResult[0]?.total || 0;
+
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const limitNum = parseInt(limit);
+
+    pipeline.push({ $skip: skip });
+    pipeline.push({ $limit: limitNum });
+
+    // Lookup staff info
+    pipeline.push({
+        $lookup: {
+            from: "staffs",
+            localField: "medicine_restock_requests.request_by",
+            foreignField: "_id",
+            as: "staff_info"
+        }
+    });
+
+    // Project kết quả
+    pipeline.push({
+        $project: {
+            _id: "$medicine_restock_requests._id",
+            medicine_id: "$_id",
+            medicine_name: 1,
+            current_quantity: "$quantity",
+            quantity_requested: "$medicine_restock_requests.quantity_requested",
+            priority: "$medicine_restock_requests.priority",
+            status: "$medicine_restock_requests.status",
+            reason: "$medicine_restock_requests.reason",
+            note: "$medicine_restock_requests.note",
+            created_at: "$medicine_restock_requests.created_at",
+            request_by_name: { $arrayElemAt: ["$staff_info.name", 0] }
+        }
+    });
+
+    const requests = await Medicine.aggregate(pipeline);
+
+    return {
+        requests,
+        pagination: {
+            currentPage: parseInt(page),
+            totalPages: Math.ceil(totalCount / limitNum),
+            totalItems: totalCount,
+            itemsPerPage: limitNum
+        }
+    };
+};
+
+/**
+ * Cập nhật trạng thái yêu cầu bổ sung thuốc
+ */
+exports.updateRestockRequestStatus = async (medicineId, requestId, newStatus) => {
+    const validStatuses = ["pending", "accept", "reject", "completed"];
+    if (!validStatuses.includes(newStatus)) {
+        const error = new Error("Trạng thái không hợp lệ (pending, accept, reject, completed)");
+        error.statusCode = 400;
+        throw error;
+    }
+
+    const medicine = await Medicine.findOne({
+        "_id": medicineId,
+        "medicine_restock_requests._id": requestId
+    });
+
+    if (!medicine) {
+        const error = new Error("Không tìm thấy thuốc hoặc yêu cầu");
+        error.statusCode = 404;
+        throw error;
+    }
+
+    const request = medicine.medicine_restock_requests.id(requestId);
+
+    // Validate status transition
+    if (request.status === "completed") {
+        const error = new Error("Yêu cầu đã hoàn thành, không thể thay đổi trạng thái");
+        error.statusCode = 400;
+        throw error;
+    }
+
+    if (request.status === "reject" && newStatus !== "pending") {
+        const error = new Error("Yêu cầu đã bị từ chối, chỉ có thể chuyển về chờ duyệt");
+        error.statusCode = 400;
+        throw error;
+    }
+
+    request.status = newStatus;
+    await medicine.save();
+
+    return {
+        _id: request._id,
+        status: request.status,
+        medicine_name: medicine.medicine_name
+    };
+};

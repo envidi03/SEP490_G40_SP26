@@ -35,7 +35,7 @@ const medicineRestockRequestSchema = new Schema(
         },
         status: {
             type: String,
-            enum: ["pending", "accept", "reject"],
+            enum: ["pending", "accept", "reject", "completed"],
             default: "pending",
             required: true
         }
