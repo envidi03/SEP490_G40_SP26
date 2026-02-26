@@ -28,6 +28,32 @@ const createDentalRecordController = async (req, res) => {
   }
 };
 
+const editDentalRecordController = async (req, res) => {
+  try {
+    const accountId = req.user.account_id;
+    const { id } = req.params;
+
+    const result = await ServiceProcess.editDentalRecordService(
+      accountId,
+      id,
+      req.body
+    );
+
+    return new successRes.UpdateSuccess(
+      result,
+      "Update dental record successfully"
+    ).send(res);
+
+  } catch (error) {
+    logger.error("Edit dental record error", {
+      context: "DentalRecordController.editDentalRecordController",
+      message: error.message,
+    });
+    throw error;
+  }
+};
+
 module.exports = {
   createDentalRecordController,
+  editDentalRecordController,
 };

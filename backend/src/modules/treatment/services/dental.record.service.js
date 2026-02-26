@@ -27,4 +27,35 @@ const createDentalRecordService = async (accountId, payload) => {
   return record;
 };
 
-module.exports = { createDentalRecordService };
+const editDentalRecordService = async (accountId, recordId, payload = {}) => {
+  const staff = await StaffModel.Staff.findOne({ account_id: accountId });
+  if (!staff) throw new errorRes.NotFoundError("Staff not found");
+
+  const record = await DentalRecordModel.findOne({
+    _id: recordId,
+    created_by: staff._id,
+  });
+
+  if (!record) {
+    throw new errorRes.NotFoundError("Dental record not found");
+  }
+
+  if (
+    payload.start_date &&
+    payload.end_date &&
+    new Date(payload.start_date) > new Date(payload.end_date)
+  ) {
+    throw new errorRes.BadRequestError("End date must be after start date");
+  }
+
+  Object.assign(record, payload);
+
+  await record.save();
+
+  return record;
+};
+
+module.exports = { 
+    createDentalRecordService, 
+    editDentalRecordService 
+};
