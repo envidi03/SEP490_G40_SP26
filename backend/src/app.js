@@ -101,7 +101,6 @@ const { route: routeStaff } = require('./modules/staff');
 app.use('/api/staff', routeStaff);
 
 const { route: routeAppointment } = require('./modules/appointment');
-
 app.use('/api/appointment', routeAppointment);
 
 const { route: routeTreatment } = require('./modules/treatment');

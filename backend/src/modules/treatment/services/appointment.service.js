@@ -6,7 +6,7 @@ const Pagination = require("../../../common/responses/Pagination");
 const StaffModel = require("../models/index.model");
 const { Model: AuthModel } = require("../../auth/index");
 const PatientModel = require("../../../modules/patient/model/patient.model");
-const AppointmentModel = require("./../models/appointment.model");
+const AppointmentModel = require("../../appointment/models/index.model");
 const { model: ServiceModel } = require("../../service/index")
 
 const bcrypt = require('bcrypt');
