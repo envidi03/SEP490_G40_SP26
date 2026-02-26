@@ -69,8 +69,8 @@ const medicineSchema = new Schema(
         dosage_form: {
             // Dạng bào chế: Viên, Nang, Dung dịch, Kem, Bột...
             type: String,
-            required: true,
-            trim: true
+            trim: true,
+            default: null
         },
 
         unit: {
@@ -94,6 +94,13 @@ const medicineSchema = new Schema(
         },
 
         distributor: {
+            type: String,
+            trim: true,
+            default: null
+        },
+
+        batch_number: {
+            // Số lô: VD PCT-2024-001
             type: String,
             trim: true,
             default: null
@@ -149,7 +156,7 @@ const medicineSchema = new Schema(
     }
 );
 
-medicineSchema.pre("save", function (next) {
+medicineSchema.pre("save", function () {
     const now = new Date();
 
     if (this.expiry_date && this.expiry_date < now) {
@@ -159,8 +166,6 @@ medicineSchema.pre("save", function (next) {
     } else {
         this.status = "AVAILABLE";
     }
-
-    next();
 });
 
 // Virtual: kiểm tra thuốc sắp hết hàng (quantity <= min_quantity)

@@ -123,6 +123,75 @@ router.get("/medicines", medicineController.getMedicines);
  */
 router.get("/medicines/categories", medicineController.getCategories);
 
+/**
+ * @swagger
+ * /api/inventory/medicines:
+ *   post:
+ *     summary: Thêm thuốc mới
+ *     tags: [Inventory]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - medicine_name
+ *               - category
+ *               - dosage_form
+ *               - unit
+ *               - price
+ *               - manufacturer
+ *               - expiry_date
+ *               - quantity
+ *               - min_quantity
+ *             properties:
+ *               medicine_name:
+ *                 type: string
+ *                 example: Paracetamol 500mg
+ *               category:
+ *                 type: string
+ *                 example: Giảm đau - Hạ sốt
+ *               dosage:
+ *                 type: string
+ *                 example: 500mg
+ *               dosage_form:
+ *                 type: string
+ *                 example: Viên
+ *               unit:
+ *                 type: string
+ *                 example: Viên
+ *               price:
+ *                 type: number
+ *                 example: 2000
+ *               manufacturer:
+ *                 type: string
+ *                 example: DHG Pharma
+ *               distributor:
+ *                 type: string
+ *                 example: Công ty ABC
+ *               expiry_date:
+ *                 type: string
+ *                 format: date
+ *                 example: 2026-12-31
+ *               quantity:
+ *                 type: number
+ *                 example: 500
+ *               min_quantity:
+ *                 type: number
+ *                 example: 100
+ *     responses:
+ *       201:
+ *         description: Thêm thuốc thành công
+ *       400:
+ *         description: Dữ liệu không hợp lệ
+ *       409:
+ *         description: Thuốc đã tồn tại
+ *       500:
+ *         description: Lỗi server
+ */
+router.post("/medicines", medicineController.createMedicine);
+
 // ======================== DASHBOARD ROUTES ========================
 
 /**

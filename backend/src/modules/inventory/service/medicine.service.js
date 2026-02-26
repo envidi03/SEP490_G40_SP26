@@ -48,3 +48,75 @@ exports.getMedicines = async ({ page = 1, limit = 10, search, category }) => {
 exports.getCategories = async () => {
     return await Medicine.distinct("category");
 };
+
+/**
+ * Thêm thuốc mới
+ */
+exports.createMedicine = async (data) => {
+    const requiredFields = [
+        { field: "medicine_name", label: "Tên thuốc" },
+        { field: "category", label: "Danh mục" },
+        { field: "unit", label: "Đơn vị" },
+        { field: "manufacturer", label: "Nhà sản xuất" },
+        { field: "price", label: "Giá" },
+        { field: "quantity", label: "Số lượng tồn kho" },
+        { field: "min_quantity", label: "Tồn kho tối thiểu" },
+        { field: "expiry_date", label: "Hạn sử dụng" }
+    ];
+
+    const missingFields = requiredFields.filter(
+        ({ field }) => data[field] === undefined || data[field] === null || data[field] === ""
+    );
+
+    if (missingFields.length > 0) {
+        const error = new Error(
+            `Vui lòng điền đầy đủ: ${missingFields.map(f => f.label).join(", ")}`
+        );
+        error.statusCode = 400;
+        throw error;
+    }
+
+    if (isNaN(Number(data.price)) || Number(data.price) < 0) {
+        const error = new Error("Giá phải là số hợp lệ và không được âm");
+        error.statusCode = 400;
+        throw error;
+    }
+
+    if (isNaN(Number(data.quantity)) || Number(data.quantity) < 0) {
+        const error = new Error("Số lượng tồn kho phải là số hợp lệ và không được âm");
+        error.statusCode = 400;
+        throw error;
+    }
+
+    if (isNaN(Number(data.min_quantity)) || Number(data.min_quantity) < 0) {
+        const error = new Error("Tồn kho tối thiểu phải là số hợp lệ và không được âm");
+        error.statusCode = 400;
+        throw error;
+    }
+
+    const expiryDate = new Date(data.expiry_date);
+    if (isNaN(expiryDate.getTime())) {
+        const error = new Error("Hạn sử dụng không hợp lệ");
+        error.statusCode = 400;
+        throw error;
+    }
+
+    if (expiryDate < new Date()) {
+        const error = new Error("Hạn sử dụng phải sau ngày hiện tại");
+        error.statusCode = 400;
+        throw error;
+    }
+
+    const existingMedicine = await Medicine.findOne({
+        medicine_name: { $regex: new RegExp(`^${data.medicine_name}$`, "i") }
+    });
+
+    if (existingMedicine) {
+        const error = new Error("Thuốc với tên này đã tồn tại trong hệ thống");
+        error.statusCode = 409;
+        throw error;
+    }
+
+    const medicine = new Medicine(data);
+    return await medicine.save();
+};

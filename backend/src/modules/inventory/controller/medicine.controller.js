@@ -31,3 +31,20 @@ exports.getCategories = async (req, res) => {
         });
     }
 };
+
+exports.createMedicine = async (req, res) => {
+    try {
+        const medicine = await medicineService.createMedicine(req.body);
+        return res.status(201).json({
+            success: true,
+            message: "Thêm thuốc thành công",
+            data: medicine
+        });
+    } catch (error) {
+        const statusCode = error.statusCode || (error.name === "ValidationError" ? 400 : 500);
+        return res.status(statusCode).json({
+            success: false,
+            message: error.message
+        });
+    }
+};
