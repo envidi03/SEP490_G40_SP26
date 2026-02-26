@@ -46,3 +46,20 @@ exports.getNearExpiredMedicines = async (req, res) => {
         });
     }
 };
+
+exports.getStockTracking = async (req, res) => {
+    try {
+        const { page, limit, search } = req.query;
+        const result = await dashboardService.getStockTracking({ page, limit, search });
+        return res.status(200).json({
+            success: true,
+            data: result.medicines,
+            pagination: result.pagination
+        });
+    } catch (error) {
+        return res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+};

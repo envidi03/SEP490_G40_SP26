@@ -65,3 +65,19 @@ exports.updateMedicine = async (req, res) => {
         });
     }
 };
+
+exports.getMedicineById = async (req, res) => {
+    try {
+        const medicine = await medicineService.getMedicineById(req.params.id);
+        return res.status(200).json({
+            success: true,
+            data: medicine
+        });
+    } catch (error) {
+        const statusCode = error.statusCode || 500;
+        return res.status(statusCode).json({
+            success: false,
+            message: error.message
+        });
+    }
+};

@@ -185,3 +185,16 @@ exports.updateMedicine = async (id, data) => {
 
     return await medicine.save();
 };
+
+/**
+ * Lấy chi tiết thuốc theo ID
+ */
+exports.getMedicineById = async (id) => {
+    const medicine = await Medicine.findById(id);
+    if (!medicine) {
+        const error = new Error("Không tìm thấy thuốc");
+        error.statusCode = 404;
+        throw error;
+    }
+    return medicine;
+};

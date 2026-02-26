@@ -249,6 +249,29 @@ router.post("/medicines", medicineController.createMedicine);
  */
 router.put("/medicines/:id", medicineController.updateMedicine);
 
+/**
+ * @swagger
+ * /api/inventory/medicines/{id}:
+ *   get:
+ *     summary: Lấy chi tiết thuốc theo ID
+ *     tags: [Inventory]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID của thuốc
+ *     responses:
+ *       200:
+ *         description: Thành công
+ *       404:
+ *         description: Không tìm thấy thuốc
+ *       500:
+ *         description: Lỗi server
+ */
+router.get("/medicines/:id", medicineController.getMedicineById);
+
 // ======================== DASHBOARD ROUTES ========================
 
 /**
@@ -283,6 +306,9 @@ router.put("/medicines/:id", medicineController.updateMedicine);
  *                     lowStockCount:
  *                       type: number
  *                       example: 5
+ *                     urgentStockCount:
+ *                       type: number
+ *                       example: 0
  *       500:
  *         description: Lỗi server
  */
@@ -374,5 +400,67 @@ router.get("/dashboard/low-stock", dashboardController.getLowStockMedicines);
  *         description: Lỗi server
  */
 router.get("/dashboard/near-expired", dashboardController.getNearExpiredMedicines);
+
+/**
+ * @swagger
+ * /api/inventory/dashboard/stock-tracking:
+ *   get:
+ *     summary: Lấy danh sách theo dõi tồn kho
+ *     tags: [Inventory]
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Trang hiện tại
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *         description: Số bản ghi mỗi trang
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Tìm kiếm theo tên thuốc
+ *     responses:
+ *       200:
+ *         description: Thành công
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       medicine_name:
+ *                         type: string
+ *                         example: Paracetamol 500mg
+ *                       quantity:
+ *                         type: number
+ *                         example: 500
+ *                       min_quantity:
+ *                         type: number
+ *                         example: 100
+ *                       stock_status:
+ *                         type: string
+ *                         example: Đủ hàng
+ *                       last_import_date:
+ *                         type: string
+ *                         format: date
+ *                 pagination:
+ *                   type: object
+ *       500:
+ *         description: Lỗi server
+ */
+router.get("/dashboard/stock-tracking", dashboardController.getStockTracking);
 
 module.exports = router;
