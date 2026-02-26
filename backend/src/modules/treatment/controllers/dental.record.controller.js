@@ -1,0 +1,33 @@
+const logger = require('../../../common/utils/logger');
+const errorRes = require('../../../common/errors');
+const successRes = require('../../../common/success');
+const Pagination = require('../../../common/responses/Pagination');
+
+const ServiceProcess = require('../services/dental.record.service');
+
+const createDentalRecordController = async (req, res) => {
+  try {
+    const accountId = req.user.account_id;
+
+    const result = await ServiceProcess.createDentalRecordService(
+      accountId,
+      req.body
+    );
+
+    return new successRes.CreateSuccess(
+      result,
+      "Create dental record successfully"
+    ).send(res);
+
+  } catch (error) {
+    logger.error("Create dental record error", {
+      context: "DentalRecordController.createDentalRecordController",
+      message: error.message,
+    });
+    throw error;
+  }
+};
+
+module.exports = {
+  createDentalRecordController,
+};
