@@ -136,25 +136,15 @@ const DoctorDetail = () => {
         <PublicLayout>
             <div className="bg-white py-8 min-h-[calc(100vh-160px)]">
 
+                {/* Breadcrumb */}
+                <Breadcrumb items={[
+                    { label: 'Trang chủ', path: '/' },
+                    { label: 'Đội ngũ bác sĩ', path: '/doctors' },
+                    { label: doctor.profile_id?.full_name || 'Chi tiết bác sĩ' }
+                ]} />
+
                 {/* Header Section */}
                 <div className="max-w-7xl mx-auto px-4 lg:px-8 xl:px-12 mb-8">
-                    {/* Breadcrumb matching the exact minimalist style */}
-                    <div className="mb-6 flex items-center text-xs text-gray-800">
-                        <span
-                            onClick={() => navigate('/')}
-                            className="cursor-pointer hover:underline"
-                        >
-                            Trang chủ
-                        </span>
-                        <span className="mx-2 text-gray-400">›</span>
-                        <span
-                            onClick={() => navigate('/doctors')}
-                            className="text-blue-600 cursor-pointer hover:underline font-medium"
-                        >
-                            Bác sĩ
-                        </span>
-                    </div>
-
                     {/* Doctor Name Heading */}
                     <h1 className="text-2xl font-bold text-[#1a2b5e] mb-2">
                         {doctor.profile_id?.full_name}
