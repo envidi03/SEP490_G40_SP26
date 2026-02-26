@@ -1,9 +1,7 @@
 import BannerCarousel from './components/BannerCarousel';
 import ServicesGallery from './components/ServicesGallery';
-import FeaturedServices from './components/FeaturedServices';
 import DoctorsTeam from './components/DoctorsTeam';
 import WhyChooseUs from './components/WhyChooseUs';
-import ContactSection from './components/ContactSection';
 
 const HomeContent = () => {
     return (
@@ -15,9 +13,6 @@ const HomeContent = () => {
 
             {/* Services Gallery */}
             <ServicesGallery />
-
-            {/* Featured Services */}
-            <FeaturedServices />
 
             {/* Doctors Team */}
             <DoctorsTeam />
