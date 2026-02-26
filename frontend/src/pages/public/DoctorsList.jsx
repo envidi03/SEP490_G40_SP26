@@ -6,67 +6,73 @@ import Breadcrumb from '../../components/ui/Breadcrumb';
 // Mock doctors data
 const doctorsData = [
     {
-        id: 1,
-        name: 'Nguyễn Thị Mỹ Anh',
-        specialty: 'Điều trị tổng quát',
+        _id: '1',
+        profile_id: {
+            full_name: 'Nguyễn Thị Mỹ Anh',
+            avatar_url: 'https://cdn.iconscout.com/icon/free/png-256/free-avatar-370-456322.png'
+        },
         education: 'Bác sĩ chuyên ngành Răng Hàm Mặt tại Đại học Y Hà Nội',
         achievements: [
             'Chứng chỉ hành nghề Đại học Y Hà Nội',
             'Chứng chỉ chỉnh nha không mắc cài invisalign của Mỹ'
-        ],
-        image: 'https://cdn.iconscout.com/icon/free/png-256/free-avatar-370-456322.png'
+        ]
     },
     {
-        id: 2,
-        name: 'Ninh Duy Minh',
-        specialty: 'Điều trị chỉnh nha',
+        _id: '2',
+        profile_id: {
+            full_name: 'Ninh Duy Minh',
+            avatar_url: 'https://cdn.iconscout.com/icon/free/png-256/free-avatar-370-456322.png'
+        },
         education: 'Bác sĩ chuyên ngành Răng Hàm Mặt tại Đại học Y Hà Nội',
         achievements: [
             'Chứng chỉ chỉnh nha không mắc cài invisalign của Mỹ',
             'Chứng chỉ SSP Chỉnh phục không gian mão răng'
-        ],
-        image: 'https://cdn.iconscout.com/icon/free/png-256/free-avatar-370-456322.png'
+        ]
     },
     {
-        id: 3,
-        name: 'Đặng Thị Thu Hằng',
-        specialty: 'Điều trị chỉnh nha',
+        _id: '3',
+        profile_id: {
+            full_name: 'Đặng Thị Thu Hằng',
+            avatar_url: 'https://cdn.iconscout.com/icon/free/png-256/free-avatar-370-456322.png'
+        },
         education: 'Bác sĩ chuyên ngành Răng Hàm Mặt tại Đại học Y Hà Nội',
         achievements: [
             'Chứng chỉ chỉnh nha không mắc cài invisalign của Mỹ'
-        ],
-        image: 'https://cdn.iconscout.com/icon/free/png-256/free-avatar-370-456322.png'
+        ]
     },
     {
-        id: 4,
-        name: 'Vũ Trà My',
-        specialty: 'Điều trị chỉnh nha',
+        _id: '4',
+        profile_id: {
+            full_name: 'Vũ Trà My',
+            avatar_url: 'https://cdn.iconscout.com/icon/free/png-256/free-avatar-370-456322.png'
+        },
         education: 'Bác sĩ chuyên ngành Răng Hàm Mặt tại Đại học Y Hà Nội',
         achievements: [
             'Hoàn thành chương trình Progress Orthodontic Seminars – Hoa Kỳ'
-        ],
-        image: 'https://cdn.iconscout.com/icon/free/png-256/free-avatar-370-456322.png'
+        ]
     },
     {
-        id: 5,
-        name: 'Vũ Đức Dũng',
-        specialty: 'Điều trị implant',
+        _id: '5',
+        profile_id: {
+            full_name: 'Vũ Đức Dũng',
+            avatar_url: 'https://cdn.iconscout.com/icon/free/png-256/free-avatar-370-456322.png'
+        },
         education: 'Bác sĩ chuyên ngành Răng Hàm Mặt – Đại học Y Hà Nội',
         achievements: [
             'Chứng chỉ đào tạo chuyên môn về trồng răng implant – Đại học Y Hà Nội',
             'Chứng chỉ Master class của invisalign trong điều trị những ca nhổ răng do bs Hiroshi Samoto – Nhật Bản hướng dẫn'
-        ],
-        image: 'https://cdn.iconscout.com/icon/free/png-256/free-avatar-370-456322.png'
+        ]
     },
     {
-        id: 6,
-        name: 'Đặng Thị Phương Hoa',
-        specialty: 'Điều trị chỉnh nha',
+        _id: '6',
+        profile_id: {
+            full_name: 'Đặng Thị Phương Hoa',
+            avatar_url: 'https://cdn.iconscout.com/icon/free/png-256/free-avatar-370-456322.png'
+        },
         education: 'Bác sĩ chuyên ngành Răng Hàm Mặt tại Đại học Y Hà Nội',
         achievements: [
             'Chứng chỉ niềng răng trong suốt invisalign'
-        ],
-        image: 'https://cdn.iconscout.com/icon/free/png-256/free-avatar-370-456322.png'
+        ]
     }
 ];
 
@@ -103,7 +109,7 @@ const DoctorsList = () => {
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 xl:gap-8 mb-12">
                         {currentData.map(doctor => (
                             <div
-                                key={doctor.id}
+                                key={doctor._id}
                                 className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 sm:p-8 flex flex-col sm:flex-row hover:shadow-md transition-shadow relative overflow-hidden"
                             >
                                 {/* Left Content */}
@@ -112,19 +118,15 @@ const DoctorsList = () => {
                                         BÁC SĨ
                                     </div>
                                     <h3 className="text-[22px] font-bold text-[#2d3e6e] mb-4">
-                                        {doctor.name}
+                                        {doctor.profile_id?.full_name}
                                     </h3>
 
                                     <ul className="space-y-2.5 mb-6 text-sm text-gray-600">
                                         <li className="flex items-start gap-2.5">
                                             <span className="w-1 h-1 rounded-full bg-blue-500 mt-2 flex-shrink-0"></span>
-                                            <span>Bác sĩ {doctor.specialty.toLowerCase()}</span>
-                                        </li>
-                                        <li className="flex items-start gap-2.5">
-                                            <span className="w-1 h-1 rounded-full bg-blue-500 mt-2 flex-shrink-0"></span>
                                             <span>{doctor.education}</span>
                                         </li>
-                                        {doctor.achievements.map((ach, idx) => (
+                                        {doctor.achievements?.map((ach, idx) => (
                                             <li key={idx} className="flex items-start gap-2.5">
                                                 <span className="w-1 h-1 rounded-full bg-blue-500 mt-2 flex-shrink-0"></span>
                                                 <span className="leading-relaxed">{ach}</span>
@@ -134,7 +136,7 @@ const DoctorsList = () => {
 
                                     <div className="mt-auto">
                                         <Link
-                                            to={`/doctor/${doctor.id}`}
+                                            to={`/doctor/${doctor._id}`}
                                             className="inline-flex items-center justify-center px-6 py-2 bg-blue-50 hover:bg-blue-100 text-[#4a72d4] font-medium text-sm rounded-full transition-colors"
                                         >
                                             Xem chi tiết
@@ -152,9 +154,8 @@ const DoctorsList = () => {
 
                                     {/* Doctor Image (simulate cutout by object-cover) */}
                                     <img
-                                        // Fake avatar
-                                        src={`https://i.pravatar.cc/300?img=${doctor.id * 10}`}
-                                        alt={doctor.name}
+                                        src={doctor.profile_id?.avatar_url}
+                                        alt={doctor.profile_id?.full_name}
                                         className="relative z-10 w-full h-auto object-cover object-bottom rounded-b-full scale-[1.15] origin-bottom drop-shadow-sm"
                                     />
                                 </div>

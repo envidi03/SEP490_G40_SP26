@@ -5,16 +5,17 @@ import Breadcrumb from '../../components/ui/Breadcrumb';
 // Mock doctors data (Matching DoctorsList data structure for consistency)
 const doctorsData = [
     {
-        id: '1',
-        name: 'Nguyễn Thị Mỹ Anh',
-        specialty: 'Điều trị tổng quát',
+        _id: '1',
+        profile_id: {
+            full_name: 'Nguyễn Thị Mỹ Anh',
+            avatar_url: 'https://cdn.iconscout.com/icon/free/png-256/free-avatar-370-456322.png',
+            address: 'Miền Bắc'
+        },
         education: 'Bác sĩ chuyên ngành Răng Hàm Mặt tại Đại học Y Hà Nội',
         achievements: [
             'Chứng chỉ hành nghề Đại học Y Hà Nội',
             'Chứng chỉ chỉnh nha không mắc cài invisalign của Mỹ'
         ],
-        // Additional mock data for detail page mapping
-        area: 'Miền Bắc',
         educationDetails: [
             'Tốt nghiệp Đại học Y Hà Nội khoa Răng Hàm Mặt năm 2016',
             'Hoàn thành khoá đào tạo chỉnh nha đương đại – ThS BS Hoàng Tuấn Anh năm 2018',
@@ -27,18 +28,19 @@ const doctorsData = [
             'Chứng chỉ đào tạo liên tục chỉnh nha do Sở Y Tế TPHCM cấp năm 2020',
             'Chứng chỉ đào tạo liên tục Cấy ghép Implant của Bệnh viện Việt Nam – Cuba năm 2019',
             'Chứng chỉ phiên dịch Y Khoa của Đại học Y Hà Nội năm 2019'
-        ],
-        image: 'https://cdn.iconscout.com/icon/free/png-256/free-avatar-370-456322.png'
+        ]
     },
     {
-        id: '4',
-        name: 'Vũ Trà My',
-        specialty: 'Điều trị chỉnh nha',
+        _id: '4',
+        profile_id: {
+            full_name: 'Vũ Trà My',
+            avatar_url: 'https://cdn.iconscout.com/icon/free/png-256/free-avatar-370-456322.png',
+            address: 'Miền Bắc'
+        },
         education: 'Bác sĩ chuyên ngành Răng Hàm Mặt tại Đại học Y Hà Nội',
         achievements: [
             'Hoàn thành chương trình Progress Orthodontic Seminars – Hoa Kỳ'
         ],
-        area: 'Miền Bắc',
         educationDetails: [
             'Tốt nghiệp Đại học Y Hà Nội khoa Răng Hàm Mặt năm 2016',
             'Hoàn thành khoá đào tạo chỉnh nha đương đại – ThS BS Hoàng Tuấn Anh năm 2018',
@@ -51,27 +53,48 @@ const doctorsData = [
             'Chứng chỉ đào tạo liên tục chỉnh nha do Sở Y Tế TPHCM cấp năm 2020',
             'Chứng chỉ đào tạo liên tục Cấy ghép Implant của Bệnh viện Việt Nam – Cuba năm 2019',
             'Chứng chỉ phiên dịch Y Khoa của Đại học Y Hà Nội năm 2019'
-        ],
-        image: 'https://cdn.iconscout.com/icon/free/png-256/free-avatar-370-456322.png'
+        ]
     },
     // Adding dummy fallback for other IDs if accessed directly
     {
-        id: '2',
-        name: 'Ninh Duy Minh',
-        specialty: 'Điều trị chỉnh nha',
-        area: 'Miền Bắc',
+        _id: '2',
+        profile_id: {
+            full_name: 'Ninh Duy Minh',
+            avatar_url: 'https://cdn.iconscout.com/icon/free/png-256/free-avatar-370-456322.png',
+            address: 'Miền Bắc'
+        },
         educationDetails: ['Tốt nghiệp Đại học Y Hà Nội'],
-        otherCertificates: ['Chứng chỉ hành nghề nha khoa'],
-        image: 'https://cdn.iconscout.com/icon/free/png-256/free-avatar-370-456322.png'
+        otherCertificates: ['Chứng chỉ hành nghề nha khoa']
     },
     {
-        id: '3',
-        name: 'Đặng Thị Thu Hằng',
-        specialty: 'Điều trị chỉnh nha',
-        area: 'Miền Bắc',
+        _id: '3',
+        profile_id: {
+            full_name: 'Đặng Thị Thu Hằng',
+            avatar_url: 'https://cdn.iconscout.com/icon/free/png-256/free-avatar-370-456322.png',
+            address: 'Miền Bắc'
+        },
         educationDetails: ['Tốt nghiệp Đại học Y Hà Nội'],
-        otherCertificates: ['Chứng chỉ hành nghề nha khoa'],
-        image: 'https://cdn.iconscout.com/icon/free/png-256/free-avatar-370-456322.png'
+        otherCertificates: ['Chứng chỉ hành nghề nha khoa']
+    },
+    {
+        _id: '5',
+        profile_id: {
+            full_name: 'Vũ Đức Dũng',
+            avatar_url: 'https://cdn.iconscout.com/icon/free/png-256/free-avatar-370-456322.png',
+            address: 'Miền Bắc'
+        },
+        educationDetails: ['Tốt nghiệp Đại học Y Hà Nội'],
+        otherCertificates: ['Chứng chỉ trồng răng implant']
+    },
+    {
+        _id: '6',
+        profile_id: {
+            full_name: 'Đặng Thị Phương Hoa',
+            avatar_url: 'https://cdn.iconscout.com/icon/free/png-256/free-avatar-370-456322.png',
+            address: 'Miền Bắc'
+        },
+        educationDetails: ['Tốt nghiệp Đại học Y Hà Nội'],
+        otherCertificates: ['Chứng chỉ niềng răng trong suốt']
     }
 ];
 
@@ -80,9 +103,9 @@ const DoctorDetail = () => {
     const navigate = useNavigate();
 
     // Find doctor by ID, fallback to Vũ Trà My (id: '4') to match the example screenshot if not found
-    let doctor = doctorsData.find(d => d.id === id);
+    let doctor = doctorsData.find(d => d._id === id);
     if (!doctor) {
-        doctor = doctorsData.find(d => d.id === '4'); // Default mock profile
+        doctor = doctorsData.find(d => d._id === '4'); // Default mock profile
     }
 
     if (!doctor) {
@@ -134,7 +157,7 @@ const DoctorDetail = () => {
 
                     {/* Doctor Name Heading */}
                     <h1 className="text-2xl font-bold text-[#1a2b5e] mb-2">
-                        {doctor.name}
+                        {doctor.profile_id?.full_name}
                     </h1>
                 </div>
 
@@ -146,11 +169,11 @@ const DoctorDetail = () => {
                         <div className="w-full">
                             <div className="bg-[#e4e4e4] rounded-sm w-full aspect-[3/4] relative overflow-hidden flex items-end justify-center">
                                 <img
-                                    src={doctor.image}
-                                    alt={doctor.name}
+                                    src={doctor.profile_id?.avatar_url}
+                                    alt={doctor.profile_id?.full_name}
                                     className="w-[90%] h-auto object-cover object-bottom"
                                     // Use higher quality realistic avatar if needed to match design exactly
-                                    onError={(e) => { e.target.src = 'https://i.pravatar.cc/600?img=' + (parseInt(doctor.id) * 10 || 12); }}
+                                    onError={(e) => { e.target.src = 'https://i.pravatar.cc/600?img=' + (parseInt(doctor._id) * 10 || 12); }}
                                 />
                             </div>
                         </div>
@@ -164,11 +187,11 @@ const DoctorDetail = () => {
                                 <ol className="list-decimal pl-5 space-y-2 font-bold text-[15px]">
                                     <li>
                                         <span className="font-bold">Họ và tên: </span>
-                                        <span className="font-normal text-gray-600">{doctor.name}</span>
+                                        <span className="font-normal text-gray-600">{doctor.profile_id?.full_name}</span>
                                     </li>
                                     <li>
                                         <span className="font-bold">Khu vực: </span>
-                                        <span className="font-normal text-gray-600">{doctor.area || 'Miền Bắc'}</span>
+                                        <span className="font-normal text-gray-600">{doctor.profile_id?.address || 'Miền Bắc'}</span>
                                     </li>
                                     <li>
                                         <span className="font-bold">Học vấn</span>
