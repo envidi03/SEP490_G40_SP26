@@ -3,41 +3,45 @@ const { Schema } = mongoose;
 
 const dentalRecordSchema = new Schema(
     {
+        // --- KHÓA NGOẠI (FOREIGN KEYS) ---
         patient_id: {
             type: Schema.Types.ObjectId,
-            ref: "Patient",
+            ref: "Patient", 
             required: true
         },
         created_by: {
             type: Schema.Types.ObjectId,
-            ref: "Staff",
+            ref: "Staff", 
             required: true
         },
+
+        // --- THÔNG TIN CÁ NHÂN (Snapshot tại thời điểm tạo) ---
         full_name: {
             type: String,
-            required: [true, "Full name is required"],
+            required: true,
             trim: true
         },
         phone: {
             type: String,
-            required: [true, "Phone number is required"],
+            required: true,
             trim: true
         },
         email: {
             type: String,
-            trim: true
+            trim: true,
+            lowercase: true
         },
         gender: {
-            type: String,
-            trim: true
+            type: Boolean 
         },
         dob: {
-            type: Date,
-            required: [true, "Date of birth is required"]
+            type: Date
         },
+
+        // --- THÔNG TIN HỒ SƠ BỆNH ÁN ---
         record_name: {
             type: String,
-            required: [true, "Record name is required"],
+            required: true,
             trim: true
         },
         diagnosis: {
@@ -50,23 +54,30 @@ const dentalRecordSchema = new Schema(
         },
         start_date: {
             type: Date,
-            required: [true, "Start date is required"]
+            default: Date.now 
         },
         end_date: {
             type: Date
         },
         total_amount: {
             type: Number,
-            required: [true, "Total amount is required"],
-            min: 0
+            default: 0,
+            min: [0, "Total amount cannot be negative"]
         },
         status: {
             type: String,
-            enum: ["IN_PROGRESS", "COMPLETED", "CANCELLED"],
-            default: "IN_PROGRESS"
+            enum: ['IN_PROGRESS', 'COMPLETED', 'CANCELLED'],
+            default: 'IN_PROGRESS'
         }
     },
-    { timestamps: true, collection: "dental_records" }
+    { 
+        timestamps: true, 
+        collection: "dental_records" 
+    }
 );
+
+// Đánh Index để tăng tốc độ tìm kiếm danh sách bệnh án của 1 bệnh nhân
+dentalRecordSchema.index({ patient_id: 1 });
+dentalRecordSchema.index({ created_by: 1 });
 
 module.exports = mongoose.model("DentalRecord", dentalRecordSchema);

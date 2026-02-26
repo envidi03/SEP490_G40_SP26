@@ -1,7 +1,7 @@
-const DentalRecord = require('./dental-record.model');
 const Treatment = require('./treatment.model');
+const DentalRecord = require('./dental-record.model');
 
 module.exports = {
-    DentalRecord,
-    Treatment
+    Treatment,
+    DentalRecord        
 };

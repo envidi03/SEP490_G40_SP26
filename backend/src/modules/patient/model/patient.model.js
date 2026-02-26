@@ -6,7 +6,7 @@ const patientSchema = new Schema(
         account_id: {
             type: Schema.Types.ObjectId,
             ref: "Account",
-            required: true,
+            required: false,
             unique: true,
             index: true
         },
@@ -14,7 +14,7 @@ const patientSchema = new Schema(
         profile_id: {
             type: Schema.Types.ObjectId,
             ref: "Profile",
-            required: true,
+            required: false,
             unique: true,
             index: true
         },
@@ -36,12 +36,11 @@ const patientSchema = new Schema(
 );
 
 // Tự động tạo patient_code trước khi save
-patientSchema.pre('save', async function (next) {
+patientSchema.pre('save', async function () {
     if (!this.patient_code) {
         const count = await mongoose.model('Patient').countDocuments();
         this.patient_code = `PT${String(count + 1).padStart(6, '0')}`;
     }
-    next();
 });
 
 module.exports = mongoose.model("Patient", patientSchema);
