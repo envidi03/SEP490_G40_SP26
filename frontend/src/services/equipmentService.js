@@ -34,9 +34,9 @@ const equipmentService = {
      * @param {string} equipmentId 
      * @returns {Promise} API response
      */
-    getEquipmentById: async (equipmentId) => {
+    getEquipmentById: async (equipmentId, params = {}) => {
         try {
-            const response = await apiClient.get(`/api/equipment/${equipmentId}`);
+            const response = await apiClient.get(`/api/equipment/${equipmentId}`, { params });
             return response;
         } catch (error) {
             throw error.response || error;

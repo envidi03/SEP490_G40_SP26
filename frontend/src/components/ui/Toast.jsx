@@ -36,7 +36,7 @@ const Toast = ({ show = false, type = 'success', message, onClose, duration = 30
     };
 
     return (
-        <div className="fixed top-20 right-4 z-50 animate-slide-in-right">
+        <div className="fixed top-20 right-4 z-[9999] animate-slide-in-right">
             <div className={`${styles[type]} border-l-4 rounded-lg shadow-xl p-4 pr-12 min-w-[300px] max-w-md backdrop-blur-sm`}>
                 <div className="flex items-start gap-3">
                     <div className={iconStyles[type]}>

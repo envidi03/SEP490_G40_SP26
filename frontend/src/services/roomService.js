@@ -34,9 +34,9 @@ const roomService = {
      * @param {string} roomId 
      * @returns {Promise} API response
      */
-    getRoomById: async (roomId) => {
+    getRoomById: async (roomId, params = {}) => {
         try {
-            const response = await apiClient.get(`/api/room/${roomId}`);
+            const response = await apiClient.get(`/api/room/${roomId}`, { params });
             return response;
         } catch (error) {
             throw error.response || error;

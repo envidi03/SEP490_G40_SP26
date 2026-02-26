@@ -329,6 +329,20 @@ const updateController = async (req, res) => {
     }
 };
 
+// get available roles for staff creation
+const getRolesController = async (req, res) => {
+    try {
+        const roles = await ServiceProcess.getStaffRoles();
+        return new successRes.GetListSuccess(roles, null, 'Roles retrieved successfully').send(res);
+    } catch (error) {
+        logger.error('Error get roles', {
+            context: 'StaffController.getRolesController',
+            message: error.message
+        });
+        throw error;
+    }
+};
+
 // update equipment status only
 const updateStatusController = async (req, res) => {
     try {
@@ -343,8 +357,8 @@ const updateStatusController = async (req, res) => {
         });
 
         // 2. Validate Status
-        const validStatuses = ["ACTIVE", "INACTIVE"]; 
-        
+        const validStatuses = ["ACTIVE", "INACTIVE"];
+
         if (!status || !validStatuses.includes(status)) {
             logger.warn('Invalid or missing status value', {
                 context: 'StaffController.updateStatusController',
@@ -356,17 +370,17 @@ const updateStatusController = async (req, res) => {
 
         // 3. Gọi Service cập nhật
         // Lưu ý: updateService trả về object chứa { account, profile, staff, license }
-        const result = await ServiceProcess.updateStaffStatusOnly(accountId, { status });
+        const result = await ServiceProcess.updateStaffStatusOnly(accountId, status);
 
         // Kiểm tra kết quả
-        if (!result || !result.staff) {
-             throw new errorRes.NotFoundError('Staff not found');
+        if (!result) {
+            throw new errorRes.NotFoundError('Staff not found');
         }
 
         logger.info('Staff status updated successfully', {
             context: 'StaffController.updateStatusController',
-            staffId: result.staff._id,
-            newStatus: result.staff.status
+            staffId: result._id,
+            newStatus: result.status
         });
 
         // 4. Trả về kết quả
@@ -482,6 +496,106 @@ const cancelLeaveRequestController = async (req, res) => {
   }
 };
 
+
+//create leave request for staff
+const createLeaveController = async (req, res) => {
+  try {
+    const accountId = req.user?.account_id;
+
+    const result = await ServiceProcess.createLeaveRequestService(
+      accountId,
+      req.body
+    );
+
+    return new successRes.CreateSuccess(
+      result,
+      "Create leave request successfully"
+    ).send(res);
+
+  } catch (error) {
+    logger.error("Create leave error", {
+      context: "LeaveController.createLeaveController",
+      message: error.message,
+    });
+    throw error;
+  }
+};
+
+//get leave request for staff
+const getLeaveRequestController = async (req, res) => {
+  try {
+    const accountId = req.user?.account_id;
+
+    const result = await ServiceProcess.getLeaveRequestService(
+      accountId,
+      req.query
+    );
+
+    return new successRes.GetListSuccess(
+      result,
+      "Get leave requests successfully"
+    ).send(res);
+
+  } catch (error) {
+    logger.error("View leave error", {
+      context: "LeaveController.viewLeaveRequestController",
+      message: error.message,
+    });
+    throw error;
+  }
+};
+
+//edit leave request for staff
+const editLeaveRequestController = async (req, res) => {
+  try {
+    const accountId = req.user?.account_id;
+    const { id: leaveId } = req.params;
+
+    const result = await ServiceProcess.editLeaveRequestService(
+      accountId,
+      leaveId,
+      req.body
+    );
+
+    return new successRes.UpdateSuccess(
+      result,
+      "Update leave request successfully"
+    ).send(res);
+
+  } catch (error) {
+    logger.error("Edit leave error", {
+      context: "LeaveController.editLeaveRequestController",
+      message: error.message,
+    });
+    throw error;
+  }
+};
+
+//cancel leave request for staff
+const cancelLeaveRequestController = async (req, res) => {
+  try {
+    const accountId = req.user?.account_id;
+    const { id: leaveId } = req.params;
+
+    const result = await ServiceProcess.cancelLeaveRequestService(
+      accountId,
+      leaveId
+    );
+
+    return new successRes.UpdateSuccess(
+      result,
+      "Cancel leave request successfully"
+    ).send(res);
+
+  } catch (error) {
+    logger.error("Cancel leave error", {
+      context: "LeaveController.cancelLeaveRequestController",
+      message: error.message,
+    });
+    throw error;
+  }
+};
+
 module.exports = {
     getListController,
     getByIdController,
@@ -492,4 +606,6 @@ module.exports = {
     getLeaveRequestController,
     editLeaveRequestController,
     cancelLeaveRequestController
+    updateStatusController,
+    getRolesController
 };

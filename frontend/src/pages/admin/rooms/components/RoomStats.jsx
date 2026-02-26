@@ -1,7 +1,7 @@
 import React from 'react';
-import { DoorOpen, CheckCircle, Wrench, UserCog } from 'lucide-react';
+import { DoorOpen, CheckCircle, Wrench, XCircle } from 'lucide-react';
 
-const RoomStats = ({ rooms, roomAssignments }) => {
+const RoomStats = ({ rooms }) => {
     return (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
             <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
@@ -46,13 +46,13 @@ const RoomStats = ({ rooms, roomAssignments }) => {
 
             <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
                 <div className="flex items-center gap-4">
-                    <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center shadow-lg">
-                        <UserCog className="text-white" size={28} />
+                    <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-red-500 to-rose-600 flex items-center justify-center shadow-lg">
+                        <XCircle className="text-white" size={28} />
                     </div>
                     <div>
-                        <p className="text-sm font-medium text-gray-600">Phân công</p>
-                        <p className="text-3xl font-bold text-purple-600">
-                            {roomAssignments.length}
+                        <p className="text-sm font-medium text-gray-600">Ngừng hoạt động</p>
+                        <p className="text-3xl font-bold text-red-600">
+                            {rooms.filter(r => r.status === 'INACTIVE').length}
                         </p>
                     </div>
                 </div>

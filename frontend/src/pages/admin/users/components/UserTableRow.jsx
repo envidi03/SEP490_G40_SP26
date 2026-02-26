@@ -3,7 +3,6 @@ import Badge from '../../../../components/ui/Badge';
 import { formatDateTime } from '../../../../utils/dateUtils';
 import {
     Edit,
-    Trash2,
     Eye,
     Lock,
     Unlock,
@@ -14,7 +13,7 @@ import {
     Users
 } from 'lucide-react';
 
-const UserTableRow = ({ user, roleConfig, statusConfig, onView, onEdit, onLockUnlock, onDelete }) => {
+const UserTableRow = ({ user, roleConfig, statusConfig, onView, onEdit, onLockUnlock }) => {
     const RoleIcon = roleConfig[user.role]?.icon;
 
     return (
