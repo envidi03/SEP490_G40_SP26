@@ -96,6 +96,33 @@ const medicineController = require("../controller/medicine.controller");
  */
 router.get("/medicines", medicineController.getMedicines);
 
+/**
+ * @swagger
+ * /api/inventory/medicines/categories:
+ *   get:
+ *     summary: Lấy danh sách danh mục thuốc (cho dropdown filter)
+ *     tags: [Inventory]
+ *     responses:
+ *       200:
+ *         description: Thành công
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: string
+ *                   example: ["Giảm đau - Hạ sốt", "Kháng sinh", "Kháng viêm", "Kháng histamin", "Vitamin & Khoáng chất"]
+ *       500:
+ *         description: Lỗi server
+ */
+router.get("/medicines/categories", medicineController.getCategories);
+
 // ======================== DASHBOARD ROUTES ========================
 
 /**

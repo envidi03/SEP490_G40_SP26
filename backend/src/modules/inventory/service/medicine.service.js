@@ -41,3 +41,10 @@ exports.getMedicines = async ({ page = 1, limit = 10, search, category }) => {
         }
     };
 };
+
+/**
+ * Lấy danh sách danh mục thuốc (distinct)
+ */
+exports.getCategories = async () => {
+    return await Medicine.distinct("category");
+};

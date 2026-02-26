@@ -16,3 +16,18 @@ exports.getMedicines = async (req, res) => {
         });
     }
 };
+
+exports.getCategories = async (req, res) => {
+    try {
+        const categories = await medicineService.getCategories();
+        return res.status(200).json({
+            success: true,
+            data: categories
+        });
+    } catch (error) {
+        return res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+};
