@@ -3,11 +3,11 @@ const errorRes = require("../../../common/errors");
 const mongoose = require("mongoose");
 const Pagination = require("../../../common/responses/Pagination");
 
-const StaffModel = require("../models/index.model");
+const StaffModel = require("../../staff/models/staff.model");
 const DentalRecordModel = require("../models/dental-record.model");
 
 const createDentalRecordService = async (accountId, payload) => {
-  const staff = await StaffModel.Staff.findOne({ account_id: accountId });
+  const staff = await StaffModel.findOne({ account_id: accountId });
 
   if (!staff) throw new errorRes.NotFoundError("Staff not found");
 
@@ -28,7 +28,7 @@ const createDentalRecordService = async (accountId, payload) => {
 };
 
 const editDentalRecordService = async (accountId, recordId, payload = {}) => {
-  const staff = await StaffModel.Staff.findOne({ account_id: accountId });
+  const staff = await StaffModel.findOne({ account_id: accountId });
   if (!staff) throw new errorRes.NotFoundError("Staff not found");
 
   const record = await DentalRecordModel.findOne({
@@ -59,7 +59,7 @@ const getDentalRecordsService = async (accountId, query) => {
   const page = parseInt(query.page) || 1;
   const limit = parseInt(query.limit) || 10;
 
-  const staff = await StaffModel.Staff.findOne({ account_id: accountId });
+  const staff = await StaffModel.findOne({ account_id: accountId });
   if (!staff) throw new errorRes.NotFoundError("Staff not found");
 
   const filter = { created_by: staff._id };
