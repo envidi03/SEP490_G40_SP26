@@ -85,6 +85,9 @@ app.get('/health', (req, res) => {
 const { authRoutes } = require('./modules/auth');
 app.use('/api/auth', authRoutes);
 
+const { profileRoutes } = require('./modules/auth');
+app.use('/api/profile', profileRoutes);
+
 const { clinicRoute } = require('./modules/clinic');
 app.use('/api/clinic', clinicRoute);
 
