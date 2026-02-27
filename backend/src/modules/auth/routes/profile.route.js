@@ -9,4 +9,10 @@ router.patch(
   controller.updateProfileController
 );
 
+router.get(
+  "/",
+  auth.authenticate,
+  controller.getProfileController
+);
+
 module.exports = router;

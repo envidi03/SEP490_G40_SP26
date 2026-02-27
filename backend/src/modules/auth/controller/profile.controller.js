@@ -25,6 +25,27 @@ const updateProfileController = async (req, res) => {
   }
 };
 
+const getProfileController = async (req, res) => {
+  try {
+    const accountId = req.user?.account_id;
+
+    const result = await ServiceProcess.getProfileService(accountId);
+
+    return new successRes.GetListSuccess(
+      result,
+      "Get profile successfully"
+    ).send(res);
+
+  } catch (error) {
+    logger.error("Get profile error", {
+      context: "ProfileController.getProfileController",
+      message: error.message,
+    });
+    throw error;
+  }
+};
+
 module.exports = {
-  updateProfileController
+  updateProfileController,
+  getProfileController
 };

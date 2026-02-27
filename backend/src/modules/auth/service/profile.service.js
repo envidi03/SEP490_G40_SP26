@@ -39,6 +39,22 @@ const updateProfileService = async (accountId, payload = {}) => {
   return profile;
 };
 
+const getProfileService = async (accountId) => {
+  if (!accountId) {
+    throw new errorRes.UnauthorizedError("Unauthorized");
+  }
+
+  const profile = await Profile.findOne({ account_id: accountId })
+    .populate("account_id", "-password -refresh_token");
+
+  if (!profile) {
+    throw new errorRes.NotFoundError("Profile not found");
+  }
+
+  return profile;
+};
+
 module.exports = {
-  updateProfileService
+  updateProfileService,
+  getProfileService
 };
