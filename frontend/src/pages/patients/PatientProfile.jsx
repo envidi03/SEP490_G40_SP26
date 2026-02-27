@@ -67,7 +67,7 @@ const PatientProfile = () => {
         setFormData({
           name: profile?.full_name || "",
           email: profile?.account_id?.email || "",
-          phone: profile?.phone || "",
+          phone: profile?.account_id?.phone_number || "",
           dateOfBirth: profile?.dob ? profile.dob.split("T")[0] : "",
           gender: profile?.gender || "",
           address: profile?.address || "",
