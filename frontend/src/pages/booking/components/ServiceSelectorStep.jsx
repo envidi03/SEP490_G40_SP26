@@ -1,27 +1,39 @@
 import React, { useState, useEffect } from 'react';
-import { mockServices } from '../../../utils/mockData';
-import { Search, Clock, DollarSign } from 'lucide-react';
+import { Search, Clock, DollarSign, Loader2 } from 'lucide-react';
+import serviceService from '../../../../services/serviceService';
 
 const ServiceSelectorStep = ({ onSelect }) => {
     const [services, setServices] = useState([]);
     const [filteredServices, setFilteredServices] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
-    const [selectedCategory, setSelectedCategory] = useState('all');
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
 
     useEffect(() => {
-        // Load active services
-        const activeServices = mockServices.filter(s => s.status === 'ACTIVE');
-        setServices(activeServices);
-        setFilteredServices(activeServices);
+        let isMounted = true;
+        const fetchServices = async () => {
+            try {
+                setLoading(true);
+                const response = await serviceService.getAllServices({ status: 'AVAILABLE' });
+                if (!isMounted) return;
+
+                const activeServices = response?.data?.data || response?.data || [];
+                setServices(activeServices);
+                setFilteredServices(activeServices);
+            } catch (err) {
+                console.error("Failed to fetch services layout:", err);
+                if (isMounted) setError("Không thể tải danh sách dịch vụ. Vui lòng thử lại sau.");
+            } finally {
+                if (isMounted) setLoading(false);
+            }
+        };
+
+        fetchServices();
+        return () => { isMounted = false; };
     }, []);
 
     useEffect(() => {
         let filtered = services;
-
-        // Filter by category
-        if (selectedCategory !== 'all') {
-            filtered = filtered.filter(s => s.category === selectedCategory);
-        }
 
         // Filter by search term
         if (searchTerm) {
@@ -32,10 +44,7 @@ const ServiceSelectorStep = ({ onSelect }) => {
         }
 
         setFilteredServices(filtered);
-    }, [searchTerm, selectedCategory, services]);
-
-    // Get unique categories
-    const categories = ['all', ...new Set(services.map(s => s.category))];
+    }, [searchTerm, services]);
 
     const formatCurrency = (amount) => {
         return new Intl.NumberFormat('vi-VN', {
@@ -62,33 +71,31 @@ const ServiceSelectorStep = ({ onSelect }) => {
                     />
                 </div>
 
-                {/* Category Filter */}
-                <div className="flex flex-wrap gap-2">
-                    {categories.map(category => (
-                        <button
-                            key={category}
-                            onClick={() => setSelectedCategory(category)}
-                            className={`px-4 py-2 rounded-lg font-medium transition-colors ${selectedCategory === category
-                                    ? 'bg-primary-600 text-white'
-                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                                }`}
-                        >
-                            {category === 'all' ? 'Tất cả' : category}
-                        </button>
-                    ))}
-                </div>
             </div>
 
             {/* Services Grid */}
             <div className="grid md:grid-cols-2 gap-4 max-h-[500px] overflow-y-auto pr-2">
-                {filteredServices.length === 0 ? (
+                {loading && (
+                    <div className="col-span-2 flex flex-col items-center justify-center py-12">
+                        <Loader2 className="w-8 h-8 animate-spin text-primary-600 mb-4" />
+                        <p className="text-gray-500">Đang tải danh sách dịch vụ...</p>
+                    </div>
+                )}
+
+                {error && (
+                    <div className="col-span-2 text-center py-8">
+                        <p className="text-red-500">{error}</p>
+                    </div>
+                )}
+
+                {!loading && !error && filteredServices.length === 0 ? (
                     <div className="col-span-2 text-center py-12 text-gray-500">
                         Không tìm thấy dịch vụ phù hợp
                     </div>
                 ) : (
                     filteredServices.map(service => (
                         <div
-                            key={service.id}
+                            key={service._id}
                             onClick={() => onSelect(service)}
                             className="border-2 border-gray-200 rounded-xl p-4 hover:border-primary-500 hover:shadow-lg transition-all cursor-pointer group"
                         >
@@ -96,9 +103,6 @@ const ServiceSelectorStep = ({ onSelect }) => {
                                 <h3 className="font-semibold text-gray-900 group-hover:text-primary-600 transition-colors">
                                     {service.service_name}
                                 </h3>
-                                <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded">
-                                    {service.category}
-                                </span>
                             </div>
 
                             <p className="text-sm text-gray-600 mb-4 line-clamp-2">
@@ -112,7 +116,7 @@ const ServiceSelectorStep = ({ onSelect }) => {
                                 </div>
                                 <div className="flex items-center gap-1 text-primary-600 font-semibold">
                                     <DollarSign size={16} />
-                                    <span>{formatCurrency(service.base_price)}</span>
+                                    <span>{formatCurrency(service.price)}</span>
                                 </div>
                             </div>
                         </div>

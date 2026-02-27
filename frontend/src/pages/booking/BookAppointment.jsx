@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import PublicLayout from '../../components/layout/PublicLayout';
 import Toast from '../../components/ui/Toast';
-import { ArrowLeft, Check } from 'lucide-react';
+import { ArrowLeft, Check, Loader2 } from 'lucide-react';
+import appointmentService from '../../services/appointmentService';
 
 // Import step components
 import ServiceSelectorStep from './components/ServiceSelectorStep';
@@ -35,8 +36,9 @@ const BookAppointment = () => {
         reason: ''
     });
 
-    // Toast state
+    // Toast and UI states
     const [toast, setToast] = useState({ show: false, type: 'success', message: '' });
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     // Step navigation
     const nextStep = () => setCurrentStep(prev => Math.min(prev + 1, 4));
@@ -46,9 +48,9 @@ const BookAppointment = () => {
     const handleServiceSelect = (service) => {
         setBookingData({
             ...bookingData,
-            service_id: service.id,
+            service_id: service._id,
             service_name: service.service_name,
-            service_price: service.base_price
+            service_price: service.price
         });
         nextStep();
     };
@@ -64,21 +66,55 @@ const BookAppointment = () => {
     };
 
     // Handle booking submission
-    const handleSubmit = (reason) => {
-        setBookingData({
-            ...bookingData,
-            reason
-        });
+    const handleSubmit = async (formData) => {
+        const { reason, notes, full_name, phone, email } = formData;
 
-        // TODO: In real app, call API to create appointment
-        // For now, just show success
-        nextStep();
+        // Construct final note combining reason and optional notes
+        const finalReason = notes ? `${reason}\n\nGhi chú: ${notes}` : reason;
 
-        setToast({
-            show: true,
-            type: 'success',
-            message: '✅ Đặt lịch khám thành công!'
-        });
+        try {
+            setIsSubmitting(true);
+
+            // Format data exactly for Mongoose backend requirements
+            const appointmentPayload = {
+                full_name,
+                phone,
+                email,
+                appointment_date: bookingData.date,
+                appointment_time: bookingData.time,
+                reason: finalReason,
+                book_service: [
+                    {
+                        service_id: bookingData.service_id,
+                        unit_price: bookingData.service_price
+                    }
+                ]
+            };
+
+            await appointmentService.createAppointment(appointmentPayload);
+
+            setBookingData({
+                ...bookingData,
+                reason: finalReason
+            });
+
+            nextStep();
+
+            setToast({
+                show: true,
+                type: 'success',
+                message: '✅ Đặt lịch khám thành công!'
+            });
+        } catch (error) {
+            console.error("Booking Error: ", error);
+            setToast({
+                show: true,
+                type: 'error',
+                message: error.response?.data?.message || '❌ Lỗi khi đặt lịch. Vui lòng thử lại.'
+            });
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     // Stepper UI
@@ -132,8 +168,8 @@ const BookAppointment = () => {
                                     <React.Fragment key={step.number}>
                                         <div className="flex flex-col items-center">
                                             <div className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold text-sm transition-all ${currentStep >= step.number
-                                                    ? 'bg-primary-600 text-white'
-                                                    : 'bg-gray-200 text-gray-600'
+                                                ? 'bg-primary-600 text-white'
+                                                : 'bg-gray-200 text-gray-600'
                                                 }`}>
                                                 {currentStep > step.number ? (
                                                     <Check size={20} />
@@ -170,10 +206,19 @@ const BookAppointment = () => {
                         )}
 
                         {currentStep === 3 && (
-                            <BookingFormStep
-                                bookingData={bookingData}
-                                onSubmit={handleSubmit}
-                            />
+                            <div className="relative">
+                                {isSubmitting && (
+                                    <div className="absolute inset-0 bg-white/60 backdrop-blur-[1px] z-10 flex flex-col items-center justify-center rounded-xl">
+                                        <Loader2 className="w-10 h-10 animate-spin text-primary-600 mb-2" />
+                                        <p className="font-semibold text-gray-700 text-lg">Đang tiến hành đặt lịch...</p>
+                                    </div>
+                                )}
+                                <BookingFormStep
+                                    user={user}
+                                    bookingData={bookingData}
+                                    onSubmit={handleSubmit}
+                                />
+                            </div>
                         )}
 
                         {currentStep === 4 && (
