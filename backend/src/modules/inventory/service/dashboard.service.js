@@ -1,7 +1,8 @@
 const Medicine = require("../model/medicine.model");
+const Treatment = require("../../treatment/models/treatment.model");
 
 exports.getDashboardStats = async () => {
-    const [totalActive, lowStock, urgentStock, inventoryResult] = await Promise.all([
+    const [totalActive, lowStock, urgentStock, inventoryResult, pendingDispense] = await Promise.all([
         Medicine.countDocuments({ status: "AVAILABLE" }),
         Medicine.countDocuments({ $expr: { $lte: ["$quantity", "$min_quantity"] }, quantity: { $gt: 0 } }),
         Medicine.countDocuments({
@@ -17,12 +18,16 @@ exports.getDashboardStats = async () => {
                     totalQuantity: { $sum: "$quantity" }
                 }
             }
-        ])
+        ]),
+        Treatment.countDocuments({
+            "medicine_usage.0": { $exists: true },
+            "medicine_usage.dispensed": false
+        })
     ])
     return {
         totalMedicines: totalActive,
         totalInventoryQuantity: inventoryResult[0]?.totalQuantity || 0,
-        pendingOrders: 0,
+        pendingOrders: pendingDispense,
         lowStockCount: lowStock,
         urgentStockCount: urgentStock
     }
