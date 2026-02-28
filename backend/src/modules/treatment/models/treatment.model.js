@@ -6,12 +6,12 @@ const treatmentSchema = new Schema(
         // --- CÁC TRƯỜNG KHÓA NGOẠI (FOREIGN KEYS) ---
         record_id: {
             type: Schema.Types.ObjectId,
-            ref: "DentalRecord", 
+            ref: "DentalRecord",
             required: true
         },
         appointment_id: {
             type: Schema.Types.ObjectId,
-            ref: "Appointment", 
+            ref: "Appointment",
             required: true
         },
         patient_id: {
@@ -21,7 +21,7 @@ const treatmentSchema = new Schema(
         },
         doctor_id: {
             type: Schema.Types.ObjectId,
-            ref: "Staff", 
+            ref: "Staff",
             required: true
         },
 
@@ -78,6 +78,14 @@ const treatmentSchema = new Schema(
                 note: {
                     type: String,
                     trim: true
+                },
+                dispensed: {
+                    type: Boolean,
+                    default: false
+                },
+                dispensed_at: {
+                    type: Date,
+                    default: null
                 }
             }
         ],
@@ -89,9 +97,9 @@ const treatmentSchema = new Schema(
             default: 'PLANNED'
         }
     },
-    { 
-        timestamps: true, 
-        collection: "treatments" 
+    {
+        timestamps: true,
+        collection: "treatments"
     }
 );
 

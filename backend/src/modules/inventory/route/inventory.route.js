@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const dashboardController = require("../controller/dashboard.controller");
 const medicineController = require("../controller/medicine.controller");
+const prescriptionController = require("../controller/prescription.controller");
 
 /**
  * @swagger
@@ -428,6 +429,69 @@ router.get("/restock-requests", medicineController.getRestockRequests);
  *         description: Lỗi server
  */
 router.patch("/medicines/:id/restock-requests/:requestId", medicineController.updateRestockRequestStatus);
+
+// ======================== PRESCRIPTION ROUTES ========================
+
+/**
+ * @swagger
+ * /api/inventory/prescriptions:
+ *   get:
+ *     summary: Lấy danh sách đơn thuốc sau khám
+ *     tags: [Inventory]
+ *     parameters:
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [pending, dispensed]
+ *         description: Lọc - pending (chờ xuất), dispensed (đã xuất)
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Tìm theo tên bệnh nhân hoặc bác sĩ
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *     responses:
+ *       200:
+ *         description: Thành công
+ *       500:
+ *         description: Lỗi server
+ */
+router.get("/prescriptions", prescriptionController.getPrescriptions);
+
+/**
+ * @swagger
+ * /api/inventory/prescriptions/{id}/dispense:
+ *   post:
+ *     summary: Xuất thuốc điều trị - trừ kho theo đơn
+ *     tags: [Inventory]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID của treatment
+ *     responses:
+ *       200:
+ *         description: Xuất thuốc thành công
+ *       400:
+ *         description: Tồn kho không đủ hoặc đã xuất rồi
+ *       404:
+ *         description: Không tìm thấy đơn thuốc
+ *       500:
+ *         description: Lỗi server
+ */
+router.post("/prescriptions/:id/dispense", prescriptionController.dispensePrescription);
 
 // ======================== DASHBOARD ROUTES ========================
 
