@@ -67,6 +67,19 @@ const BookAppointment = () => {
 
     // Handle booking submission
     const handleSubmit = async (formData) => {
+        if (!user) {
+            setToast({
+                show: true,
+                type: 'error',
+                message: 'Vui lòng đăng nhập để đặt lịch khám.'
+            });
+            setTimeout(() => {
+                // Save current step to return back after login if possible (or just go to login)
+                navigate('/login', { state: { from: '/booking' } });
+            }, 1500);
+            return;
+        }
+
         const { reason, notes, full_name, phone, email } = formData;
 
         // Construct final note combining reason and optional notes

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Clock, DollarSign, Loader2 } from 'lucide-react';
-import serviceService from '../../../../services/serviceService';
+import serviceService from '../../../services/serviceService';
 
 const ServiceSelectorStep = ({ onSelect }) => {
     const [services, setServices] = useState([]);

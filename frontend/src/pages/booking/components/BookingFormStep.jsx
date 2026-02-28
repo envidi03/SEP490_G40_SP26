@@ -24,7 +24,7 @@ const BookingFormStep = ({ bookingData, onSubmit, user }) => {
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        if (reason.trim() && fullName.trim() && phone.trim()) {
+        if (reason.trim() && fullName.trim() && phone.trim() && email.trim()) {
             onSubmit({
                 reason,
                 notes,
@@ -135,7 +135,7 @@ const BookingFormStep = ({ bookingData, onSubmit, user }) => {
                     <div>
                         <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
                             <Mail size={18} className="text-primary-600" />
-                            Email <span className="text-gray-400 font-normal">(Không bắt buộc)</span>
+                            Email <span className="text-red-500">*</span>
                         </label>
                         <input
                             type="email"
@@ -143,6 +143,7 @@ const BookingFormStep = ({ bookingData, onSubmit, user }) => {
                             onChange={(e) => setEmail(e.target.value)}
                             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                             placeholder="Email nhận thông báo"
+                            required
                         />
                     </div>
                     <div className="md:col-span-2 mt-1">
@@ -189,7 +190,7 @@ const BookingFormStep = ({ bookingData, onSubmit, user }) => {
                 {/* Submit Button */}
                 <button
                     type="submit"
-                    disabled={!reason.trim()}
+                    disabled={!reason.trim() || !fullName.trim() || !phone.trim() || !email.trim()}
                     className="w-full px-6 py-4 bg-gradient-to-r from-primary-600 to-primary-700 text-white rounded-lg font-semibold hover:shadow-lg disabled:bg-gray-300 disabled:cursor-not-allowed transition-all text-lg"
                 >
                     Xác nhận đặt lịch
