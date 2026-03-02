@@ -53,10 +53,10 @@ const medicineSchema = new Schema(
         },
 
         category: {
-            // Danh mục: Kháng sinh, Kháng viêm, Kháng histamin, Giảm đau...
-            type: String,
-            required: true,
-            trim: true
+            // Tham chiếu đến bảng MedicineCategory
+            type: Schema.Types.ObjectId,
+            ref: "MedicineCategory",
+            required: true
         },
 
         dosage: {

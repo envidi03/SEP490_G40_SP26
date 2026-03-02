@@ -32,6 +32,56 @@ exports.getCategories = async (req, res) => {
     }
 };
 
+exports.createCategory = async (req, res) => {
+    try {
+        const category = await medicineService.createCategory(req.body);
+        return res.status(201).json({
+            success: true,
+            message: "Tạo danh mục thành công",
+            data: category
+        });
+    } catch (error) {
+        const statusCode = error.statusCode || 500;
+        return res.status(statusCode).json({
+            success: false,
+            message: error.message
+        });
+    }
+};
+
+exports.updateCategory = async (req, res) => {
+    try {
+        const category = await medicineService.updateCategory(req.params.id, req.body);
+        return res.status(200).json({
+            success: true,
+            message: "Cập nhật danh mục thành công",
+            data: category
+        });
+    } catch (error) {
+        const statusCode = error.statusCode || 500;
+        return res.status(statusCode).json({
+            success: false,
+            message: error.message
+        });
+    }
+};
+
+exports.deleteCategory = async (req, res) => {
+    try {
+        const result = await medicineService.deleteCategory(req.params.id);
+        return res.status(200).json({
+            success: true,
+            message: result.message
+        });
+    } catch (error) {
+        const statusCode = error.statusCode || 500;
+        return res.status(statusCode).json({
+            success: false,
+            message: error.message
+        });
+    }
+};
+
 exports.createMedicine = async (req, res) => {
     try {
         const medicine = await medicineService.createMedicine(req.body);

@@ -41,7 +41,7 @@ const prescriptionController = require("../controller/prescription.controller");
  *         name: category
  *         schema:
  *           type: string
- *         description: Lọc theo danh mục thuốc
+ *         description: Lọc theo ID danh mục thuốc (ObjectId)
  *     responses:
  *       200:
  *         description: Thành công
@@ -101,7 +101,7 @@ router.get("/medicines", medicineController.getMedicines);
  * @swagger
  * /api/inventory/medicines/categories:
  *   get:
- *     summary: Lấy danh sách danh mục thuốc (cho dropdown filter)
+ *     summary: Lấy danh sách danh mục thuốc
  *     tags: [Inventory]
  *     responses:
  *       200:
@@ -117,12 +117,125 @@ router.get("/medicines", medicineController.getMedicines);
  *                 data:
  *                   type: array
  *                   items:
- *                     type: string
- *                   example: ["Giảm đau - Hạ sốt", "Kháng sinh", "Kháng viêm", "Kháng histamin", "Vitamin & Khoáng chất"]
+ *                     type: object
+ *                     properties:
+ *                       _id:
+ *                         type: string
+ *                         example: 60d5ec49f1b2c72b9c8e4d3a
+ *                       name:
+ *                         type: string
+ *                         example: Kháng sinh
+ *                       description:
+ *                         type: string
+ *                         example: Nhóm thuốc kháng sinh
+ *                       status:
+ *                         type: string
+ *                         example: active
  *       500:
  *         description: Lỗi server
  */
 router.get("/medicines/categories", medicineController.getCategories);
+
+/**
+ * @swagger
+ * /api/inventory/medicines/categories:
+ *   post:
+ *     summary: Tạo danh mục thuốc mới
+ *     tags: [Inventory]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 example: Kháng sinh
+ *               description:
+ *                 type: string
+ *                 example: Nhóm thuốc kháng sinh
+ *     responses:
+ *       201:
+ *         description: Tạo danh mục thành công
+ *       400:
+ *         description: Dữ liệu không hợp lệ
+ *       409:
+ *         description: Danh mục đã tồn tại
+ *       500:
+ *         description: Lỗi server
+ */
+router.post("/medicines/categories", medicineController.createCategory);
+
+/**
+ * @swagger
+ * /api/inventory/medicines/categories/{id}:
+ *   put:
+ *     summary: Cập nhật danh mục thuốc
+ *     tags: [Inventory]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID của danh mục
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 example: Kháng sinh nhóm 1
+ *               description:
+ *                 type: string
+ *                 example: Mô tả cập nhật
+ *               status:
+ *                 type: string
+ *                 enum: [active, inactive]
+ *     responses:
+ *       200:
+ *         description: Cập nhật thành công
+ *       400:
+ *         description: Dữ liệu không hợp lệ
+ *       404:
+ *         description: Không tìm thấy danh mục
+ *       409:
+ *         description: Trùng tên danh mục
+ *       500:
+ *         description: Lỗi server
+ */
+router.put("/medicines/categories/:id", medicineController.updateCategory);
+
+/**
+ * @swagger
+ * /api/inventory/medicines/categories/{id}:
+ *   delete:
+ *     summary: Xóa danh mục thuốc
+ *     tags: [Inventory]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID của danh mục
+ *     responses:
+ *       200:
+ *         description: Xóa thành công
+ *       400:
+ *         description: Danh mục đang được sử dụng
+ *       404:
+ *         description: Không tìm thấy danh mục
+ *       500:
+ *         description: Lỗi server
+ */
+router.delete("/medicines/categories/:id", medicineController.deleteCategory);
 
 /**
  * @swagger
@@ -152,7 +265,8 @@ router.get("/medicines/categories", medicineController.getCategories);
  *                 example: Paracetamol 500mg
  *               category:
  *                 type: string
- *                 example: Giảm đau - Hạ sốt
+ *                 description: ID của danh mục thuốc (ObjectId)
+ *                 example: 60d5ec49f1b2c72b9c8e4d3a
  *               dosage:
  *                 type: string
  *                 example: 500mg
