@@ -9,8 +9,9 @@ import { Save, X, ArrowLeft } from "lucide-react";
 // Import các components con
 import ProfileHeader from "./components/ProfileHeader";
 import ProfileForm from "./components/ProfileForm";
-import PasswordChangeSection from "./components/PasswordChangeSection";
 import { getProfile, updateProfile, uploadAvatar } from "../../services/profileService";
+import authService from "../../services/authService";
+import PasswordChangeSection from "./components/PasswordChangeSection";
 
 /**
  * PatientProfile - Trang quản lý thông tin cá nhân của bệnh nhân
@@ -216,32 +217,34 @@ const PatientProfile = () => {
       return;
     }
 
-    if (passwordData.newPassword.length < 6) {
-      setToast({
-        show: true,
-        type: "error",
-        message: "❌ Mật khẩu phải có ít nhất 6 ký tự!",
-      });
-      return;
-    }
-
     setLoading(true);
 
-    // Simulate API call
-    setTimeout(() => {
+    try {
+      await authService.changePassword(
+        passwordData.currentPassword,
+        passwordData.newPassword
+      );
+
       setPasswordData({
         currentPassword: "",
         newPassword: "",
         confirmPassword: "",
       });
       setShowPasswordSection(false);
-      setLoading(false);
       setToast({
         show: true,
         type: "success",
         message: "✅ Đổi mật khẩu thành công!",
       });
-    }, 800);
+    } catch (error) {
+      setToast({
+        show: true,
+        type: "error",
+        message: error.response?.data?.message || error.message || "❌ Đổi mật khẩu thất bại!",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   /**
