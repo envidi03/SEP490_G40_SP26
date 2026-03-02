@@ -1,11 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const auth = require('../../../common/middlewares/index');
-const controller = require('../controllers/appointment.controller');
-const dentalRecordController = require('../controllers/dental.record.controller');
+const controller = require('../controllers/index.controller');
 
-router.get('/patient', auth.authenticate, auth.authorize("PATIENT"), controller.getListOfPatientController);
-router.get('/staff', controller.getListController);
-router.get('/dental-record', auth.authenticate, auth.authorize("DOCTOR"), dentalRecordController.getDentalRecordsController);
+router.get('/treatment', controller.treatment.getListController);
+
+router.get('/dental-record', controller.dental.getListController);
 
 module.exports = router;
