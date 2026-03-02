@@ -1,11 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import Modal from '../../components/ui/Modal';
+import { Loader2 } from 'lucide-react';
+import inventoryService from '../../services/inventoryService';
 
 const INITIAL_FORM = {
     name: '',
     category: '',
     dosage: '',
+    dosage_form: '',
     manufacturer: '',
+    distributor: '',
     unit: '',
     price: '',
     stock: '',
@@ -14,27 +18,38 @@ const INITIAL_FORM = {
     batchNumber: ''
 };
 
-const CATEGORIES = [
-    'Giảm đau - Hạ sốt',
-    'Kháng sinh',
-    'Kháng viêm',
-    'Thuốc gây tê',
-    'Vitamin & Khoáng chất',
-    'Kháng histamin',
-    'Dung dịch sát trùng',
-    'Thuốc súc miệng kháng khuẩn',
-    'Vật liệu nha khoa',
-    'Khác'
-];
+const DOSAGE_FORMS = ['Viên', 'Viên nang', 'Viên sủi', 'Dung dịch', 'Siro', 'Bột', 'Gel', 'Cream', 'Xịt', 'Nhỏ mắt', 'Nhỏ tai', 'Khác'];
+const UNITS = ['Viên', 'Chai', 'Lọ', 'Tuýp', 'Hộp', 'Bộ', 'Gói', 'ml', 'mg'];
 
-const UNITS = ['Viên', 'Chai', 'Lọ', 'Tuýp', 'Hộp', 'Bộ', 'Gói', 'ml'];
-
-const PharmacyMedicineModal = ({ isOpen, onClose, onSubmit, editData = null }) => {
+const PharmacyMedicineModal = ({ isOpen, onClose, onSubmit, editData = null, submitting = false }) => {
     const isEdit = !!editData;
     const [formData, setFormData] = useState(INITIAL_FORM);
     const [errors, setErrors] = useState({});
+    const [categories, setCategories] = useState([]);
 
-    // Khi mở modal chỉnh sửa, load dữ liệu vào form
+    // Lấy danh mục từ API
+    useEffect(() => {
+        inventoryService.getCategories()
+            .then(res => {
+                if (res?.success) setCategories(res.data || []);
+            })
+            .catch(() => {
+                // Fallback danh mục mặc định nếu API lỗi
+                setCategories([
+                    'Giảm đau - Hạ sốt',
+                    'Kháng sinh',
+                    'Kháng viêm',
+                    'Thuốc gây tê',
+                    'Vitamin & Khoáng chất',
+                    'Kháng histamin',
+                    'Dung dịch sát trùng',
+                    'Vật liệu nha khoa',
+                    'Khác'
+                ]);
+            });
+    }, []);
+
+    // Khi mở modal, load dữ liệu vào form
     useEffect(() => {
         if (isOpen) {
             if (editData) {
@@ -42,7 +57,9 @@ const PharmacyMedicineModal = ({ isOpen, onClose, onSubmit, editData = null }) =
                     name: editData.name || '',
                     category: editData.category || '',
                     dosage: editData.dosage || '',
+                    dosage_form: editData.dosage_form || '',
                     manufacturer: editData.manufacturer || '',
+                    distributor: editData.distributor || '',
                     unit: editData.unit || '',
                     price: editData.price?.toString() || '',
                     stock: editData.stock?.toString() || '',
@@ -69,18 +86,19 @@ const PharmacyMedicineModal = ({ isOpen, onClose, onSubmit, editData = null }) =
         const newErrors = {};
         if (!formData.name.trim()) newErrors.name = 'Vui lòng nhập tên thuốc';
         if (!formData.category) newErrors.category = 'Vui lòng chọn danh mục';
+        if (!formData.dosage_form) newErrors.dosage_form = 'Vui lòng chọn dạng bào chế';
         if (!formData.manufacturer.trim()) newErrors.manufacturer = 'Vui lòng nhập nhà sản xuất';
         if (!formData.unit) newErrors.unit = 'Vui lòng chọn đơn vị';
-        if (!formData.price || Number(formData.price) < 0) newErrors.price = 'Giá phải >= 0';
-        if (!formData.stock || Number(formData.stock) < 0) newErrors.stock = 'Tồn kho phải >= 0';
-        if (!formData.minStock || Number(formData.minStock) < 0) newErrors.minStock = 'Tồn kho tối thiểu phải >= 0';
+        if (formData.price === '' || Number(formData.price) < 0) newErrors.price = 'Giá phải >= 0';
+        if (formData.stock === '' || Number(formData.stock) < 0) newErrors.stock = 'Tồn kho phải >= 0';
+        if (formData.minStock === '' || Number(formData.minStock) < 0) newErrors.minStock = 'Tồn kho tối thiểu phải >= 0';
         if (!formData.expiryDate) newErrors.expiryDate = 'Vui lòng chọn hạn sử dụng';
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
 
     const handleSubmit = () => {
-        if (!validate()) return;
+        if (!validate() || submitting) return;
         const payload = {
             ...formData,
             price: Number(formData.price),
@@ -88,11 +106,12 @@ const PharmacyMedicineModal = ({ isOpen, onClose, onSubmit, editData = null }) =
             minStock: Number(formData.minStock),
             ...(isEdit && { id: editData.id })
         };
+        // Không gọi handleClose ở đây — để parent (PharmacyMedicines) đóng modal sau khi API thành công
         onSubmit(payload, isEdit);
-        handleClose();
     };
 
     const handleClose = () => {
+        if (submitting) return; // Không cho đóng khi đang submit
         setFormData(INITIAL_FORM);
         setErrors({});
         onClose();
@@ -112,14 +131,17 @@ const PharmacyMedicineModal = ({ isOpen, onClose, onSubmit, editData = null }) =
                 <div className="flex justify-end gap-2">
                     <button
                         onClick={handleClose}
-                        className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-sm"
+                        disabled={submitting}
+                        className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         Hủy
                     </button>
                     <button
                         onClick={handleSubmit}
-                        className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 text-sm font-medium"
+                        disabled={submitting}
+                        className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 text-sm font-medium flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
                     >
+                        {submitting && <Loader2 size={16} className="animate-spin" />}
                         {isEdit ? 'Lưu thay đổi' : 'Thêm thuốc'}
                     </button>
                 </div>
@@ -157,7 +179,7 @@ const PharmacyMedicineModal = ({ isOpen, onClose, onSubmit, editData = null }) =
                     </div>
                 </div>
 
-                {/* Danh mục + NSX */}
+                {/* Danh mục + Dạng bào chế */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -170,12 +192,33 @@ const PharmacyMedicineModal = ({ isOpen, onClose, onSubmit, editData = null }) =
                             className={inputClass('category')}
                         >
                             <option value="">-- Chọn danh mục --</option>
-                            {CATEGORIES.map(cat => (
+                            {categories.map(cat => (
                                 <option key={cat} value={cat}>{cat}</option>
                             ))}
                         </select>
                         {errors.category && <p className="text-red-500 text-xs mt-1">{errors.category}</p>}
                     </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Dạng bào chế <span className="text-red-500">*</span>
+                        </label>
+                        <select
+                            name="dosage_form"
+                            value={formData.dosage_form}
+                            onChange={handleChange}
+                            className={inputClass('dosage_form')}
+                        >
+                            <option value="">-- Chọn dạng bào chế --</option>
+                            {DOSAGE_FORMS.map(f => (
+                                <option key={f} value={f}>{f}</option>
+                            ))}
+                        </select>
+                        {errors.dosage_form && <p className="text-red-500 text-xs mt-1">{errors.dosage_form}</p>}
+                    </div>
+                </div>
+
+                {/* NSX + Nhà phân phối */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                             Nhà sản xuất <span className="text-red-500">*</span>
@@ -189,6 +232,19 @@ const PharmacyMedicineModal = ({ isOpen, onClose, onSubmit, editData = null }) =
                             className={inputClass('manufacturer')}
                         />
                         {errors.manufacturer && <p className="text-red-500 text-xs mt-1">{errors.manufacturer}</p>}
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Nhà phân phối
+                        </label>
+                        <input
+                            type="text"
+                            name="distributor"
+                            value={formData.distributor}
+                            onChange={handleChange}
+                            placeholder="VD: Công ty ABC..."
+                            className={inputClass('distributor')}
+                        />
                     </div>
                 </div>
 

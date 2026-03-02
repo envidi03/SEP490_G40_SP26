@@ -24,7 +24,7 @@ exports.getMedicines = async ({ page = 1, limit = 10, search, category }) => {
 
     const [medicines, totalCount] = await Promise.all([
         Medicine.find(query)
-            .select("medicine_name category manufacturer price quantity expiry_date unit dosage_form status")
+            .select("medicine_name category manufacturer price quantity min_quantity expiry_date unit dosage_form status")
             .sort({ createdAt: -1 })
             .skip(skip)
             .limit(limitNum),

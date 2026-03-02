@@ -1,7 +1,7 @@
 import React from 'react';
 import { X } from 'lucide-react';
 
-const Modal = ({ isOpen, onClose, title, children, size = 'md' }) => {
+const Modal = ({ isOpen, onClose, title, children, size = 'md', footer }) => {
     if (!isOpen) return null;
 
     const sizes = {
@@ -35,6 +35,13 @@ const Modal = ({ isOpen, onClose, title, children, size = 'md' }) => {
 
                     {/* Content */}
                     <div className="p-6">{children}</div>
+
+                    {/* Footer */}
+                    {footer && (
+                        <div className="px-6 py-4 border-t border-gray-200 bg-gray-50 rounded-b-lg">
+                            {footer}
+                        </div>
+                    )}
                 </div>
             </div>
         </div>
