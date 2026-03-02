@@ -19,7 +19,17 @@ const appointmentService = {
         } catch (error) {
             throw error;
         }
-    }
+    },
+
+    // Lấy chi tiết một cuộc hẹn theo ID
+    getAppointmentById: async (id) => {
+        try {
+            const response = await apiClient.get(`/api/appointment/${id}`);
+            return response;
+        } catch (error) {
+            throw error;
+        }
+    },
 };
 
 export default appointmentService;
