@@ -1,7 +1,7 @@
 const crypto = require('crypto');
 const emailService = require('./email.service');
-const EmailVerification = require('../../modules/auth/models/EmailVerification.model');
-const PasswordReset = require('../../modules/auth/models/PasswordReset.model');
+const EmailVerification = require('../../modules/auth/models/email-verification.model');
+const PasswordReset = require('../../modules/auth/models/password-reset.model');
 require('dotenv').config();
 
 class OTPService {

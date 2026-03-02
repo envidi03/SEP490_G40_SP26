@@ -3,7 +3,8 @@ const swaggerUi = require('swagger-ui-express');
 const path = require('path');
 
 const options = {
-    definition: {
+    // SỬA Ở ĐÂY: Thay 'definition' thành 'swaggerDefinition'
+    swaggerDefinition: {
         openapi: '3.0.0',
         info: {
             title: 'SEP490 G40 API Documentation',
@@ -61,9 +62,11 @@ const options = {
                 }
             }
         }
-    },
+    }, // Kết thúc swaggerDefinition
+    
+    // Giữ nguyên apis ở cùng cấp với swaggerDefinition
     apis: [
-        path.join(__dirname, '../modules/**/*.route.js'),
+        path.join(__dirname, '../modules/**/*.route.js'), // Đường dẫn này quét các file route
         path.join(__dirname, '../app.js')
     ]
 };

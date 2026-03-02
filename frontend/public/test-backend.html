@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Backend Connection - DCMS</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 800px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        .test-section h2 {
+            color: #555;
+            font-size: 18px;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .result {
+            margin-top: 15px;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            white-space: pre-wrap;
+            word-break: break-word;
+            display: none;
+        }
+
+        .result.show {
+            display: block;
+        }
+
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .loading {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeeba;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .status-indicator.online {
+            background: #28a745;
+            box-shadow: 0 0 8px #28a745;
+        }
+
+        .status-indicator.offline {
+            background: #dc3545;
+        }
+
+        .info-box {
+            background: #e7f3ff;
+            border-left: 4px solid #2196F3;
+            padding: 15px;
+            margin-top: 20px;
+            border-radius: 5px;
+        }
+
+        .info-box strong {
+            color: #1976D2;
+        }
+
+        code {
+            background: #272822;
+            color: #f8f8f2;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🔗 Test Kết Nối Backend API</h1>
+        <p class="subtitle">Kiểm tra kết nối giữa Frontend và Backend</p>
+
+        <!-- Test 1: Health Check -->
+        <div class="test-section">
+            <h2>
+                <span class="status-indicator" id="healthStatus"></span>
+                1. Health Check Endpoint
+            </h2>
+            <p style="margin-bottom: 15px; color: #666; font-size: 13px;">
+                Test endpoint: <code>GET http://localhost:5000/health</code>
+            </p>
+            <button onclick="testHealth()">Kiểm Tra Kết Nối</button>
+            <div id="healthResult" class="result"></div>
+        </div>
+
+        <!-- Test 2: CORS Check -->
+        <div class="test-section">
+            <h2>
+                <span class="status-indicator" id="corsStatus"></span>
+                2. CORS Configuration
+            </h2>
+            <p style="margin-bottom: 15px; color: #666; font-size: 13px;">
+                Kiểm tra xem backend có cho phép frontend call API không
+            </p>
+            <button onclick="testCORS()">Test CORS</button>
+            <div id="corsResult" class="result"></div>
+        </div>
+
+        <!-- Test 3: Login API -->
+        <div class="test-section">
+            <h2>
+                <span class="status-indicator" id="loginStatus"></span>
+                3. Test Login API
+            </h2>
+            <p style="margin-bottom: 15px; color: #666; font-size: 13px;">
+                Test endpoint: <code>POST http://localhost:5000/api/auth/login</code>
+            </p>
+            <button onclick="testLogin()">Test Login Endpoint</button>
+            <div id="loginResult" class="result"></div>
+        </div>
+
+        <!-- Info Box -->
+        <div class="info-box">
+            <strong>📌 Lưu ý:</strong><br>
+            ✅ Backend phải đang chạy tại <code>http://localhost:5000</code><br>
+            ✅ CORS phải được config để cho phép <code>http://localhost:5173</code> (hoặc <code>*</code>)<br>
+            ✅ Mở Developer Tools (F12) → Console/Network để xem chi tiết
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:5000';
+
+        // Test Health Endpoint
+        async function testHealth() {
+            const resultDiv = document.getElementById('healthResult');
+            const statusIndicator = document.getElementById('healthStatus');
+
+            resultDiv.className = 'result loading show';
+            resultDiv.textContent = '⏳ Đang kết nối với backend...';
+            statusIndicator.className = 'status-indicator';
+
+            try {
+                const response = await fetch(`${API_URL}/health`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+
+                resultDiv.className = 'result success show';
+                resultDiv.textContent = `✅ Kết nối thành công!\n\nStatus: ${response.status}\nResponse:\n${JSON.stringify(data, null, 2)}`;
+                statusIndicator.className = 'status-indicator online';
+
+            } catch (error) {
+                resultDiv.className = 'result error show';
+                resultDiv.textContent = `❌ Lỗi kết nối!\n\nError: ${error.message}\n\n🔍 Kiểm tra:\n- Backend có đang chạy không?\n- URL đúng chưa? (${API_URL})\n- CORS có được config chưa?`;
+                statusIndicator.className = 'status-indicator offline';
+            }
+        }
+
+        // Test CORS
+        async function testCORS() {
+            const resultDiv = document.getElementById('corsResult');
+            const statusIndicator = document.getElementById('corsStatus');
+
+            resultDiv.className = 'result loading show';
+            resultDiv.textContent = '⏳ Đang test CORS...';
+            statusIndicator.className = 'status-indicator';
+
+            try {
+                const response = await fetch(`${API_URL}/health`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (response.ok) {
+                    resultDiv.className = 'result success show';
+                    resultDiv.textContent = '✅ CORS được cấu hình đúng!\n\nBackend cho phép frontend gọi API.';
+                    statusIndicator.className = 'status-indicator online';
+                } else {
+                    throw new Error('Response not OK');
+                }
+
+            } catch (error) {
+                if (error.message.includes('CORS')) {
+                    resultDiv.className = 'result error show';
+                    resultDiv.textContent = `❌ CORS Error!\n\n${error.message}\n\n💡 Giải pháp:\nThêm vào backend .env:\nCORS_ORIGIN=http://localhost:5173`;
+                    statusIndicator.className = 'status-indicator offline';
+                } else {
+                    resultDiv.className = 'result error show';
+                    resultDiv.textContent = `❌ Lỗi kết nối!\n\n${error.message}`;
+                    statusIndicator.className = 'status-indicator offline';
+                }
+            }
+        }
+
+        // Test Login API
+        async function testLogin() {
+            const resultDiv = document.getElementById('loginResult');
+            const statusIndicator = document.getElementById('loginStatus');
+
+            resultDiv.className = 'result loading show';
+            resultDiv.textContent = '⏳ Đang test Login API...';
+            statusIndicator.className = 'status-indicator';
+
+            try {
+                const response = await fetch(`${API_URL}/api/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        username: 'test',
+                        password: 'test'
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.status === 400 || response.status === 401) {
+                    // Expected error - means API is working!
+                    resultDiv.className = 'result success show';
+                    resultDiv.textContent = `✅ API hoạt động bình thường!\n\nStatus: ${response.status}\nMessage: ${data.message}\n\n💡 Lỗi này là bình thường vì dùng test credentials.\nAPI endpoint đang hoạt động đúng!`;
+                    statusIndicator.className = 'status-indicator online';
+                } else {
+                    resultDiv.className = 'result success show';
+                    resultDiv.textContent = `Response:\n${JSON.stringify(data, null, 2)}`;
+                    statusIndicator.className = 'status-indicator online';
+                }
+
+            } catch (error) {
+                resultDiv.className = 'result error show';
+                resultDiv.textContent = `❌ API không thể truy cập!\n\nError: ${error.message}`;
+                statusIndicator.className = 'status-indicator offline';
+            }
+        }
+
+        // Auto test on page load
+        window.addEventListener('load', () => {
+            setTimeout(testHealth, 500);
+        });
+    </script>
+</body>
+
+</html>

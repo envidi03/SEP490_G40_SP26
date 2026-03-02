@@ -1,5 +1,5 @@
 import apiClient from './api';
-import { storage } from './storage';
+import { storage, sessionStorage } from './storage';
 
 const authService = {
     /**
@@ -20,9 +20,10 @@ const authService = {
      * Login user
      * @param {string} username - Username or email
      * @param {string} password - Password
+     * @param {boolean} remember - Remember me flag
      * @returns {Promise} API response with tokens and user data
      */
-    login: async (username, password) => {
+    login: async (username, password, remember = false) => {
         try {
             const payload = { identifier: username, password };
 
@@ -34,8 +35,9 @@ const authService = {
                 const accessToken = response.data?.token || response.token;
                 const refreshToken = response.data?.refreshToken || response.refreshToken;
 
-                storage.set('access_token', accessToken);
-                storage.set('refresh_token', refreshToken);
+                const targetStorage = remember ? storage : sessionStorage;
+                targetStorage.set('access_token', accessToken);
+                targetStorage.set('refresh_token', refreshToken);
             }
 
             return response;
@@ -57,6 +59,8 @@ const authService = {
         } finally {
             storage.remove('access_token');
             storage.remove('refresh_token');
+            sessionStorage.remove('access_token');
+            sessionStorage.remove('refresh_token');
         }
     },
 
@@ -70,7 +74,11 @@ const authService = {
             const response = await apiClient.post('/api/auth/refresh-token', { refreshToken });
 
             if (response.data.access_token) {
-                storage.set('access_token', response.data.access_token);
+                if (storage.get('access_token')) {
+                    storage.set('access_token', response.data.access_token);
+                } else {
+                    sessionStorage.set('access_token', response.data.access_token);
+                }
             }
 
             return response;
@@ -170,8 +178,8 @@ const authService = {
 
             // Save tokens
             if (response.data.access_token) {
-                storage.set('access_token', response.data.access_token);
-                storage.set('refresh_token', response.data.refresh_token);
+                sessionStorage.set('access_token', response.data.access_token);
+                sessionStorage.set('refresh_token', response.data.refresh_token);
             }
 
             return response;

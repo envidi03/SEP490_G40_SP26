@@ -5,9 +5,7 @@ import AppRoutes from "./routes/index.jsx";
 function App() {
 
   return (
-    <AuthProvider>
-      <AppRoutes />
-    </AuthProvider>
+    <AppRoutes />
   );
 }
 

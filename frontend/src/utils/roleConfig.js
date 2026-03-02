@@ -12,7 +12,7 @@
 export const ROLE_ROUTES = {
     // Backend role names (uppercase with underscores)
     'ADMIN_CLINIC': '/admin/dashboard',
-    'DOCTOR': '/doctor/dashboard',
+    'DOCTOR': '/dentist/dashboard',
     'RECEPTIONIST': '/receptionist/dashboard',
     'PHARMACY': '/pharmacy/dashboard',
     'ASSISTANT': '/assistant/dashboard',

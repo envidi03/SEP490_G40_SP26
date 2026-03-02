@@ -2,11 +2,12 @@
 const BaseSuccess = require('./BaseSuccess');
 
 class GetListSuccess extends BaseSuccess {
-  constructor(data, pagination, message = "Get list success") {
+  constructor(data, pagination, message = "Get list success", statistics = null) {
     super({
       statusCode: 200,
       message,
-      data
+      data,
+      statistics
     });
     this.pagination = pagination;
   }
