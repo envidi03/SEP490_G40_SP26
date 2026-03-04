@@ -6,6 +6,7 @@ import PharmacyMedicines from '../../pages/pharmacy/PharmacyMedicines';
 import PharmacyInventory from '../../pages/pharmacy/PharmacyInventory';
 import PharmacyPrescriptions from '../../pages/pharmacy/PharmacyPrescriptions';
 import PharmacyRequests from '../../pages/pharmacy/PharmacyRequests';
+import LeaveRequestList from '../../pages/leave_requests/LeaveRequestList';
 
 /**
  * Pharmacy Routes - Protected routes for Pharmacy Assistant role
@@ -47,6 +48,16 @@ const pharmacyRoutes = [
             <ProtectedRoute allowedRoles={['PHARMACY', 'ADMIN_CLINIC']}>
                 <PharmacyLayout>
                     <PharmacyRequests />
+                </PharmacyLayout>
+            </ProtectedRoute>
+        )
+    },
+    {
+        path: '/pharmacy/leave-requests',
+        element: (
+            <ProtectedRoute allowedRoles={['PHARMACY', 'ADMIN_CLINIC']}>
+                <PharmacyLayout>
+                    <LeaveRequestList />
                 </PharmacyLayout>
             </ProtectedRoute>
         )
