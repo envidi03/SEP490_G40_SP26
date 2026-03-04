@@ -3,7 +3,7 @@ import Card from '../../../../components/ui/Card';
 import { Users } from 'lucide-react';
 import UserTableRow from './UserTableRow';
 
-const UserTable = ({ users, roleConfig, statusConfig, onView, onEdit, onLockUnlock }) => {
+const UserTable = ({ users, roleConfig, statusConfig, onView, onLockUnlock }) => {
     return (
         <Card className="hidden lg:block">
             <div className="overflow-x-auto">
@@ -46,7 +46,6 @@ const UserTable = ({ users, roleConfig, statusConfig, onView, onEdit, onLockUnlo
                                     roleConfig={roleConfig}
                                     statusConfig={statusConfig}
                                     onView={onView}
-                                    onEdit={onEdit}
                                     onLockUnlock={onLockUnlock}
                                 />
                             ))

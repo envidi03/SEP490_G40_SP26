@@ -27,6 +27,7 @@ const Sidebar = ({ role }) => {
             { path: '/admin/services', icon: ClipboardList, label: 'Dịch vụ' },
             { path: '/admin/equipment', icon: Wrench, label: 'Thiết bị' },
             { path: '/admin/medicines', icon: Pill, label: 'Thuốc' },
+            { path: '/admin/leave-management', icon: Calendar, label: 'Quản lý Nghỉ phép' },
             { path: '/admin/clinics', icon: Building2, label: 'Thông tin phòng khám' },
         ],
         Doctor: [

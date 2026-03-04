@@ -133,6 +133,32 @@ const staffService = {
         } catch (error) {
             throw error;
         }
+    },
+
+    /**
+     * Admin: Lấy tất cả yêu cầu nghỉ phép của tất cả nhân viên
+     */
+    getAllLeaveRequestsAdmin: async () => {
+        try {
+            const response = await apiClient.get('/api/staff/admin/leave');
+            return response;
+        } catch (error) {
+            throw error;
+        }
+    },
+
+    /**
+     * Admin: Phê duyệt hoặc từ chối yêu cầu nghỉ phép
+     * @param {string} leaveId - ID của leave request
+     * @param {string} status - 'APPROVED' | 'REJECTED'
+     */
+    approveLeaveRequest: async (leaveId, status) => {
+        try {
+            const response = await apiClient.patch(`/api/staff/admin/leave/${leaveId}`, { status });
+            return response;
+        } catch (error) {
+            throw error;
+        }
     }
 };
 

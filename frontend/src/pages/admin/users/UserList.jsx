@@ -266,7 +266,6 @@ const UserList = () => {
                         roleConfig={roleConfig}
                         statusConfig={statusConfig}
                         onView={handleViewUser}
-                        onEdit={handleEditUser}
                         onLockUnlock={handleLockUnlock}
                     />
 
@@ -276,7 +275,6 @@ const UserList = () => {
                         roleConfig={roleConfig}
                         statusConfig={statusConfig}
                         onView={handleViewUser}
-                        onEdit={handleEditUser}
                         onLockUnlock={handleLockUnlock}
                     />
 

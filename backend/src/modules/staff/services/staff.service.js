@@ -733,6 +733,35 @@ const getStaffRoles = async () => {
     }
 };
 
+// Admin: Lấy tất cả leave requests (view toàn bộ nhân viên)
+const getAllLeaveRequestsService = async () => {
+    const data = await leaveRequestModel.find()
+        .populate({
+            path: 'staff_id',
+            populate: [
+                { path: 'account_id', select: 'username email phone_number role_id', populate: { path: 'role_id', select: 'name' } },
+                { path: 'profile_id', select: 'full_name' }
+            ]
+        })
+        .sort({ createdAt: -1 });
+    return data;
+};
+
+// Admin: Phê duyệt hoặc từ chối leave request
+const approveLeaveRequestService = async (leaveId, status) => {
+    if (!['APPROVED', 'REJECTED'].includes(status)) {
+        throw new errorRes.BadRequestError('Status must be APPROVED or REJECTED');
+    }
+    const leave = await leaveRequestModel.findById(leaveId);
+    if (!leave) throw new errorRes.NotFoundError('Leave request not found');
+    if (leave.status !== 'PENDING') {
+        throw new errorRes.BadRequestError('Only PENDING requests can be approved or rejected');
+    }
+    leave.status = status;
+    await leave.save();
+    return leave;
+};
+
 module.exports = {
     getListService,
     getByIdService,
@@ -750,5 +779,7 @@ module.exports = {
     checkUniqueEmailNotId,
     getRoleById,
     updateStaffStatusOnly,
-    getStaffRoles
+    getStaffRoles,
+    getAllLeaveRequestsService,
+    approveLeaveRequestService
 };

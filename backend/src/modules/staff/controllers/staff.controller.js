@@ -556,6 +556,30 @@ const cancelLeaveRequestController = async (req, res) => {
   }
 };
 
+// Admin: Get all leave requests
+const getAllLeaveController = async (req, res) => {
+  try {
+    const data = await ServiceProcess.getAllLeaveRequestsService();
+    return new successRes.GetListSuccess(data, null, 'Leave requests retrieved successfully').send(res);
+  } catch (error) {
+    logger.error('[LeaveController.getAllLeaveController]', { message: error.message });
+    throw error;
+  }
+};
+
+// Admin: Approve or reject a leave request
+const approveLeaveController = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+    const leave = await ServiceProcess.approveLeaveRequestService(id, status);
+    return new successRes.UpdateSuccess(leave, 'Leave request updated').send(res);
+  } catch (error) {
+    logger.error('[LeaveController.approveLeaveController]', { message: error.message });
+    throw error;
+  }
+};
+
 module.exports = {
   getListController,
   getByIdController,
@@ -568,4 +592,6 @@ module.exports = {
   cancelLeaveRequestController,
   updateStatusController,
   getRolesController,
+  getAllLeaveController,
+  approveLeaveController,
 };
