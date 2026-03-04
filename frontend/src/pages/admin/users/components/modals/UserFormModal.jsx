@@ -275,17 +275,19 @@ const UserFormModal = ({ isOpen, onClose, onSubmit, user, mode = 'add' }) => {
                                 >
                                     <option value="">-- Chọn vai trò --</option>
                                     {roles.length > 0 ? (
-                                        roles.map(role => (
-                                            <option key={role._id} value={role._id}>
-                                                {{
-                                                    'ADMIN_CLINIC': 'Quản trị viên',
-                                                    'DOCTOR': 'Bác sĩ',
-                                                    'RECEPTIONIST': 'Lễ tân',
-                                                    'PHARMACIST': 'Dược sĩ',
-                                                    'ASSISTANT': 'Trợ lý'
-                                                }[role.name] || role.name}
-                                            </option>
-                                        ))
+                                        roles
+                                            .filter(role => role.name !== 'ADMIN_CLINIC')
+                                            .map(role => (
+                                                <option key={role._id} value={role._id}>
+                                                    {{
+                                                        'DOCTOR': 'Bác sĩ',
+                                                        'RECEPTIONIST': 'Lễ tân',
+                                                        'PHARMACIST': 'Dược sĩ',
+                                                        'PHARMACY': 'Dược sĩ',
+                                                        'ASSISTANT': 'Trợ lý'
+                                                    }[role.name] || role.name}
+                                                </option>
+                                            ))
                                     ) : (
                                         <option value="" disabled>Đang tải danh sách vai trò...</option>
                                     )}
