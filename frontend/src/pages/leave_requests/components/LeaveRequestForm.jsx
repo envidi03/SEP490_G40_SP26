@@ -3,13 +3,33 @@ import Input from '../../../components/ui/Input';
 import Select from '../../../components/ui/Select';
 import Button from '../../../components/ui/Button';
 
-const LeaveRequestForm = ({ onSubmit, onCancel }) => {
+import { useEffect } from 'react';
+
+const LeaveRequestForm = ({ onSubmit, onCancel, initialData }) => {
     const [formData, setFormData] = useState({
         startedDate: '',
         endDate: '',
         type: 'SICK',
         reason: ''
     });
+
+    useEffect(() => {
+        if (initialData) {
+            setFormData({
+                startedDate: initialData.startedDate ? new Date(initialData.startedDate).toISOString().split('T')[0] : '',
+                endDate: initialData.endDate ? new Date(initialData.endDate).toISOString().split('T')[0] : '',
+                type: initialData.type || 'SICK',
+                reason: initialData.reason || ''
+            });
+        } else {
+            setFormData({
+                startedDate: '',
+                endDate: '',
+                type: 'SICK',
+                reason: ''
+            });
+        }
+    }, [initialData]);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -80,7 +100,7 @@ const LeaveRequestForm = ({ onSubmit, onCancel }) => {
                     Hủy bỏ
                 </Button>
                 <Button type="submit">
-                    Gửi yêu cầu
+                    {initialData ? 'Cập nhật' : 'Gửi yêu cầu'}
                 </Button>
             </div>
         </form>

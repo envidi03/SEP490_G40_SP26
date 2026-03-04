@@ -17,6 +17,7 @@ const LeaveRequestList = () => {
     const { user } = useAuth();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [requests, setRequests] = useState([]);
+    const [editingRequest, setEditingRequest] = useState(null);
     const [loading, setLoading] = useState(false);
     const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
 
@@ -71,22 +72,52 @@ const LeaveRequestList = () => {
         });
     }, [requests, searchTerm, statusFilter, typeFilter]);
 
-    const handleCreateRequest = async (data) => {
+    const handleSubmitRequest = async (data) => {
         try {
-            await staffService.createLeaveRequest(data);
-            setToast({ show: true, message: 'Yêu cầu nghỉ phép đã được gửi thành công!', type: 'success' });
+            if (editingRequest) {
+                await staffService.updateLeaveRequest(editingRequest._id, data);
+                setToast({ show: true, message: 'Yêu cầu nghỉ phép đã được cập nhật!', type: 'success' });
+            } else {
+                await staffService.createLeaveRequest(data);
+                setToast({ show: true, message: 'Yêu cầu nghỉ phép đã được gửi thành công!', type: 'success' });
+            }
             setIsModalOpen(false);
+            setEditingRequest(null);
             fetchLeaveRequests(); // Reload data
         } catch (error) {
-            console.error('Lỗi khi tạo yêu cầu nghỉ phép:', error);
-            setToast({ show: true, message: error.response?.data?.message || 'Không thể tạo yêu cầu.', type: 'error' });
+            console.error('Lỗi khi lưu yêu cầu nghỉ phép:', error);
+            setToast({ show: true, message: error.response?.data?.message || 'Không thể lưu yêu cầu.', type: 'error' });
         }
+    };
+
+    const handleEditClick = (request) => {
+        setEditingRequest(request);
+        setIsModalOpen(true);
+    };
+
+    const handleCancelRequest = async (request) => {
+        if (!window.confirm('Bạn có chắc chắn muốn hủy yêu cầu nghỉ phép này?')) return;
+
+        try {
+            await staffService.cancelLeaveRequest(request._id);
+            setToast({ show: true, message: 'Yêu cầu nghỉ phép đã được hủy.', type: 'success' });
+            fetchLeaveRequests();
+        } catch (error) {
+            console.error('Lỗi khi hủy yêu cầu:', error);
+            setToast({ show: true, message: error.response?.data?.message || 'Không thể hủy yêu cầu.', type: 'error' });
+        }
+    };
+
+    const openCreateModal = () => {
+        setEditingRequest(null);
+        setIsModalOpen(true);
     };
 
     return (
         <div className="space-y-6 animate-fadeIn">
             {toast.show && (
                 <Toast
+                    show={toast.show}
                     type={toast.type}
                     message={toast.message}
                     onClose={() => setToast({ ...toast, show: false })}
@@ -98,7 +129,7 @@ const LeaveRequestList = () => {
                     <h1 className="text-3xl font-bold text-gray-900">Xin nghỉ phép</h1>
                     <p className="text-gray-600 mt-1">Quản lý các yêu cầu nghỉ phép của bạn</p>
                 </div>
-                <Button onClick={() => setIsModalOpen(true)}>
+                <Button onClick={openCreateModal}>
                     <Plus size={20} className="mr-2" />
                     Tạo yêu cầu
                 </Button>
@@ -164,19 +195,30 @@ const LeaveRequestList = () => {
                 {loading ? (
                     <div className="text-center py-10 text-gray-500">Đang tải dữ liệu...</div>
                 ) : (
-                    <LeaveRequestTable requests={filteredRequests} />
+                    <LeaveRequestTable
+                        requests={filteredRequests}
+                        onEdit={handleEditClick}
+                        onCancel={handleCancelRequest}
+                    />
                 )}
             </Card>
 
             {/* Modal */}
             <Modal
                 isOpen={isModalOpen}
-                onClose={() => setIsModalOpen(false)}
-                title="Tạo yêu cầu nghỉ phép"
+                onClose={() => {
+                    setIsModalOpen(false);
+                    setEditingRequest(null);
+                }}
+                title={editingRequest ? "Chỉnh sửa yêu cầu nghỉ phép" : "Tạo yêu cầu nghỉ phép"}
             >
                 <LeaveRequestForm
-                    onSubmit={handleCreateRequest}
-                    onCancel={() => setIsModalOpen(false)}
+                    initialData={editingRequest}
+                    onSubmit={handleSubmitRequest}
+                    onCancel={() => {
+                        setIsModalOpen(false);
+                        setEditingRequest(null);
+                    }}
                 />
             </Modal>
         </div>

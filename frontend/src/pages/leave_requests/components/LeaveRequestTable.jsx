@@ -1,8 +1,9 @@
 import React from 'react';
+import { Pencil, XCircle } from 'lucide-react';
 import Table from '../../../components/ui/Table';
 import Badge from '../../../components/ui/Badge';
 
-const LeaveRequestTable = ({ requests }) => {
+const LeaveRequestTable = ({ requests, onEdit, onCancel }) => {
     const columns = [
         {
             header: 'Ngày gửi',
@@ -54,6 +55,23 @@ const LeaveRequestTable = ({ requests }) => {
                     'REJECTED': 'Từ chối'
                 };
                 return <Badge variant={variants[row.status] || 'default'}>{labels[row.status] || row.status}</Badge>;
+            }
+        },
+        {
+            header: 'Thao tác',
+            accessor: 'actions',
+            render: (row) => {
+                if (row.status !== 'PENDING') return null; // Only allow edit/cancel if pending
+                return (
+                    <div className="flex space-x-2">
+                        <button onClick={() => onEdit(row)} className="p-1 flex items-center justify-center text-blue-600 hover:bg-blue-50 text-xs rounded transition-colors" title="Sửa">
+                            <Pencil size={16} />
+                        </button>
+                        <button onClick={() => onCancel(row)} className="p-1 flex items-center justify-center text-red-600 hover:bg-red-50 text-xs rounded transition-colors" title="Hủy">
+                            <XCircle size={16} />
+                        </button>
+                    </div>
+                );
             }
         }
     ];
