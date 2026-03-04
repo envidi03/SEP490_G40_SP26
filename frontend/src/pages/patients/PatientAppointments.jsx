@@ -195,24 +195,37 @@ const PatientAppointments = () => {
     /**
      * Handler: Xác nhận hủy lịch khám
      */
-    const handleCancelConfirm = () => {
-        // Cập nhật status thành Cancelled
-        setAppointments(prev =>
-            prev.map(apt =>
-                apt.id === selectedAppointment.id
-                    ? { ...apt, status: 'Cancelled' }
-                    : apt
-            )
-        );
+    const handleCancelConfirm = async () => {
+        try {
+            const appointmentId = selectedAppointment._id || selectedAppointment.id;
+            // Gọi API cập nhật trạng thái
+            await appointmentService.cancelAppointment(appointmentId);
 
-        // Đóng modal và hiển thị thông báo
-        setShowCancelModal(false);
-        setToast({
-            show: true,
-            type: 'success',
-            message: '✅ Đã hủy lịch khám thành công!'
-        });
-        setSelectedAppointment(null);
+            // Cập nhật lại state danh sách cho đồng bộ UI
+            setAppointments(prev =>
+                prev.map(apt =>
+                    (apt._id || apt.id) === appointmentId
+                        ? { ...apt, status: 'CANCELLED' }
+                        : apt
+                )
+            );
+
+            // Đóng modal và hiển thị thông báo
+            setShowCancelModal(false);
+            setToast({
+                show: true,
+                type: 'success',
+                message: '✅ Đã hủy lịch khám thành công!'
+            });
+            setSelectedAppointment(null);
+        } catch (error) {
+            console.error('Error canceling appointment:', error);
+            setToast({
+                show: true,
+                type: 'error',
+                message: error.response?.data?.message || '❌ Lỗi khi hủy lịch khám. Vui lòng thử lại!'
+            });
+        }
     };
 
     // ========== RENDER ==========
