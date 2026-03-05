@@ -94,11 +94,18 @@ const ProfilePage = () => {
             const response = await profileService.updateProfile(payload);
             console.log("Update API response:", response);
 
-            // 3. Update local context context
+            // 3. Hiển thị Toast thành công TRƯỚC - tránh re-render reset state
+            setToast({
+                show: true,
+                type: 'success',
+                message: 'Cập nhật hồ sơ thành công!'
+            });
+
+            // 4. Update context và UI sau khi Toast đã được set
             if (response && (response.success || response.status === 'success')) {
                 if (typeof updateUser === 'function') {
                     updateUser({
-                        ...user, // preserve other user fields
+                        ...user,
                         full_name: payload.full_name,
                         email: payload.email,
                         phone: payload.phone,
@@ -111,13 +118,6 @@ const ProfilePage = () => {
 
             setIsEditing(false);
             setAvatarFile(null);
-
-            // Hiển thị Toast thành công
-            setToast({
-                show: true,
-                type: 'success',
-                message: 'Cập nhật hồ sơ thành công!'
-            });
 
         } catch (error) {
             console.error("Lỗi cập nhật hồ sơ:", error);
@@ -165,7 +165,16 @@ const ProfilePage = () => {
     };
 
     return (
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-4xl mx-auto relative">
+            {/* Toast System */}
+            <Toast
+                show={toast.show}
+                type={toast.type}
+                message={toast.message}
+                onClose={() => setToast({ ...toast, show: false })}
+                duration={3000}
+            />
+
             {/* Back Button */}
             <button
                 onClick={() => navigate(-1)}
