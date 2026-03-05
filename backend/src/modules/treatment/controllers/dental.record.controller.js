@@ -150,43 +150,54 @@ const getByIdController = async (req, res) => {
 };
 
 /*
-  doctor create new dental_record by appointmentId
+  doctor create new dental_record by patientID
 */
 const createController = async (req, res) => {
   const context = "DentalRecordController.createController"
   try {
     const dataCreate = req.body || {};
-    const { id: appointmentId } = req.params;
+    const { id: patientID } = req.params;
     const { account_id: accountDoctorId } = req.user;
 
     logger.debug("Base data", {
       context: context,
-      appointmentId: appointmentId,
+      patientId: patientID,
       accountDoctorId: accountDoctorId
     });
 
     // --- 1. FIND DOCTOR & APPOINTMENT ---
-    const doctor = await findStaffByAccountId(accountDoctorId);
+    const {staff: doctor} = await findStaffByAccountId(accountDoctorId);
     
-    // Lưu ý: Hãy chắc chắn bạn đã import service của appointment vào file này.
-    // Nếu bạn đang dùng hàm getByIdService đã viết ở các bước trước, đổi lại tên hàm cho đúng nhé.
-    const appointment = await ServiceAppointment.findById(appointmentId); 
-
-    if (!doctor) throw new errorRes.NotFoundError("Doctor not found!");
-    if (!appointment) throw new errorRes.NotFoundError("Appointment not found!");
+    if (!doctor) {
+      logger.warn("Doctor not found for account_id", {
+        context: context,
+        accountDoctorId: accountDoctorId
+      });
+      throw new errorRes.NotFoundError("Doctor not found!")
+    };
+    if (!doctor._id) {
+      logger.error("Doctor record missing _id", {
+        context: context,
+        accountDoctorId: accountDoctorId,
+        doctorData: doctor
+      });
+      throw new errorRes.InternalServerError("Doctor data is invalid!")
+    }
+    if (!patientID) {
+      logger.warn("Missing patient ID in request params", {
+        context: context,
+        patientID: patientID
+      });
+      throw new errorRes.BadRequestError("Patient ID is required!")
+    }
 
     // Gán khóa ngoại
     dataCreate.created_by = doctor._id;
-    dataCreate.patient_id = appointment.patient_id;
+    dataCreate.patient_id = patientID;
     
     // --- 2. CLEAN & AUTO-FILL SNAPSHOT DATA ---
     const cleanedData = cleanObjectData(dataCreate);
     
-    // Ưu tiên lấy dữ liệu từ lịch hẹn nếu Frontend không gửi lên
-    if (!cleanedData.full_name) cleanedData.full_name = appointment.full_name;
-    if (!cleanedData.phone) cleanedData.phone = appointment.phone;
-    if (!cleanedData.email && appointment.email) cleanedData.email = appointment.email;
-
     // --- 3. VALIDATION ---
     // Khai báo các fields BẮT BUỘC dựa theo Schema DentalRecord
     const requiredFields = [
@@ -201,7 +212,7 @@ const createController = async (req, res) => {
     checkRequiredFields(requiredFields, cleanedData, this, "createController");
     
     // --- 4. CALL SERVICE ---
-    const newData = await ServiceProcess.createService(cleanedData, appointmentId);
+    const newData = await ServiceProcess.createService(cleanedData);
     if (!newData) {
       logger.warn("Failed to create new dental record", { context });
       throw new errorRes.BadRequestError("Create new dental record fails.");

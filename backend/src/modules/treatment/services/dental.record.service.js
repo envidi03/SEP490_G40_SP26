@@ -281,36 +281,17 @@ const getByIdService = async (id) => {
     }
 };
 
-// Đừng quên import AppointmentModel vào file này nhé
-const createService = async (dataCreate, appointmentId) => {
+const createService = async (dataCreate) => {
   const context = "DentalRecordService.createService";
     try {
         logger.debug("Raw data to create dental record", {
             context: context,
             dataCreate: dataCreate,
-            appointmentId: appointmentId
         });
 
         // 1. Tạo hồ sơ bệnh án mới
         const newData = await Model.DentalRecord.create(dataCreate);
-
-        // 2. Tự động chuyển trạng thái lịch hẹn thành IN_CONSULTATION (Đang khám)
-        if (appointmentId) {
-            await appointmentModel.findByIdAndUpdate(
-                appointmentId, 
-                { 
-                    status: "IN_CONSULTATION",
-                    doctor_id: dataCreate.created_by
-                }
-            );
-            logger.info("Appointment status auto-updated to IN_CONSULTATION", {
-                context: context,
-                appointmentId: appointmentId
-            });
-        }
-
         return newData;
-
     } catch (error) {
         logger.error("Error at create new dental record.", { // Đã sửa text log
           context: context,
