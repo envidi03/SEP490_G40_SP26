@@ -1465,3 +1465,252 @@ export const authenticateUser = (username, password) => {
 
     return getUserWithAccountAndRole(account.user_id);
 };
+
+// ==================== DENTAL RECORD TABLE ====================
+/**
+ * Dental Record table - Hồ sơ nha khoa
+ * Fields: id, patient_id, doctor_id, appointment_id, patient_name, patient_dob,
+ *         patient_gender, patient_phone, diagnosis, status, created_at
+ */
+export const mockDentalRecords = [
+    {
+        id: 'dr_001',
+        patient_id: '67890abc12345def67890005',
+        doctor_id: '696e3df17ea4d06340b4b5e1',
+        appointment_id: 'apt_001',
+        patient_name: 'Lê Văn Hoàng',
+        patient_dob: '1995-12-25',
+        patient_gender: 'Nam',
+        patient_phone: '0967890123',
+        record_name: 'Điều trị tủy răng số 6',
+        diagnosis: 'Sâu răng số 6, viêm tủy cấp',
+        tooth_number: '16',
+        start_date: '2026-01-22',
+        end_date: '2026-02-22',
+        total_amount: 1500000,
+        status: 'IN_PROGRESS',
+        created_at: '2026-01-22T09:30:00Z'
+    },
+    {
+        id: 'dr_002',
+        patient_id: '67890abc12345def67890005',
+        doctor_id: '696e3df17ea4d06340b4b5e1',
+        appointment_id: 'apt_003',
+        patient_name: 'Lê Văn Hoàng',
+        patient_dob: '1995-12-25',
+        patient_gender: 'Nam',
+        patient_phone: '0967890123',
+        record_name: 'Trám răng số 4',
+        diagnosis: 'Sâu răng số 4 mặt nhai',
+        tooth_number: '14',
+        start_date: '2026-01-10',
+        end_date: '2026-01-10',
+        total_amount: 350000,
+        status: 'COMPLETED',
+        created_at: '2026-01-10T10:00:00Z'
+    },
+    {
+        id: 'dr_003',
+        patient_id: '67890abc12345def67890006',
+        doctor_id: '696e3df17ea4d06340b4b5e1',
+        appointment_id: 'apt_005',
+        patient_name: 'Nguyễn Thị Lan',
+        patient_dob: '1988-04-10',
+        patient_gender: 'Nữ',
+        patient_phone: '0978901234',
+        record_name: 'Nhổ răng khôn hàm dưới',
+        diagnosis: 'Răng khôn 38 mọc lệch, gây đau',
+        tooth_number: '38',
+        start_date: '2026-01-24',
+        end_date: '2026-02-07',
+        total_amount: 2000000,
+        status: 'IN_PROGRESS',
+        created_at: '2026-01-24T11:30:00Z'
+    },
+    {
+        id: 'dr_004',
+        patient_id: '67890abc12345def67890007',
+        doctor_id: '696e3df17ea4d06340b4b5e1',
+        appointment_id: 'apt_003',
+        patient_name: 'Trần Minh Tuấn',
+        patient_dob: '2000-08-15',
+        patient_gender: 'Nam',
+        patient_phone: '0989012345',
+        record_name: 'Trám răng composite số 7',
+        diagnosis: 'Răng số 7 bị sâu sâu, cần trám',
+        tooth_number: '37',
+        start_date: '2026-01-21',
+        end_date: '2026-01-21',
+        total_amount: 400000,
+        status: 'COMPLETED',
+        created_at: '2026-01-21T14:30:00Z'
+    },
+    // Hồ sơ trùng tên với dr_003 nhưng khác DOB/gender để minh họa
+    {
+        id: 'dr_005',
+        patient_id: 'patient_dup_001',
+        doctor_id: '696e3df17ea4d06340b4b5e1',
+        appointment_id: null,
+        patient_name: 'Nguyễn Thị Lan',
+        patient_dob: '1975-06-20',
+        patient_gender: 'Nữ',
+        patient_phone: '0912000111',
+        record_name: 'Lấy cao răng toàn hàm',
+        diagnosis: 'Cao răng nhiều, viêm lợi nhẹ',
+        tooth_number: 'Toàn hàm',
+        start_date: '2026-01-15',
+        end_date: '2026-01-15',
+        total_amount: 250000,
+        status: 'COMPLETED',
+        created_at: '2026-01-15T08:00:00Z'
+    }
+];
+
+// ==================== TREATMENT TABLE ====================
+/**
+ * Treatment table - Phiếu điều trị
+ * Fields: id, dental_record_id, doctor_id, treatment_name, description,
+ *         service_id, quantity, unit_price, status, note, created_at
+ */
+export const mockTreatments = [
+    {
+        id: 'treat_001',
+        dental_record_id: 'dr_001',
+        doctor_id: '696e3df17ea4d06340b4b5e1',
+        treatment_name: 'Chụp X-quang răng số 6',
+        description: 'Chụp X-quang để đánh giá mức độ tổn thương tủy',
+        service_id: 'service_001',
+        quantity: 1,
+        unit_price: 150000,
+        status: 'APPROVED',
+        note: '',
+        created_at: '2026-01-22T09:45:00Z'
+    },
+    {
+        id: 'treat_002',
+        dental_record_id: 'dr_001',
+        doctor_id: '696e3df17ea4d06340b4b5e1',
+        treatment_name: 'Điều trị tủy răng số 6',
+        description: 'Lấy tủy và trám bít ống tủy bằng vật liệu Gutta-percha',
+        service_id: 'service_011',
+        quantity: 1,
+        unit_price: 800000,
+        status: 'PENDING',
+        note: 'Cần thực hiện sau khi hết đau',
+        created_at: '2026-01-22T10:00:00Z'
+    },
+    {
+        id: 'treat_003',
+        dental_record_id: 'dr_001',
+        doctor_id: '696e3df17ea4d06340b4b5e1',
+        treatment_name: 'Trám răng composite sau điều trị tủy',
+        description: 'Trám composite phục hồi thân răng sau điều trị tủy',
+        service_id: 'service_002',
+        quantity: 1,
+        unit_price: 350000,
+        status: 'PENDING',
+        note: '',
+        created_at: '2026-01-22T10:05:00Z'
+    },
+    {
+        id: 'treat_004',
+        dental_record_id: 'dr_002',
+        doctor_id: '696e3df17ea4d06340b4b5e1',
+        treatment_name: 'Trám răng Composite răng số 4',
+        description: 'Trám mặt nhai bằng vật liệu composite',
+        service_id: 'service_002',
+        quantity: 1,
+        unit_price: 350000,
+        status: 'APPROVED',
+        note: '',
+        created_at: '2026-01-10T10:30:00Z'
+    },
+    {
+        id: 'treat_005',
+        dental_record_id: 'dr_003',
+        doctor_id: '696e3df17ea4d06340b4b5e1',
+        treatment_name: 'Nhổ răng khôn 38',
+        description: 'Nhổ răng khôn mọc lệch hàm dưới trái, gây chèn ép',
+        service_id: 'service_004',
+        quantity: 1,
+        unit_price: 1500000,
+        status: 'APPROVED',
+        note: '',
+        created_at: '2026-01-24T11:45:00Z'
+    },
+    {
+        id: 'treat_006',
+        dental_record_id: 'dr_003',
+        doctor_id: '696e3df17ea4d06340b4b5e1',
+        treatment_name: 'Kê đơn thuốc kháng sinh sau nhổ răng',
+        description: 'Amoxicillin 500mg 3 lần/ngày × 5 ngày, Ibuprofen 400mg khi đau',
+        service_id: null,
+        quantity: 1,
+        unit_price: 200000,
+        status: 'PENDING',
+        note: 'Tái khám sau 1 tuần',
+        created_at: '2026-01-24T12:00:00Z'
+    },
+    {
+        id: 'treat_007',
+        dental_record_id: 'dr_004',
+        doctor_id: '696e3df17ea4d06340b4b5e1',
+        treatment_name: 'Trám composite số 7',
+        description: 'Trám composite thẩm mỹ mặt nhai răng số 37',
+        service_id: 'service_002',
+        quantity: 1,
+        unit_price: 400000,
+        status: 'APPROVED',
+        note: '',
+        created_at: '2026-01-21T15:00:00Z'
+    }
+];
+
+/**
+ * Get dental records by doctor ID
+ */
+export const getDentalRecordsByDoctor = (doctorId) => {
+    if (!doctorId) return [];
+    return mockDentalRecords.filter(r => r.doctor_id === doctorId);
+};
+
+/**
+ * Get dental records matching patient info (supports duplicate names)
+ * @param {string} name
+ * @param {string} dob  - optional
+ * @param {string} gender - optional
+ */
+export const getDentalRecordsByPatientInfo = (name, dob, gender) => {
+    if (!name) return [];
+    return mockDentalRecords.filter(r => {
+        const matchName = r.patient_name.toLowerCase().includes(name.toLowerCase());
+        const matchDob = dob ? r.patient_dob === dob : true;
+        const matchGender = gender ? r.patient_gender === gender : true;
+        return matchName && matchDob && matchGender;
+    });
+};
+
+/**
+ * Get treatments by dental record ID
+ */
+export const getTreatmentsByRecord = (recordId) => {
+    if (!recordId) return [];
+    return mockTreatments.filter(t => t.dental_record_id === recordId);
+};
+
+/**
+ * Get treatments pending approval for a doctor
+ */
+export const getTreatmentsPendingApproval = (doctorId) => {
+    if (!doctorId) return [];
+    return mockTreatments
+        .filter(t => t.doctor_id === doctorId && t.status === 'PENDING')
+        .map(t => {
+            const record = mockDentalRecords.find(r => r.id === t.dental_record_id);
+            return {
+                ...t,
+                patientName: record?.patient_name || 'Unknown',
+                recordName: record?.record_name || '',
+            };
+        });
+};

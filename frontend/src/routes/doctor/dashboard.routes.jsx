@@ -8,6 +8,10 @@ import LeaveRequestList from '../../pages/leave_requests/LeaveRequestList';
 import MedicalRecordList from '../../pages/medical_records/MedicalRecordList';
 import DentalRecordApprovalList from '../../pages/medical_records/DentalRecordApprovalList';
 import AssistantLeaveRequests from '../../pages/leave_requests/AssistantLeaveRequests/AssistantLeaveRequests';
+import DentalRecordList from '../../pages/medical_records/DentalRecordList';
+import DentalRecordDetail from '../../pages/medical_records/DentalRecordDetail';
+import TreatmentList from '../../pages/treatments/TreatmentList';
+import TreatmentApproval from '../../pages/treatments/TreatmentApproval';
 
 const dashboardRoutes = [
     {
@@ -79,7 +83,49 @@ const dashboardRoutes = [
                 </DashboardLayout>
             </ProtectedRoute>
         )
-    }
+    },
+    // ── New dental record routes ──
+    {
+        path: '/dentist/dental-records',
+        element: (
+            <ProtectedRoute allowedRoles={['DOCTOR']}>
+                <DashboardLayout>
+                    <DentalRecordList />
+                </DashboardLayout>
+            </ProtectedRoute>
+        )
+    },
+    {
+        path: '/dentist/dental-records/:id',
+        element: (
+            <ProtectedRoute allowedRoles={['DOCTOR']}>
+                <DashboardLayout>
+                    <DentalRecordDetail />
+                </DashboardLayout>
+            </ProtectedRoute>
+        )
+    },
+    // ── Treatment management routes ──
+    {
+        path: '/dentist/treatments',
+        element: (
+            <ProtectedRoute allowedRoles={['DOCTOR']}>
+                <DashboardLayout>
+                    <TreatmentList />
+                </DashboardLayout>
+            </ProtectedRoute>
+        )
+    },
+    {
+        path: '/dentist/treatment-approvals',
+        element: (
+            <ProtectedRoute allowedRoles={['DOCTOR']}>
+                <DashboardLayout>
+                    <TreatmentApproval />
+                </DashboardLayout>
+            </ProtectedRoute>
+        )
+    },
 ];
 
 export default dashboardRoutes;

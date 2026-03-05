@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
     LayoutDashboard,
@@ -7,18 +8,25 @@ import {
     Wrench,
     Building2,
     DoorOpen,
-    Users,
     Calendar,
     FileText,
     ClipboardCheck,
     Briefcase,
+    ChevronDown,
+    ChevronRight,
+    Stethoscope,
+    CheckSquare,
     PackagePlus
 } from 'lucide-react';
 import clsx from 'clsx';
 
 const Sidebar = ({ role }) => {
     const location = useLocation();
+    const [expandedMenus, setExpandedMenus] = useState({});
 
+    const toggleMenu = (key) => {
+        setExpandedMenus(prev => ({ ...prev, [key]: !prev[key] }));
+    };
 
     const menuItems = {
         ADMIN_CLINIC: [
@@ -34,10 +42,18 @@ const Sidebar = ({ role }) => {
         ],
         Doctor: [
             { path: '/dentist/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-            { path: '/dentist/patients', icon: Users, label: 'Bệnh nhân' },
             { path: '/dentist/schedule', icon: Calendar, label: 'Lịch hẹn' },
-            { path: '/dentist/medical-records', icon: FileText, label: 'Hồ Sơ' },
-            { path: '/dentist/medical-record-approvals', icon: ClipboardCheck, label: 'Phê duyệt HS' },
+            { path: '/dentist/dental-records', icon: FileText, label: 'Hồ Sơ Nha Khoa' },
+            {
+                key: 'treatments',
+                icon: Stethoscope,
+                label: 'Quản lý Phiếu Điều Trị',
+                children: [
+                    { path: '/dentist/treatments', icon: ClipboardList, label: 'Xem phiếu điều trị' },
+                    { path: '/dentist/treatment-approvals', icon: CheckSquare, label: 'Phê duyệt phiếu' },
+                ]
+            },
+            { path: '/dentist/medical-record-approvals', icon: ClipboardCheck, label: 'Phê duyệt Hồ Sơ' },
             { path: '/dentist/leave-requests', icon: Briefcase, label: 'Nghỉ Phép' },
             { path: '/dentist/assistant-leave-requests', icon: UserCog, label: 'NP Trợ Lý' },
         ]
@@ -56,6 +72,8 @@ const Sidebar = ({ role }) => {
         items = menuItems.ADMIN_CLINIC;
     }
 
+    const isChildActive = (children) => children?.some(c => location.pathname === c.path);
+
     return (
         <div className="w-64 bg-gray-900 text-white h-screen fixed left-0 top-0 overflow-y-auto">
             {/* Logo */}
@@ -68,8 +86,61 @@ const Sidebar = ({ role }) => {
             <nav className="mt-6">
                 {items.map((item) => {
                     const Icon = item.icon;
-                    const isActive = location.pathname === item.path;
 
+                    // Collapsible group
+                    if (item.children) {
+                        const childActive = isChildActive(item.children);
+                        const isOpen = expandedMenus[item.key] ?? childActive;
+
+                        return (
+                            <div key={item.key}>
+                                {/* Group header */}
+                                <button
+                                    onClick={() => toggleMenu(item.key)}
+                                    className={clsx(
+                                        'w-full flex items-center justify-between px-6 py-3 text-sm transition-colors',
+                                        childActive
+                                            ? 'bg-primary-700 text-white border-l-4 border-primary-400'
+                                            : 'text-gray-300 hover:bg-gray-800 hover:text-white border-l-4 border-transparent'
+                                    )}
+                                >
+                                    <div className="flex items-center">
+                                        <Icon size={20} className="mr-3" />
+                                        <span className="font-medium">{item.label}</span>
+                                    </div>
+                                    {isOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                                </button>
+
+                                {/* Sub-items */}
+                                {isOpen && (
+                                    <div className="bg-gray-800">
+                                        {item.children.map(child => {
+                                            const ChildIcon = child.icon;
+                                            const isActive = location.pathname === child.path;
+                                            return (
+                                                <Link
+                                                    key={child.path}
+                                                    to={child.path}
+                                                    className={clsx(
+                                                        'flex items-center pl-12 pr-6 py-2.5 text-sm transition-colors',
+                                                        isActive
+                                                            ? 'bg-primary-600 text-white border-l-4 border-primary-300'
+                                                            : 'text-gray-400 hover:bg-gray-700 hover:text-white border-l-4 border-transparent'
+                                                    )}
+                                                >
+                                                    <ChildIcon size={16} className="mr-2" />
+                                                    <span>{child.label}</span>
+                                                </Link>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    }
+
+                    // Normal item
+                    const isActive = location.pathname === item.path;
                     return (
                         <Link
                             key={item.path}
