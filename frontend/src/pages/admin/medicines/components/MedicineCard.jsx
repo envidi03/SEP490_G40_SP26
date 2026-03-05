@@ -4,8 +4,6 @@ import { formatDate } from '../../../../utils/dateUtils';
 
 const MedicineCard = ({
     medicine,
-    onEdit,
-    onDelete,
     isExpiringSoon,
     isExpired,
     getDaysUntilExpiry,
@@ -30,7 +28,7 @@ const MedicineCard = ({
                 }`}>
                 <div className="flex items-start justify-between mb-3">
                     <div className="flex-1">
-                        <p className="text-xs opacity-90 mb-1">{medicine.medicine_type}</p>
+                        <p className="text-xs opacity-90 mb-1">{medicine.category}</p>
                         <h3 className="text-lg font-bold mb-1">
                             {medicine.medicine_name}
                         </h3>
@@ -106,22 +104,6 @@ const MedicineCard = ({
                     <p className="text-sm font-mono text-gray-900">{medicine.batch_number}</p>
                 </div>
 
-                {/* Actions */}
-                <div className="flex gap-2 pt-4 border-t border-gray-200">
-                    <button
-                        onClick={() => onEdit(medicine)}
-                        className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-50 text-blue-600 font-medium rounded-xl hover:bg-blue-100 transition-all duration-200"
-                    >
-                        <Edit2 size={16} />
-                        <span>Sửa</span>
-                    </button>
-                    <button
-                        onClick={() => onDelete(medicine.id)}
-                        className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-red-50 text-red-600 font-medium rounded-xl hover:bg-red-100 transition-all duration-200"
-                    >
-                        <Trash2 size={16} />
-                    </button>
-                </div>
             </div>
         </div>
     );

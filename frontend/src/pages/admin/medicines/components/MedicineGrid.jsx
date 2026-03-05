@@ -4,8 +4,6 @@ import MedicineCard from './MedicineCard';
 
 const MedicineGrid = ({
     medicines,
-    onEdit,
-    onDelete,
     isExpiringSoon,
     isExpired,
     getDaysUntilExpiry,
@@ -35,10 +33,8 @@ const MedicineGrid = ({
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {medicines.map(medicine => (
                 <MedicineCard
-                    key={medicine.id}
+                    key={medicine._id || medicine.id}
                     medicine={medicine}
-                    onEdit={onEdit}
-                    onDelete={onDelete}
                     isExpiringSoon={isExpiringSoon}
                     isExpired={isExpired}
                     getDaysUntilExpiry={getDaysUntilExpiry}

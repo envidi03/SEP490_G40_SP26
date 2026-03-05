@@ -1,7 +1,7 @@
 import React from 'react';
 import { Pill, AlertTriangle, TrendingDown, DollarSign } from 'lucide-react';
 
-const MedicineStats = ({ totalMedicines, expiringSoon, lowStock, totalValue, formatCurrency }) => {
+const MedicineStats = ({ totalMedicines, expiringSoon, lowStock }) => {
     return (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
             <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
@@ -40,17 +40,6 @@ const MedicineStats = ({ totalMedicines, expiringSoon, lowStock, totalValue, for
                 </div>
             </div>
 
-            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
-                <div className="flex items-center gap-4">
-                    <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-green-500 to-teal-600 flex items-center justify-center shadow-lg">
-                        <DollarSign className="text-white" size={28} />
-                    </div>
-                    <div>
-                        <p className="text-sm font-medium text-gray-600">Tổng giá trị</p>
-                        <p className="text-2xl font-bold text-green-600">{formatCurrency(totalValue)}</p>
-                    </div>
-                </div>
-            </div>
         </div>
     );
 };

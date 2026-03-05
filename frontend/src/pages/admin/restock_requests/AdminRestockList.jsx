@@ -8,64 +8,7 @@ import RestockStats from './components/RestockStats';
 import RestockFilter from './components/RestockFilter';
 import RestockTable from './components/RestockTable';
 
-// Mock Data matching the API schema
-const mockRestockRequests = [
-    {
-        id: 'REQ-001',
-        medicine_name: 'Paracetamol 500mg',
-        quantity_requested: 500,
-        current_quantity: 20,
-        priority: 'high',
-        status: 'pending',
-        request_by_name: 'Lê Văn Bác Sĩ',
-        reason: 'Hết sạch thuốc trong kho y tế',
-        created_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString()
-    },
-    {
-        id: 'REQ-002',
-        medicine_name: 'Amoxicillin 250mg',
-        quantity_requested: 200,
-        current_quantity: 80,
-        priority: 'medium',
-        status: 'pending',
-        request_by_name: 'Trần Thị Y Tá',
-        reason: 'Dự trù cho tuần tới',
-        created_at: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
-    },
-    {
-        id: 'REQ-003',
-        medicine_name: 'Vitamin C 1000mg',
-        quantity_requested: 50,
-        current_quantity: 150,
-        priority: 'low',
-        status: 'accept',
-        request_by_name: 'Nguyễn Văn A',
-        reason: 'Khách hàng hỏi mua nhiều',
-        created_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString()
-    },
-    {
-        id: 'REQ-004',
-        medicine_name: 'Thuốc nhỏ mắt V-Rohto',
-        quantity_requested: 30,
-        current_quantity: 0,
-        priority: 'high',
-        status: 'reject',
-        request_by_name: 'Phạm Văn C',
-        reason: 'Cần gấp cho bệnh nhân',
-        created_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString()
-    },
-    {
-        id: 'REQ-005',
-        medicine_name: 'Bông băng y tế',
-        quantity_requested: 100,
-        current_quantity: 40,
-        priority: 'medium',
-        status: 'completed',
-        request_by_name: 'Lê Văn Bác Sĩ',
-        reason: 'Sắp hết đồ sơ cứu',
-        created_at: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString()
-    }
-];
+import inventoryService from '../../../services/inventoryService';
 
 const AdminRestockList = () => {
     const [requests, setRequests] = useState([]);
@@ -78,14 +21,33 @@ const AdminRestockList = () => {
 
     // UI States
     const [toast, setToast] = useState({ show: false, type: 'success', message: '' });
+    const [loading, setLoading] = useState(false);
 
     // Modal action state (approve or reject)
     const [confirmAction, setConfirmAction] = useState({ show: false, action: null, request: null });
 
+    const fetchRequests = async () => {
+        try {
+            setLoading(true);
+            const res = await inventoryService.getRestockRequests({ page: 1, limit: 100 });
+            if (res.success && res.data) {
+                setRequests(res.data);
+                setFilteredRequests(res.data);
+            }
+        } catch (error) {
+            console.error("Error fetching restock requests:", error);
+            setToast({
+                show: true,
+                type: 'error',
+                message: '❌ Không thể tải danh sách yêu cầu nhập thuốc.'
+            });
+        } finally {
+            setLoading(false);
+        }
+    };
+
     useEffect(() => {
-        // Load mock data initially
-        setRequests(mockRestockRequests);
-        setFilteredRequests(mockRestockRequests);
+        fetchRequests();
     }, []);
 
     useEffect(() => {
@@ -123,24 +85,34 @@ const AdminRestockList = () => {
     };
 
     // Execute actions
-    const executeAction = () => {
+    const executeAction = async () => {
         const { action, request } = confirmAction;
         if (!request) return;
 
-        // Update the mock state replacing API call
         const newStatus = action === 'approve' ? 'accept' : 'reject';
 
-        setRequests(prev => prev.map(r =>
-            r.id === request.id ? { ...r, status: newStatus } : r
-        ));
+        try {
+            // medicine_id is required from the payload for the patch endpoint
+            await inventoryService.updateRestockRequestStatus(request.medicine_id || request.medicine?._id || request.medicineId, request._id || request.id, newStatus);
 
-        setToast({
-            show: true,
-            type: 'success',
-            message: `✅ Đã ${action === 'approve' ? 'duyệt' : 'từ chối'} yêu cầu nhập thuốc!`
-        });
+            // Refresh data from server
+            await fetchRequests();
 
-        setConfirmAction({ show: false, action: null, request: null });
+            setToast({
+                show: true,
+                type: 'success',
+                message: `✅ Đã ${action === 'approve' ? 'duyệt' : 'từ chối'} yêu cầu nhập thuốc!`
+            });
+        } catch (error) {
+            console.error("Action error:", error);
+            setToast({
+                show: true,
+                type: 'error',
+                message: `❌ Có lỗi xảy ra khi xử lý yêu cầu.`
+            });
+        } finally {
+            setConfirmAction({ show: false, action: null, request: null });
+        }
     };
 
     // Calculate Statistics
