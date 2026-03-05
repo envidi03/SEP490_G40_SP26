@@ -19,6 +19,16 @@
             "date": 1772097982032,
             "name": "D:\\Respositories\\SEP490_G40_SP26\\backend\\src\\logs\\application-2026-02-26.log",
             "hash": "124981a054d26b8a3dc156c2148f3192810fe5d31bf821144459517408e9fd4f"
+        },
+        {
+            "date": 1772627969597,
+            "name": "D:\\Respositories\\SEP490_G40_SP26\\backend\\src\\logs\\application-2026-03-04.log",
+            "hash": "043d0e05d985bf444782b00aea0d7a4fdcf83072609e2210ba9260fcba107d1c"
+        },
+        {
+            "date": 1772700032610,
+            "name": "D:\\Respositories\\SEP490_G40_SP26\\backend\\src\\logs\\application-2026-03-05.log",
+            "hash": "1a0790cd98229d7785fb1c0839f7654808b9284234f8ba4a119497aa0342defb"
         }
     ],
     "hashType": "sha256"

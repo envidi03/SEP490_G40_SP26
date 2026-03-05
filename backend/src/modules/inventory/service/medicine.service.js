@@ -1,6 +1,5 @@
 const Medicine = require("../model/medicine.model");
 const MedicineCategory = require("../model/medicine-category.model");
-const mongoose = require("mongoose");
 
 /**
  * Lấy danh sách thuốc có phân trang, tìm kiếm và lọc theo danh mục
@@ -18,10 +17,7 @@ exports.getMedicines = async ({ page = 1, limit = 10, search, category }) => {
     }
 
     if (category && category.trim()) {
-        // Hỗ trợ filter bằng ObjectId của category
-        if (mongoose.Types.ObjectId.isValid(category.trim())) {
-            query.category = category.trim();
-        }
+        query.category = category.trim();
     }
 
     const skip = (parseInt(page) - 1) * parseInt(limit);
@@ -53,94 +49,8 @@ exports.getMedicines = async ({ page = 1, limit = 10, search, category }) => {
  */
 exports.getCategories = async () => {
     return await MedicineCategory.find({ status: "active" })
-        .select("name description status")
+        .select("name description")
         .sort({ name: 1 });
-};
-
-/**
- * Tạo danh mục thuốc mới
- */
-exports.createCategory = async (data) => {
-    if (!data.name || !data.name.trim()) {
-        const error = new Error("Tên danh mục không được để trống");
-        error.statusCode = 400;
-        throw error;
-    }
-
-    const existing = await MedicineCategory.findOne({
-        name: { $regex: new RegExp(`^${data.name.trim()}$`, "i") }
-    });
-
-    if (existing) {
-        const error = new Error("Danh mục này đã tồn tại");
-        error.statusCode = 409;
-        throw error;
-    }
-
-    const category = new MedicineCategory({
-        name: data.name.trim(),
-        description: data.description || null
-    });
-    return await category.save();
-};
-
-/**
- * Cập nhật danh mục thuốc
- */
-exports.updateCategory = async (id, data) => {
-    const category = await MedicineCategory.findById(id);
-    if (!category) {
-        const error = new Error("Không tìm thấy danh mục");
-        error.statusCode = 404;
-        throw error;
-    }
-
-    if (data.name !== undefined) {
-        if (!data.name.trim()) {
-            const error = new Error("Tên danh mục không được để trống");
-            error.statusCode = 400;
-            throw error;
-        }
-        const duplicate = await MedicineCategory.findOne({
-            name: { $regex: new RegExp(`^${data.name.trim()}$`, "i") },
-            _id: { $ne: id }
-        });
-        if (duplicate) {
-            const error = new Error("Danh mục này đã tồn tại");
-            error.statusCode = 409;
-            throw error;
-        }
-        category.name = data.name.trim();
-    }
-
-    if (data.description !== undefined) category.description = data.description;
-    if (data.status !== undefined) category.status = data.status;
-
-    return await category.save();
-};
-
-/**
- * Xóa danh mục thuốc (chỉ khi không có thuốc nào đang dùng)
- */
-exports.deleteCategory = async (id) => {
-    const category = await MedicineCategory.findById(id);
-    if (!category) {
-        const error = new Error("Không tìm thấy danh mục");
-        error.statusCode = 404;
-        throw error;
-    }
-
-    const medicineCount = await Medicine.countDocuments({ category: id });
-    if (medicineCount > 0) {
-        const error = new Error(
-            `Không thể xóa danh mục đang được sử dụng bởi ${medicineCount} thuốc`
-        );
-        error.statusCode = 400;
-        throw error;
-    }
-
-    await MedicineCategory.findByIdAndDelete(id);
-    return { message: "Xóa danh mục thành công" };
 };
 
 /**
