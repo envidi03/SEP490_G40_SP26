@@ -58,40 +58,38 @@ const getListController = async (req, res) => {
 };
 
 /*
-    get list appointment of patient with pagination and filter
+    get list dental record of patient with pagination and filter
     (
-        search: search by full_name, phone, email;
-        filter: filter by status;
-        sort: sort by appointment_date;
+        search: search by record_name(in collection dental_record), doctor_name(in collection staff), tooth_position(in collection treatment);
+        filter_dental_record: filter by status (in collection dental_record);
+        filter_treatment: filter by status (in collection treatment);
+        sort: sort by start_date(in collection dental_record);
         page
-        limit
+        limit (5 record dental_record/page)
     )
-    only get appointment with account_id
 */
 const getListOfPatientController = async (req, res) => {
+  const context = "DentalRecordController.getListOfPatientController";
   try {
     const queryParams = req.query;
-    const { account_id } = req.user;
-    if (!account_id) {
-      logger.warn("Missing account_id in token", {
-        context: "AppointmentController.getListOfPatientController",
-        account_id: account_id,
+    const { id: patientId } = req.params;
+
+    // check patientId empty
+    if (!patientId) {
+      logger.warn("Missing patient ID in request params", {
+        context: context,
+        patientId: patientId,
       });
-      throw new errorRes.UnauthorizedError(
-        "Invalid token: account_id is missing",
-      );
+      throw new errorRes.BadRequestError("Patient ID is required to get dental records for a patient");
     }
 
-    logger.debug("Get list appointment of patient request received", {
-      context: "AppointmentController.getListOfPatientController",
+    logger.debug("Get list dental record of patient request received", {
+      context: context,
       query: queryParams,
-      account_id: account_id,
+      patientId: patientId,
     });
 
-    const { data, pagination } = await ServiceProcess.getListOfPatientService(
-      queryParams,
-      account_id,
-    );
+    const { data, pagination } = await ServiceProcess.getListOfPatientService(queryParams,patientId);
 
     const paginationData = new Pagination({
       page: pagination.page,
@@ -102,11 +100,11 @@ const getListOfPatientController = async (req, res) => {
     return new successRes.GetListSuccess(
       data,
       paginationData,
-      "Appointment retrieved successfully",
+      "Dental record retrieved successfully",
     ).send(res);
   } catch (error) {
-    logger.error("Error get Appointment", {
-      context: "AppointmentController.getListController",
+    logger.error("Error get Dental Record", {
+      context: context,
       message: error.message,
       stack: error.stack,
     });

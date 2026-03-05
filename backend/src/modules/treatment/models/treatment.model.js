@@ -61,9 +61,9 @@ const treatmentSchema = new Schema(
         // --- SỬ DỤNG THUỐC (MẢNG LỒNG NHAU) ---
         medicine_usage: [
             {
-                medicine_id: { // Đã sửa lỗi chính tả 'medicien_id' trong ảnh
+                medicine_id: {
                     type: Schema.Types.ObjectId,
-                    ref: "Medicine", // Đổi tên ref theo đúng model Thuốc của bạn
+                    ref: "Medicine", 
                     required: true
                 },
                 quantity: {

@@ -3,15 +3,16 @@ const errorRes = require("../../../common/errors");
 const mongoose = require("mongoose");
 const Pagination = require("../../../common/responses/Pagination");
 
+const bcrypt = require("bcrypt");
+const emailService = require("../../../common/service/email.service");
+const appointmentModel = require("../../appointment/models/appointment.model");
+
 const Model = require("../models/index.model");
 const { Model: AuthModel } = require("../../auth/index");
 const PatientModel = require("../../../modules/patient/model/patient.model");
 const AppointmentModel = require("../../appointment/models/index.model");
 const { model: ServiceModel } = require("../../service/index");
-
-const bcrypt = require("bcrypt");
-const emailService = require("../../../common/service/email.service");
-const appointmentModel = require("../../appointment/models/appointment.model");
+const {Staff: StaffModel} = require("../../staff/models/index.model");
 
 /*
     get list appointment with pagination and filter
@@ -103,106 +104,121 @@ const getListService = async (query) => {
 };
 
 /*
-    get list appointment of patient with pagination and filter
+    get list dental record of patient with pagination and filter
     (
-        search: search by full_name, phone, email;
-        filter: filter by status;
-        sort: sort by appointment_date;
+        search: search by record_name(in collection dental_record), doctor_name(in collection staff), tooth_position(in collection treatment);
+        filter_dental_record: filter by status (in collection dental_record);
+        filter_treatment: filter by status (in collection treatment);
+        sort: sort by start_date(in collection dental_record);
         page
-        limit
+        limit (5 record dental_record/page)
     )
-    only get appointment with account_id
 */
-const getListOfPatientService = async (query, account_id) => {
+const getListOfPatientService = async (query, patientId) => {
+  const context = "DentalRecordService.getListOfPatientService";
   try {
-    logger.debug("Fetching list of patient appointments with query", {
-      context: "AppointmentService.getListOfPatientService",
+    logger.debug("Fetching list of patient dental records with query", {
+      context: context,
       query: query,
-      account_id: account_id,
+      patientId: patientId,
     });
 
-    // 1. Lấy và chuẩn hóa các tham số từ query
-    const search = query.search?.trim();
-    // Lấy status từ query.status (hoặc query.filter tùy cách bạn gọi URL, ở đây dùng query.status cho rõ ràng)
-    const statusFilter = query.status ? query.status.toUpperCase() : null;
-    const sortOrder = query.sort === "desc" ? -1 : 1;
-
+    // 1. CHUẨN HÓA THAM SỐ TỪ QUERY
+    const search = query.search ? query.search.trim() : null;
+    const filterDentalRecord = query.filter_dental_record ? query.filter_dental_record.toUpperCase() : null; 
+    const filterTreatment = query.filter_treatment ? query.filter_treatment.toUpperCase() : null;
+    
+    const sortOrder = query.sort === "asc" ? 1 : -1;
     const page = Math.max(1, parseInt(query.page || 1));
     const limit = Math.max(1, parseInt(query.limit || 5));
     const skip = (page - 1) * limit;
 
-    // 2. Tìm Hồ sơ Bệnh nhân (Patient) dựa vào account_id
-    const patient = await PatientModel.findOne({ account_id: account_id });
+    const patientObjectId = new mongoose.Types.ObjectId(patientId);
 
-    // Nếu tài khoản này chưa có hồ sơ bệnh nhân, trả về mảng rỗng ngay lập tức
-    if (!patient) {
-      logger.warn("Patient profile not found for this account", {
-        context: "AppointmentService.getListOfPatientService",
-        account_id: account_id,
-      });
-      return {
-        data: [],
-        pagination: {
-          page: page,
-          size: limit,
-          totalItems: 0,
-        },
-      };
+    // 2. KHỞI TẠO PIPELINE AGGREGATION
+    const aggregatePipeline = [];
+
+    // --- STAGE 1: Lọc cơ bản ở bảng DentalRecord ---
+    const initialMatch = { patient_id: patientObjectId };
+    if (filterDentalRecord) {
+      initialMatch.status = filterDentalRecord;
+    }
+    aggregatePipeline.push({ $match: initialMatch });
+
+    // --- STAGE 2: JOIN với bảng Staff (Bác sĩ) ---
+    aggregatePipeline.push({
+      $lookup: {
+        from: "staffs", 
+        localField: "created_by",
+        foreignField: "_id",
+        as: "doctor_info" 
+      }
+    });
+
+    aggregatePipeline.push({
+      $addFields: {
+        doctor_info: { $arrayElemAt: ["$doctor_info", 0] } 
+      }
+    });
+
+    // --- STAGE 3: JOIN với bảng Treatment ---
+    aggregatePipeline.push({
+      $lookup: {
+        from: "treatments",
+        localField: "_id",
+        foreignField: "record_id",
+        as: "treatments" 
+      }
+    });
+
+    // --- STAGE 4: Lọc và Search Nâng cao ---
+    const complexMatch = {};
+
+    if (filterTreatment) {
+      complexMatch["treatments.status"] = filterTreatment;
     }
 
-    // 3. Xây dựng điều kiện lọc (Match)
-    // SỬA LỖI: Sử dụng patient._id thay vì account_id
-    const matchCondition = {
-      patient_id: patient._id,
-    };
-
-    // Lọc theo trạng thái (status)
-    if (statusFilter) {
-      matchCondition.status = statusFilter;
-    }
-
-    // Tìm kiếm (Search) theo tên, số điện thoại, email
     if (search) {
-      const regexSearch = { $regex: search, $options: "i" };
-      matchCondition.$or = [
-        { full_name: regexSearch },
-        { phone: regexSearch },
-        { email: regexSearch },
+      const searchRegex = { $regex: search, $options: "i" };
+      complexMatch.$or = [
+        { record_name: searchRegex },
+        { "doctor_info.full_name": searchRegex }, 
+        { "treatments.tooth_position": searchRegex }
       ];
     }
 
-    // 4. Xây dựng Aggregation Pipeline
-    const aggregatePipeline = [
-      { $match: matchCondition },
+    if (Object.keys(complexMatch).length > 0) {
+      aggregatePipeline.push({ $match: complexMatch });
+    }
 
-      // Sắp xếp theo ngày hẹn (appointment_date)
-      { $sort: { appointment_date: sortOrder } },
+    // --- STAGE 5: Sắp xếp ---
+    aggregatePipeline.push({ $sort: { start_date: sortOrder } });
 
-      // Phân trang
-      {
-        $facet: {
-          data: [
-            { $skip: skip },
-            { $limit: limit },
-            {
-              $project: {
-                __v: 0, // Loại bỏ trường __v dư thừa
-              },
+    // --- STAGE 6: Phân trang ---
+    aggregatePipeline.push({
+      $facet: {
+        data: [
+          { $skip: skip },
+          { $limit: limit },
+          {
+            $project: {
+              __v: 0,
+              "doctor_info.password": 0, // Che mật khẩu bác sĩ
             },
-          ],
-          totalCount: [{ $count: "count" }],
-        },
+          },
+        ],
+        totalCount: [{ $count: "count" }],
       },
-    ];
+    });
 
-    // 5. Thực thi truy vấn
-    const result = await AppointmentModel.aggregate(aggregatePipeline);
+    // 3. THỰC THI TRUY VẤN
+    const result = await Model.DentalRecord.aggregate(aggregatePipeline);
 
-    const appointments = result[0]?.data || [];
+    const dentalRecords = result[0]?.data || [];
     const totalItems = result[0]?.totalCount[0]?.count || 0;
 
     return {
-      data: appointments,
+      data: dentalRecords,
       pagination: {
         page: page,
         size: limit,
@@ -210,17 +226,16 @@ const getListOfPatientService = async (query, account_id) => {
       },
     };
   } catch (error) {
-    logger.error("Error getting list of patient appointments", {
-      context: "AppointmentService.getListOfPatientService",
+    logger.error("Error getting list of patient dental records", {
+      context: context,
       message: error.message,
       stack: error.stack,
     });
     throw new errorRes.InternalServerError(
-      `An error occurred while fetching list of appointments: ${error.message}`,
+      `An error occurred while fetching list of dental records: ${error.message}`
     );
   }
 };
-
 /*
     get appointment by appointmentId
 */
