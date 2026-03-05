@@ -4,7 +4,11 @@ const PatientModel = require("../../../modules/patient/model/patient.model");
 const { Staff: StaffModel } = require("../../../modules/staff/models/index.model");
 const logger = require('../../../common/utils/logger');
 
-
+/**
+ * find account by id
+ * @param {ObjectId} id account id user
+ * @returns account object if found, otherwise null
+ */
 const findAccountById = async (id) => {
     const context = "AccountService.findAccountById";
     if (!id) return null;
@@ -26,6 +30,11 @@ const findAccountById = async (id) => {
     }
 }
 
+/**
+ * Find a staff member by their account ID
+ * @param {'ObjectId'} accountId account id user 
+ * @returns obejct {account, staff, profile} if found, otherwise null
+ */
 const findStaffByAccountId = async (accountId) => {
     const context = "AccountService.findStaffByAccountId";
     try {
@@ -52,6 +61,11 @@ const findStaffByAccountId = async (accountId) => {
     }
 };
 
+/**
+ * Find a patient by their account ID
+ * @param {'ObjectId'} accountId account id user 
+ * @returns obejct {account, patient, profile} if found, otherwise null
+ */
 const findPatientByAccountId = async (accountId) => {
     const context = "AccountService.findPatientByAccountId";
     try {

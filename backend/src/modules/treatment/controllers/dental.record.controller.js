@@ -12,7 +12,7 @@ const {
 
 const {dental: ServiceProcess} = require("../services/index.service");
 const { checkRequiredFields } = require("../../../utils/checkRequiredFields");
-const { findStaffByAccountId } = require("../../auth/service/account.service");
+const { findStaffByAccountId, findPatientByAccountId } = require("../../auth/service/account.service");
 const {service: ServiceAppointment} = require("../../appointment/index");
 const { checkDuplicateDental } = require("../services/dental.record.service");
 
@@ -59,8 +59,8 @@ const getListController = async (req, res) => {
   }
 };
 
-/*
-    get list dental record of patient with pagination and filter
+/**
+ * get list dental record of patient with pagination and filter
     (
         search: search by record_name(in collection dental_record), doctor_name(in collection staff), tooth_position(in collection treatment);
         filter_dental_record: filter by status (in collection dental_record);
@@ -69,13 +69,13 @@ const getListController = async (req, res) => {
         page
         limit (5 record dental_record/page)
     )
-*/
-const getListOfPatientController = async (req, res) => {
-  const context = "DentalRecordController.getListOfPatientController";
+ * @param {*} queryParams 
+ * @param {*} patientId 
+ * @returns object {data: list dental record, pagination: {page, size, totalItems}}
+ */
+const getListDentalOfPatientController = async (queryParams, patientId) => {
+  const context = "DentalRecordController.getListDentalOfPatientController";
   try {
-    const queryParams = req.query;
-    const { id: patientId } = req.params;
-
     // check patientId empty
     if (!patientId) {
       logger.warn("Missing patient ID in request params", {
@@ -99,11 +99,7 @@ const getListOfPatientController = async (req, res) => {
       totalItems: pagination.totalItems,
     });
 
-    return new successRes.GetListSuccess(
-      data,
-      paginationData,
-      "Dental record retrieved successfully",
-    ).send(res);
+    return {data, pagination: paginationData};
   } catch (error) {
     logger.error("Error get Dental Record", {
       context: context,
@@ -114,6 +110,94 @@ const getListOfPatientController = async (req, res) => {
   }
 };
 
+/**
+ * get list dental record of patient with pagination and filter
+    (
+        search: search by record_name(in collection dental_record), doctor_name(in collection staff), tooth_position(in collection treatment);
+        filter_dental_record: filter by status (in collection dental_record);
+        filter_treatment: filter by status (in collection treatment);
+        sort: sort by start_date(in collection dental_record);
+        page
+        limit (5 record dental_record/page)
+    )
+ * @param {*} req 
+ * @param {*} res 
+ * @returns 
+ */
+const getListOfPatientController = async (req, res) => {
+  const context = "DentalRecordController.getListOfPatientController";
+  try {
+    const queryParams = req.query;
+    const {account_id: accountPatientId} = req.user;
+    const {patient} = await findPatientByAccountId(accountPatientId);
+    if (!patient) {
+      logger.warn("Patient not found for account_id", {
+        context: context,
+        accountPatientId: accountPatientId
+      });
+      throw new errorRes.NotFoundError("Patient not found!")
+    };
+    const {data, pagination} = await getListDentalOfPatientController(queryParams, patient._id);
+
+    return new successRes.GetListSuccess(
+      data,
+      pagination,
+      "Dental records of patient retrieved successfully",
+    ).send(res);
+
+  } catch (error) {
+    logger.error("Error get Dental Record of patient", {
+      context: context,
+      message: error.message,
+      stack: error.stack,
+    });
+    throw error;
+  }
+
+};
+
+/**
+ * get list dental record of patient with pagination and filter
+    (
+        search: search by record_name(in collection dental_record), doctor_name(in collection staff), tooth_position(in collection treatment);
+        filter_dental_record: filter by status (in collection dental_record);
+        filter_treatment: filter by status (in collection treatment);
+        sort: sort by start_date(in collection dental_record);
+        page
+        limit (5 record dental_record/page)
+    )
+ * @param {*} req 
+ * @param {*} res 
+ * @returns 
+ */
+const getListOfStaffController = async (req, res) => {
+  const context = "DentalRecordController.getListOfStaffController";
+  try {
+    const queryParams = req.query;
+    const { id: patientId } = req.params;
+    if (!patientId) {
+      logger.warn("Missing patient ID in request params", {
+        context: context,
+        patientId: patientId,
+      });
+      throw new errorRes.BadRequestError("Patient ID is required to get dental records for a patient");
+    }
+    const { data, pagination } = await getListDentalOfPatientController(queryParams, patientId);
+
+    return new successRes.GetListSuccess(
+      data,
+      pagination,
+      "Dental records of patient retrieved successfully",
+    ).send(res);
+  } catch (error) {
+    logger.error("Error get Dental Record of staff", {
+      context: context,
+      message: error.message,
+      stack: error.stack,
+    });
+    throw error;
+  }
+};
 
 
 /*
@@ -486,9 +570,6 @@ const updateStatusController = async (req, res) => {
 };
 
 /*
-  checkin by full_name, phone, email. if correct auto change status to CHECK_IN
-*/
-/*
   Self Check-in by full_name, phone, email. 
   If correct, auto change status to CHECKED_IN and generate queue number.
 */
@@ -533,6 +614,7 @@ const checkinController = async (req, res) => {
 
 module.exports = {
   getListOfPatientController,
+  getListOfStaffController,
   getListController,
   getByIdController,
   createController,
