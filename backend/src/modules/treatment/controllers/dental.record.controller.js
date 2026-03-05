@@ -3,6 +3,8 @@ const errorRes = require("../../../common/errors");
 const successRes = require("../../../common/success");
 const { cleanObjectData } = require("../../../common/utils/cleanObjectData");
 const Pagination = require("../../../common/responses/Pagination");
+const mongoose = require("mongoose"); 
+
 const {
   uploadToCloudinary,
   uploadMultipleToCloudinary,
@@ -112,35 +114,58 @@ const getListOfPatientController = async (req, res) => {
   }
 };
 
+
+
 /*
-    get appointment by id
+  view detail dental record by id (include detail dental record and list treatment of dental record)
 */
 const getByIdController = async (req, res) => {
+  const context = "DentalRecordController.getByIdController";
   try {
     const { id } = req.params;
-    logger.debug("Get appointment by id request received", {
-      context: "AppointmentController.getByIdController",
-      appointmentId: id,
+    logger.debug("Get dental record by id request received", {
+      context: context,
+      dentalRecordId: id,
     });
 
-    // check id empty
+    // 1. Kiểm tra ID rỗng
     if (!id) {
       logger.warn("Empty ID", {
-        context: "AppointmentController.getByIdController",
-        appointmentId: id,
+        context: context,
       });
-      throw new errorRes.BadRequestError("Appointment ID is required");
+      throw new errorRes.BadRequestError("Dental record ID is required");
     }
 
-    // Gọi service xử lý logic
-    const service = await ServiceProcess.getByIdService(id);
+    // 2. Kiểm tra định dạng chuẩn của MongoDB ObjectId
+    if (!mongoose.isValidObjectId(id)) {
+      logger.warn("Invalid ObjectId format", {
+        context: context,
+        dentalRecordId: id,
+      });
+      throw new errorRes.BadRequestError("Invalid Dental Record ID format");
+    }
+
+    // 3. Gọi service xử lý logic
+    const dentalRecordDetail = await ServiceProcess.getByIdService(id);
+
+    // 4. Xử lý trường hợp không tìm thấy dữ liệu (Rất quan trọng)
+    if (!dentalRecordDetail) {
+      logger.warn("Dental record not found in database", {
+        context: context,
+        dentalRecordId: id,
+      });
+      throw new errorRes.NotFoundError("Dental record not found");
+    }
+
+    // 5. Trả về Response
     return new successRes.GetDetailSuccess(
-      service,
-      "Appointment retrieved successfully",
+      dentalRecordDetail,
+      "Dental record retrieved successfully",
     ).send(res);
+
   } catch (error) {
-    logger.error("Error get appointment by id", {
-      context: "AppointmentController.getByIdController",
+    logger.error("Error get dental record by id", {
+      context: context,
       message: error.message,
       stack: error.stack,
     });

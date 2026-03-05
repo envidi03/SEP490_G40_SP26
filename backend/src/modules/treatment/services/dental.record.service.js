@@ -236,47 +236,62 @@ const getListOfPatientService = async (query, patientId) => {
     );
   }
 };
+
 /*
-    get appointment by appointmentId
+  view detail dental record by id (include detail dental record and list treatment of dental record)
 */
 const getByIdService = async (id) => {
+  const context = "DentalRecordService.getByIdService";
   try {
-    logger.debug("Fetching appointment by id", {
-      context: "AppointmentService.getByIdService",
-      appointmentId: id,
+    logger.debug("Fetching dental record by id", {
+      context: context,
+      dentalRecordId: id,
     });
 
     // --- 1. KIỂM TRA ĐỊNH DẠNG ID ---
+    // (Thực ra bạn đã check isValidObjectId ở Controller rồi, 
+    // nhưng để lại ở Service cho chắc chắn cũng rất tốt)
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      throw new errorRes.BadRequestError("Invalid Appointment ID format");
+      throw new errorRes.BadRequestError("Invalid Dental Record ID format");
     }
 
-    // --- 2. TRUY VẤN DỮ LIỆU ---
-    const appointment = await AppointmentModel.findById(id)
-      .populate("patient_id")
-      .populate("book_service.service_id")
+    // --- 2. TRUY VẤN DỮ LIỆU DENTAL RECORD ---
+    const dentalRecord = await Model.DentalRecord.findById(id)
+      .populate("patient_id") 
+      .populate("created_by") 
       .lean();
 
     // --- 3. KIỂM TRA TỒN TẠI ---
-    if (!appointment) {
-      logger.warn("Appointment not found", {
-        context: "AppointmentService.getByIdService",
-        appointmentId: id,
+    if (!dentalRecord) {
+      logger.warn("Dental record not found", {
+        context: context,
+        dentalRecordId: id,
       });
-      throw new errorRes.NotFoundError("Appointment not found");
+      throw new errorRes.NotFoundError("Dental record not found");
     }
 
-    logger.debug("Appointment fetched successfully", {
-      context: "AppointmentService.getByIdService",
-      appointmentId: id,
+    // --- 4. TRUY VẤN DANH SÁCH TREATMENT CỦA RECORD NÀY ---
+    // Tìm tất cả các phiên điều trị (Treatment) có record_id bằng với ID của bệnh án này
+    const treatments = await Model.Treatment.find({ record_id: id })
+      .populate("doctor_id") 
+      .sort({ createdAt: -1 }) 
+      .lean();
+
+    // --- 5. GỘP DỮ LIỆU VÀ TRẢ VỀ ---
+    // Gắn mảng treatments vừa tìm được vào object dentalRecord
+    dentalRecord.treatments = treatments;
+
+    logger.debug("Dental record and treatments fetched successfully", {
+      context: context,
+      dentalRecordId: id,
+      dentalRecord: dentalRecord,
     });
 
-    // Đã sửa lỗi: Trả về đúng biến appointment thay vì staffInfo
-    return appointment;
+    return dentalRecord;
+
   } catch (error) {
-    // Đã sửa lỗi: Cập nhật lại log lỗi cho đúng ngữ cảnh Appointment
-    logger.error("Error getting appointment by id", {
-      context: "AppointmentService.getByIdService",
+    logger.error("Error getting dental record by id", {
+      context: context,
       message: error.message,
       stack: error.stack,
     });
@@ -284,7 +299,7 @@ const getByIdService = async (id) => {
     if (error.statusCode) throw error;
 
     throw new errorRes.InternalServerError(
-      `An error occurred while fetching appointment by id: ${error.message}`,
+      `An error occurred while fetching dental record by id: ${error.message}`,
     );
   }
 };
@@ -313,70 +328,6 @@ const createService = async (dataCreate) => {
     throw new errorRes.InternalServerError(
       `Error creating dental record: ${error.message}`,
     );
-  }
-};
-
-const staffCreateService = async (dataCreate) => {
-  try {
-    logger.debug("Raw data to create", {
-      context: "AppointmentService.staffCreateService",
-      dataCreate: dataCreate,
-    });
-
-    // 1. Check duplicate appointment
-    const duplicateQuery = {
-      full_name: dataCreate.full_name,
-      phone: dataCreate.phone,
-      appointment_date: dataCreate.appointment_date,
-      appointment_time: dataCreate.appointment_time,
-      status: { $nin: ["CANCELLED", "NO_SHOW", "COMPLETED"] },
-    };
-    const isDuplicatePatient = await AppointmentModel.findOne(duplicateQuery);
-    if (isDuplicatePatient) {
-      throw new errorRes.ConflictError(
-        `Patient ${dataCreate.full_name} already has an appointment scheduled for ${dataCreate.appointment_time}.`,
-      );
-    }
-
-    // 2. Check valid services
-    if (dataCreate.book_service && Array.isArray(dataCreate.book_service)) {
-      for (const service of dataCreate.book_service) {
-        const serviceExist = await ServiceModel.findById(service.service_id);
-
-        if (!serviceExist) {
-          logger.warn(`ID service not found: ${service.service_id}`, {
-            context: "AppointmentService.staffCreateService",
-            service_id: service.service_id,
-            // ĐÃ SỬA BUG CỦA BẠN: Xóa biến account_id gây crash app ở đây
-          });
-          throw new errorRes.NotFoundError(
-            `Service not found! ID: ${service.service_id}`,
-          );
-        }
-      }
-    }
-
-    // 3. (Quan trọng) Hỗ trợ cấp STT nếu lễ tân tạo lịch hẹn đến thẳng phòng khám
-    if (dataCreate.status === "CHECKED_IN") {
-      const nextNumber = await AppointmentModel.getNextQueueNumber(
-        dataCreate.appointment_date,
-      );
-      dataCreate.queue_number = nextNumber;
-    }
-
-    // 4. Tạo lịch hẹn mới
-    const newAppointment = await AppointmentModel.create(dataCreate);
-    return newAppointment;
-  } catch (error) {
-    logger.error("Error at staff create new appointment.", {
-      context: "AppointmentService.staffCreateService",
-      message: error.message,
-      stack: error.stack,
-    });
-
-    // Đã sửa để ném ra đúng HTTP Status (Ví dụ: 409 Conflict, 404 Not Found)
-    if (error.statusCode) throw error;
-    throw new errorRes.InternalServerError(`Error: ${error.message}`);
   }
 };
 
@@ -590,85 +541,6 @@ const updateStatusOnly = async (id, status) => {
   }
 };
 
-const checkinService = async (data) => {
-  try {
-    // 1. TẠO MỐC THỜI GIAN CỦA NGÀY HÔM NAY (Từ 00:00 đến 23:59)
-    const today = new Date(); // Lấy ngày giờ hiện tại
-    const startOfDay = new Date(today.setHours(0, 0, 0, 0));
-    const endOfDay = new Date(today.setHours(23, 59, 59, 999));
-
-    // 2. TÌM TẤT CẢ CÁC LỊCH HẸN TRONG HÔM NAY (Cho phép cả lịch chưa khám và lịch đến muộn)
-    const appointments = await AppointmentModel.find({
-      full_name: data.full_name,
-      phone: data.phone,
-      status: { $in: ["SCHEDULED", "NO_SHOW"] },
-      appointment_date: {
-        $gte: startOfDay,
-        $lte: endOfDay,
-      },
-    }).sort({ appointment_time: 1 });
-
-    // Nếu không có lịch nào trong hôm nay
-    if (!appointments || appointments.length === 0) {
-      throw new errorRes.NotFoundError(
-        "You do not have any scheduled appointments for TODAY. Please check the date or contact the receptionist.",
-      );
-    }
-
-    const checkedInResults = [];
-
-    // 3. LẶP QUA TỪNG LỊCH TRONG HÔM NAY ĐỂ CẤP SỐ & CHECK-IN
-    for (const appt of appointments) {
-      // Sinh số thứ tự cho từng lịch (Vì có thể khám ở nhiều phòng/dịch vụ khác nhau)
-      const nextNumber = await AppointmentModel.getNextQueueNumber(
-        appt.appointment_date,
-      );
-
-      const updatedAppt = await AppointmentModel.findByIdAndUpdate(
-        appt._id,
-        {
-          status: "CHECKED_IN",
-          queue_number: nextNumber,
-        },
-        { new: true },
-      );
-
-      checkedInResults.push(updatedAppt);
-
-      // GỬI EMAIL THÔNG BÁO CHO KHÁCH HÀNG
-      if (updatedAppt.email) {
-        emailService
-          .sendCheckinEmail(
-            updatedAppt.email,
-            updatedAppt.full_name,
-            updatedAppt.queue_number,
-          )
-          .catch((err) => logger.error("Lỗi gửi email check-in:", err.message));
-      }
-    }
-
-    logger.info(
-      `Patient self check-in successful for ${checkedInResults.length} appointments`,
-      {
-        context: "AppointmentService.checkinService",
-        phone: data.phone,
-      },
-    );
-
-    // 4. TRẢ VỀ MẢNG CÁC LỊCH ĐÃ CHECK-IN ĐỂ HIỂN THỊ LÊN MÀN HÌNH
-    return checkedInResults;
-  } catch (error) {
-    logger.error("Error at checkinService", {
-      context: "AppointmentService.checkinService",
-      message: error.message,
-      data: data,
-    });
-
-    if (error.statusCode) throw error;
-    throw new errorRes.InternalServerError(`Check-in fails: ${error.message}`);
-  }
-};
-
 /**
  * Tìm kiếm bệnh án khớp với 3 điều kiện:
     1. Của đúng bệnh nhân đó
@@ -720,7 +592,5 @@ module.exports = {
   updateService,
   updateStatusOnly,
   getListOfPatientService,
-  staffCreateService,
-  checkinService,
   checkDuplicateDental,
 };
