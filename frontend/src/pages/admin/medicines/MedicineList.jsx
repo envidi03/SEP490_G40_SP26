@@ -47,7 +47,11 @@ const MedicineList = () => {
         let filtered = medicines;
 
         if (statusFilter !== 'all') {
-            filtered = filtered.filter(m => m.status === statusFilter);
+            if (statusFilter === 'EXPIRED') {
+                filtered = filtered.filter(m => isExpired(m.expiry_date) || m.status === 'EXPIRED');
+            } else {
+                filtered = filtered.filter(m => m.status === statusFilter && !isExpired(m.expiry_date));
+            }
         }
 
         if (searchTerm) {
@@ -87,7 +91,8 @@ const MedicineList = () => {
             'AVAILABLE': 'bg-green-100 text-green-700 border-green-200',
             'EXPIRING_SOON': 'bg-yellow-100 text-yellow-700 border-yellow-200',
             'LOW_STOCK': 'bg-orange-100 text-orange-700 border-orange-200',
-            'OUT_OF_STOCK': 'bg-red-100 text-red-700 border-red-200'
+            'OUT_OF_STOCK': 'bg-red-100 text-red-700 border-red-200',
+            'EXPIRED': 'bg-red-800 text-white border-red-900'
         };
         return colors[status] || 'bg-gray-100 text-gray-700 border-gray-200';
     };
@@ -97,7 +102,8 @@ const MedicineList = () => {
             'AVAILABLE': 'Còn hàng',
             'EXPIRING_SOON': 'Sắp hết hạn',
             'LOW_STOCK': 'Sắp hết',
-            'OUT_OF_STOCK': 'Hết hàng'
+            'OUT_OF_STOCK': 'Hết hàng',
+            'EXPIRED': 'Đã hết hạn'
         };
         return texts[status] || status;
     };

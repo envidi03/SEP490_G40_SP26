@@ -3,7 +3,7 @@ import { Pill, AlertTriangle, TrendingDown, DollarSign } from 'lucide-react';
 
 const MedicineStats = ({ totalMedicines, expiringSoon, lowStock }) => {
     return (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
             <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
                 <div className="flex items-center gap-4">
                     <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg">
