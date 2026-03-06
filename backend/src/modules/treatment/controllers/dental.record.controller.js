@@ -459,6 +459,28 @@ const updateController = async (req, res) => {
   }
 };
 
+const findUserByUserInfo = async (req, res) => {
+  const context = "DentalRecordController.findUserByUserInfo";
+  try {
+    const {search} = req.query;
+    if (!search) {
+      logger.warn("Missing search query parameter", {
+        context: context,
+      });
+      throw new errorRes.BadRequestError("Search query parameter is required");
+    }
+    const userList = await ServiceProcess.findDentalByInforUser(search);
+    return new successRes.Success(userList, "Users found successfully").send(res);
+  } catch (error) {
+    logger.error("Error find user by user info", {
+      context: context,
+      message: error.message,
+      stack: error.stack,
+    });
+    throw error;
+  }
+};
+
 module.exports = {
   getListOfPatientController,
   getListOfStaffController,
@@ -466,4 +488,5 @@ module.exports = {
   getByIdController,
   createController,
   updateController,
+  findUserByUserInfo,
 };

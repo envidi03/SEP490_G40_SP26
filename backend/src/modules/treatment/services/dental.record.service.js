@@ -448,6 +448,111 @@ const getDentalRecordById = async (id) => {
   }
 };
 
+/**
+ * tìm kiếm bệnh án dựa trên thông tin đầu vào có thể là full_name, phone, email, dob
+ * * tìm kiếm bệnh nhân dựa trên thông tin đầu vào có thể là full_name, phone, email, dob 
+ * và trả về danh sách thông tin bệnh nhân trùng với thông tin đầu vào và 
+ * phải nhóm các thông tin cùng patient_id vào cùng 1 nhóm (vì có thể 1 bệnh nhân có nhiều bệnh án) 
+ * và mỗi nhóm sẽ bao gồm thông tin patient_id, full_name, phone, email, dob để khi tìm kiếm bệnh án 
+ * sẽ hiển thị được thông tin bệnh nhân đó để dễ dàng phân biệt với các bệnh nhân khác 
+ * khi có nhiều bệnh nhân trùng tên hoặc trùng số điện thoại, email.
+ * * * @param {*} search infor user để tìm kiếm (có thể là full_name, phone, email, dob) 
+ * và sẽ tìm kiếm theo kiểu gần đúng (partial match) để tăng khả năng tìm kiếm trúng kết quả hơn 
+ * @returns Danh sách bệnh nhân trùng với thông tin đầu vào.
+ */
+const findDentalByInforUser = async (search) => {
+  const context = "DentalRecordService.findDentalByInforUser";
+  try {
+    logger.debug("Finding dental record by user information", {
+      context: context,
+      search: search,
+    });
+
+    // Nếu không có chuỗi tìm kiếm, trả về mảng rỗng để tránh query toàn bộ DB
+    if (!search || search.trim() === "") {
+      return [];
+    }
+
+    const cleanSearch = search.trim();
+
+    // Khởi tạo Pipeline Aggregation
+    const pipeline = [
+      // STAGE 1: Chuyển đổi trường dob (Date) thành String để có thể search bằng Regex (Partial Match)
+      // Định dạng YYYY-MM-DD (VD: 1995-08-20). Nếu user gõ "1995", nó vẫn tìm ra được.
+      {
+        $addFields: {
+          dob_string: {
+            $dateToString: { format: "%Y-%m-%d", date: "$dob" }
+          }
+        }
+      },
+
+      // STAGE 2: Tìm kiếm gần đúng (Partial match không phân biệt hoa thường)
+      {
+        $match: {
+          $or: [
+            { full_name: { $regex: cleanSearch, $options: "i" } },
+            { phone: { $regex: cleanSearch, $options: "i" } },
+            { email: { $regex: cleanSearch, $options: "i" } },
+            { dob_string: { $regex: cleanSearch, $options: "i" } } // Match trên trường ảo vừa tạo
+          ]
+        }
+      },
+
+      // STAGE 3: Nhóm (Group) theo patient_id để loại bỏ các bệnh án trùng lặp của cùng 1 người
+      {
+        $group: {
+          _id: "$patient_id", // Gom nhóm dựa trên patient_id
+          // $first: Lấy thông tin từ bệnh án đầu tiên tìm thấy của người đó
+          full_name: { $first: "$full_name" },
+          phone: { $first: "$phone" },
+          email: { $first: "$email" },
+          dob: { $first: "$dob" } 
+        }
+      },
+
+      // STAGE 4: Định dạng lại output cho đẹp (Đổi _id thành patient_id)
+      {
+        $project: {
+          _id: 0, // Ẩn trường _id mặc định của group
+          patient_id: "$_id", // Gán lại thành patient_id
+          full_name: 1,
+          phone: 1,
+          email: 1,
+          dob: 1
+        }
+      },
+
+      // STAGE 5: Sắp xếp theo tên cho dễ nhìn (Tùy chọn)
+      {
+        $sort: { full_name: 1 }
+      }
+    ];
+
+    // Thực thi truy vấn
+    // Đảm bảo bạn gọi đúng tên Model Bệnh án của bạn (ví dụ: Model.DentalRecord)
+    const groupedPatients = await Model.DentalRecord.aggregate(pipeline);
+
+    logger.debug("Successfully found and grouped patients by user information", {
+      context: context,
+      resultCount: groupedPatients.length
+    });
+
+    return groupedPatients;
+
+  } catch (error) {
+    logger.error("Error finding dental record by user information", {
+      context: context,
+      search: search,
+      message: error.message,
+      stack: error.stack,
+    });
+    throw new errorRes.InternalServerError(
+      `An error occurred while finding dental record by user information: ${error.message}`,
+    );
+  }
+};
+
 module.exports = {
   getByIdService,
   createService,
@@ -456,4 +561,5 @@ module.exports = {
   checkDuplicateDental,
   checkDuplicateDentalExcludeId,
   getDentalRecordById,
+  findDentalByInforUser,
 };
