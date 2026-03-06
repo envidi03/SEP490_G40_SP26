@@ -93,7 +93,7 @@ const treatmentSchema = new Schema(
         // --- TRẠNG THÁI ---
         status: {
             type: String,
-            enum: ['PLANNED', 'APPROVED', 'IN_PROGRESS', 'DONE', 'CANCELLED'],
+            enum: ['PLANNED', 'WAITING_APPROVAL', 'APPROVED', 'REJECTED', 'IN_PROGRESS', 'DONE', 'CANCELLED'],
             default: 'PLANNED'
         }
     },
