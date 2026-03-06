@@ -9,265 +9,36 @@ const PatientModel = require("../../../modules/patient/model/patient.model");
 const AppointmentModel = require("../../appointment/models/index.model");
 const { model: ServiceModel } = require("../../service/index")
 
-const bcrypt = require('bcrypt');
-const emailService = require("../../../common/service/email.service");
+const model = require("../models/index.model");
 
-/*
-    get list appointment with pagination and filter
-    (
-        search: search by full_name, phone, email;
-        filter: filter by status;
-        sort: sort by appointment_date;
-        page
-        limit
-    )
-*/
-const getListService = async (query) => {
-    try {
-        logger.debug("Fetching list of appointments with query", {
-            context: "AppointmentService.getListService",
-            query: query,
-        });
-
-        // 1. Lấy và chuẩn hóa các tham số từ query
-        const search = query.search?.trim();
-        const statusFilter = query.status ? query.status.toUpperCase() : null;
-        const sortOrder = query.sort === "desc" ? -1 : 1;
-        const page = Math.max(1, parseInt(query.page || 1));
-        const limit = Math.max(1, parseInt(query.limit || 5));
-        const skip = (page - 1) * limit;
-
-        // 2. Xây dựng điều kiện lọc (Match)
-        const matchCondition = {};
-
-        // Lọc theo trạng thái (status)
-        if (statusFilter) {
-            matchCondition.status = statusFilter;
-        }
-
-        // Tìm kiếm (Search) theo tên, số điện thoại, email
-        if (search) {
-            const regexSearch = { $regex: search, $options: "i" };
-            matchCondition.$or = [
-                { full_name: regexSearch },
-                { phone: regexSearch },
-                { email: regexSearch }
-            ];
-        }
-
-        // 3. Xây dựng Aggregation Pipeline
-        const aggregatePipeline = [
-            { $match: matchCondition },
-            { $sort: { appointment_date: sortOrder } },
-            {
-                $facet: {
-                    data: [
-                        { $skip: skip },
-                        { $limit: limit },
-                        {
-                            $project: {
-                                __v: 0
-                            }
-                        }
-                    ],
-                    totalCount: [
-                        { $count: "count" }
-                    ]
-                }
-            }
-        ];
-
-        // 4. Thực thi truy vấn
-        const result = await AppointmentModel.aggregate(aggregatePipeline);
-
-        const appointments = result[0]?.data || [];
-        const totalItems = result[0]?.totalCount[0]?.count || 0;
-
-        return {
-            data: appointments,
-            pagination: {
-                page: page,
-                size: limit,
-                totalItems: totalItems
-            }
-        };
-
-    } catch (error) {
-        logger.error("Error getting list of appointments", {
-            context: "AppointmentService.getListService",
-            message: error.message,
-            stack: error.stack
-        });
-        throw new errorRes.InternalServerError(
-            `An error occurred while fetching list of appointments: ${error.message}`
-        );
-    }
-};
-
-/*
-    get list appointment of patient with pagination and filter
-    (
-        search: search by full_name, phone, email;
-        filter: filter by status;
-        sort: sort by appointment_date;
-        page
-        limit
-    )
-    only get appointment with account_id
-*/
-const getListOfPatientService = async (query, account_id) => {
-    try {
-        logger.debug("Fetching list of patient appointments with query", {
-            context: "AppointmentService.getListOfPatientService",
-            query: query,
-            account_id: account_id
-        });
-
-        // 1. Lấy và chuẩn hóa các tham số từ query
-        const search = query.search?.trim();
-        // Lấy status từ query.status (hoặc query.filter tùy cách bạn gọi URL, ở đây dùng query.status cho rõ ràng)
-        const statusFilter = query.status ? query.status.toUpperCase() : null;
-        const sortOrder = query.sort === "desc" ? -1 : 1;
-
-        const page = Math.max(1, parseInt(query.page || 1));
-        const limit = Math.max(1, parseInt(query.limit || 5));
-        const skip = (page - 1) * limit;
-
-        // 2. Tìm Hồ sơ Bệnh nhân (Patient) dựa vào account_id
-        const patient = await PatientModel.findOne({ account_id: account_id });
-
-        // Nếu tài khoản này chưa có hồ sơ bệnh nhân, trả về mảng rỗng ngay lập tức
-        if (!patient) {
-            logger.warn("Patient profile not found for this account", {
-                context: "AppointmentService.getListOfPatientService",
-                account_id: account_id
-            });
-            return {
-                data: [],
-                pagination: {
-                    page: page,
-                    size: limit,
-                    totalItems: 0
-                }
-            };
-        }
-
-        // 3. Xây dựng điều kiện lọc (Match)
-        // SỬA LỖI: Sử dụng patient._id thay vì account_id
-        const matchCondition = {
-            patient_id: patient._id
-        };
-
-        // Lọc theo trạng thái (status)
-        if (statusFilter) {
-            matchCondition.status = statusFilter;
-        }
-
-        // Tìm kiếm (Search) theo tên, số điện thoại, email
-        if (search) {
-            const regexSearch = { $regex: search, $options: "i" };
-            matchCondition.$or = [
-                { full_name: regexSearch },
-                { phone: regexSearch },
-                { email: regexSearch }
-            ];
-        }
-
-        // 4. Xây dựng Aggregation Pipeline
-        const aggregatePipeline = [
-            { $match: matchCondition },
-
-            // Sắp xếp theo ngày hẹn (appointment_date)
-            { $sort: { appointment_date: sortOrder } },
-
-            // Phân trang
-            {
-                $facet: {
-                    data: [
-                        { $skip: skip },
-                        { $limit: limit },
-                        {
-                            $project: {
-                                __v: 0 // Loại bỏ trường __v dư thừa
-                            }
-                        }
-                    ],
-                    totalCount: [
-                        { $count: "count" }
-                    ]
-                }
-            }
-        ];
-
-        // 5. Thực thi truy vấn
-        const result = await AppointmentModel.aggregate(aggregatePipeline);
-
-        const appointments = result[0]?.data || [];
-        const totalItems = result[0]?.totalCount[0]?.count || 0;
-
-        return {
-            data: appointments,
-            pagination: {
-                page: page,
-                size: limit,
-                totalItems: totalItems
-            }
-        };
-
-    } catch (error) {
-        logger.error("Error getting list of patient appointments", {
-            context: "AppointmentService.getListOfPatientService",
-            message: error.message,
-            stack: error.stack
-        });
-        throw new errorRes.InternalServerError(
-            `An error occurred while fetching list of appointments: ${error.message}`
-        );
-    }
-};
-
-/*
-    get appointment by appointmentId
-*/
 const getByIdService = async (id) => {
+    const context = "TreatmentService.getByIdService";
     try {
-        logger.debug("Fetching appointment by id", {
-            context: "AppointmentService.getByIdService",
-            appointmentId: id,
+        logger.debug("Fetching treatment by id", {
+            context: context,
+            treatmentId: id,
         });
 
-        // --- 1. KIỂM TRA ĐỊNH DẠNG ID ---
         if (!mongoose.Types.ObjectId.isValid(id)) {
-            throw new errorRes.BadRequestError("Invalid Appointment ID format");
+            throw new errorRes.BadRequestError("Invalid Treatment ID format");
         }
 
-        // --- 2. TRUY VẤN DỮ LIỆU ---
-        const appointment = await AppointmentModel.findById(id)
-            .populate("patient_id")
-            .populate("book_service.service_id")
+        const treatment = await model.Treatment.findById(id)
+            .populate("medicine_usage.medicine_id")
             .lean();
 
-        // --- 3. KIỂM TRA TỒN TẠI ---
-        if (!appointment) {
-            logger.warn("Appointment not found", {
-                context: "AppointmentService.getByIdService",
-                appointmentId: id,
+        if (!treatment) {
+            logger.warn("Treatment not found", {
+                context: context,
+                treatmentId: id,
             });
-            throw new errorRes.NotFoundError("Appointment not found");
+            throw new errorRes.NotFoundError("Treatment not found");
         }
-
-        logger.debug("Appointment fetched successfully", {
-            context: "AppointmentService.getByIdService",
-            appointmentId: id,
-        });
-
-        // Đã sửa lỗi: Trả về đúng biến appointment thay vì staffInfo
-        return appointment;
+        return treatment;
 
     } catch (error) {
-        // Đã sửa lỗi: Cập nhật lại log lỗi cho đúng ngữ cảnh Appointment
-        logger.error("Error getting appointment by id", {
-            context: "AppointmentService.getByIdService",
+        logger.error("Error getting treatment by id", {
+            context: context,
             message: error.message,
             stack: error.stack,
         });
@@ -275,7 +46,7 @@ const getByIdService = async (id) => {
         if (error.statusCode) throw error;
 
         throw new errorRes.InternalServerError(
-            `An error occurred while fetching appointment by id: ${error.message}`
+            `An error occurred while fetching treatment by id: ${error.message}`
         );
     }
 };
@@ -283,7 +54,7 @@ const getByIdService = async (id) => {
 const createService = async (dataCreate, account_id) => {
     try {
         logger.debug("raw data to create", {
-            context: "appointmentService.createService",
+            context: "treatmentService.createService",
             dataCreate: dataCreate,
             account_id, account_id
         });
@@ -344,65 +115,6 @@ const createService = async (dataCreate, account_id) => {
             message: error.message,
             stack: error.stack,
         });
-        throw new errorRes.InternalServerError(`Error: ${error.message}`);
-    }
-};
-
-const staffCreateService = async (dataCreate) => {
-    try {
-        logger.debug("Raw data to create", {
-            context: "AppointmentService.staffCreateService",
-            dataCreate: dataCreate,
-        });
-
-        // 1. Check duplicate appointment
-        const duplicateQuery = {
-            full_name: dataCreate.full_name,
-            phone: dataCreate.phone,
-            appointment_date: dataCreate.appointment_date,
-            appointment_time: dataCreate.appointment_time,
-            status: { $nin: ['CANCELLED', 'NO_SHOW', 'COMPLETED'] }
-        };
-        const isDuplicatePatient = await AppointmentModel.findOne(duplicateQuery);
-        if (isDuplicatePatient) {
-            throw new errorRes.ConflictError(`Patient ${dataCreate.full_name} already has an appointment scheduled for ${dataCreate.appointment_time}.`);
-        }
-
-        // 2. Check valid services
-        if (dataCreate.book_service && Array.isArray(dataCreate.book_service)) {
-            for (const service of dataCreate.book_service) {
-                const serviceExist = await ServiceModel.findById(service.service_id);
-
-                if (!serviceExist) {
-                    logger.warn(`ID service not found: ${service.service_id}`, {
-                        context: "AppointmentService.staffCreateService",
-                        service_id: service.service_id
-                        // ĐÃ SỬA BUG CỦA BẠN: Xóa biến account_id gây crash app ở đây
-                    });
-                    throw new errorRes.NotFoundError(`Service not found! ID: ${service.service_id}`);
-                }
-            }
-        }
-
-        // 3. (Quan trọng) Hỗ trợ cấp STT nếu lễ tân tạo lịch hẹn đến thẳng phòng khám
-        if (dataCreate.status === "CHECKED_IN") {
-            const nextNumber = await AppointmentModel.getNextQueueNumber(dataCreate.appointment_date);
-            dataCreate.queue_number = nextNumber;
-        }
-
-        // 4. Tạo lịch hẹn mới
-        const newAppointment = await AppointmentModel.create(dataCreate);
-        return newAppointment;
-
-    } catch (error) {
-        logger.error("Error at staff create new appointment.", {
-            context: "AppointmentService.staffCreateService",
-            message: error.message,
-            stack: error.stack,
-        });
-
-        // Đã sửa để ném ra đúng HTTP Status (Ví dụ: 409 Conflict, 404 Not Found)
-        if (error.statusCode) throw error;
         throw new errorRes.InternalServerError(`Error: ${error.message}`);
     }
 };
@@ -609,84 +321,9 @@ const updateStatusOnly = async (id, status) => {
     }
 };
 
-const checkinService = async (data) => {
-    try {
-        // 1. TẠO MỐC THỜI GIAN CỦA NGÀY HÔM NAY (Từ 00:00 đến 23:59)
-        const today = new Date(); // Lấy ngày giờ hiện tại
-        const startOfDay = new Date(today.setHours(0, 0, 0, 0));
-        const endOfDay = new Date(today.setHours(23, 59, 59, 999));
-
-        // 2. TÌM TẤT CẢ CÁC LỊCH HẸN TRONG HÔM NAY (Cho phép cả lịch chưa khám và lịch đến muộn)
-        const appointments = await AppointmentModel.find({
-            full_name: data.full_name,
-            phone: data.phone,
-            status: { $in: ["SCHEDULED", "NO_SHOW"] },
-            appointment_date: {
-                $gte: startOfDay,
-                $lte: endOfDay
-            }
-        }).sort({ appointment_time: 1 });
-
-        // Nếu không có lịch nào trong hôm nay
-        if (!appointments || appointments.length === 0) {
-            throw new errorRes.NotFoundError("You do not have any scheduled appointments for TODAY. Please check the date or contact the receptionist.");
-        }
-
-        const checkedInResults = [];
-
-        // 3. LẶP QUA TỪNG LỊCH TRONG HÔM NAY ĐỂ CẤP SỐ & CHECK-IN
-        for (const appt of appointments) {
-            // Sinh số thứ tự cho từng lịch (Vì có thể khám ở nhiều phòng/dịch vụ khác nhau)
-            const nextNumber = await AppointmentModel.getNextQueueNumber(appt.appointment_date);
-
-            const updatedAppt = await AppointmentModel.findByIdAndUpdate(
-                appt._id,
-                {
-                    status: "CHECKED_IN",
-                    queue_number: nextNumber
-                },
-                { new: true }
-            );
-
-            checkedInResults.push(updatedAppt);
-
-            // GỬI EMAIL THÔNG BÁO CHO KHÁCH HÀNG
-            if (updatedAppt.email) {
-                emailService.sendCheckinEmail(
-                    updatedAppt.email,
-                    updatedAppt.full_name,
-                    updatedAppt.queue_number,
-                ).catch(err => logger.error("Lỗi gửi email check-in:", err.message));
-            }
-        }
-
-        logger.info(`Patient self check-in successful for ${checkedInResults.length} appointments`, {
-            context: "AppointmentService.checkinService",
-            phone: data.phone
-        });
-
-        // 4. TRẢ VỀ MẢNG CÁC LỊCH ĐÃ CHECK-IN ĐỂ HIỂN THỊ LÊN MÀN HÌNH
-        return checkedInResults;
-
-    } catch (error) {
-        logger.error("Error at checkinService", {
-            context: "AppointmentService.checkinService",
-            message: error.message,
-            data: data
-        });
-
-        if (error.statusCode) throw error;
-        throw new errorRes.InternalServerError(`Check-in fails: ${error.message}`);
-    }
-};
-
 module.exports = {
-    getListService,
     getByIdService,
     createService,
     updateService,
     updateStatusOnly,
-    getListOfPatientService,
-    staffCreateService,
-    checkinService
 };

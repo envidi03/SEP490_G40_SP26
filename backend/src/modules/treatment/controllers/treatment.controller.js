@@ -2,144 +2,40 @@ const logger = require("../../../common/utils/logger");
 const errorRes = require("../../../common/errors");
 const successRes = require("../../../common/success");
 const { cleanObjectData } = require("../../../common/utils/cleanObjectData");
-const Pagination = require("../../../common/responses/Pagination");
-const {
-  uploadToCloudinary,
-  uploadMultipleToCloudinary,
-} = require("../../../utils/cloudinaryHelper");
 
-const {treatment: ServiceProcess} = require("../services/index.service");
-const { checkRequiredFields } = require("../../../utils/checkRequiredFields");
+const ServiceProcess = require("../services/treatment.service");
+
 
 /*
-    get list appointment of patient with pagination and filter
-    (
-        search: search by full_name, phone, email;
-        filter: filter by status;
-        sort: sort by appointment_date;
-        page
-        limit
-    )
-    only get appointment with account_id
-*/
-const getListController = async (req, res) => {
-  try {
-    const queryParams = req.query;
-
-    logger.debug("Get list appointment of patient request received", {
-      context: "AppointmentController.getListController",
-      query: queryParams,
-    });
-
-    const { data, pagination } = await ServiceProcess.getListService(queryParams);
-
-    const paginationData = new Pagination({
-      page: pagination.page,
-      size: pagination.size,
-      totalItems: pagination.totalItems,
-    });
-
-    return new successRes.GetListSuccess(
-      data,
-      paginationData,
-      "Appointment retrieved successfully",
-    ).send(res);
-  } catch (error) {
-    logger.error("Error get Appointment", {
-      context: "AppointmentController.getListController",
-      message: error.message,
-      stack: error.stack,
-    });
-    throw error;
-  }
-};
-
-/*
-    get list appointment of patient with pagination and filter
-    (
-        search: search by full_name, phone, email;
-        filter: filter by status;
-        sort: sort by appointment_date;
-        page
-        limit
-    )
-    only get appointment with account_id
-*/
-const getListOfPatientController = async (req, res) => {
-  try {
-    const queryParams = req.query;
-    const { account_id } = req.user;
-    if (!account_id) {
-      logger.warn("Missing account_id in token", {
-        context: "AppointmentController.getListOfPatientController",
-        account_id: account_id,
-      });
-      throw new errorRes.UnauthorizedError(
-        "Invalid token: account_id is missing",
-      );
-    }
-
-    logger.debug("Get list appointment of patient request received", {
-      context: "AppointmentController.getListOfPatientController",
-      query: queryParams,
-      account_id: account_id,
-    });
-
-    const { data, pagination } = await ServiceProcess.getListOfPatientService(
-      queryParams,
-      account_id,
-    );
-
-    const paginationData = new Pagination({
-      page: pagination.page,
-      size: pagination.size,
-      totalItems: pagination.totalItems,
-    });
-
-    return new successRes.GetListSuccess(
-      data,
-      paginationData,
-      "Appointment retrieved successfully",
-    ).send(res);
-  } catch (error) {
-    logger.error("Error get Appointment", {
-      context: "AppointmentController.getListController",
-      message: error.message,
-      stack: error.stack,
-    });
-    throw error;
-  }
-};
-
-/*
-    get appointment by id
+    get treatment by id
 */
 const getByIdController = async (req, res) => {
+  const context = "TreatmentController.getByIdController";
   try {
-    const { id } = req.params;
-    logger.debug("Get appointment by id request received", {
-      context: "AppointmentController.getByIdController",
-      appointmentId: id,
+    const { id: treatmentId } = req.params; 
+    logger.debug("Get treatment by id request received", {
+      context: context,
+      treatmentId: treatmentId,
     });
 
     // check id empty
-    if (!id) {
+    if (!treatmentId) {
       logger.warn("Empty ID", {
-        context: "AppointmentController.getByIdController",
-        appointmentId: id,
+        context: context,
+        treatmentId: treatmentId,
       });
-      throw new errorRes.BadRequestError("Appointment ID is required");
+      throw new errorRes.BadRequestError("Treatment ID is required");
     }
 
     // Gọi service xử lý logic
-    const service = await ServiceProcess.getByIdService(id);
+    const service = await ServiceProcess.getByIdService(treatmentId);
     return new successRes.GetDetailSuccess(
       service,
-      "Appointment retrieved successfully",
+      "Treatment retrieved successfully",
     ).send(res);
   } catch (error) {
-    logger.error("Error get appointment by id", {
-      context: "AppointmentController.getByIdController",
+    logger.error("Error get treatment by id", {
+      context: "TreatmentController.getByIdController",
       message: error.message,
       stack: error.stack,
     });
@@ -196,59 +92,7 @@ const createController = async (req, res) => {
   }
 };
 
-// staff create appointment (không cần token/account của bệnh nhân)
-const staffCreateController = async (req, res) => {
-  try {
-    const dataCreate = req.body || {};
-    const cleanedData = cleanObjectData(dataCreate);
 
-    // 1. Khai báo các fields bắt buộc (ĐÃ BỎ 'email' để phù hợp với người lớn tuổi)
-    const requiredFields = [
-      "full_name",
-      "phone",
-      "appointment_date",
-      "appointment_time",
-    ];
-
-    // Kiểm tra validation cơ bản
-    checkRequiredFields(requiredFields, cleanedData, this, "createController");
-
-    // Validate mảng book_service nếu client có gửi kèm dịch vụ
-    if (cleanedData.book_service && Array.isArray(cleanedData.book_service)) {
-      cleanedData.book_service.forEach((item, index) => {
-        if (!item.service_id || item.unit_price === undefined) {
-          throw new errorRes.BadRequestError(
-            `Service at index ${index} is missing service_id or unit_price`
-          );
-        }
-      });
-    }
-
-    // 2. Chuyển dữ liệu sang Service để xử lý logic nghiệp vụ
-    const newAppointment = await ServiceProcess.staffCreateService(cleanedData);
-
-    if (!newAppointment) {
-      logger.warn("Failed to create new appointment", {
-        context: "appointmentController.staffCreateController",
-        data: cleanedData
-      });
-      throw new errorRes.BadRequestError("Create new appointment fails.");
-    }
-
-    // 3. Trả về response
-    return new successRes.CreateSuccess(
-      newAppointment,
-      "Appointment created successfully"
-    ).send(res);
-
-  } catch (error) {
-    logger.error("Error appointm create new appointment controller", {
-      context: "appointmentController.staffCreateController",
-      message: error.message,
-    });
-    throw error;
-  }
-};
 // update staff by accountId
 const updateController = async (req, res) => {
   try {
@@ -412,59 +256,10 @@ const updateStatusController = async (req, res) => {
   }
 };
 
-/*
-  checkin by full_name, phone, email. if correct auto change status to CHECK_IN
-*/
-/*
-  Self Check-in by full_name, phone, email. 
-  If correct, auto change status to CHECKED_IN and generate queue number.
-*/
-const checkinController = async (req, res) => {
-  try { // ĐÃ SỬA: Thêm thẻ try bị thiếu
-    const query = req.body || {};
-    const cleanedData = cleanObjectData(query);
-
-    logger.debug("Checkin appointment request received", {
-      context: "AppointmentController.checkinController",
-      query: cleanedData, // ĐÃ SỬA: Xóa biến 'id' rác gây crash app
-    });
-
-    // LƯU Ý: Nếu người lớn tuổi không có email, bạn nên cân nhắc bỏ "email" 
-    // ra khỏi requiredFields để họ chỉ cần nhập Tên + SĐT là check-in được nhé!
-    const requiredFields = [
-      "full_name",
-      "phone",
-      "email",
-    ];
-
-    checkRequiredFields(requiredFields, cleanedData, this, "checkinController");
-
-    // Gọi Service cập nhật
-    const result = await ServiceProcess.checkinService(cleanedData);
-
-    // Trả về kết quả
-    return new successRes.UpdateSuccess(
-      result,
-      `Check-in successful! Your queue number is ${result.queue_number}`
-    ).send(res);
-
-  } catch (error) {
-    logger.error("Error during checkin", {
-      context: "AppointmentController.checkinController", // ĐÃ SỬA đúng tên context
-      message: error.message,
-      stack: error.stack,
-    });
-    throw error;
-  }
-};
 
 module.exports = {
-  getListOfPatientController,
-  getListController,
   getByIdController,
   createController,
   updateController,
   updateStatusController,
-  checkinController,
-  staffCreateController
 };
