@@ -1,6 +1,6 @@
-const controller = require('./controllers/appointment.controller');
+const controller = require('./controllers/index.controller');
 const model = require('./models/index.model');
-const service = require('./services/appointment.service');
+const service = require('./services/index.service');
 const route = require('./routes/index.route');
 
 module.exports = {

@@ -1,13 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const auth = require('../../../common/middlewares/index');
-const controller = require('../controllers/appointment.controller');
-const dentalRecordController = require('../controllers/dental.record.controller');
+const controller = require('../controllers/index.controller');
 
-router.patch('/checkin', controller.checkinController);
+router.patch('/treatment/:id', controller.treatment.updateController);
 
-router.patch('/:id', controller.updateController);
-
-router.patch('/dental-record/:id', auth.authenticate, auth.authorize("DOCTOR"), dentalRecordController.editDentalRecordController);
+router.patch('/dental-record/:id', controller.dental.updateController);
 
 module.exports = router;

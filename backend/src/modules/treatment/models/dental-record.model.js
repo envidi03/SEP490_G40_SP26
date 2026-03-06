@@ -19,7 +19,13 @@ const dentalRecordSchema = new Schema(
         full_name: {
             type: String,
             required: true,
-            trim: true
+            trim: true,
+            set: (value) => {
+                if (value) {
+                    return value.replace(/\s+/g, ' '); 
+                }
+                return value;
+            }
         },
         phone: {
             type: String,
@@ -42,7 +48,13 @@ const dentalRecordSchema = new Schema(
         record_name: {
             type: String,
             required: true,
-            trim: true
+            trim: true,
+            set: (value) => {
+                if (value) {
+                    return value.replace(/\s+/g, ' '); 
+                }
+                return value;
+            }
         },
         diagnosis: {
             type: String,

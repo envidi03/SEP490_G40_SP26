@@ -61,9 +61,9 @@ const treatmentSchema = new Schema(
         // --- SỬ DỤNG THUỐC (MẢNG LỒNG NHAU) ---
         medicine_usage: [
             {
-                medicine_id: { // Đã sửa lỗi chính tả 'medicien_id' trong ảnh
+                medicine_id: {
                     type: Schema.Types.ObjectId,
-                    ref: "Medicine", // Đổi tên ref theo đúng model Thuốc của bạn
+                    ref: "Medicine", 
                     required: true
                 },
                 quantity: {
@@ -103,7 +103,61 @@ const treatmentSchema = new Schema(
     }
 );
 
-// Đánh Index để tăng tốc độ truy vấn sau này (Ví dụ: tìm tất cả điều trị của 1 bệnh nhân)
+// =========================================================================
+// --- MIDDLEWARE CHẠY NGẦM (HOOKS) XỬ LÝ AUTO-COMPLETE DENTAL RECORD ---
+// =========================================================================
+
+// Hàm Helper dùng chung để hệ thống quét và chốt Bệnh án
+const checkAndCompleteDentalRecord = async function(recordId) {
+    if (!recordId) return;
+    
+    try {
+        const mongoose = require("mongoose");
+        // Gọi model theo cách này để tránh lỗi "Circular Dependency" (2 model gọi chéo nhau)
+        const Treatment = mongoose.model("Treatment");
+        const DentalRecord = mongoose.model("DentalRecord");
+
+        // 1. Lấy tất cả các Treatment thuộc về Bệnh án này
+        const allTreatments = await Treatment.find({ record_id: recordId }).lean();
+
+        if (allTreatments.length > 0) {
+            // 2. Kiểm tra xem TẤT CẢ các điều trị đã được chốt sổ chưa?
+            const isAllFinished = allTreatments.every(
+                (t) => t.status === 'DONE' || t.status === 'CANCELLED'
+            );
+
+            // 3. Nếu tất cả đã xong, tiến hành tự động ĐÓNG Bệnh án
+            if (isAllFinished) {
+                const updatedRecord = await DentalRecord.findOneAndUpdate(
+                    { 
+                        _id: recordId, 
+                        status: 'IN_PROGRESS' 
+                    },
+                    { 
+                        status: 'COMPLETED', 
+                        end_date: new Date() 
+                    },
+                    { new: true }
+                );
+
+                if (updatedRecord) {
+                    console.log(`[System Background] Auto-completed DentalRecord: ${recordId}`);
+                }
+            }
+        }
+    } catch (error) {
+        console.error("[Treatment Hook] Error auto-completing DentalRecord:", error);
+    }
+};
+
+// Kích hoạt khi Bác sĩ/Nhân viên cập nhật Treatment (Dùng updateController)
+treatmentSchema.post('findOneAndUpdate', async function(doc) {
+    if (doc) {
+        await checkAndCompleteDentalRecord(doc.record_id);
+    }
+});
+
+// Đánh Index để tăng tốc độ truy vấn sau này
 treatmentSchema.index({ patient_id: 1, appointment_id: 1 });
 
 module.exports = mongoose.model("Treatment", treatmentSchema);

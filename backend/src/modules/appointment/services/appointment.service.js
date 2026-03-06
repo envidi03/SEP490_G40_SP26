@@ -684,6 +684,19 @@ const checkinService = async (data) => {
     }
 };
 
+const findById = async (id) => {
+    try {
+        if (!id) return null;
+        return await AppointmentModel.findById(id).lean();
+    } catch (error) {
+        logger.error("Error get qppointment by id", {
+            context: "AppointmentService.findById",
+            error: error
+        });
+        return null;
+    }
+
+}
 module.exports = {
     getListService,
     getByIdService,
@@ -692,5 +705,6 @@ module.exports = {
     updateStatusOnly,
     getListOfPatientService,
     staffCreateService,
-    checkinService
+    checkinService,
+    findById
 };
