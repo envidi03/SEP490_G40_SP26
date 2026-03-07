@@ -1,13 +1,10 @@
 import React, { useState } from 'react';
-import Input from '../../../components/ui/Input';
-import Select from '../../../components/ui/Select';
-import Button from '../../../components/ui/Button';
 
-const LeaveRequestForm = ({ onSubmit, onCancel }) => {
+const LeaveRequestForm = ({ onSubmit, onCancel, isSubmitting }) => {
     const [formData, setFormData] = useState({
         startDate: '',
         endDate: '',
-        type: 'SICK_LEAVE',
+        leave_type: 'SICK_LEAVE',
         reason: ''
     });
 
@@ -25,60 +22,83 @@ const LeaveRequestForm = ({ onSubmit, onCancel }) => {
     };
 
     return (
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-5 mt-2">
             <div className="grid grid-cols-2 gap-4">
-                <Input
-                    label="Từ ngày"
-                    type="date"
-                    name="startDate"
-                    value={formData.startDate}
-                    onChange={handleChange}
-                    required
-                />
-                <Input
-                    label="Đến ngày"
-                    type="date"
-                    name="endDate"
-                    value={formData.endDate}
-                    onChange={handleChange}
-                    required
-                />
+                <div>
+                    <label className="block text-[13px] font-medium text-gray-700 mb-1">
+                        Từ ngày <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                        type="date"
+                        name="startDate"
+                        value={formData.startDate}
+                        onChange={handleChange}
+                        required
+                        className="w-full px-3 py-2 text-[13px] border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-colors"
+                    />
+                </div>
+                <div>
+                    <label className="block text-[13px] font-medium text-gray-700 mb-1">
+                        Đến ngày <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                        type="date"
+                        name="endDate"
+                        value={formData.endDate}
+                        onChange={handleChange}
+                        required
+                        className="w-full px-3 py-2 text-[13px] border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-colors"
+                    />
+                </div>
             </div>
 
-            <Select
-                label="Loại nghỉ"
-                name="type"
-                value={formData.type}
-                onChange={handleChange}
-                options={[
-                    { value: 'SICK_LEAVE', label: 'Nghỉ ốm' },
-                    { value: 'ANNUAL_LEAVE', label: 'Nghỉ phép năm' },
-                    { value: 'PERSONAL_LEAVE', label: 'Việc riêng' }
-                ]}
-            />
+            <div>
+                <label className="block text-[13px] font-medium text-gray-700 mb-1">
+                    Loại nghỉ phép <span className="text-red-500">*</span>
+                </label>
+                <select
+                    name="leave_type"
+                    value={formData.leave_type}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 text-[13px] border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-colors bg-white"
+                >
+                    <option value="SICK_LEAVE">Nghỉ ốm</option>
+                    <option value="ANNUAL_LEAVE">Nghỉ phép năm</option>
+                    <option value="PERSONAL_LEAVE">Việc riêng</option>
+                </select>
+            </div>
 
             <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Lý do
+                <label className="block text-[13px] font-medium text-gray-700 mb-1">
+                    Lý do xin nghỉ <span className="text-red-500">*</span>
                 </label>
                 <textarea
                     name="reason"
                     rows="3"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    className="w-full px-3 py-2 text-[13px] border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-colors resize-none"
                     value={formData.reason}
                     onChange={handleChange}
                     required
-                    placeholder="Nhập lý do xin nghỉ..."
+                    placeholder="Vui lòng nhập lý do cụ thể..."
                 ></textarea>
             </div>
 
-            <div className="flex justify-end space-x-3 pt-4 border-t">
-                <Button type="button" variant="outline" onClick={onCancel}>
+            <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
+                <button
+                    type="button"
+                    onClick={onCancel}
+                    disabled={isSubmitting}
+                    className="px-4 py-2 text-[13px] font-medium text-gray-600 bg-gray-50 border border-gray-200 rounded-xl hover:bg-gray-100 transition-colors"
+                >
                     Hủy bỏ
-                </Button>
-                <Button type="submit">
-                    Gửi yêu cầu
-                </Button>
+                </button>
+                <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="px-4 py-2 text-[13px] font-medium text-white bg-teal-500 rounded-xl hover:bg-teal-600 shadow-sm shadow-teal-500/20 transition-all disabled:opacity-50"
+                >
+                    {isSubmitting ? 'Đang gửi...' : 'Gửi yêu cầu'}
+                </button>
             </div>
         </form>
     );
