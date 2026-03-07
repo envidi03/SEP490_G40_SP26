@@ -21,6 +21,29 @@ const AppointmentCard = ({
     getStatusColor,
     getStatusText
 }) => {
+    const appointmentDate = appointment.appointment_date || appointment.date;
+    const appointmentTime = appointment.appointment_time || appointment.time;
+
+    let isPast = false;
+    if (appointmentDate && appointmentTime) {
+        try {
+            const aptDate = new Date(appointmentDate);
+            let hours = 0, minutes = 0;
+            if (typeof appointmentTime === 'string' && appointmentTime.includes(':')) {
+                const parts = appointmentTime.split(':');
+                hours = parseInt(parts[0], 10);
+                minutes = parseInt(parts[1], 10);
+            }
+            const aptDateTime = new Date(aptDate.getFullYear(), aptDate.getMonth(), aptDate.getDate(), hours, minutes);
+            isPast = aptDateTime < new Date();
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    const isUpdatable = appointment.status === 'SCHEDULED' && !isPast;
+    const isCancelable = appointment.status === 'SCHEDULED' && !isPast;
+
     return (
         <div className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-shadow p-6">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -94,8 +117,8 @@ const AppointmentCard = ({
                         Chi tiết
                     </button>
 
-                    {/* Update Button - Only for SCHEDULED/CHECKED_IN */}
-                    {(appointment.status === 'SCHEDULED' || appointment.status === 'CHECKED_IN') && (
+                    {/* Update Button - Only for SCHEDULED and future appointments */}
+                    {isUpdatable && (
                         <button
                             onClick={() => onUpdate(appointment)}
                             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium flex items-center gap-1"
@@ -105,8 +128,8 @@ const AppointmentCard = ({
                         </button>
                     )}
 
-                    {/* Cancel Button - Only for SCHEDULED */}
-                    {appointment.status === 'SCHEDULED' && (
+                    {/* Cancel Button - Only for SCHEDULED and future appointments */}
+                    {isCancelable && (
                         <button
                             onClick={() => onCancel(appointment)}
                             className="px-4 py-2 border-2 border-red-300 text-red-600 rounded-lg hover:bg-red-50 transition-colors text-sm font-medium flex items-center gap-1"

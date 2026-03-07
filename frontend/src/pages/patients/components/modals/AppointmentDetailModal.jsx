@@ -27,6 +27,29 @@ const AppointmentDetailModal = ({
 }) => {
     if (!appointment) return null;
 
+    const appointmentDate = appointment.appointment_date || appointment.date;
+    const appointmentTime = appointment.appointment_time || appointment.time;
+
+    let isPast = false;
+    if (appointmentDate && appointmentTime) {
+        try {
+            const aptDate = new Date(appointmentDate);
+            let hours = 0, minutes = 0;
+            if (typeof appointmentTime === 'string' && appointmentTime.includes(':')) {
+                const parts = appointmentTime.split(':');
+                hours = parseInt(parts[0], 10);
+                minutes = parseInt(parts[1], 10);
+            }
+            const aptDateTime = new Date(aptDate.getFullYear(), aptDate.getMonth(), aptDate.getDate(), hours, minutes);
+            isPast = aptDateTime < new Date();
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    const isUpdatable = appointment.status === 'SCHEDULED' && !isPast;
+    const isCancelable = appointment.status === 'SCHEDULED' && !isPast;
+
     return (
         <Modal
             isOpen={isOpen}
@@ -171,7 +194,7 @@ const AppointmentDetailModal = ({
 
                 {/* Action Buttons */}
                 <div className="flex gap-3 pt-4 border-t border-gray-200">
-                    {(appointment.status === 'SCHEDULED' || appointment.status === 'CHECKED_IN') && (
+                    {isUpdatable && (
                         <Button
                             onClick={() => {
                                 onClose();
@@ -184,7 +207,7 @@ const AppointmentDetailModal = ({
                         </Button>
                     )}
 
-                    {appointment.status === 'SCHEDULED' && (
+                    {isCancelable && (
                         <Button
                             onClick={() => {
                                 onClose();
