@@ -4,6 +4,8 @@ const successRes = require("../../../common/success");
 const { cleanObjectData } = require("../../../common/utils/cleanObjectData");
 
 const ServiceProcess = require("../services/treatment.service");
+const dentalService = require("../services/dental.record.service");
+const { checkRequiredFields } = require("../../../utils/checkRequiredFields");
 
 
 /*
@@ -43,55 +45,75 @@ const getByIdController = async (req, res) => {
   }
 };
 
+/**
+ * create new treatment by dental record id 
+ * - Lưu ý: Đây là controller dành cho việc tạo mới một treatment dựa trên một dental record đã tồn tại.
+ * - Client sẽ gửi lên ID của dental record mà treatment này thuộc về, cùng với các thông tin cần thiết để tạo treatment. 
+ * - Controller sẽ lấy ID của dental record từ URL params, và các thông tin khác từ body request.
+ * * @param {*} req 
+ * @param {*} res 
+ * @returns 
+ */
 const createController = async (req, res) => {
+  const context = "TreatmentController.createController";
   try {
-    const dataCreate = req.body || {};
-    const cleanedData = cleanObjectData(dataCreate);
+    const { id: dentalRecordId } = req.params;
+    
+    const cleanedData = cleanObjectData(req.body || {});
 
-    // Lấy user_id từ token để gán làm người đặt lịch (patient_id)
-    const { account_id } = req.user;
-
-    // 1. Khai báo các fields bắt buộc dựa theo Schema
-    const requiredFields = [
-      "full_name",
-      "phone",
-      "email",
-      "appointment_date",
-      "appointment_time",
-    ];
-
-    // Kiểm tra validation cơ bản
-    checkRequiredFields(requiredFields, cleanedData, this, "createController");
-    // Validate mảng book_service nếu client có gửi kèm dịch vụ
-    if (cleanedData.book_service && Array.isArray(cleanedData.book_service)) {
-      cleanedData.book_service.forEach((item, index) => {
-        if (!item.service_id || item.unit_price === undefined) {
-          throw new Error(
-            `service at the index ${index + 1} is missing service_id or unit_price`,
-          );
-        }
-      });
-    }
-    // 2. Chuyển dữ liệu sang Service để xử lý logic nghiệp vụ
-    const newAppointment = await ServiceProcess.createService(
-      cleanedData,
-      account_id,
-    );
-    if (!newAppointment) {
-      logger.warn("Failed to create new appointment");
-      throw new errorRes.BadRequestError("Create new appointment fails.")
-    }
-    // 3. Trả về response
-    return new successRes.CreateSuccess(newAppointment).send(res);
-  } catch (error) {
-    logger.error("Error create new appointment controller", {
-      context: "appointmentController.createController",
-      message: error.message,
+    logger.debug("Create new treatment request received", {
+      context: context,
+      dentalRecordId: dentalRecordId,
+      bodyData: cleanedData
     });
-    throw error; // Ném lỗi ra để middleware error handler tổng bắt lấy
+
+    if (!dentalRecordId) {
+      throw new errorRes.BadRequestError("Dental record ID is required in URL");
+    }
+
+    const dental = await dentalService.getByIdService(dentalRecordId, null);
+    
+    if (!dental) {
+      logger.warn("Dental record not found for given ID", { context, dentalRecordId });
+      throw new errorRes.NotFoundError("Dental record not found");
+    }
+
+    if (dental.status !== 'IN_PROGRESS') {
+      logger.warn("Attempt to add treatment to a closed dental record", { context, status: dental.status });
+      throw new errorRes.BadRequestError(
+        `Cannot add treatment. Dental record is currently ${dental.status}.`
+      );
+    }
+
+    cleanedData.record_id = dental._id;
+    cleanedData.patient_id = dental.patient_id;
+
+    const requiredFields = [
+      "record_id",
+      "appointment_id", 
+      "patient_id",
+      "doctor_id",
+      "phase"// Schema yêu cầu bắt buộc (PLAN hoặc SESSION)
+    ];
+    checkRequiredFields(requiredFields, cleanedData, this, "createController");
+    const newTreatment = await ServiceProcess.createService(cleanedData);
+    if (!newTreatment) {
+      logger.warn("Failed to create new treatment", { context, dentalRecordId });
+      throw new errorRes.BadRequestError("Create new treatment fails.");
+    }
+    return new successRes.CreateSuccess(
+        newTreatment,
+        "Treatment created successfully"
+    ).send(res);
+  } catch (error) {
+    logger.error("Error create new treatment controller", {
+      context: context,
+      message: error.message,
+      stack: error.stack,
+    });
+    throw error; 
   }
 };
-
 
 // update staff by accountId
 const updateController = async (req, res) => {
