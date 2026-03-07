@@ -51,6 +51,15 @@ export const updateDentalRecord = (id, body) =>
     apiClient.put(`/api/dentist/dental-record/${id}`, body);
 
 /**
+ * PATCH /api/dentist/treatment/status/:id
+ * Cập nhật trạng thái phiếu điều trị (approve/reject/etc)
+ * @param {string} id - treatment id
+ * @param {string} status - PLANNED, WAITING_APPROVAL, APPROVED, REJECTED, IN_PROGRESS, DONE, CANCELLED
+ */
+export const updateTreatmentStatus = (id, status) =>
+    apiClient.patch(`/api/dentist/treatment/status/${id}`, { status });
+
+/**
  * GET /api/dentist/patient?search=...
  * Tìm bệnh nhân theo thông tin (tên, sdt, ...) để chọn khi tạo hồ sơ
  * @param {string} search
