@@ -11,6 +11,14 @@ const { model: ServiceModel } = require("../../service/index")
 
 const model = require("../models/index.model");
 
+/**
+ * get treatment by id populate medicine_usage.medicine_id
+ * @param {ObjectId} id Treatment ID to find
+ * @returns return treatment object if found, otherwise throw NotFoundError
+ * @throws NotFoundError if treatment with given ID is not found
+ * @throws InternalServerError if any error occurs during database operation
+ * @description This function retrieves a treatment by its ID. It validates the ID format, checks if the treatment exists, and returns the treatment data. If the treatment is not found or if any error occurs, it throws appropriate errors.
+ */
 const getByIdService = async (id) => {
     const context = "TreatmentService.getByIdService";
     try {
@@ -119,13 +127,7 @@ const createService = async (dataCreate, account_id) => {
     }
 };
 
-/**
- * Update an existing service
- * 
- * @param {ObjectId} id service id to update
- * @param {*} updateData data to update
- * @returns updated service object
- */
+
 const updateService = async (accountId, data) => {
     // 1. Khởi tạo Session
     const session = await mongoose.startSession();
