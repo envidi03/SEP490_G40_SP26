@@ -5,8 +5,6 @@ import DoctorDashboard from '../../pages/dashboard/DoctorDashboard';
 import DentistAppointmentList from '../../pages/appointments/DentistAppointmentList';
 import DentistPatientList from '../../pages/patients/DentistPatientList';
 import LeaveRequestList from '../../pages/leave_requests/LeaveRequestList';
-import MedicalRecordList from '../../pages/medical_records/MedicalRecordList';
-import DentalRecordApprovalList from '../../pages/medical_records/DentalRecordApprovalList';
 import AssistantLeaveRequests from '../../pages/leave_requests/AssistantLeaveRequests/AssistantLeaveRequests';
 import DentalRecordList from '../../pages/medical_records/DentalRecordList';
 import DentalRecordDetail from '../../pages/medical_records/DentalRecordDetail';
@@ -55,21 +53,11 @@ const dashboardRoutes = [
         )
     },
     {
-        path: '/dentist/medical-records',
+        path: '/dentist/dental-records',
         element: (
             <ProtectedRoute allowedRoles={['DOCTOR']}>
                 <DashboardLayout>
-                    <MedicalRecordList />
-                </DashboardLayout>
-            </ProtectedRoute>
-        )
-    },
-    {
-        path: '/dentist/medical-record-approvals',
-        element: (
-            <ProtectedRoute allowedRoles={['DOCTOR']}>
-                <DashboardLayout>
-                    <DentalRecordApprovalList />
+                    <DentalRecordList />
                 </DashboardLayout>
             </ProtectedRoute>
         )
@@ -80,17 +68,6 @@ const dashboardRoutes = [
             <ProtectedRoute allowedRoles={['DOCTOR']}>
                 <DashboardLayout>
                     <AssistantLeaveRequests />
-                </DashboardLayout>
-            </ProtectedRoute>
-        )
-    },
-    // ── New dental record routes ──
-    {
-        path: '/dentist/dental-records',
-        element: (
-            <ProtectedRoute allowedRoles={['DOCTOR']}>
-                <DashboardLayout>
-                    <DentalRecordList />
                 </DashboardLayout>
             </ProtectedRoute>
         )
