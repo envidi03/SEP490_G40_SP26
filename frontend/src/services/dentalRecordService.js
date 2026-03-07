@@ -38,7 +38,8 @@ export const getDentalRecordById = (id, params = {}) =>
  * @param {Object} body - { full_name, phone, record_name, description, ... }
  */
 export const createDentalRecord = (patientId, body) =>
-    apiClient.post(`/api/dentist/patient/${patientId}/dental-record`, body);
+    apiClient.post(`/api/dentist/dental-record/${patientId}`, body);
+
 
 /**
  * PUT /api/dentist/dental-record/:id

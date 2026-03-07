@@ -1,18 +1,18 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { createDentalRecord } from '../../../services/dentalRecordService';
 
 /**
  * CreateDentalRecordModal
- * Gọi POST /api/dentist/patient/:patientId/dental-record
+ * POST /api/dentist/dental-record/:patientId
  *
  * Props:
  *   isOpen        – bool
  *   onClose       – callback
  *   onSuccess(record) – callback khi tạo thành công
  *   patientId     – string  (ID bệnh nhân đã chọn)
- *   patientName   – string  (hiển thị readonly)
- *   patientPhone  – string  (hiển thị readonly)
+ *   patientName   – string
+ *   patientPhone  – string
  */
 const CreateDentalRecordModal = ({
     isOpen,
@@ -21,14 +21,45 @@ const CreateDentalRecordModal = ({
     patientId,
     patientName = '',
     patientPhone = '',
+    patientEmail = '',
+    patientGender = '',
+    patientDateOfBirth = '',
 }) => {
     const [form, setForm] = useState({
+        full_name: patientName,
+        phone: patientPhone,
+        email: patientEmail,
+        gender: patientGender,
+        dob: patientDateOfBirth ? patientDateOfBirth.split('T')[0] : '',
         record_name: '',
-        description: '',
+        diagnosis: '',
+        tooth_status: '',
+        total_amount: '',
         start_date: new Date().toISOString().split('T')[0],
+        end_date: '',
     });
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState(null);
+
+    // Reset form với thông tin bệnh nhân mỗi khi modal mở
+    useEffect(() => {
+        if (isOpen) {
+            setForm({
+                full_name: patientName,
+                phone: patientPhone,
+                email: patientEmail,
+                gender: patientGender,
+                dob: patientDateOfBirth ? patientDateOfBirth.split('T')[0] : '',
+                record_name: '',
+                diagnosis: '',
+                tooth_status: '',
+                total_amount: '',
+                start_date: new Date().toISOString().split('T')[0],
+                end_date: '',
+            });
+            setError(null);
+        }
+    }, [isOpen, patientId, patientName, patientPhone, patientEmail, patientGender, patientDateOfBirth]);
 
     if (!isOpen) return null;
 
@@ -42,13 +73,20 @@ const CreateDentalRecordModal = ({
         setError(null);
         try {
             const body = {
+                full_name: form.full_name.trim(),
+                phone: form.phone.trim() || undefined,
+                email: form.email.trim() || undefined,
+                // DB stores gender as boolean: true = Nam (MALE), false = Nữ (FEMALE)
+                gender: form.gender === 'MALE' ? true : form.gender === 'FEMALE' ? false : undefined,
+                dob: form.dob || undefined,
                 record_name: form.record_name.trim(),
-                description: form.description.trim(),
-                start_date: form.start_date,
-                full_name: patientName,
-                phone: patientPhone,
+                diagnosis: form.diagnosis.trim() || undefined,
+                tooth_status: form.tooth_status.trim() || undefined,
+                total_amount: form.total_amount ? Number(form.total_amount) : 0,
+                start_date: form.start_date || undefined,
+                end_date: form.end_date || undefined,
             };
-            // POST /api/dentist/patient/:id/dental-record
+            // POST /api/dentist/dental-record/:patientId
             const res = await createDentalRecord(patientId, body);
             onSuccess?.(res.data);
             onClose();
@@ -62,85 +100,177 @@ const CreateDentalRecordModal = ({
 
     return (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-2xl shadow-xl w-full max-w-md flex flex-col">
+            <div className="bg-white rounded-2xl shadow-xl w-full max-w-xl flex flex-col max-h-[90vh]">
 
                 {/* Header */}
-                <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+                <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 shrink-0">
                     <div>
-                        <h2 className="text-base font-semibold text-gray-800">Tạo hồ sơ nha khoa</h2>
-                        <p className="text-xs text-gray-400 mt-0.5">Bệnh nhân: {patientName}</p>
+                        <h2 className="text-base font-semibold text-gray-800">Tạo hồ sơ nha khoa mới</h2>
+                        <p className="text-xs text-gray-400 mt-0.5">Điền đầy đủ thông tin để tạo hồ sơ</p>
                     </div>
-                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors">
+                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors p-1">
                         <X size={20} />
                     </button>
                 </div>
 
-                {/* Form */}
-                <form id="create-record-form" onSubmit={handleSubmit} className="px-6 py-5 space-y-4">
+                {/* Form body (scrollable) */}
+                <form id="create-record-form" onSubmit={handleSubmit} className="overflow-y-auto flex-1 px-6 py-5 space-y-5">
 
-                    {/* Readonly patient info */}
-                    <div className="grid grid-cols-2 gap-3 bg-gray-50 rounded-xl p-3">
-                        <div>
-                            <p className="text-xs text-gray-400 uppercase tracking-wide mb-0.5">Họ tên</p>
-                            <p className="text-sm font-medium text-gray-700">{patientName || '—'}</p>
+                    {/* Section: Thông tin bệnh nhân */}
+                    <div>
+                        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
+                            Thông tin bệnh nhân
+                        </p>
+                        <div className="grid grid-cols-2 gap-3">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Họ và tên <span className="text-red-400">*</span>
+                                </label>
+                                <input
+                                    type="text"
+                                    name="full_name"
+                                    required
+                                    value={form.full_name}
+                                    onChange={handleChange}
+                                    placeholder="Họ và tên bệnh nhân"
+                                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-400 focus:bg-white transition"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Số điện thoại</label>
+                                <input
+                                    type="text"
+                                    name="phone"
+                                    value={form.phone}
+                                    onChange={handleChange}
+                                    placeholder="0xxxxxxxxx"
+                                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-400 focus:bg-white transition"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                                <input
+                                    type="email"
+                                    name="email"
+                                    value={form.email}
+                                    onChange={handleChange}
+                                    placeholder="[EMAIL_ADDRESS]"
+                                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-400 focus:bg-white transition"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Giới tính</label>
+                                <select
+                                    name="gender"
+                                    value={form.gender}
+                                    onChange={handleChange}
+                                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-400 focus:bg-white transition"
+                                >
+                                    <option value="">Chọn giới tính</option>
+                                    <option value="MALE">Nam</option>
+                                    <option value="FEMALE">Nữ</option>
+                                    <option value="OTHER">Khác</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Ngày sinh</label>
+                                <input
+                                    type="date"
+                                    name="dob"
+                                    value={form.dob}
+                                    onChange={handleChange}
+                                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-400 focus:bg-white transition"
+                                />
+                            </div>
                         </div>
-                        <div>
-                            <p className="text-xs text-gray-400 uppercase tracking-wide mb-0.5">SĐT</p>
-                            <p className="text-sm font-medium text-gray-700">{patientPhone || '—'}</p>
+                    </div>
+
+                    <div className="border-t border-gray-100" />
+
+                    {/* Section: Thông tin hồ sơ */}
+                    <div>
+                        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
+                            Thông tin hồ sơ
+                        </p>
+                        <div className="space-y-3">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Tên hồ sơ <span className="text-red-400">*</span>
+                                </label>
+                                <input
+                                    type="text"
+                                    name="record_name"
+                                    required
+                                    value={form.record_name}
+                                    onChange={handleChange}
+                                    placeholder="VD: Điều trị tủy răng số 6, Nhổ răng khôn..."
+                                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-400 focus:bg-white transition"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Chẩn đoán
+                                </label>
+                                <textarea
+                                    name="diagnosis"
+                                    rows={3}
+                                    value={form.diagnosis}
+                                    onChange={handleChange}
+                                    placeholder="VD: Viêm nướu nhẹ, mảng bám nhiều ở hàm dưới..."
+                                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-400 focus:bg-white transition resize-none"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Tình trạng răng</label>
+                                <input
+                                    type="text"
+                                    name="tooth_status"
+                                    value={form.tooth_status}
+                                    onChange={handleChange}
+                                    placeholder="VD: Răng 38, 48 mọc lệch..."
+                                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-400 focus:bg-white transition"
+                                />
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Ngày bắt đầu</label>
+                                    <input
+                                        type="date"
+                                        name="start_date"
+                                        value={form.start_date}
+                                        onChange={handleChange}
+                                        className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-400 focus:bg-white transition"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Tổng tiền (VNĐ)</label>
+                                    <input
+                                        type="number"
+                                        name="total_amount"
+                                        min="0"
+                                        value={form.total_amount}
+                                        onChange={handleChange}
+                                        placeholder="0"
+                                        className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-400 focus:bg-white transition"
+                                    />
+                                </div>
+                            </div>
                         </div>
-                    </div>
-
-                    {/* Record name */}
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Tên hồ sơ <span className="text-red-400">*</span>
-                        </label>
-                        <input
-                            type="text"
-                            name="record_name"
-                            required
-                            value={form.record_name}
-                            onChange={handleChange}
-                            placeholder="VD: Điều trị tủy răng số 6..."
-                            className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-400 focus:bg-white transition"
-                        />
-                    </div>
-
-                    {/* Description */}
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Mô tả / Chẩn đoán</label>
-                        <textarea
-                            name="description"
-                            rows={3}
-                            value={form.description}
-                            onChange={handleChange}
-                            placeholder="Nhập chẩn đoán hoặc mô tả tình trạng..."
-                            className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-400 focus:bg-white transition resize-none"
-                        />
-                    </div>
-
-                    {/* Start date */}
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Ngày bắt đầu</label>
-                        <input
-                            type="date"
-                            name="start_date"
-                            value={form.start_date}
-                            onChange={handleChange}
-                            className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-400 focus:bg-white transition"
-                        />
                     </div>
 
                     {/* Error */}
                     {error && (
-                        <p className="text-xs text-red-500 bg-red-50 border border-red-100 rounded-lg px-3 py-2">
+                        <p className="text-xs text-red-500 bg-red-50 border border-red-100 rounded-xl px-3 py-2">
                             {error}
                         </p>
                     )}
                 </form>
 
                 {/* Footer */}
-                <div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-2">
+                <div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-2 shrink-0">
                     <button
                         type="button"
                         onClick={onClose}
@@ -152,7 +282,7 @@ const CreateDentalRecordModal = ({
                         type="submit"
                         form="create-record-form"
                         disabled={isSubmitting}
-                        className="px-5 py-2 rounded-xl bg-teal-500 text-white text-sm font-medium hover:bg-teal-600 disabled:opacity-50 transition"
+                        className="px-6 py-2 rounded-xl bg-teal-500 text-white text-sm font-medium hover:bg-teal-600 disabled:opacity-50 transition"
                     >
                         {isSubmitting ? 'Đang tạo...' : 'Tạo hồ sơ'}
                     </button>

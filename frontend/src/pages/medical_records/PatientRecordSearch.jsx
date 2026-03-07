@@ -199,6 +199,9 @@ const PatientRecordSearch = () => {
                 patientId={selectedPatient?.patient_id}
                 patientName={selectedPatient?.full_name}
                 patientPhone={selectedPatient?.phone}
+                patientEmail={selectedPatient?.email}
+                patientGender={selectedPatient?.gender}
+                patientDateOfBirth={selectedPatient?.date_of_birth}
             />
         </div>
     );
