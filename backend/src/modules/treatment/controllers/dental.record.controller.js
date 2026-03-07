@@ -459,6 +459,18 @@ const updateController = async (req, res) => {
   }
 };
 
+/**
+ * tìm kiếm bệnh án dựa trên thông tin đầu vào có thể là full_name, phone, email, dob
+ * * tìm kiếm bệnh nhân dựa trên thông tin đầu vào có thể là full_name, phone, email, dob 
+ * và trả về danh sách thông tin bệnh nhân trùng với thông tin đầu vào và 
+ * phải nhóm các thông tin cùng patient_id vào cùng 1 nhóm (vì có thể 1 bệnh nhân có nhiều bệnh án) 
+ * và mỗi nhóm sẽ bao gồm thông tin patient_id, full_name, phone, email, dob để khi tìm kiếm bệnh án 
+ * sẽ hiển thị được thông tin bệnh nhân đó để dễ dàng phân biệt với các bệnh nhân khác 
+ * khi có nhiều bệnh nhân trùng tên hoặc trùng số điện thoại, email.
+ * * * @param {*} search infor user để tìm kiếm (có thể là full_name, phone, email, dob) 
+ * và sẽ tìm kiếm theo kiểu gần đúng (partial match) để tăng khả năng tìm kiếm trúng kết quả hơn 
+ * @returns Danh sách bệnh nhân trùng với thông tin đầu vào.
+ */
 const findUserByUserInfo = async (req, res) => {
   const context = "DentalRecordController.findUserByUserInfo";
   try {
