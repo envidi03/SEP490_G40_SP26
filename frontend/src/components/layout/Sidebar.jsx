@@ -52,7 +52,6 @@ const Sidebar = ({ role }) => {
                 ]
             },
             { path: '/dentist/leave-requests', icon: Briefcase, label: 'Nghỉ Phép' },
-            { path: '/dentist/assistant-leave-requests', icon: UserCog, label: 'NP Trợ Lý' },
         ]
     };
 
