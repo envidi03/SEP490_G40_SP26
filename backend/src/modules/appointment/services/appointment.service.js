@@ -22,11 +22,12 @@ const emailService = require("../../../common/service/email.service");
         limit
     )
 */
-const getListService = async (query) => {
+const getListService = async (query, doctor_id) => {
     try {
         logger.debug("Fetching list of appointments with query", {
             context: "AppointmentService.getListService",
             query: query,
+            doctor_id: doctor_id
         });
 
         // 1. Lấy và chuẩn hóa các tham số từ query
@@ -43,6 +44,11 @@ const getListService = async (query) => {
         // Lọc theo trạng thái (status)
         if (statusFilter) {
             matchCondition.status = statusFilter;
+        }
+
+        // Lọc theo doctor_id
+        if (doctor_id) {
+            matchCondition.doctor_id = doctor_id;
         }
 
         // Tìm kiếm (Search) theo tên, số điện thoại, email

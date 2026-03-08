@@ -10,6 +10,7 @@ const {
 
 const ServiceProcess = require("../services/appointment.service");
 const { checkRequiredFields } = require("../../../utils/checkRequiredFields");
+const { findStaffByAccountId } = require("../../auth/service/account.service");
 
 /*
     get list appointment of patient with pagination and filter
@@ -110,6 +111,71 @@ const getListOfPatientController = async (req, res) => {
     throw error;
   }
 };
+
+/**
+ * get list appointment of doctor with pagination and filter
+ * (
+     search: search by full_name, phone, email;
+     filter: filter by status;
+     sort: sort by appointment_date;
+     page
+     limit
+ )
+ only get appointment with account_id of doctor
+ * @param {*} req 
+ * @param {*} res 
+ */
+const getListOfDoctorController = async (req, res) => {
+  const context = "AppointmentController.getListOfDoctorController";
+  try {
+    const queryParams = req.query;
+    const { account_id: accountDoctorId } = req.user;
+    if (!accountDoctorId) {
+      logger.warn("Missing account_id in token", {
+        context: context,
+        accountDoctorId: accountDoctorId,
+        queryParams: queryParams,
+      });
+      throw new errorRes.UnauthorizedError(
+        "Invalid token: account_id is missing",
+      );
+    }
+    const {staff} = await findStaffByAccountId(accountDoctorId);
+    if (!staff) {
+      logger.warn("No staff profile found for account_id", {
+        context: context,
+        accountDoctorId: accountDoctorId,
+      });
+      throw new errorRes.UnauthorizedError(
+        "No staff profile found for this account",
+      );
+    }
+
+    const { data, pagination } = await ServiceProcess.getListOfDoctorService(
+      queryParams,
+      staff._id,
+    );
+
+    const paginationData = new Pagination({
+      page: pagination.page,
+      size: pagination.size,
+      totalItems: pagination.totalItems,
+    });
+    
+    return new successRes.GetListSuccess(
+      data,
+      paginationData,
+      "Appointment retrieved successfully",
+    ).send(res);
+  } catch (error) {
+    logger.error("Error get list appointment of doctor", {
+      context: "AppointmentController.getListOfDoctorController",
+      message: error.message,
+      stack: error.stack,
+    });
+    throw error;
+  }
+}
 
 /*
     get appointment by id
@@ -426,10 +492,7 @@ const updateStatusController = async (req, res) => {
 };
 
 /*
-  checkin by full_name, phone, email. if correct auto change status to CHECK_IN
-*/
-/*
-  Self Check-in by full_name, phone, email. 
+  Check-in by full_name, phone, email. 
   If correct, auto change status to CHECKED_IN and generate queue number.
 */
 const checkinController = async (req, res) => {
@@ -479,5 +542,6 @@ module.exports = {
   updateController,
   updateStatusController,
   checkinController,
-  staffCreateController
+  staffCreateController,
+  getListOfDoctorController
 };
