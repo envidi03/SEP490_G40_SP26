@@ -73,13 +73,50 @@ const createService = async (dataCreate) => {
     }
 };
 
-
-const updateService = async (accountId, data) => {
-    
-};
-
 /**
- * find treatment by id
+ * update treatment by id
+ * @param {*} treatmentId id of treatment to update
+ * @param {*} data data to update, excluding 'status' and foreign keys
+ */
+const updateService = async (treatmentId, data) => {
+    const context = "TreatmentService.updateService";
+    try {
+        logger.debug("Raw data to update treatment", {
+            context: context,
+            treatmentId: treatmentId,
+            data: data,
+        });
+
+        const existingTreatment = await findById(treatmentId);
+        if (!existingTreatment) {
+            throw new errorRes.NotFoundError("Treatment not found");
+        }
+
+        if (existingTreatment.status === 'DONE' || existingTreatment.status === 'CANCELLED') {
+            throw new errorRes.BadRequestError(`Cannot update treatment because it is already ${existingTreatment.status}`);
+        }
+
+        const dataUpdate = await model.Treatment.findByIdAndUpdate(
+            treatmentId, 
+            data, 
+            { new: true, runValidators: true } 
+        );
+
+        return dataUpdate;
+
+    } catch (error) {
+        logger.error("Error at update treatment.", { 
+            context: context, 
+            treatmentId: treatmentId,
+            message: error.message,
+            stack: error.stack,
+        });
+        if (error.statusCode) throw error;
+        throw new errorRes.InternalServerError(`Error updating treatment: ${error.message}`);
+    }
+};
+/**
+ * get data raw treatment by id
  * @param {ObjectId} id treatment id to find
  * @returns treatment object or null if not found
  */
@@ -99,7 +136,7 @@ const findById = async (id) => {
 }
 
 /**
- * Update only status of treatment - cannot update status if current status is CANCELLED or APPROVED
+ * Update only status of treatment - cannot update status if current status is CANCELLED or DONE
  * @param {ObjectId} id treatment id to find
  * @param {string} status the new status to set
  * @returns treatment object or null if not found
@@ -113,7 +150,7 @@ const updateStatusOnly = async (id, status) => {
         if (treatment.status === status) {
             return treatment; 
         }
-        if (treatment.status === 'CANCELLED' || treatment.status === 'APPROVED') {
+        if (treatment.status === 'CANCELLED' || treatment.status === 'DONE') {
             throw new errorRes.BadRequestError(`Cannot change status from ${treatment.status}`);
         }
         const newData = await model.Treatment.findByIdAndUpdate(
