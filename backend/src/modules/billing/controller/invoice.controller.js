@@ -106,5 +106,28 @@ const updateStatusController = async (req, res) => {
         throw error;
     }
 };
+// GET /api/billing/stats
+const getStatsController = async (req, res) => {
+    try {
+        logger.debug('Get invoice stats request', {
+            context: 'InvoiceController.getStatsController'
+        });
 
-module.exports = { getListController, getByIdController, createController, updateStatusController };
+        const stats = await InvoiceService.getInvoiceStats();
+
+        // Use standard success response, it wraps data in `data` field typically
+        return new successRes.GetDetailSuccess(
+            stats,
+            'Invoice stats retrieved successfully'
+        ).send(res);
+
+    } catch (error) {
+        logger.error('Error get invoice stats', {
+            context: 'InvoiceController.getStatsController',
+            message: error.message,
+        });
+        throw error;
+    }
+};
+
+module.exports = { getListController, getByIdController, createController, updateStatusController, getStatsController };

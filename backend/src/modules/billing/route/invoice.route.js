@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { getListController, getByIdController, createController, updateStatusController } = require('../controller/invoice.controller');
+const { getListController, getByIdController, createController, updateStatusController, getStatsController } = require('../controller/invoice.controller');
 
 /**
  * @swagger
@@ -44,6 +44,20 @@ const { getListController, getByIdController, createController, updateStatusCont
  *         $ref: '#/components/schemas/Error'
  */
 router.get('/', getListController);
+
+/**
+ * @swagger
+ * /api/billing/stats:
+ *   get:
+ *     summary: Thống kê hóa đơn (tổng thu, số lượng...)
+ *     tags: [Billing]
+ *     responses:
+ *       200:
+ *         description: Thành công
+ *       500:
+ *         $ref: '#/components/schemas/Error'
+ */
+router.get('/stats', getStatsController);
 
 /**
  * @swagger

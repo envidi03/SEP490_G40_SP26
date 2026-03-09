@@ -212,4 +212,65 @@ const updateInvoiceStatus = async (id, status, note, updated_by) => {
     }
 };
 
-module.exports = { getListInvoice, getInvoiceById, createInvoice, updateInvoiceStatus };
+const getInvoiceStats = async () => {
+    try {
+        const pipeline = [
+            {
+                $group: {
+                    _id: null,
+                    totalInvoices: { $sum: 1 },
+                    completedCount: {
+                        $sum: { $cond: [{ $eq: ['$status', 'COMPLETED'] }, 1, 0] }
+                    },
+                    pendingCount: {
+                        $sum: { $cond: [{ $eq: ['$status', 'PENDING'] }, 1, 0] }
+                    },
+                    cancelledCount: {
+                        $sum: { $cond: [{ $eq: ['$status', 'CANCELLED'] }, 1, 0] }
+                    },
+                    totalRevenue: {
+                        $sum: { $cond: [{ $eq: ['$status', 'COMPLETED'] }, '$total_amount', 0] }
+                    },
+                    totalPendingAmount: {
+                        $sum: { $cond: [{ $eq: ['$status', 'PENDING'] }, '$total_amount', 0] }
+                    }
+                }
+            },
+            {
+                $project: {
+                    _id: 0,
+                    totalInvoices: 1,
+                    completedCount: 1,
+                    pendingCount: 1,
+                    cancelledCount: 1,
+                    totalRevenue: 1,
+                    totalPendingAmount: 1
+                }
+            }
+        ];
+
+        const result = await InvoiceModel.aggregate(pipeline);
+
+        if (result.length === 0) {
+            return {
+                totalInvoices: 0,
+                completedCount: 0,
+                pendingCount: 0,
+                cancelledCount: 0,
+                totalRevenue: 0,
+                totalPendingAmount: 0
+            };
+        }
+
+        return result[0];
+
+    } catch (error) {
+        logger.error('Error getting invoice stats', {
+            context: 'InvoiceService.getInvoiceStats',
+            message: error.message,
+        });
+        throw new errorRes.InternalServerError(error.message);
+    }
+};
+
+module.exports = { getListInvoice, getInvoiceById, createInvoice, updateInvoiceStatus, getInvoiceStats };
