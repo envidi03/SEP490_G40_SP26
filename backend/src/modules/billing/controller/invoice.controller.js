@@ -27,4 +27,29 @@ const getListController = async (req, res) => {
     }
 };
 
-module.exports = { getListController };
+// GET /api/billing/:id
+const getByIdController = async (req, res) => {
+    try {
+        const { id } = req.params;
+        logger.debug('Get invoice by id request', {
+            context: 'InvoiceController.getByIdController',
+            id
+        });
+
+        const invoice = await InvoiceService.getInvoiceById(id);
+
+        return new successRes.GetDetailSuccess(
+            invoice,
+            'Invoice retrieved successfully'
+        ).send(res);
+
+    } catch (error) {
+        logger.error('Error get invoice by id', {
+            context: 'InvoiceController.getByIdController',
+            message: error.message,
+        });
+        throw error;
+    }
+};
+
+module.exports = { getListController, getByIdController };
