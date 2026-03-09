@@ -36,7 +36,7 @@ const PatientInfoModal = ({ isOpen, onClose, appointment, onConfirm }) => {
                 {/* Header */}
                 <div className="flex justify-between items-center p-5 border-b border-slate-100 bg-slate-50/50">
                     <div>
-                        <h2 className="text-[15px] font-bold text-slate-800">Tạo Căn Cước Hồ Sơ</h2>
+                        <h2 className="text-[15px] font-bold text-slate-800">Tạo Hồ Sơ Nha Khoa</h2>
                         <p className="text-[12px] text-slate-500 mt-0.5">Xác nhận nhân thân bệnh nhân trước khi mở hồ sơ</p>
                     </div>
                     <button onClick={onClose} className="text-slate-400 hover:text-slate-600 transition-colors p-1">

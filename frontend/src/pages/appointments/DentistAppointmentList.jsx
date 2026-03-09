@@ -109,9 +109,8 @@ const DentistAppointmentList = () => {
       dob: patientInfo.dob,
       gender: patientInfo.gender,
       phone: patientInfo.phone,
-      appointmentId: appointmentForRecord?.appointment_id || appointmentForRecord?.id || '',
     })
-    navigate(`/dentist/dental-records?${params.toString()}`)
+    navigate(`/dentist/dental-records/search?${params.toString()}`)
   }
 
   const handleClearFilters = () => {
