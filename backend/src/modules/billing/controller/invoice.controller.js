@@ -52,4 +52,29 @@ const getByIdController = async (req, res) => {
     }
 };
 
-module.exports = { getListController, getByIdController };
+// POST /api/billing
+const createController = async (req, res) => {
+    try {
+        const data = req.body || {};
+        logger.debug('Create invoice request', {
+            context: 'InvoiceController.createController',
+            data
+        });
+
+        const invoice = await InvoiceService.createInvoice(data);
+
+        return new successRes.CreateSuccess(
+            invoice,
+            'Invoice created successfully'
+        ).send(res);
+
+    } catch (error) {
+        logger.error('Error create invoice', {
+            context: 'InvoiceController.createController',
+            message: error.message,
+        });
+        throw error;
+    }
+};
+
+module.exports = { getListController, getByIdController, createController };

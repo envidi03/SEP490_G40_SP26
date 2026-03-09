@@ -127,7 +127,6 @@ const createInvoice = async (data) => {
     try {
         const { patient_id, appointment_id, items, note, created_by } = data;
 
-        // Validate bắt buộc
         if (!patient_id) throw new errorRes.BadRequestError('patient_id is required');
         if (!items || items.length === 0) throw new errorRes.BadRequestError('items cannot be empty');
 
@@ -136,8 +135,8 @@ const createInvoice = async (data) => {
         if (!patient) throw new errorRes.NotFoundError('Patient not found');
 
         // Lấy thông tin dịch vụ từ DB cho từng item
-        // → lưu service_name và unit_price tại thời điểm tạo HĐ
-        // → tránh bị ảnh hưởng nếu dịch vụ thay đổi giá sau này
+        // Lưu service_name và unit_price tại thời điểm tạo HĐ
+        // Tránh bị ảnh hưởng nếu dịch vụ thay đổi giá sau này
         const builtItems = await Promise.all(
             items.map(async (item) => {
                 if (!item.service_id) throw new errorRes.BadRequestError('service_id is required for each item');
