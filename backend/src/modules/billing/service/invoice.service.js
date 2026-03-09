@@ -178,4 +178,38 @@ const createInvoice = async (data) => {
     }
 };
 
-module.exports = { getListInvoice, getInvoiceById, createInvoice };
+const updateInvoiceStatus = async (id, status, note, updated_by) => {
+    try {
+        if (!['COMPLETED', 'CANCELLED'].includes(status)) {
+            throw new errorRes.BadRequestError('Status must be COMPLETED or CANCELLED');
+        }
+
+        const invoice = await InvoiceModel.findById(id);
+        if (!invoice) {
+            throw new errorRes.NotFoundError('Invoice not found');
+        }
+
+        if (invoice.status !== 'PENDING') {
+            throw new errorRes.BadRequestError(`Cannot update invoice with status ${invoice.status}`);
+        }
+
+        // Cập nhật trạng thái
+        invoice.status = status;
+        if (note !== undefined) invoice.note = note;
+        // Có thể lưu thêm người cập nhật nếu sau này model Invoice có field updated_by
+
+        await invoice.save();
+
+        return invoice;
+
+    } catch (error) {
+        if (['BadRequestError', 'NotFoundError'].includes(error.name)) throw error;
+        logger.error('Error updating invoice status', {
+            context: 'InvoiceService.updateInvoiceStatus',
+            message: error.message,
+        });
+        throw new errorRes.InternalServerError(error.message);
+    }
+};
+
+module.exports = { getListInvoice, getInvoiceById, createInvoice, updateInvoiceStatus };
