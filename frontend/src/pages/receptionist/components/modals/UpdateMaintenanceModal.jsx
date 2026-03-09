@@ -8,16 +8,12 @@ const UpdateMaintenanceModal = ({ equipment, isOpen, onClose, onUpdate }) => {
         const formData = new FormData(e.target);
         const data = {
             status: formData.get('status'),
-            lastMaintenance: formData.get('lastMaintenance'),
-            nextMaintenance: formData.get('nextMaintenance'),
-            notes: formData.get('notes')
+            description: formData.get('description'),
         };
-        // TODO: Call API to update maintenance
-        console.log('Updating maintenance:', equipment.id, data);
+
         if (onUpdate) {
-            onUpdate(equipment.id, data);
+            onUpdate(equipment._id, data);
         }
-        onClose();
     };
 
     return (
@@ -43,19 +39,15 @@ const UpdateMaintenanceModal = ({ equipment, isOpen, onClose, onUpdate }) => {
                     <div className="grid grid-cols-2 gap-2 text-sm">
                         <div>
                             <p className="text-gray-600">Thiết bị</p>
-                            <p className="font-medium text-gray-900">{equipment.name}</p>
+                            <p className="font-medium text-gray-900">{equipment.equipment_name}</p>
                         </div>
                         <div>
-                            <p className="text-gray-600">Mã thiết bị</p>
-                            <p className="font-medium text-gray-900">{equipment.code}</p>
+                            <p className="text-gray-600">Số Serial</p>
+                            <p className="font-medium text-gray-900">{equipment.equipment_serial_number || '—'}</p>
                         </div>
                         <div>
-                            <p className="text-gray-600">Vị trí</p>
-                            <p className="font-medium text-gray-900">{equipment.location}</p>
-                        </div>
-                        <div>
-                            <p className="text-gray-600">Danh mục</p>
-                            <p className="font-medium text-gray-900">{equipment.category}</p>
+                            <p className="text-gray-600">Loại TB</p>
+                            <p className="font-medium text-gray-900">{equipment.equipment_type}</p>
                         </div>
                     </div>
                 </div>
@@ -72,39 +64,13 @@ const UpdateMaintenanceModal = ({ equipment, isOpen, onClose, onUpdate }) => {
                             required
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
                         >
-                            <option value="active">Hoạt động</option>
-                            <option value="maintenance">Đang bảo trì</option>
-                            <option value="broken">Hỏng</option>
-                            <option value="inactive">Ngưng sử dụng</option>
+                            <option value="READY">Sẵn sàng</option>
+                            <option value="IN_USE">Đang sử dụng</option>
+                            <option value="MAINTENANCE">Đang bảo trì</option>
+                            <option value="REPAIRING">Đang sửa chữa</option>
+                            <option value="FAULTY">Hỏng</option>
+                            <option value="STERILIZING">Đang khử trùng</option>
                         </select>
-                    </div>
-
-                    {/* Maintenance Dates */}
-                    <div className="grid grid-cols-2 gap-3">
-                        <div>
-                            <label className="flex items-center text-sm font-medium text-gray-700 mb-1">
-                                <Calendar size={14} className="mr-1" />
-                                Bảo trì cuối
-                            </label>
-                            <input
-                                type="date"
-                                name="lastMaintenance"
-                                defaultValue={equipment.lastMaintenance}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                            />
-                        </div>
-                        <div>
-                            <label className="flex items-center text-sm font-medium text-gray-700 mb-1">
-                                <Calendar size={14} className="mr-1" />
-                                Bảo trì tiếp theo
-                            </label>
-                            <input
-                                type="date"
-                                name="nextMaintenance"
-                                defaultValue={equipment.nextMaintenance}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                            />
-                        </div>
                     </div>
 
                     {/* Notes */}
@@ -113,7 +79,7 @@ const UpdateMaintenanceModal = ({ equipment, isOpen, onClose, onUpdate }) => {
                             Ghi chú bảo trì
                         </label>
                         <textarea
-                            name="notes"
+                            name="description"
                             rows={3}
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
                             placeholder="Nhập ghi chú về tình trạng thiết bị, công việc bảo trì đã thực hiện..."
@@ -125,7 +91,7 @@ const UpdateMaintenanceModal = ({ equipment, isOpen, onClose, onUpdate }) => {
                         <div className="flex items-start gap-2">
                             <AlertTriangle size={16} className="text-yellow-600 mt-0.5" />
                             <p className="text-sm text-yellow-800">
-                                <strong>Lưu ý:</strong> Nếu đặt trạng thái "Đang bảo trì" hoặc "Hỏng", thiết bị sẽ không khả dụng cho lịch hẹn.
+                                <strong>Lưu ý:</strong> Nếu đặt trạng thái "Đang bảo trì", "Đang sửa chữa" hoặc "Hỏng", thiết bị sẽ không khả dụng cho lịch hẹn.
                             </p>
                         </div>
                     </div>

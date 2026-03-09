@@ -140,7 +140,7 @@ const getListOfDoctorController = async (req, res) => {
         "Invalid token: account_id is missing",
       );
     }
-    const {staff} = await findStaffByAccountId(accountDoctorId);
+    const { staff } = await findStaffByAccountId(accountDoctorId);
     if (!staff) {
       logger.warn("No staff profile found for account_id", {
         context: context,
@@ -161,7 +161,7 @@ const getListOfDoctorController = async (req, res) => {
       size: pagination.size,
       totalItems: pagination.totalItems,
     });
-    
+
     return new successRes.GetListSuccess(
       data,
       paginationData,
@@ -315,100 +315,37 @@ const staffCreateController = async (req, res) => {
     throw error;
   }
 };
-// update staff by accountId
+// Cập nhật thông tin lịch hẹn (ngày, giờ, lý do)
 const updateController = async (req, res) => {
   try {
     const { id } = req.params;
     const dataUpdate = req.body || {};
 
-    // 2. Làm sạch dữ liệu
-    // Loại bỏ field 'status' để bảo mật, chỉ lấy phần còn lại
-    const { status, ...restData } = dataUpdate;
-    const cleanedData = cleanObjectData(restData);
+    // 1. Chỉ lấy các trường cho phép
+    const { appointment_date, appointment_time, reason } = dataUpdate;
 
-    // Kiểm tra xem có dữ liệu nào để update không (bao gồm cả file)
-    if (Object.keys(cleanedData).length === 0 && !req.files) {
+    // Kiểm tra xem có dữ liệu nào để update không
+    if (!appointment_date && !appointment_time && reason === undefined) {
       throw new errorRes.BadRequestError("No data provided for update");
     }
 
-    // 3. VALIDATION: Chỉ kiểm tra những trường có trong dữ liệu gửi lên
+    const updateData = {
+      appointment_date,
+      appointment_time,
+      reason
+    };
 
-    // Kiểm tra Email
-    if (cleanedData.email) {
-      checkEmail(cleanedData.email);
-      // Kiểm tra trùng lặp email, ngoại trừ chính tài khoản này
-      const isEmailExist = await ServiceProcess.checkUniqueEmailNotId(
-        cleanedData.email,
-        accountId,
-      );
-      if (isEmailExist) {
-        throw new errorRes.ConflictError("Email already exists!");
-      }
-    }
-
-    // Kiểm tra Username
-    if (cleanedData.username) {
-      // Kiểm tra trùng lặp username, ngoại trừ chính tài khoản này
-      const isUsernameExist = await ServiceProcess.checkUniqueUsernameNotId(
-        cleanedData.username,
-        accountId,
-      );
-      if (isUsernameExist) {
-        throw new errorRes.ConflictError("Username already exists!");
-      }
-    }
-
-    // Validate các trường thông thường
-    if (cleanedData.phone_number) checkPhone(cleanedData.phone_number);
-    // Lưu ý: Nếu update password, hãy đảm bảo password được hash trước khi lưu vào DB (có thể xử lý ở Service hoặc tại đây)
-    if (cleanedData.password) checkPassword(cleanedData.password);
-
-    // 4. Validate License (Logic nghiệp vụ đặc thù)
-    if (cleanedData.license_number) {
-      checkLicenseNumber(cleanedData.license_number);
-      // SỬA LỖI: Dùng biến accountId thay vì id
-      const isLicenseExist = await ServiceProcess.checkUniqueLicenseNumberNotId(
-        cleanedData.license_number,
-        accountId,
-      );
-      if (isLicenseExist) {
-        throw new errorRes.ConflictError("License number already exists!");
-      }
-    }
-
-    if (cleanedData.issued_by) checkIssuedBy(cleanedData.issued_by);
-    if (cleanedData.issued_date) checkIssuedDate(cleanedData.issued_date);
-
-    // 5. Xử lý upload file (Cloudinary)
-    if (req.files) {
-      if (req.files["avatar"]) {
-        // Lấy file đầu tiên trong mảng avatar
-        cleanedData.avatar_url = await uploadToCloudinary(
-          req.files["avatar"][0],
-          "user_avatars",
-        );
-      }
-      if (req.files["license"]) {
-        // Upload nhiều file license nếu cần
-        cleanedData.document_url = await uploadMultipleToCloudinary(
-          req.files["license"],
-          "user_licenses",
-        );
-      }
-    }
-
-    // 6. Gọi Service thực hiện cập nhật
-    // SỬA LỖI: Dùng biến accountId thay vì id
-    const updated = await ServiceProcess.updateService(accountId, cleanedData);
+    // 2. Gọi Service thực hiện cập nhật
+    const updated = await ServiceProcess.updateService(id, updateData);
 
     // Gửi response thành công
-    return new successRes.UpdateSuccess(updated).send(res);
+    return new successRes.UpdateSuccess(updated, "Appointment updated successfully").send(res);
   } catch (error) {
     // Logging lỗi chi tiết để debug
-    logger.error("Error update appointmet", {
+    logger.error("Error update appointment controller", {
       context: "AppointmentController.updateController",
       message: error.message,
-      stack: error.stack, // Nên log thêm stack trace để dễ sửa lỗi
+      stack: error.stack,
     });
     throw error;
   }
@@ -458,7 +395,7 @@ const updateStatusController = async (req, res) => {
           "doctorId is required when status is IN_CONSULTATION"
         );
       }
-      
+
     }
 
     // 3. Gọi Service cập nhật (Đã sửa lỗi: truyền trực tiếp biến status dạng chuỗi)

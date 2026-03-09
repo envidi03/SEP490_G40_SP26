@@ -4,10 +4,9 @@ const ConfirmAppointmentModal = ({ appointment, isOpen, onClose, onConfirm }) =>
     if (!isOpen || !appointment) return null;
 
     const handleConfirm = () => {
-        // TODO: Call API to confirm appointment
-        console.log('Confirming appointment:', appointment.id);
+        // Call API to confirm appointment
         if (onConfirm) {
-            onConfirm(appointment.id);
+            onConfirm(appointment._id);
         }
         onClose();
     };
@@ -34,27 +33,29 @@ const ConfirmAppointmentModal = ({ appointment, isOpen, onClose, onConfirm }) =>
                     <div className="grid grid-cols-2 gap-3 text-sm">
                         <div>
                             <p className="text-gray-600">Bệnh nhân</p>
-                            <p className="font-medium text-gray-900">{appointment.patientName}</p>
+                            <p className="font-medium text-gray-900">{appointment.full_name}</p>
                         </div>
                         <div>
                             <p className="text-gray-600">Số điện thoại</p>
-                            <p className="font-medium text-gray-900">{appointment.patientPhone}</p>
+                            <p className="font-medium text-gray-900">{appointment.phone}</p>
                         </div>
                         <div>
                             <p className="text-gray-600">Ngày khám</p>
-                            <p className="font-medium text-gray-900">{appointment.date}</p>
+                            <p className="font-medium text-gray-900">
+                                {new Date(appointment.appointment_date).toLocaleDateString('vi-VN')}
+                            </p>
                         </div>
                         <div>
                             <p className="text-gray-600">Giờ khám</p>
-                            <p className="font-medium text-gray-900">{appointment.time}</p>
+                            <p className="font-medium text-gray-900">{appointment.appointment_time}</p>
                         </div>
                         <div className="col-span-2">
                             <p className="text-gray-600">Bác sĩ</p>
-                            <p className="font-medium text-gray-900">{appointment.doctorName}</p>
+                            <p className="font-medium text-gray-900">Tùy chọn bác sĩ</p>
                         </div>
                         <div className="col-span-2">
                             <p className="text-gray-600">Lý do khám</p>
-                            <p className="font-medium text-gray-900">{appointment.reason}</p>
+                            <p className="font-medium text-gray-900">{appointment.reason || 'Không rõ'}</p>
                         </div>
                     </div>
                 </div>

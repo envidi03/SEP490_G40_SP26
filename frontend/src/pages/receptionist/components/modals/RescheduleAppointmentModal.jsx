@@ -7,14 +7,13 @@ const RescheduleAppointmentModal = ({ appointment, isOpen, onClose, onReschedule
         e.preventDefault();
         const formData = new FormData(e.target);
         const data = {
-            newDate: formData.get('date'),
-            newTime: formData.get('time'),
+            appointment_date: formData.get('date'),
+            appointment_time: formData.get('time'),
             reason: formData.get('reason')
         };
-        // TODO: Call API to reschedule
-        console.log('Rescheduling appointment:', data);
+        // Call API to reschedule
         if (onReschedule) {
-            onReschedule(appointment.id, data);
+            onReschedule(appointment._id, data);
         }
         onClose();
     };
@@ -34,10 +33,10 @@ const RescheduleAppointmentModal = ({ appointment, isOpen, onClose, onReschedule
 
                 <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
                     <p className="text-sm text-gray-700">
-                        <span className="font-medium">Bệnh nhân:</span> {appointment.patientName}
+                        <span className="font-medium">Bệnh nhân:</span> {appointment.full_name}
                     </p>
                     <p className="text-sm text-gray-600">
-                        Lịch cũ: {appointment.date} - {appointment.time}
+                        Lịch cũ: {new Date(appointment.appointment_date).toLocaleDateString('vi-VN')} - {appointment.appointment_time}
                     </p>
                 </div>
 

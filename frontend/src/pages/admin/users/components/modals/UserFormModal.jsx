@@ -25,7 +25,7 @@ const generatePassword = () => {
     return password.split('').sort(() => Math.random() - 0.5).join('');
 };
 
-const UserFormModal = ({ isOpen, onClose, onSubmit, user, mode = 'add' }) => {
+const UserFormModal = ({ isOpen, onClose, onSubmit }) => {
     const [roles, setRoles] = useState([]);
     const [formData, setFormData] = useState({
         fullName: '',
@@ -50,7 +50,7 @@ const UserFormModal = ({ isOpen, onClose, onSubmit, user, mode = 'add' }) => {
 
     // Fetch roles khi mở form
     useEffect(() => {
-        if (isOpen && mode === 'add') {
+        if (isOpen) {
             staffService.getRoles()
                 .then(res => {
                     const data = res?.data || [];
@@ -58,31 +58,11 @@ const UserFormModal = ({ isOpen, onClose, onSubmit, user, mode = 'add' }) => {
                 })
                 .catch(() => setRoles([])); // fallback nếu API chưa có
         }
-    }, [isOpen, mode]);
+    }, [isOpen]);
 
     // Generate password when opening add mode
     useEffect(() => {
-        if (user && mode === 'edit') {
-            setFormData({
-                fullName: user.fullName || '',
-                username: user.username || '',
-                email: user.email || '',
-                phone: user.phone || '',
-                role_id: '',
-                gender: user.gender || 'OTHER',
-                dob: user.dob ? user.dob.split('T')[0] : '',
-                address: user.address || '',
-                password: '',
-                certificate: null,
-                certificateUrl: '',
-                avatar: null,
-            });
-            setCertificatePreview(
-                user.licenses && user.licenses.length > 0
-                    ? (user.licenses[0].document_url || null)
-                    : null
-            );
-        } else if (mode === 'add') {
+        if (isOpen) {
             setFormData({
                 fullName: '',
                 username: '',
@@ -98,19 +78,17 @@ const UserFormModal = ({ isOpen, onClose, onSubmit, user, mode = 'add' }) => {
                 avatar: null,
             });
             setCertificatePreview(null);
+            setErrors({});
+            setShowPassword(false);
+            setCopied(false);
         }
-        setErrors({});
-        setShowPassword(false);
-        setCopied(false);
-    }, [user, mode, isOpen]);
+    }, [isOpen]);
 
     const handleSubmit = (e) => {
         e.preventDefault();
         const newErrors = {};
-        if (mode === 'add') {
-            if (!formData.role_id) newErrors.role_id = 'Vui lòng chọn vai trò';
-            if (!formData.password) newErrors.password = 'Vui lòng tạo mật khẩu';
-        }
+        if (!formData.role_id) newErrors.role_id = 'Vui lòng chọn vai trò';
+        if (!formData.password) newErrors.password = 'Vui lòng tạo mật khẩu';
         if (Object.keys(newErrors).length > 0) {
             setErrors(newErrors);
             return;
@@ -211,7 +189,7 @@ const UserFormModal = ({ isOpen, onClose, onSubmit, user, mode = 'add' }) => {
                 {/* Header */}
                 <div className="flex items-center justify-between p-6 border-b border-gray-200">
                     <h2 className="text-2xl font-bold text-gray-900">
-                        {mode === 'add' ? 'Thêm người dùng mới' : 'Chỉnh sửa người dùng'}
+                        Thêm người dùng mới
                     </h2>
                     <button
                         onClick={onClose}
@@ -251,113 +229,108 @@ const UserFormModal = ({ isOpen, onClose, onSubmit, user, mode = 'add' }) => {
                                 value={formData.username}
                                 onChange={handleChange}
                                 required
-                                disabled={mode === 'edit'}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                                 placeholder="username123"
                             />
-                            {mode === 'edit' && (
-                                <p className="text-xs text-gray-500 mt-1">Username không thể thay đổi</p>
-                            )}
                         </div>
 
-                        {/* Role Selector - Only for Add mode */}
-                        {mode === 'add' && (
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Vai trò <span className="text-red-500">*</span>
-                                </label>
-                                <select
-                                    name="role_id"
-                                    value={formData.role_id}
-                                    onChange={handleChange}
-                                    required
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                                >
-                                    <option value="">-- Chọn vai trò --</option>
-                                    {roles.length > 0 ? (
-                                        roles.map(role => (
+                        {/* Role Selector */}
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Vai trò <span className="text-red-500">*</span>
+                            </label>
+                            <select
+                                name="role_id"
+                                value={formData.role_id}
+                                onChange={handleChange}
+                                required
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                            >
+                                <option value="">-- Chọn vai trò --</option>
+                                {roles.length > 0 ? (
+                                    roles
+                                        .filter(role => role.name !== 'ADMIN_CLINIC')
+                                        .map(role => (
                                             <option key={role._id} value={role._id}>
                                                 {{
-                                                    'ADMIN_CLINIC': 'Quản trị viên',
                                                     'DOCTOR': 'Bác sĩ',
                                                     'RECEPTIONIST': 'Lễ tân',
                                                     'PHARMACIST': 'Dược sĩ',
+                                                    'PHARMACY': 'Dược sĩ',
                                                     'ASSISTANT': 'Trợ lý'
                                                 }[role.name] || role.name}
                                             </option>
                                         ))
+                                ) : (
+                                    <option value="" disabled>Đang tải danh sách vai trò...</option>
+                                )}
+                            </select>
+                            {errors.role_id && <p className="text-xs text-red-500 mt-1">{errors.role_id}</p>}
+                        </div>
+
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                            <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                Mật khẩu tự động <span className="text-red-500">*</span>
+                            </label>
+                            <p className="text-xs text-gray-600 mb-3">
+                                Hệ thống đã tạo mật khẩu mạnh. Vui lòng copy và gửi cho nhân viên.
+                            </p>
+
+                            <div className="flex gap-2 items-center">
+                                <div className="flex-1 relative">
+                                    <input
+                                        type={showPassword ? "text" : "password"}
+                                        value={formData.password}
+                                        readOnly
+                                        className="w-full px-4 py-3 pr-12 bg-white border border-gray-300 rounded-lg font-mono text-base focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowPassword(!showPassword)}
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                                    >
+                                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                    </button>
+                                </div>
+
+                                <button
+                                    type="button"
+                                    onClick={handleCopyPassword}
+                                    className={`inline-flex items-center gap-2 px-4 py-3 rounded-lg font-medium transition-all ${copied
+                                        ? 'bg-green-100 text-green-700 border-2 border-green-300'
+                                        : 'bg-white text-gray-700 border-2 border-gray-300 hover:border-blue-500 hover:text-blue-600'
+                                        }`}
+                                >
+                                    {copied ? (
+                                        <>
+                                            <CheckCircle size={18} />
+                                            <span>Đã copy</span>
+                                        </>
                                     ) : (
-                                        <option value="" disabled>Đang tải danh sách vai trò...</option>
+                                        <>
+                                            <Copy size={18} />
+                                            <span>Copy</span>
+                                        </>
                                     )}
-                                </select>
-                                {errors.role_id && <p className="text-xs text-red-500 mt-1">{errors.role_id}</p>}
+                                </button>
+
+                                <button
+                                    type="button"
+                                    onClick={handleRegeneratePassword}
+                                    className="inline-flex items-center gap-2 px-4 py-3 bg-white text-gray-700 border-2 border-gray-300 rounded-lg hover:border-blue-500 hover:text-blue-600 font-medium transition-all"
+                                    title="Tạo lại mật khẩu"
+                                >
+                                    <RefreshCw size={18} />
+                                    <span>Tạo lại</span>
+                                </button>
                             </div>
-                        )}
-                        {mode === 'add' && (
-                            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                    Mật khẩu tự động <span className="text-red-500">*</span>
-                                </label>
-                                <p className="text-xs text-gray-600 mb-3">
-                                    Hệ thống đã tạo mật khẩu mạnh. Vui lòng copy và gửi cho nhân viên.
+
+                            <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                                <p className="text-xs text-yellow-800 font-medium">
+                                    ⚠️ Lưu ý: Nhân viên sẽ được yêu cầu đổi mật khẩu khi đăng nhập lần đầu.
                                 </p>
-
-                                <div className="flex gap-2 items-center">
-                                    <div className="flex-1 relative">
-                                        <input
-                                            type={showPassword ? "text" : "password"}
-                                            value={formData.password}
-                                            readOnly
-                                            className="w-full px-4 py-3 pr-12 bg-white border border-gray-300 rounded-lg font-mono text-base focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                        />
-                                        <button
-                                            type="button"
-                                            onClick={() => setShowPassword(!showPassword)}
-                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                                        >
-                                            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                                        </button>
-                                    </div>
-
-                                    <button
-                                        type="button"
-                                        onClick={handleCopyPassword}
-                                        className={`inline-flex items-center gap-2 px-4 py-3 rounded-lg font-medium transition-all ${copied
-                                            ? 'bg-green-100 text-green-700 border-2 border-green-300'
-                                            : 'bg-white text-gray-700 border-2 border-gray-300 hover:border-blue-500 hover:text-blue-600'
-                                            }`}
-                                    >
-                                        {copied ? (
-                                            <>
-                                                <CheckCircle size={18} />
-                                                <span>Đã copy</span>
-                                            </>
-                                        ) : (
-                                            <>
-                                                <Copy size={18} />
-                                                <span>Copy</span>
-                                            </>
-                                        )}
-                                    </button>
-
-                                    <button
-                                        type="button"
-                                        onClick={handleRegeneratePassword}
-                                        className="inline-flex items-center gap-2 px-4 py-3 bg-white text-gray-700 border-2 border-gray-300 rounded-lg hover:border-blue-500 hover:text-blue-600 font-medium transition-all"
-                                        title="Tạo lại mật khẩu"
-                                    >
-                                        <RefreshCw size={18} />
-                                        <span>Tạo lại</span>
-                                    </button>
-                                </div>
-
-                                <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                                    <p className="text-xs text-yellow-800 font-medium">
-                                        ⚠️ Lưu ý: Nhân viên sẽ được yêu cầu đổi mật khẩu khi đăng nhập lần đầu.
-                                    </p>
-                                </div>
                             </div>
-                        )}
+                        </div>
 
                         {/* Email & Phone */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -393,76 +366,73 @@ const UserFormModal = ({ isOpen, onClose, onSubmit, user, mode = 'add' }) => {
                         </div>
 
                         {/* Certificate Upload - Only for Doctor */}
-                        {(mode === 'add'
-                            ? roles.find(r => r._id === formData.role_id)?.name === 'DOCTOR'
-                            : user?.role === 'DOCTOR'
-                        ) && (
-                                <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-                                    <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                        Chứng chỉ hành nghề {mode === 'add' && <span className="text-gray-500 text-xs">(Tùy chọn)</span>}
-                                    </label>
-                                    <p className="text-xs text-gray-600 mb-3">
-                                        Upload chứng chỉ hành nghề bác sĩ (JPG, PNG hoặc PDF, tối đa 5MB)
-                                    </p>
+                        {roles.find(r => r._id === formData.role_id)?.name === 'DOCTOR' && (
+                            <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                    Chứng chỉ hành nghề <span className="text-gray-500 text-xs">(Tùy chọn)</span>
+                                </label>
+                                <p className="text-xs text-gray-600 mb-3">
+                                    Upload chứng chỉ hành nghề bác sĩ (JPG, PNG hoặc PDF, tối đa 5MB)
+                                </p>
 
-                                    {!certificatePreview ? (
-                                        <div>
-                                            <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-purple-300 border-dashed rounded-lg cursor-pointer bg-white hover:bg-purple-50 transition-colors">
-                                                <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                                                    <Upload className="w-10 h-10 mb-2 text-purple-500" />
-                                                    <p className="mb-2 text-sm text-gray-600">
-                                                        <span className="font-semibold">Click để upload</span> hoặc kéo thả file
-                                                    </p>
-                                                    <p className="text-xs text-gray-500">JPG, PNG hoặc PDF (Max 5MB)</p>
-                                                </div>
-                                                <input
-                                                    type="file"
-                                                    className="hidden"
-                                                    accept="image/jpeg,image/jpg,image/png,application/pdf"
-                                                    onChange={handleCertificateChange}
-                                                />
-                                            </label>
-                                            {errors.certificate && (
-                                                <p className="text-xs text-red-500 mt-2">{errors.certificate}</p>
-                                            )}
-                                        </div>
-                                    ) : (
-                                        <div className="bg-white border-2 border-purple-300 rounded-lg p-4">
-                                            <div className="flex items-start gap-3">
-                                                {certificatePreview === 'PDF' ? (
-                                                    <div className="flex-shrink-0 w-16 h-16 bg-red-100 rounded flex items-center justify-center">
-                                                        <FileText className="text-red-600" size={32} />
-                                                    </div>
-                                                ) : (
-                                                    <img
-                                                        src={certificatePreview}
-                                                        alt="Certificate preview"
-                                                        className="flex-shrink-0 w-16 h-16 object-cover rounded border border-gray-200"
-                                                    />
-                                                )}
-                                                <div className="flex-1 min-w-0">
-                                                    <p className="text-sm font-medium text-gray-900 truncate">
-                                                        {formData.certificate?.name || 'Chứng chỉ đã upload'}
-                                                    </p>
-                                                    <p className="text-xs text-gray-500">
-                                                        {formData.certificate?.size
-                                                            ? `${(formData.certificate.size / 1024).toFixed(1)} KB`
-                                                            : 'File đã lưu'}
-                                                    </p>
-                                                </div>
-                                                <button
-                                                    type="button"
-                                                    onClick={handleRemoveCertificate}
-                                                    className="flex-shrink-0 p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                                                    title="Xóa file"
-                                                >
-                                                    <Trash2 size={18} />
-                                                </button>
+                                {!certificatePreview ? (
+                                    <div>
+                                        <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-purple-300 border-dashed rounded-lg cursor-pointer bg-white hover:bg-purple-50 transition-colors">
+                                            <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                                                <Upload className="w-10 h-10 mb-2 text-purple-500" />
+                                                <p className="mb-2 text-sm text-gray-600">
+                                                    <span className="font-semibold">Click để upload</span> hoặc kéo thả file
+                                                </p>
+                                                <p className="text-xs text-gray-500">JPG, PNG hoặc PDF (Max 5MB)</p>
                                             </div>
+                                            <input
+                                                type="file"
+                                                className="hidden"
+                                                accept="image/jpeg,image/jpg,image/png,application/pdf"
+                                                onChange={handleCertificateChange}
+                                            />
+                                        </label>
+                                        {errors.certificate && (
+                                            <p className="text-xs text-red-500 mt-2">{errors.certificate}</p>
+                                        )}
+                                    </div>
+                                ) : (
+                                    <div className="bg-white border-2 border-purple-300 rounded-lg p-4">
+                                        <div className="flex items-start gap-3">
+                                            {certificatePreview === 'PDF' ? (
+                                                <div className="flex-shrink-0 w-16 h-16 bg-red-100 rounded flex items-center justify-center">
+                                                    <FileText className="text-red-600" size={32} />
+                                                </div>
+                                            ) : (
+                                                <img
+                                                    src={certificatePreview}
+                                                    alt="Certificate preview"
+                                                    className="flex-shrink-0 w-16 h-16 object-cover rounded border border-gray-200"
+                                                />
+                                            )}
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-sm font-medium text-gray-900 truncate">
+                                                    {formData.certificate?.name || 'Chứng chỉ đã upload'}
+                                                </p>
+                                                <p className="text-xs text-gray-500">
+                                                    {formData.certificate?.size
+                                                        ? `${(formData.certificate.size / 1024).toFixed(1)} KB`
+                                                        : 'File đã lưu'}
+                                                </p>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={handleRemoveCertificate}
+                                                className="flex-shrink-0 p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                                title="Xóa file"
+                                            >
+                                                <Trash2 size={18} />
+                                            </button>
                                         </div>
-                                    )}
-                                </div>
-                            )}
+                                    </div>
+                                )}
+                            </div>
+                        )}
                     </div>
 
                     {/* Footer */}
@@ -478,7 +448,7 @@ const UserFormModal = ({ isOpen, onClose, onSubmit, user, mode = 'add' }) => {
                             type="submit"
                             className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
                         >
-                            {mode === 'add' ? 'Thêm người dùng' : 'Lưu thay đổi'}
+                            Thêm người dùng
                         </button>
                     </div>
                 </form>

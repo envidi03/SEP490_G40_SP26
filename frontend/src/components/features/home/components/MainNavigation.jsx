@@ -1,12 +1,24 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { LogIn, Calendar, ChevronDown, LogOut, User as UserIcon, FileText } from 'lucide-react';
 import { useAuth } from '../../../../contexts/AuthContext';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { getProfile } from '../../../../services/profileService';
 
 const MainNavigation = () => {
     const { isAuthenticated, user, logout } = useAuth();
     const [showProfileMenu, setShowProfileMenu] = useState(false);
     const navigate = useNavigate();
+    const [avatarUrl, setAvatarUrl] = useState('');
+
+    // Fetch avatar khi user đã đăng nhập
+    useEffect(() => {
+        if (isAuthenticated) {
+            getProfile()
+                .then((res) => {
+                    setAvatarUrl(res.data?.avatar_url || '');
+                })
+        }
+    }, [isAuthenticated]);
 
     const handleLogout = async () => {
         await logout();
@@ -103,8 +115,20 @@ const MainNavigation = () => {
                                     onClick={() => setShowProfileMenu(!showProfileMenu)}
                                     className="flex items-center gap-2 p-1 rounded-full hover:bg-gray-100 transition-all"
                                 >
-                                    <div className="w-10 h-10 bg-gradient-to-br from-primary-500 to-primary-600 rounded-full flex items-center justify-center text-white font-semibold shadow-md">
-                                        {user?.name?.charAt(0) || 'U'}
+                                    <div className="w-10 h-10 rounded-full overflow-hidden shadow-md">
+                                        {avatarUrl ? (
+                                            <img
+                                                src={avatarUrl}
+                                                alt="Avatar"
+                                                className="w-full h-full object-cover"
+                                            />
+                                        ) : (
+                                            <div className="w-full h-full bg-primary-50 border border-primary-200 flex items-center justify-center">
+                                                <span className="text-primary-700 font-bold text-lg">
+                                                    {user?.name?.charAt(0)?.toUpperCase() || 'A'}
+                                                </span>
+                                            </div>
+                                        )}
                                     </div>
                                 </button>
 

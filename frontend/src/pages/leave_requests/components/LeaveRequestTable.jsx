@@ -1,80 +1,108 @@
 import React from 'react';
+import { Pencil, XCircle } from 'lucide-react';
+import Table from '../../../components/ui/Table';
+import Badge from '../../../components/ui/Badge';
+import { formatDate } from '../../../utils/dateUtils';
 
-const statusConfig = {
-    PENDING: { label: 'Chờ duyệt', bg: 'bg-amber-50 text-amber-700 border-amber-200' },
-    APPROVED: { label: 'Đã duyệt', bg: 'bg-teal-50 text-teal-700 border-teal-200' },
-    REJECTED: { label: 'Từ chối', bg: 'bg-red-50 text-red-600 border-red-200' },
-};
-
-const typeConfig = {
-    SICK_LEAVE: 'Nghỉ ốm',
-    ANNUAL_LEAVE: 'Nghỉ phép năm',
-    PERSONAL_LEAVE: 'Việc riêng'
-};
-
-const formatDate = (dateString) => {
-    if (!dateString) return '';
-    return new Date(dateString).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
-};
-
-const LeaveRequestTable = ({ requests }) => {
-    if (!requests || requests.length === 0) {
-        return (
-            <div className="bg-white rounded-2xl border border-dashed border-gray-200 py-16 text-center">
-                <p className="text-sm font-medium text-gray-500">Chưa có yêu cầu nghỉ phép nào</p>
-                <p className="text-xs text-gray-400 mt-1">Các đơn xin nghỉ phép của bạn sẽ hiển thị tại đây</p>
-            </div>
-        );
-    }
+const LeaveRequestTable = ({ requests = [], onEdit = () => { }, onCancel = () => { } }) => {
+    const columns = [
+        {
+            header: 'Trạng thái',
+            accessor: 'status',
+            render: (row) => {
+                const variants = {
+                    'PENDING': 'warning',
+                    'APPROVED': 'success',
+                    'REJECTED': 'danger',
+                    'DRAFT': 'default'
+                };
+                const labels = {
+                    'PENDING': 'Chờ duyệt',
+                    'APPROVED': 'Đã duyệt',
+                    'REJECTED': 'Từ chối',
+                    'DRAFT': 'Lưu nháp'
+                };
+                return <Badge variant={variants[row.status] || 'default'}>{labels[row.status] || row.status}</Badge>;
+            }
+        },
+        {
+            header: 'Ngày gửi',
+            accessor: 'createdAt',
+            render: (row) => formatDate(row.createdAt)
+        },
+        {
+            header: 'Thời gian nghỉ',
+            accessor: 'startedDate',
+            render: (row) => (
+                <div className="flex flex-col">
+                    <span className="font-medium text-gray-700">{formatDate(row.startedDate)}</span>
+                    <span className="text-[11px] text-gray-400 font-normal">đến {formatDate(row.endDate)}</span>
+                </div>
+            )
+        },
+        {
+            header: 'Loại nghỉ',
+            accessor: 'type',
+            render: (row) => {
+                const types = {
+                    'SICK': 'Nghỉ ốm',
+                    'ANNUAL': 'Nghỉ phép năm',
+                    'MATERNITY': 'Thai sản',
+                    'UNPAID': 'Không lương',
+                    'BEREAVEMENT': 'Tang chế',
+                    'EMERGENCY': 'Khẩn cấp'
+                };
+                return <span className="font-medium text-gray-700">{types[row.type] || row.type}</span>;
+            }
+        },
+        {
+            header: 'Lý do',
+            accessor: 'reason',
+            render: (row) => (
+                <div className="max-w-xs truncate text-gray-600" title={row.reason}>
+                    {row.reason}
+                </div>
+            )
+        },
+        {
+            header: 'Phản hồi',
+            accessor: 'comment',
+            render: (row) => (
+                <div className="max-w-[150px] truncate text-gray-500 text-[12px]" title={row.comment}>
+                    {row.comment || '-'}
+                </div>
+            )
+        },
+        {
+            header: 'Thao tác',
+            accessor: 'actions',
+            render: (row) => {
+                if (row.status !== 'PENDING' && row.status !== 'DRAFT') return null;
+                return (
+                    <div className="flex space-x-2">
+                        <button
+                            onClick={(e) => { e.stopPropagation(); onEdit(row); }}
+                            className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors border border-transparent hover:border-blue-100"
+                            title="Chỉnh sửa"
+                        >
+                            <Pencil size={15} />
+                        </button>
+                        <button
+                            onClick={(e) => { e.stopPropagation(); onCancel(row); }}
+                            className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors border border-transparent hover:border-red-100"
+                            title="Hủy yêu cầu"
+                        >
+                            <XCircle size={15} />
+                        </button>
+                    </div>
+                );
+            }
+        }
+    ];
 
     return (
-        <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-            <div className="overflow-x-auto">
-                <table className="w-full text-left text-[13px]">
-                    <thead className="bg-gray-50/50 text-gray-500 font-medium">
-                        <tr>
-                            <th className="px-5 py-4 font-semibold w-1">Trạng thái</th>
-                            <th className="px-5 py-4 font-semibold">Ngày gửi</th>
-                            <th className="px-5 py-4 font-semibold">T.gian nghỉ</th>
-                            <th className="px-5 py-4 font-semibold">Loại nghỉ</th>
-                            <th className="px-5 py-4 font-semibold">Lý do</th>
-                            <th className="px-5 py-4 font-semibold text-right">Phản hồi</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-50">
-                        {requests.map((row) => {
-                            const st = statusConfig[row.status] || { label: row.status, bg: 'bg-gray-50 text-gray-600 border-gray-200' };
-                            return (
-                                <tr key={row._id || row.id} className="hover:bg-slate-50/50 transition-colors">
-                                    <td className="px-5 py-3 whitespace-nowrap">
-                                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border w-max ${st.bg}`}>
-                                            {st.label}
-                                        </span>
-                                    </td>
-                                    <td className="px-5 py-3 text-gray-600 whitespace-nowrap">
-                                        {formatDate(row.createdAt)}
-                                    </td>
-                                    <td className="px-5 py-3 whitespace-nowrap">
-                                        <div className="flex flex-col">
-                                            <span className="font-medium text-gray-700">{formatDate(row.startDate)}</span>
-                                            <span className="text-[11px] text-gray-400">đến {formatDate(row.endDate)}</span>
-                                        </div>
-                                    </td>
-                                    <td className="px-5 py-3 font-medium text-gray-700 whitespace-nowrap">
-                                        {typeConfig[row.leave_type] || row.leave_type || 'Nghỉ phép'}
-                                    </td>
-                                    <td className="px-5 py-3 text-gray-600 max-w-[200px] truncate" title={row.reason}>
-                                        {row.reason}
-                                    </td>
-                                    <td className="px-5 py-3 text-right max-w-[150px] truncate text-gray-500 text-[12px]" title={row.comment}>
-                                        {row.comment || '-'}
-                                    </td>
-                                </tr>
-                            );
-                        })}
-                    </tbody>
-                </table>
-            </div>
+        <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
+            <Table columns={columns} data={requests} />
         </div>
     );
 };

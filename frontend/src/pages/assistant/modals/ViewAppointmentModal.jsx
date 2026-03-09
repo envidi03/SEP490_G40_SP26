@@ -4,8 +4,8 @@ const ViewAppointmentModal = ({ appointment, isOpen, onClose }) => {
     if (!isOpen || !appointment) return null;
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-xl shadow-2xl p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-white/60 backdrop-blur-[2px] flex items-center justify-center z-50">
+            <div className="bg-white rounded-2xl shadow-xl p-6 max-w-2xl w-full mx-4 border border-gray-200 max-h-[90vh] overflow-y-auto">
                 <div className="flex justify-between items-start mb-4">
                     <div className="flex items-center gap-2">
                         <div className="p-2 bg-blue-100 rounded-lg">
@@ -80,8 +80,8 @@ const ViewAppointmentModal = ({ appointment, isOpen, onClose }) => {
                             <div className="flex items-center justify-between">
                                 <span className="text-sm text-gray-600">Trạng thái</span>
                                 <span className={`px-3 py-1 rounded-full text-sm font-medium ${appointment.status === 'confirmed'
-                                        ? 'bg-green-100 text-green-700'
-                                        : 'bg-yellow-100 text-yellow-700'
+                                    ? 'bg-green-100 text-green-700'
+                                    : 'bg-yellow-100 text-yellow-700'
                                     }`}>
                                     {appointment.status === 'confirmed' ? 'Đã xác nhận' : 'Chờ xác nhận'}
                                 </span>

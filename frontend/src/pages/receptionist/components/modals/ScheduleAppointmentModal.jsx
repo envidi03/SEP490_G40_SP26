@@ -1,16 +1,51 @@
-import React, { useState } from 'react';
-import { X, Calendar as CalendarIcon, Clock, User, FileText } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, Calendar as CalendarIcon, Clock, User, FileText, Loader2 } from 'lucide-react';
+import appointmentService from '../../../../services/appointmentService';
+import staffService from '../../../../services/staffService';
+import Toast from '../../../../components/ui/Toast';
 
 const ScheduleAppointmentModal = ({ patient, isOpen, onClose, onSchedule }) => {
     const [formData, setFormData] = useState({
-        date: '',
-        time: '',
-        doctor: '',
+        appointment_date: '',
+        appointment_time: '',
+        doctorId: '',
         reason: '',
         notes: ''
     });
+    const [loading, setLoading] = useState(false);
+    const [doctors, setDoctors] = useState([]);
+    const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
+
+    useEffect(() => {
+        if (isOpen) {
+            fetchDoctors();
+            // Reset form
+            setFormData({
+                appointment_date: '',
+                appointment_time: '',
+                doctorId: '',
+                reason: '',
+                notes: ''
+            });
+        }
+    }, [isOpen]);
+
+    const fetchDoctors = async () => {
+        try {
+            const response = await staffService.getStaffs({ role: 'DENTIST' });
+            const data = response.data?.data || response.data || [];
+            const staffList = Array.isArray(data) ? data : data.data || [];
+            setDoctors(staffList);
+        } catch (error) {
+            console.error('Error fetching doctors:', error);
+        }
+    };
 
     if (!isOpen || !patient) return null;
+
+    const patientName = patient.profile?.full_name || patient.name || 'N/A';
+    const patientPhone = patient.profile?.phone || patient.phone || '';
+    const patientEmail = patient.profile?.email || patient.email || '';
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -20,22 +55,44 @@ const ScheduleAppointmentModal = ({ patient, isOpen, onClose, onSchedule }) => {
         }));
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        // TODO: Call API to create appointment
-        console.log('Scheduling appointment:', {
-            patient: patient,
-            ...formData
-        });
-        if (onSchedule) {
-            onSchedule(formData);
+        setLoading(true);
+        try {
+            const submissionData = {
+                ...formData,
+                full_name: patientName,
+                phone: patientPhone,
+                email: patientEmail,
+                patient_id: patient._id || patient.id
+            };
+
+            const response = await appointmentService.staffCreateAppointment(submissionData);
+            setToast({ show: true, message: 'Đặt lịch hẹn thành công!', type: 'success' });
+
+            if (onSchedule) {
+                onSchedule(response.data?.data || response.data);
+            }
+
+            setTimeout(() => {
+                onClose();
+            }, 1000);
+        } catch (error) {
+            console.error('Error scheduling appointment:', error);
+            setToast({
+                show: true,
+                message: error.response?.data?.message || 'Có lỗi xảy ra khi đặt lịch.',
+                type: 'error'
+            });
+        } finally {
+            setLoading(false);
         }
-        onClose();
     };
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-xl shadow-2xl p-8 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+            <div className="absolute inset-0 bg-white/40 backdrop-blur-sm" onClick={onClose}></div>
+            <div className="relative bg-white rounded-xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] p-8 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
                 {/* Modal Header */}
                 <div className="flex justify-between items-start mb-6">
                     <div>
@@ -55,13 +112,13 @@ const ScheduleAppointmentModal = ({ patient, isOpen, onClose, onSchedule }) => {
                     <div className="flex items-center">
                         <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center mr-3">
                             <span className="text-blue-600 font-bold text-lg">
-                                {patient.name.charAt(0)}
+                                {patientName.charAt(0)}
                             </span>
                         </div>
                         <div>
                             <p className="text-sm text-gray-600">Bệnh nhân</p>
-                            <p className="font-semibold text-gray-900">{patient.name}</p>
-                            <p className="text-xs text-gray-500">{patient.phone} • {patient.email}</p>
+                            <p className="font-semibold text-gray-900">{patientName}</p>
+                            <p className="text-xs text-gray-500">{patientPhone} • {patientEmail}</p>
                         </div>
                     </div>
                 </div>
@@ -78,8 +135,8 @@ const ScheduleAppointmentModal = ({ patient, isOpen, onClose, onSchedule }) => {
                                 </label>
                                 <input
                                     type="date"
-                                    name="date"
-                                    value={formData.date}
+                                    name="appointment_date"
+                                    value={formData.appointment_date}
                                     onChange={handleChange}
                                     required
                                     min={new Date().toISOString().split('T')[0]}
@@ -93,8 +150,8 @@ const ScheduleAppointmentModal = ({ patient, isOpen, onClose, onSchedule }) => {
                                 </label>
                                 <input
                                     type="time"
-                                    name="time"
-                                    value={formData.time}
+                                    name="appointment_time"
+                                    value={formData.appointment_time}
                                     onChange={handleChange}
                                     required
                                     className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
@@ -109,18 +166,18 @@ const ScheduleAppointmentModal = ({ patient, isOpen, onClose, onSchedule }) => {
                                 Bác sĩ khám <span className="text-red-500 ml-1">*</span>
                             </label>
                             <select
-                                name="doctor"
-                                value={formData.doctor}
+                                name="doctorId"
+                                value={formData.doctorId}
                                 onChange={handleChange}
                                 required
                                 className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                             >
                                 <option value="">Chọn bác sĩ</option>
-                                <option value="dr_nguyen">BS. Nguyễn Văn Anh - Nội khoa</option>
-                                <option value="dr_tran">BS. Trần Thị Bình - Da liễu</option>
-                                <option value="dr_le">BS. Lê Hoàng Cường - Tim mạch</option>
-                                <option value="dr_pham">BS. Phạm Minh Đức - Nhi khoa</option>
-                                <option value="dr_vo">BS. Võ Thị Hương - Sản khoa</option>
+                                {doctors.map(doc => (
+                                    <option key={doc._id} value={doc._id}>
+                                        {doc.profile?.full_name || doc.name}
+                                    </option>
+                                ))}
                             </select>
                         </div>
 
@@ -176,13 +233,21 @@ const ScheduleAppointmentModal = ({ patient, isOpen, onClose, onSchedule }) => {
                         </button>
                         <button
                             type="submit"
-                            className="px-6 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium transition-colors flex items-center gap-2"
+                            disabled={loading}
+                            className="px-6 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium transition-colors flex items-center gap-2 disabled:opacity-50"
                         >
-                            <CalendarIcon size={18} />
-                            Xác nhận đặt lịch
+                            {loading ? <Loader2 className="animate-spin" size={18} /> : <CalendarIcon size={18} />}
+                            {loading ? 'Đang đặt lịch...' : 'Xác nhận đặt lịch'}
                         </button>
                     </div>
                 </form>
+
+                <Toast
+                    show={toast.show}
+                    message={toast.message}
+                    type={toast.type}
+                    onClose={() => setToast({ ...toast, show: false })}
+                />
             </div>
         </div>
     );

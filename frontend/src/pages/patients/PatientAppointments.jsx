@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { mockAppointments } from '../../utils/mockData';
+import appointmentService from '../../services/appointmentService';
 import PublicLayout from '../../components/layout/PublicLayout';
 import Toast from '../../components/ui/Toast';
-import { Calendar, ArrowLeft } from 'lucide-react';
+import { Calendar, ArrowLeft, Loader2 } from 'lucide-react';
 
 // Import các components con
 import AppointmentFilters from './components/AppointmentFilters';
@@ -34,6 +34,8 @@ const PatientAppointments = () => {
     // State quản lý danh sách appointments
     const [appointments, setAppointments] = useState([]);
     const [filteredAppointments, setFilteredAppointments] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState(null);
 
     // State cho search và filter
     const [searchTerm, setSearchTerm] = useState('');
@@ -55,16 +57,25 @@ const PatientAppointments = () => {
         reason: ''
     });
 
-    // Effect: Load appointments khi component mount
+    // Effect: Load appointments từ API khi component mount
     useEffect(() => {
-        if (user) {
-            // Trong thực tế sẽ filter theo user.id
-            // Hiện tại dùng mock data để demo
-            const userAppointments = mockAppointments;
-            setAppointments(userAppointments);
-            setFilteredAppointments(userAppointments);
-        }
-    }, [user]);
+        const fetchAppointments = async () => {
+            setLoading(true);
+            setError(null);
+            try {
+                const res = await appointmentService.getPatientAppointments();
+                const data = res.data || [];
+                setAppointments(data);
+                setFilteredAppointments(data);
+            } catch (err) {
+                setError('Không thể tải danh sách lịch khám. Vui lòng thử lại!');
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchAppointments();
+    }, []);
 
     // Effect: Lọc appointments khi search/filter thay đổi
     useEffect(() => {
@@ -75,11 +86,12 @@ const PatientAppointments = () => {
             filtered = filtered.filter(apt => apt.status === statusFilter);
         }
 
-        // Lọc theo search term
+        // Lọc theo search term (dùng field từ backend)
         if (searchTerm) {
             filtered = filtered.filter(apt =>
-                apt.doctorName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                apt.reason.toLowerCase().includes(searchTerm.toLowerCase())
+                (apt.doctor_name || apt.doctorName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                (apt.note || apt.reason || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                (apt.service_name || apt.serviceName || '').toLowerCase().includes(searchTerm.toLowerCase())
             );
         }
 
@@ -91,10 +103,12 @@ const PatientAppointments = () => {
      */
     const getStatusColor = (status) => {
         const colors = {
-            'Confirmed': 'bg-green-100 text-green-700 border-green-200',
-            'Pending': 'bg-yellow-100 text-yellow-700 border-yellow-200',
-            'Completed': 'bg-blue-100 text-blue-700 border-blue-200',
-            'Cancelled': 'bg-red-100 text-red-700 border-red-200'
+            'SCHEDULED': 'bg-blue-100 text-blue-700 border-blue-200',
+            'CHECKED_IN': 'bg-yellow-100 text-yellow-700 border-yellow-200',
+            'IN_CONSULTATION': 'bg-purple-100 text-purple-700 border-purple-200',
+            'COMPLETED': 'bg-green-100 text-green-700 border-green-200',
+            'CANCELLED': 'bg-red-100 text-red-700 border-red-200',
+            'NO_SHOW': 'bg-gray-100 text-gray-700 border-gray-200'
         };
         return colors[status] || 'bg-gray-100 text-gray-700 border-gray-200';
     };
@@ -104,10 +118,12 @@ const PatientAppointments = () => {
      */
     const getStatusText = (status) => {
         const texts = {
-            'Confirmed': 'Đã xác nhận',
-            'Pending': 'Chờ xác nhận',
-            'Completed': 'Hoàn thành',
-            'Cancelled': 'Đã hủy'
+            'SCHEDULED': 'Đã lên lịch',
+            'CHECKED_IN': 'Đã check-in',
+            'IN_CONSULTATION': 'Đang khám',
+            'COMPLETED': 'Hoàn thành',
+            'CANCELLED': 'Đã hủy',
+            'NO_SHOW': 'Không đến'
         };
         return texts[status] || status;
     };
@@ -115,10 +131,17 @@ const PatientAppointments = () => {
     // ========== HANDLERS ==========
 
     /**
-     * Handler: Mở modal chi tiết
+     * Handler: Mở modal chi tiết — gọi API lấy đầy đủ thông tin
      */
-    const handleDetailClick = (appointment) => {
-        setSelectedAppointment(appointment);
+    const handleDetailClick = async (appointment) => {
+        const id = appointment._id || appointment.id;
+        try {
+            const res = await appointmentService.getAppointmentById(id);
+            setSelectedAppointment(res.data || appointment);
+        } catch {
+            // Nếu API lỗi, vẫn dùng data sẵn có từ list
+            setSelectedAppointment(appointment);
+        }
         setShowDetailModal(true);
     };
 
@@ -128,9 +151,11 @@ const PatientAppointments = () => {
     const handleUpdateClick = (appointment) => {
         setSelectedAppointment(appointment);
         setUpdateForm({
-            date: appointment.date,
-            time: appointment.time,
-            reason: appointment.reason
+            date: appointment.appointment_date
+                ? new Date(appointment.appointment_date).toISOString().split('T')[0]
+                : appointment.date || '',
+            time: appointment.appointment_time || appointment.time || '',
+            reason: appointment.note || appointment.reason || ''
         });
         setShowUpdateModal(true);
     };
@@ -138,27 +163,50 @@ const PatientAppointments = () => {
     /**
      * Handler: Submit form cập nhật
      */
-    const handleUpdateSubmit = (e) => {
+    const handleUpdateSubmit = async (e) => {
         e.preventDefault();
 
-        // Cập nhật appointment trong state
-        setAppointments(prev =>
-            prev.map(apt =>
-                apt.id === selectedAppointment.id
-                    ? { ...apt, ...updateForm }
-                    : apt
-            )
-        );
+        try {
+            const appointmentId = selectedAppointment._id || selectedAppointment.id;
 
-        // Đóng modal và hiển thị thông báo
-        setShowUpdateModal(false);
-        setToast({
-            show: true,
-            type: 'success',
-            message: '✅ Cập nhật lịch khám thành công!'
-        });
-        setSelectedAppointment(null);
-        setUpdateForm({ date: '', time: '', reason: '' });
+            // Gọi API cập nhật lịch khám
+            await appointmentService.updateAppointment(appointmentId, {
+                appointment_date: updateForm.date,
+                appointment_time: updateForm.time,
+                reason: updateForm.reason,
+            });
+
+            // Cập nhật lại state danh sách cho đồng bộ UI
+            setAppointments(prev =>
+                prev.map(apt =>
+                    (apt._id || apt.id) === appointmentId
+                        ? {
+                            ...apt,
+                            appointment_date: updateForm.date,
+                            appointment_time: updateForm.time,
+                            reason: updateForm.reason,
+                        }
+                        : apt
+                )
+            );
+
+            // Đóng modal và hiển thị thông báo
+            setShowUpdateModal(false);
+            setToast({
+                show: true,
+                type: 'success',
+                message: '✅ Cập nhật lịch khám thành công!'
+            });
+            setSelectedAppointment(null);
+            setUpdateForm({ date: '', time: '', reason: '' });
+        } catch (error) {
+            console.error('Error updating appointment:', error);
+            setToast({
+                show: true,
+                type: 'error',
+                message: error.response?.data?.message || '❌ Lỗi khi cập nhật lịch khám. Vui lòng thử lại!'
+            });
+        }
     };
 
     /**
@@ -172,24 +220,37 @@ const PatientAppointments = () => {
     /**
      * Handler: Xác nhận hủy lịch khám
      */
-    const handleCancelConfirm = () => {
-        // Cập nhật status thành Cancelled
-        setAppointments(prev =>
-            prev.map(apt =>
-                apt.id === selectedAppointment.id
-                    ? { ...apt, status: 'Cancelled' }
-                    : apt
-            )
-        );
+    const handleCancelConfirm = async () => {
+        try {
+            const appointmentId = selectedAppointment._id || selectedAppointment.id;
+            // Gọi API cập nhật trạng thái
+            await appointmentService.cancelAppointment(appointmentId);
 
-        // Đóng modal và hiển thị thông báo
-        setShowCancelModal(false);
-        setToast({
-            show: true,
-            type: 'success',
-            message: '✅ Đã hủy lịch khám thành công!'
-        });
-        setSelectedAppointment(null);
+            // Cập nhật lại state danh sách cho đồng bộ UI
+            setAppointments(prev =>
+                prev.map(apt =>
+                    (apt._id || apt.id) === appointmentId
+                        ? { ...apt, status: 'CANCELLED' }
+                        : apt
+                )
+            );
+
+            // Đóng modal và hiển thị thông báo
+            setShowCancelModal(false);
+            setToast({
+                show: true,
+                type: 'success',
+                message: '✅ Đã hủy lịch khám thành công!'
+            });
+            setSelectedAppointment(null);
+        } catch (error) {
+            console.error('Error canceling appointment:', error);
+            setToast({
+                show: true,
+                type: 'error',
+                message: error.response?.data?.message || '❌ Lỗi khi hủy lịch khám. Vui lòng thử lại!'
+            });
+        }
     };
 
     // ========== RENDER ==========
@@ -214,47 +275,72 @@ const PatientAppointments = () => {
                     </div>
 
                     {/* Filters Component */}
-                    <AppointmentFilters
-                        searchTerm={searchTerm}
-                        onSearchChange={setSearchTerm}
-                        statusFilter={statusFilter}
-                        onStatusChange={setStatusFilter}
-                    />
+                    {/* Loading State */}
+                    {loading && (
+                        <div className="flex items-center justify-center py-16">
+                            <Loader2 size={40} className="animate-spin text-primary-500" />
+                            <span className="ml-3 text-gray-500 text-lg">Đang tải lịch khám...</span>
+                        </div>
+                    )}
 
-                    {/* Appointments List */}
-                    <div className="space-y-4">
-                        {filteredAppointments.length === 0 ? (
-                            // Empty State
-                            <div className="bg-white rounded-2xl shadow-lg p-12 text-center">
-                                <Calendar size={64} className="mx-auto text-gray-300 mb-4" />
-                                <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                                    Không có lịch khám nào
-                                </h3>
-                                <p className="text-gray-600">
-                                    {searchTerm || statusFilter !== 'all'
-                                        ? 'Không tìm thấy lịch khám phù hợp với bộ lọc của bạn'
-                                        : 'Bạn chưa có lịch khám nào. Đặt lịch ngay để được tư vấn!'}
-                                </p>
+                    {/* Error State */}
+                    {error && !loading && (
+                        <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-center text-red-700 mb-4">
+                            <p className="font-medium">{error}</p>
+                            <button
+                                onClick={() => window.location.reload()}
+                                className="mt-3 px-4 py-2 bg-red-100 hover:bg-red-200 rounded-lg text-sm transition-colors"
+                            >
+                                Thử lại
+                            </button>
+                        </div>
+                    )}
+
+                    {!loading && !error && (
+                        <>
+                            <AppointmentFilters
+                                searchTerm={searchTerm}
+                                onSearchChange={setSearchTerm}
+                                statusFilter={statusFilter}
+                                onStatusChange={setStatusFilter}
+                            />
+
+                            {/* Appointments List */}
+                            <div className="space-y-4">
+                                {filteredAppointments.length === 0 ? (
+                                    // Empty State
+                                    <div className="bg-white rounded-2xl shadow-lg p-12 text-center">
+                                        <Calendar size={64} className="mx-auto text-gray-300 mb-4" />
+                                        <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                                            Không có lịch khám nào
+                                        </h3>
+                                        <p className="text-gray-600">
+                                            {searchTerm || statusFilter !== 'all'
+                                                ? 'Không tìm thấy lịch khám phù hợp với bộ lọc của bạn'
+                                                : 'Bạn chưa có lịch khám nào. Đặt lịch ngay để được tư vấn!'}
+                                        </p>
+                                    </div>
+                                ) : (
+                                    // Appointment Cards
+                                    filteredAppointments.map((appointment) => (
+                                        <AppointmentCard
+                                            key={appointment.id || appointment._id}
+                                            appointment={appointment}
+                                            onViewDetail={handleDetailClick}
+                                            onUpdate={handleUpdateClick}
+                                            onCancel={handleCancelClick}
+                                            getStatusColor={getStatusColor}
+                                            getStatusText={getStatusText}
+                                        />
+                                    ))
+                                )}
                             </div>
-                        ) : (
-                            // Appointment Cards
-                            filteredAppointments.map((appointment) => (
-                                <AppointmentCard
-                                    key={appointment.id}
-                                    appointment={appointment}
-                                    onViewDetail={handleDetailClick}
-                                    onUpdate={handleUpdateClick}
-                                    onCancel={handleCancelClick}
-                                    getStatusColor={getStatusColor}
-                                    getStatusText={getStatusText}
-                                />
-                            ))
-                        )}
-                    </div>
 
-                    {/* Stats Component */}
-                    {filteredAppointments.length > 0 && (
-                        <AppointmentStats appointments={appointments} />
+                            {/* Stats Component */}
+                            {filteredAppointments.length > 0 && (
+                                <AppointmentStats appointments={appointments} />
+                            )}
+                        </>
                     )}
                 </div>
             </div>
@@ -262,6 +348,7 @@ const PatientAppointments = () => {
             {/* Toast Notification */}
             {toast.show && (
                 <Toast
+                    show={toast.show}
                     type={toast.type}
                     message={toast.message}
                     onClose={() => setToast({ ...toast, show: false })}

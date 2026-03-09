@@ -52,13 +52,10 @@ apiClient.interceptors.response.use(
 
         // Check if URL is login or refresh token endpoint to avoid infinite loops
         if (originalRequest.url.includes('/auth/login') || originalRequest.url.includes('/auth/refresh-token')) {
-            // If refresh fails, clear tokens and redirect
+            // If refresh fails, clear ALL auth data and redirect
             if (originalRequest.url.includes('/auth/refresh-token')) {
-                storage.remove('access_token');
-                storage.remove('refresh_token');
-                sessionStorage.remove('access_token');
-                sessionStorage.remove('refresh_token');
-                window.location.href = '/login';
+                clearAllAuthData();
+                redirectToLogin();
             }
             return Promise.reject(error);
         }
@@ -83,7 +80,8 @@ apiClient.interceptors.response.use(
         const refreshToken = storage.get('refresh_token') || sessionStorage.get('refresh_token');
 
         if (!refreshToken) {
-            window.location.href = '/login';
+            clearAllAuthData();
+            redirectToLogin();
             return Promise.reject(error);
         }
 
@@ -112,17 +110,36 @@ apiClient.interceptors.response.use(
             return apiClient(originalRequest);
         } catch (refreshError) {
             processQueue(refreshError, null);
-            // Clear tokens and redirect
-            storage.remove('access_token');
-            storage.remove('refresh_token');
-            sessionStorage.remove('access_token');
-            sessionStorage.remove('refresh_token');
-            window.location.href = '/login';
+            // Clear ALL auth data and redirect
+            clearAllAuthData();
+            redirectToLogin();
             return Promise.reject(refreshError);
         } finally {
             isRefreshing = false;
         }
     }
 );
+
+/**
+ * Xóa toàn bộ dữ liệu auth (tokens + user info)
+ * Đảm bảo isAuthenticated = false sau khi reload → không gọi API nữa
+ */
+function clearAllAuthData() {
+    storage.remove('access_token');
+    storage.remove('refresh_token');
+    storage.remove('dcms_user');
+    sessionStorage.remove('access_token');
+    sessionStorage.remove('refresh_token');
+    try { window.sessionStorage.removeItem('dcms_user'); } catch (e) { }
+}
+
+/**
+ * Redirect về /login nếu chưa ở đó — tránh vòng lặp reload vô hạn
+ */
+function redirectToLogin() {
+    if (!window.location.pathname.includes('/login')) {
+        window.location.replace('/login');
+    }
+}
 
 export default apiClient;

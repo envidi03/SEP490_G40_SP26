@@ -7,7 +7,6 @@ import {
     Eye,
     Lock,
     Unlock,
-    UserCheck,
     Mail,
     Phone,
     Calendar
@@ -64,13 +63,6 @@ const UserMobileCard = ({ user, roleConfig, statusConfig, onView, onEdit, onLock
                     >
                         <Eye size={16} />
                         Xem
-                    </button>
-                    <button
-                        onClick={() => onEdit(user)}
-                        className="flex-1 px-3 py-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 flex items-center justify-center gap-2 text-sm font-medium"
-                    >
-                        <Edit size={16} />
-                        Sửa
                     </button>
                     {user.status === 'ACTIVE' ? (
                         <button

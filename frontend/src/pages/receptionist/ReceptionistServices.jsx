@@ -1,103 +1,61 @@
-import React, { useState } from 'react';
-import { ClipboardList, Search, DollarSign, Clock } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { ClipboardList, Search, DollarSign, Clock, Loader2, RefreshCw } from 'lucide-react';
 import Card from '../../components/ui/Card';
 import Badge from '../../components/ui/Badge';
-
-// Mock Services Data
-const mockServices = [
-    {
-        id: 'srv_001',
-        name: 'Khám tổng quát',
-        category: 'Khám bệnh',
-        price: 200000,
-        duration: 30,
-        description: 'Khám sức khỏe tổng quát, tư vấn bác sĩ',
-        status: 'active'
-    },
-    {
-        id: 'srv_002',
-        name: 'Trám răng amalgam',
-        category: 'Điều trị',
-        price: 300000,
-        duration: 45,
-        description: 'Trám răng sâu bằng vật liệu amalgam',
-        status: 'active'
-    },
-    {
-        id: 'srv_003',
-        name: 'Trám răng composite',
-        category: 'Điều trị',
-        price: 500000,
-        duration: 60,
-        description: 'Trám răng thẩm mỹ bằng composite',
-        status: 'active'
-    },
-    {
-        id: 'srv_004',
-        name: 'Nhổ răng',
-        category: 'Phẫu thuật',
-        price: 400000,
-        duration: 30,
-        description: 'Nhổ răng đơn giản',
-        status: 'active'
-    },
-    {
-        id: 'srv_005',
-        name: 'Lấy cao răng',
-        category: 'Vệ sinh',
-        price: 250000,
-        duration: 30,
-        description: 'Lấy cao răng, vệ sinh răng miệng',
-        status: 'active'
-    },
-    {
-        id: 'srv_006',
-        name: 'Tẩy trắng răng',
-        category: 'Thẩm mỹ',
-        price: 2000000,
-        duration: 90,
-        description: 'Tẩy trắng răng công nghệ Laser',
-        status: 'active'
-    },
-    {
-        id: 'srv_007',
-        name: 'Niềng răng mắc cài kim loại',
-        category: 'Chỉnh nha',
-        price: 25000000,
-        duration: 60,
-        description: 'Niềng răng mắc cài kim loại truyền thống',
-        status: 'active'
-    },
-    {
-        id: 'srv_008',
-        name: 'Cấy ghép Implant',
-        category: 'Phẫu thuật',
-        price: 15000000,
-        duration: 120,
-        description: 'Cấy ghép implant Titanium',
-        status: 'active'
-    }
-];
+import Toast from '../../components/ui/Toast';
+import serviceService from '../../services/serviceService';
 
 const ReceptionistServices = () => {
+    const [services, setServices] = useState([]);
+    const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [filterCategory, setFilterCategory] = useState('all');
+    const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
 
-    const filteredServices = mockServices.filter(service => {
-        const matchesSearch = service.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            service.description.toLowerCase().includes(searchTerm.toLowerCase());
+    const fetchServices = async () => {
+        setLoading(true);
+        try {
+            const response = await serviceService.getAllServices();
+            const data = response.data?.data || response.data || [];
+            setServices(Array.isArray(data) ? data : data.data || []);
+        } catch (error) {
+            console.error('Error fetching services:', error);
+            setToast({ show: true, message: 'Lỗi khi tải danh sách dịch vụ', type: 'error' });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchServices();
+    }, []);
+
+    const filteredServices = services.filter(service => {
+        const sName = service.name || '';
+        const sDesc = service.description || '';
+        const matchesSearch = sName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            sDesc.toLowerCase().includes(searchTerm.toLowerCase());
         const matchesCategory = filterCategory === 'all' || service.category === filterCategory;
         return matchesSearch && matchesCategory;
     });
 
-    const categories = [...new Set(mockServices.map(s => s.category))];
+    const categories = [...new Set(services.map(s => s.category).filter(Boolean))];
 
     return (
         <div>
             {/* Header */}
-            <div className="mb-8">
-                <h1 className="text-3xl font-bold text-gray-900">Danh Sách Dịch Vụ</h1>
-                <p className="text-gray-600 mt-1">Thông tin các dịch vụ nha khoa</p>
+            <div className="mb-8 flex justify-between items-center">
+                <div>
+                    <h1 className="text-3xl font-bold text-gray-900">Danh Sách Dịch Vụ</h1>
+                    <p className="text-gray-600 mt-1">Thông tin các dịch vụ nha khoa</p>
+                </div>
+                <button
+                    onClick={fetchServices}
+                    className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-600 transition-colors"
+                    title="Tải lại"
+                >
+                    <RefreshCw size={20} className={loading ? 'animate-spin' : ''} />
+                </button>
             </div>
 
             {/* Filters */}
@@ -131,16 +89,23 @@ const ReceptionistServices = () => {
 
             {/* Services Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredServices.length > 0 ? (
+                {loading ? (
+                    <div className="col-span-full text-center py-12">
+                        <Loader2 size={40} className="mx-auto text-primary-500 animate-spin mb-4" />
+                        <p className="text-gray-500">Đang tải danh sách dịch vụ...</p>
+                    </div>
+                ) : filteredServices.length > 0 ? (
                     filteredServices.map((service) => (
-                        <Card key={service.id} className="hover:shadow-lg transition-shadow">
+                        <Card key={service._id} className="hover:shadow-lg transition-shadow">
                             <div className="flex justify-between items-start mb-3">
-                                <Badge variant="primary">{service.category}</Badge>
-                                <Badge variant="success">Active</Badge>
+                                <Badge variant="primary">{service.category || 'Dịch vụ'}</Badge>
+                                <Badge variant={service.status === 'ACTIVE' ? 'success' : 'danger'}>
+                                    {service.status === 'ACTIVE' ? 'Hoạt động' : 'Ngưng'}
+                                </Badge>
                             </div>
 
                             <h3 className="text-lg font-bold text-gray-900 mb-2">{service.name}</h3>
-                            <p className="text-sm text-gray-600 mb-4">{service.description}</p>
+                            <p className="text-sm text-gray-600 mb-4 line-clamp-2">{service.description || 'Không có mô tả'}</p>
 
                             <div className="space-y-2 border-t border-gray-200 pt-4">
                                 <div className="flex justify-between items-center">
@@ -149,7 +114,7 @@ const ReceptionistServices = () => {
                                         Giá dịch vụ
                                     </span>
                                     <span className="text-lg font-bold text-primary-600">
-                                        {service.price.toLocaleString('vi-VN')}đ
+                                        {(service.price || 0).toLocaleString('vi-VN')}đ
                                     </span>
                                 </div>
                                 <div className="flex justify-between items-center">
@@ -158,7 +123,7 @@ const ReceptionistServices = () => {
                                         Thời gian
                                     </span>
                                     <span className="text-sm font-medium text-gray-900">
-                                        {service.duration} phút
+                                        {service.duration || 30} phút
                                     </span>
                                 </div>
                             </div>
@@ -175,6 +140,13 @@ const ReceptionistServices = () => {
                     </div>
                 )}
             </div>
+
+            <Toast
+                show={toast.show}
+                message={toast.message}
+                type={toast.type}
+                onClose={() => setToast({ ...toast, show: false })}
+            />
         </div>
     );
 };

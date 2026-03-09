@@ -1,118 +1,77 @@
-import React, { useState } from 'react';
-import { Wrench, Search, AlertCircle, CheckCircle, Settings } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Wrench, Search, AlertCircle, CheckCircle, Settings, Loader2, RefreshCw } from 'lucide-react';
 import Card from '../../components/ui/Card';
 import Badge from '../../components/ui/Badge';
+import Toast from '../../components/ui/Toast';
+import equipmentService from '../../services/equipmentService';
 import UpdateMaintenanceModal from './components/modals/UpdateMaintenanceModal';
 
-// Mock Equipment Data
-const mockEquipment = [
-    {
-        id: 'eq_001',
-        name: 'Máy X-quang Panoramic',
-        code: 'XRAY-001',
-        category: 'Chẩn đoán hình ảnh',
-        location: 'Phòng 101',
-        status: 'active',
-        lastMaintenance: '2025-12-15',
-        nextMaintenance: '2026-03-15'
-    },
-    {
-        id: 'eq_002',
-        name: 'Ghế nha khoa Belmont',
-        code: 'CHAIR-001',
-        category: 'Thiết bị điều trị',
-        location: 'Phòng 102',
-        status: 'active',
-        lastMaintenance: '2026-01-05',
-        nextMaintenance: '2026-04-05'
-    },
-    {
-        id: 'eq_003',
-        name: 'Máy cạo vôi siêu âm',
-        code: 'SCALER-001',
-        category: 'Thiết bị điều trị',
-        location: 'Phòng 103',
-        status: 'maintenance',
-        lastMaintenance: '2025-11-20',
-        nextMaintenance: '2026-02-20'
-    },
-    {
-        id: 'eq_004',
-        name: 'Máy khoan nha khoa',
-        code: 'DRILL-001',
-        category: 'Thiết bị điều trị',
-        location: 'Phòng 102',
-        status: 'active',
-        lastMaintenance: '2026-01-10',
-        nextMaintenance: '2026-04-10'
-    },
-    {
-        id: 'eq_005',
-        name: 'Máy trộn amalgam',
-        code: 'AMALG-001',
-        category: 'Thiết bị hỗ trợ',
-        location: 'Phòng vật tư',
-        status: 'active',
-        lastMaintenance: '2025-12-01',
-        nextMaintenance: '2026-06-01'
-    },
-    {
-        id: 'eq_006',
-        name: 'Tủ tiệt trùng',
-        code: 'STER-001',
-        category: 'Vệ sinh khử trùng',
-        location: 'Phòng khử trùng',
-        status: 'active',
-        lastMaintenance: '2026-01-01',
-        nextMaintenance: '2026-04-01'
-    },
-    {
-        id: 'eq_007',
-        name: 'Máy hút bụi nha khoa',
-        code: 'SUCTION-001',
-        category: 'Thiết bị hỗ trợ',
-        location: 'Phòng 101',
-        status: 'maintenance',
-        lastMaintenance: '2025-10-15',
-        nextMaintenance: '2026-01-15'
-    },
-    {
-        id: 'eq_008',
-        name: 'Máy tẩy trắng răng Laser',
-        code: 'LASER-001',
-        category: 'Thẩm mỹ',
-        location: 'Phòng 104',
-        status: 'active',
-        lastMaintenance: '2025-12-20',
-        nextMaintenance: '2026-03-20'
-    }
-];
-
 const ReceptionistEquipment = () => {
+    const [equipments, setEquipments] = useState([]);
+    const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [filterStatus, setFilterStatus] = useState('all');
     const [selectedEquipment, setSelectedEquipment] = useState(null);
     const [showUpdateModal, setShowUpdateModal] = useState(false);
+    const [toast, setToast] = useState({ show: false, type: '', message: '' });
 
-    const filteredEquipment = mockEquipment.filter(eq => {
-        const matchesSearch = eq.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            eq.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            eq.location.toLowerCase().includes(searchTerm.toLowerCase());
-        const matchesStatus = filterStatus === 'all' || eq.status === filterStatus;
-        return matchesSearch && matchesStatus;
-    });
-
-    const getStatusInfo = (status) => {
-        switch (status) {
-            case 'active':
-                return { variant: 'success', label: 'Hoạt động', icon: CheckCircle };
-            case 'maintenance':
-                return { variant: 'warning', label: 'Bảo trì', icon: AlertCircle };
-            default:
-                return { variant: 'default', label: status, icon: Wrench };
+    // --- FETCH DATA TỪ API ---
+    const fetchEquipments = async () => {
+        setLoading(true);
+        try {
+            const response = await equipmentService.getEquipments({
+                search: searchTerm || undefined,
+                status: filterStatus !== 'all' ? filterStatus : undefined,
+            });
+            const data = response?.data?.data || response?.data || [];
+            setEquipments(Array.isArray(data) ? data : data.data || []);
+        } catch (error) {
+            console.error('Error fetching equipments:', error);
+            setToast({ show: true, type: 'error', message: '❌ Lỗi khi tải danh sách thiết bị' });
+        } finally {
+            setLoading(false);
         }
     };
 
+    useEffect(() => {
+        fetchEquipments();
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // --- LỌC PHÍA CLIENT (cho search nhanh mà không cần gọi API lại) ---
+    const filteredEquipment = useMemo(() => {
+        return equipments.filter(eq => {
+            const name = eq.equipment_name || '';
+            const code = eq.equipment_serial_number || '';
+            const type = eq.equipment_type || '';
+            const matchesSearch = name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                type.toLowerCase().includes(searchTerm.toLowerCase());
+            const matchesStatus = filterStatus === 'all' || eq.status === filterStatus;
+            return matchesSearch && matchesStatus;
+        });
+    }, [equipments, searchTerm, filterStatus]);
+
+    // --- MAP TRẠNG THÁI ---
+    const getStatusInfo = (status) => {
+        switch (status) {
+            case 'READY':
+                return { variant: 'success', label: 'Sẵn sàng' };
+            case 'IN_USE':
+                return { variant: 'primary', label: 'Đang sử dụng' };
+            case 'MAINTENANCE':
+                return { variant: 'warning', label: 'Bảo trì' };
+            case 'REPAIRING':
+                return { variant: 'warning', label: 'Đang sửa chữa' };
+            case 'FAULTY':
+                return { variant: 'danger', label: 'Hỏng' };
+            case 'STERILIZING':
+                return { variant: 'info', label: 'Đang khử trùng' };
+            default:
+                return { variant: 'default', label: status || 'N/A' };
+        }
+    };
+
+    // --- HANDLERS ---
     const handleUpdateClick = (equipment) => {
         setSelectedEquipment(equipment);
         setShowUpdateModal(true);
@@ -123,20 +82,47 @@ const ReceptionistEquipment = () => {
         setSelectedEquipment(null);
     };
 
-    const handleUpdateMaintenance = (equipmentId, data) => {
-        // TODO: Call API to update maintenance
-        console.log('Updating equipment maintenance:', equipmentId, data);
+    const handleUpdateMaintenance = async (equipmentId, data) => {
+        try {
+            // Gọi API cập nhật trạng thái
+            if (data.status) {
+                await equipmentService.updateEquipmentStatus(equipmentId, data.status);
+            }
+
+            setToast({ show: true, type: 'success', message: '✅ Cập nhật bảo trì thành công!' });
+            closeModal();
+            // Reload danh sách từ API
+            fetchEquipments();
+        } catch (error) {
+            console.error('Error updating maintenance:', error);
+            setToast({
+                show: true,
+                type: 'error',
+                message: error?.data?.message || '❌ Lỗi khi cập nhật thiết bị. Vui lòng thử lại!'
+            });
+        }
     };
 
-    const activeCount = mockEquipment.filter(eq => eq.status === 'active').length;
-    const maintenanceCount = mockEquipment.filter(eq => eq.status === 'maintenance').length;
+    // --- THỐNG KÊ ---
+    const totalCount = equipments.length;
+    const activeCount = equipments.filter(eq => eq.status === 'READY' || eq.status === 'IN_USE').length;
+    const maintenanceCount = equipments.filter(eq => ['MAINTENANCE', 'REPAIRING', 'FAULTY'].includes(eq.status)).length;
 
     return (
         <div>
             {/* Header */}
-            <div className="mb-8">
-                <h1 className="text-3xl font-bold text-gray-900">Quản Lý Thiết Bị</h1>
-                <p className="text-gray-600 mt-1">Theo dõi thiết bị và lịch bảo trì</p>
+            <div className="mb-8 flex justify-between items-center">
+                <div>
+                    <h1 className="text-3xl font-bold text-gray-900">Quản Lý Thiết Bị</h1>
+                    <p className="text-gray-600 mt-1">Theo dõi thiết bị và lịch bảo trì</p>
+                </div>
+                <button
+                    onClick={fetchEquipments}
+                    className="flex items-center gap-2 px-4 py-2 text-sm bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                    <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
+                    Tải lại
+                </button>
             </div>
 
             {/* Stats */}
@@ -145,7 +131,7 @@ const ReceptionistEquipment = () => {
                     <div className="flex items-center justify-between">
                         <div>
                             <p className="text-sm text-gray-600">Tổng thiết bị</p>
-                            <p className="text-3xl font-bold text-gray-900 mt-1">{mockEquipment.length}</p>
+                            <p className="text-3xl font-bold text-gray-900 mt-1">{totalCount}</p>
                         </div>
                         <div className="p-3 bg-blue-100 rounded-full">
                             <Wrench size={24} className="text-blue-600" />
@@ -168,7 +154,7 @@ const ReceptionistEquipment = () => {
                 <Card>
                     <div className="flex items-center justify-between">
                         <div>
-                            <p className="text-sm text-gray-600">Đang bảo trì</p>
+                            <p className="text-sm text-gray-600">Cần bảo trì / Hỏng</p>
                             <p className="text-3xl font-bold text-orange-600 mt-1">{maintenanceCount}</p>
                         </div>
                         <div className="p-3 bg-orange-100 rounded-full">
@@ -186,7 +172,7 @@ const ReceptionistEquipment = () => {
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
                         <input
                             type="text"
-                            placeholder="Tìm kiếm thiết bị, mã thiết bị, vị trí..."
+                            placeholder="Tìm kiếm thiết bị, mã thiết bị, loại..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
@@ -200,84 +186,87 @@ const ReceptionistEquipment = () => {
                         className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
                     >
                         <option value="all">Tất cả trạng thái</option>
-                        <option value="active">Đang hoạt động</option>
-                        <option value="maintenance">Đang bảo trì</option>
+                        <option value="READY">Sẵn sàng</option>
+                        <option value="IN_USE">Đang sử dụng</option>
+                        <option value="MAINTENANCE">Đang bảo trì</option>
+                        <option value="REPAIRING">Đang sửa chữa</option>
+                        <option value="FAULTY">Hỏng</option>
+                        <option value="STERILIZING">Đang khử trùng</option>
                     </select>
                 </div>
             </Card>
 
             {/* Equipment Table */}
             <Card>
-                <div className="overflow-x-auto">
-                    <table className="w-full">
-                        <thead className="bg-gray-50 border-b border-gray-200">
-                            <tr>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Thiết bị</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Mã TB</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Danh mục</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Vị trí</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Bảo trì cuối</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Bảo trì tiếp</th>
-                                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Trạng thái</th>
-                                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Thao tác</th>
-                            </tr>
-                        </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
-                            {filteredEquipment.map((equipment) => {
-                                const statusInfo = getStatusInfo(equipment.status);
-                                const StatusIcon = statusInfo.icon;
-
-                                return (
-                                    <tr key={equipment.id} className="hover:bg-gray-50">
-                                        <td className="px-6 py-4">
-                                            <div className="flex items-center">
-                                                <div className="p-2 bg-gray-100 rounded-lg mr-3">
-                                                    <Wrench size={20} className="text-gray-600" />
-                                                </div>
-                                                <span className="text-sm font-medium text-gray-900">{equipment.name}</span>
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <span className="text-sm text-gray-600">{equipment.code}</span>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <span className="text-sm text-gray-900">{equipment.category}</span>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <span className="text-sm text-gray-600">{equipment.location}</span>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <span className="text-sm text-gray-600">{equipment.lastMaintenance}</span>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <span className="text-sm text-gray-600">{equipment.nextMaintenance}</span>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-center">
-                                            <Badge variant={statusInfo.variant}>
-                                                <StatusIcon size={14} className="inline mr-1" />
-                                                {statusInfo.label}
-                                            </Badge>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-center">
-                                            <button
-                                                onClick={() => handleUpdateClick(equipment)}
-                                                className="p-2 text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
-                                                title="Cập nhật bảo trì"
-                                            >
-                                                <Settings size={18} />
-                                            </button>
-                                        </td>
-                                    </tr>
-                                );
-                            })}
-                        </tbody>
-                    </table>
-                </div>
-
-                {filteredEquipment.length === 0 && (
-                    <div className="text-center py-12 text-gray-500">
-                        Không tìm thấy thiết bị nào
+                {loading ? (
+                    <div className="text-center py-16">
+                        <Loader2 size={40} className="mx-auto text-primary-500 animate-spin mb-4" />
+                        <p className="text-gray-500">Đang tải danh sách thiết bị...</p>
                     </div>
+                ) : (
+                    <>
+                        <div className="overflow-x-auto">
+                            <table className="w-full">
+                                <thead className="bg-gray-50 border-b border-gray-200">
+                                    <tr>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Thiết bị</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Số Serial</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Loại TB</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nhà cung cấp</th>
+                                        <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Trạng thái</th>
+                                        <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Thao tác</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="bg-white divide-y divide-gray-200">
+                                    {filteredEquipment.map((equipment) => {
+                                        const statusInfo = getStatusInfo(equipment.status);
+
+                                        return (
+                                            <tr key={equipment._id} className="hover:bg-gray-50">
+                                                <td className="px-6 py-4">
+                                                    <div className="flex items-center">
+                                                        <div className="p-2 bg-gray-100 rounded-lg mr-3">
+                                                            <Wrench size={20} className="text-gray-600" />
+                                                        </div>
+                                                        <span className="text-sm font-medium text-gray-900">{equipment.equipment_name}</span>
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <span className="text-sm text-gray-600">{equipment.equipment_serial_number || '—'}</span>
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <span className="text-sm text-gray-900">{equipment.equipment_type}</span>
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <span className="text-sm text-gray-600">{equipment.supplier || '—'}</span>
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-center">
+                                                    <Badge variant={statusInfo.variant}>
+                                                        {statusInfo.label}
+                                                    </Badge>
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-center">
+                                                    <button
+                                                        onClick={() => handleUpdateClick(equipment)}
+                                                        className="p-2 text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
+                                                        title="Cập nhật bảo trì"
+                                                    >
+                                                        <Settings size={18} />
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        {filteredEquipment.length === 0 && (
+                            <div className="text-center py-12 text-gray-500">
+                                Không tìm thấy thiết bị nào
+                            </div>
+                        )}
+                    </>
                 )}
             </Card>
 
@@ -287,6 +276,14 @@ const ReceptionistEquipment = () => {
                 isOpen={showUpdateModal}
                 onClose={closeModal}
                 onUpdate={handleUpdateMaintenance}
+            />
+
+            {/* Toast */}
+            <Toast
+                show={toast.show}
+                type={toast.type}
+                message={toast.message}
+                onClose={() => setToast({ ...toast, show: false })}
             />
         </div>
     );

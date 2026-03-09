@@ -1,46 +1,75 @@
-import { X, CheckCircle, Wrench, Package } from 'lucide-react';
+import { X, CheckCircle, Package, Laptop, AlertTriangle } from 'lucide-react';
 import { useState } from 'react';
 
 const PrepareAppointmentModal = ({ appointment, isOpen, onClose, onComplete }) => {
-    const [checklist, setChecklist] = useState({
-        equipment: {
-            dentalChair: false,
-            instruments: false,
-            xrayMachine: false,
-            suction: false
-        },
-        supplies: {
-            gloves: false,
-            masks: false,
-            gauze: false,
-            anesthesia: false
-        },
-        hygiene: {
-            sterilization: false,
-            disinfection: false,
-            areaPrep: false
-        }
+    // Vật tư tiêu hao (Supplies)
+    const [supplies, setSupplies] = useState({
+        tray: false,
+        gauze: false,
+        syringe: false,
+        anesthesia: false,
+        gloves: false,
+        masks: false
+    });
+
+    // Máy móc (Equipment)
+    const [equipment, setEquipment] = useState({
+        chair: null,      // null | 'good' | 'error'
+        light: null,
+        suction: null,
+        xray: null
     });
 
     const [notes, setNotes] = useState('');
 
     if (!isOpen || !appointment) return null;
 
-    const handleCheckboxChange = (category, item) => {
-        setChecklist(prev => ({
-            ...prev,
-            [category]: {
-                ...prev[category],
-                [item]: !prev[category][item]
-            }
-        }));
+    const suppliesLabels = {
+        tray: 'Khay khám cơ bản',
+        gauze: 'Bông băng, gạc y tế',
+        syringe: 'Kim tiêm vô trùng',
+        anesthesia: 'Thuốc tê chuyên dụng',
+        gloves: 'Găng tay y tế',
+        masks: 'Khẩu trang chuyên dụng'
     };
+
+    const equipmentLabels = {
+        chair: 'Ghế răng số 1',
+        light: 'Đèn soi nha khoa',
+        suction: 'Máy hút bọt (suction)',
+        xray: 'Máy chụp X-Quang'
+    };
+
+    const handleSupplyChange = (key) => {
+        setSupplies(prev => ({ ...prev, [key]: !prev[key] }));
+    };
+
+    const handleEquipmentChange = (key, status) => {
+        setEquipment(prev => ({ ...prev, [key]: status }));
+    };
+
+    const checkedSupplies = Object.values(supplies).filter(Boolean).length;
+    const checkedEquipment = Object.values(equipment).filter(v => v !== null).length;
+
+    // Total items: 6 supplies + 4 equipment = 10 items
+    const totalSupplies = Object.keys(supplies).length;
+    const totalEquipment = Object.keys(equipment).length;
+    const totalItems = totalSupplies + totalEquipment;
+
+    const progress = checkedSupplies + checkedEquipment;
+    const progressPercent = Math.round((progress / totalItems) * 100);
+    const isReadyToConfirm = progress === totalItems;
+    const hasError = Object.values(equipment).some(v => v === 'error');
 
     const handleSubmit = (e) => {
         e.preventDefault();
+        if (!isReadyToConfirm) return;
+
         const data = {
-            checklist,
+            supplies,
+            equipment,
             notes,
+            hasError,
             completedAt: new Date().toISOString()
         };
         if (onComplete) {
@@ -49,223 +78,183 @@ const PrepareAppointmentModal = ({ appointment, isOpen, onClose, onComplete }) =
         onClose();
     };
 
-    const isAllChecked = () => {
-        return Object.values(checklist).every(category =>
-            Object.values(category).every(item => item === true)
-        );
-    };
-
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-xl shadow-2xl p-6 max-w-3xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-                <div className="flex justify-between items-start mb-4">
-                    <div className="flex items-center gap-2">
-                        <div className="p-2 bg-green-100 rounded-lg">
-                            <CheckCircle className="text-green-600" size={24} />
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+            {/* Backdrop */}
+            <div className="absolute inset-0 bg-white/60 backdrop-blur-[2px]" onClick={onClose} />
+
+            {/* Modal */}
+            <div className="relative bg-white rounded-2xl shadow-xl border border-gray-200 w-full max-w-4xl max-h-[90vh] overflow-hidden mx-4 flex flex-col">
+                {/* Header */}
+                <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-gray-50/50">
+                    <div className="flex items-center gap-3">
+                        <div className="p-2.5 bg-blue-100 text-blue-600 rounded-xl">
+                            <CheckCircle size={24} />
                         </div>
                         <div>
                             <h2 className="text-xl font-bold text-gray-900">Chuẩn Bị Ca Khám</h2>
-                            <p className="text-sm text-gray-500">Checklist thiết bị & vật tư</p>
+                            <p className="text-sm text-gray-500">Bệnh nhân: <span className="font-semibold text-gray-700">{appointment.patientName}</span> - Dịch vụ: <span className="font-semibold text-gray-700">{appointment.reason}</span></p>
                         </div>
                     </div>
-                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+                    <button onClick={onClose} className="p-2 hover:bg-gray-200 bg-gray-100 rounded-lg transition-colors text-gray-500">
                         <X size={20} />
                     </button>
                 </div>
 
-                {/* Appointment Info Banner */}
-                <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
-                    <div className="grid grid-cols-2 gap-3 text-sm">
-                        <div>
-                            <span className="text-blue-600 font-medium">Bệnh nhân:</span>
-                            <span className="ml-2 text-blue-900">{appointment.patientName}</span>
-                        </div>
-                        <div>
-                            <span className="text-blue-600 font-medium">Thời gian:</span>
-                            <span className="ml-2 text-blue-900">{appointment.date} - {appointment.time}</span>
-                        </div>
-                        <div className="col-span-2">
-                            <span className="text-blue-600 font-medium">Bác sĩ:</span>
-                            <span className="ml-2 text-blue-900">{appointment.doctorName}</span>
-                        </div>
+                {/* Progress Bar Container */}
+                <div className="px-6 py-4 bg-white border-b border-gray-100">
+                    <div className="flex items-center justify-between text-sm mb-2">
+                        <span className="text-gray-600 font-medium">Tiến độ chuẩn bị vật tư & thiết bị</span>
+                        <span className={`font-bold ${isReadyToConfirm ? 'text-green-600' : 'text-blue-600'}`}>
+                            {progress}/{totalItems} mục ({progressPercent}%)
+                        </span>
+                    </div>
+                    <div className="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
+                        <div
+                            className={`h-full rounded-full transition-all duration-500 ease-out ${isReadyToConfirm
+                                ? 'bg-green-500'
+                                : 'bg-blue-500'
+                                }`}
+                            style={{ width: `${progressPercent}%` }}
+                        />
                     </div>
                 </div>
 
-                <form onSubmit={handleSubmit}>
-                    {/* Equipment Checklist */}
-                    <div className="mb-6">
-                        <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                            <Wrench size={18} className="text-gray-600" />
-                            Kiểm Tra Thiết Bị
-                        </h3>
-                        <div className="space-y-2 bg-gray-50 p-4 rounded-lg">
-                            <label className="flex items-center gap-3 cursor-pointer hover:bg-white p-2 rounded transition-colors">
-                                <input
-                                    type="checkbox"
-                                    checked={checklist.equipment.dentalChair}
-                                    onChange={() => handleCheckboxChange('equipment', 'dentalChair')}
-                                    className="w-5 h-5 text-primary-600 rounded focus:ring-2 focus:ring-primary-500"
-                                />
-                                <span className="text-gray-700">Ghế nha khoa hoạt động tốt</span>
-                            </label>
-                            <label className="flex items-center gap-3 cursor-pointer hover:bg-white p-2 rounded transition-colors">
-                                <input
-                                    type="checkbox"
-                                    checked={checklist.equipment.instruments}
-                                    onChange={() => handleCheckboxChange('equipment', 'instruments')}
-                                    className="w-5 h-5 text-primary-600 rounded focus:ring-2 focus:ring-primary-500"
-                                />
-                                <span className="text-gray-700">Dụng cụ khám đã tiệt trùng</span>
-                            </label>
-                            <label className="flex items-center gap-3 cursor-pointer hover:bg-white p-2 rounded transition-colors">
-                                <input
-                                    type="checkbox"
-                                    checked={checklist.equipment.xrayMachine}
-                                    onChange={() => handleCheckboxChange('equipment', 'xrayMachine')}
-                                    className="w-5 h-5 text-primary-600 rounded focus:ring-2 focus:ring-primary-500"
-                                />
-                                <span className="text-gray-700">Máy X-quang sẵn sàng</span>
-                            </label>
-                            <label className="flex items-center gap-3 cursor-pointer hover:bg-white p-2 rounded transition-colors">
-                                <input
-                                    type="checkbox"
-                                    checked={checklist.equipment.suction}
-                                    onChange={() => handleCheckboxChange('equipment', 'suction')}
-                                    className="w-5 h-5 text-primary-600 rounded focus:ring-2 focus:ring-primary-500"
-                                />
-                                <span className="text-gray-700">Máy hút hoạt động bình thường</span>
-                            </label>
+                {/* Body (Scrollable Checklist) */}
+                <div className="overflow-y-auto flex-1 p-6 bg-gray-50/30">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        {/* Cột 1: Vật tư tiêu hao (Supplies) */}
+                        <div>
+                            <h3 className="flex items-center gap-2 font-bold text-gray-800 mb-4 pb-2 border-b border-gray-200 uppercase tracking-wide text-sm">
+                                <Package className="text-blue-500" size={18} />
+                                Vật tư tiêu hao ({checkedSupplies}/{totalSupplies})
+                            </h3>
+                            <div className="space-y-3">
+                                {Object.entries(suppliesLabels).map(([key, label]) => (
+                                    <label
+                                        key={key}
+                                        className={`flex items-center gap-3 p-3.5 border-2 rounded-xl cursor-pointer transition-all duration-200 ${supplies[key]
+                                            ? 'bg-blue-50 border-blue-200 shadow-sm'
+                                            : 'bg-white border-gray-100 hover:border-gray-300 hover:bg-gray-50'
+                                            }`}
+                                    >
+                                        <input
+                                            type="checkbox"
+                                            checked={supplies[key]}
+                                            onChange={() => handleSupplyChange(key)}
+                                            className="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500 bg-white"
+                                        />
+                                        <span className={`text-[15px] ${supplies[key] ? 'text-blue-800 font-medium' : 'text-gray-700'}`}>
+                                            {label}
+                                        </span>
+                                    </label>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Cột 2: Máy móc (Equipment) */}
+                        <div>
+                            <h3 className="flex items-center gap-2 font-bold text-gray-800 mb-4 pb-2 border-b border-gray-200 uppercase tracking-wide text-sm">
+                                <Laptop className="text-amber-500" size={18} />
+                                Máy móc ({checkedEquipment}/{totalEquipment})
+                            </h3>
+                            <div className="space-y-3">
+                                {Object.entries(equipmentLabels).map(([key, label]) => {
+                                    const status = equipment[key];
+                                    return (
+                                        <div
+                                            key={key}
+                                            className={`p-3.5 border-2 rounded-xl transition-all duration-200 ${status === 'good'
+                                                ? 'bg-green-50 border-green-200 shadow-sm'
+                                                : status === 'error'
+                                                    ? 'bg-red-50 border-red-200 shadow-sm'
+                                                    : 'bg-white border-gray-100'
+                                                }`}
+                                        >
+                                            <div className={`font-medium mb-3 text-[15px] ${status === 'good' ? 'text-green-800' : status === 'error' ? 'text-red-800' : 'text-gray-700'}`}>
+                                                {label}
+                                            </div>
+                                            <div className="flex gap-2">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleEquipmentChange(key, 'good')}
+                                                    className={`flex-1 py-2 px-3 rounded-lg text-sm font-semibold transition-colors duration-200 ${status === 'good'
+                                                        ? 'bg-green-500 text-white shadow-md shadow-green-500/20'
+                                                        : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                                                        }`}
+                                                >
+                                                    Hoạt động Tốt
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleEquipmentChange(key, 'error')}
+                                                    className={`flex-1 py-2 px-3 rounded-lg text-sm font-semibold transition-colors duration-200 flex items-center justify-center gap-1.5 ${status === 'error'
+                                                        ? 'bg-red-500 text-white shadow-md shadow-red-500/20'
+                                                        : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                                                        }`}
+                                                >
+                                                    {status === 'error' && <AlertTriangle size={14} />}
+                                                    Có lỗi
+                                                </button>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
                         </div>
                     </div>
 
-                    {/* Supplies Checklist */}
-                    <div className="mb-6">
-                        <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                            <Package size={18} className="text-gray-600" />
-                            Vật Tư Y Tế
-                        </h3>
-                        <div className="space-y-2 bg-gray-50 p-4 rounded-lg">
-                            <label className="flex items-center gap-3 cursor-pointer hover:bg-white p-2 rounded transition-colors">
-                                <input
-                                    type="checkbox"
-                                    checked={checklist.supplies.gloves}
-                                    onChange={() => handleCheckboxChange('supplies', 'gloves')}
-                                    className="w-5 h-5 text-primary-600 rounded focus:ring-2 focus:ring-primary-500"
-                                />
-                                <span className="text-gray-700">Găng tay y tế</span>
-                            </label>
-                            <label className="flex items-center gap-3 cursor-pointer hover:bg-white p-2 rounded transition-colors">
-                                <input
-                                    type="checkbox"
-                                    checked={checklist.supplies.masks}
-                                    onChange={() => handleCheckboxChange('supplies', 'masks')}
-                                    className="w-5 h-5 text-primary-600 rounded focus:ring-2 focus:ring-primary-500"
-                                />
-                                <span className="text-gray-700">Khẩu trang</span>
-                            </label>
-                            <label className="flex items-center gap-3 cursor-pointer hover:bg-white p-2 rounded transition-colors">
-                                <input
-                                    type="checkbox"
-                                    checked={checklist.supplies.gauze}
-                                    onChange={() => handleCheckboxChange('supplies', 'gauze')}
-                                    className="w-5 h-5 text-primary-600 rounded focus:ring-2 focus:ring-primary-500"
-                                />
-                                <span className="text-gray-700">Băng gạc, bông</span>
-                            </label>
-                            <label className="flex items-center gap-3 cursor-pointer hover:bg-white p-2 rounded transition-colors">
-                                <input
-                                    type="checkbox"
-                                    checked={checklist.supplies.anesthesia}
-                                    onChange={() => handleCheckboxChange('supplies', 'anesthesia')}
-                                    className="w-5 h-5 text-primary-600 rounded focus:ring-2 focus:ring-primary-500"
-                                />
-                                <span className="text-gray-700">Thuốc tê (nếu cần)</span>
-                            </label>
-                        </div>
-                    </div>
-
-                    {/* Hygiene Checklist */}
-                    <div className="mb-6">
-                        <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                            <CheckCircle size={18} className="text-gray-600" />
-                            Vệ Sinh & Khử Trùng
-                        </h3>
-                        <div className="space-y-2 bg-gray-50 p-4 rounded-lg">
-                            <label className="flex items-center gap-3 cursor-pointer hover:bg-white p-2 rounded transition-colors">
-                                <input
-                                    type="checkbox"
-                                    checked={checklist.hygiene.sterilization}
-                                    onChange={() => handleCheckboxChange('hygiene', 'sterilization')}
-                                    className="w-5 h-5 text-primary-600 rounded focus:ring-2 focus:ring-primary-500"
-                                />
-                                <span className="text-gray-700">Dụng cụ đã tiệt trùng</span>
-                            </label>
-                            <label className="flex items-center gap-3 cursor-pointer hover:bg-white p-2 rounded transition-colors">
-                                <input
-                                    type="checkbox"
-                                    checked={checklist.hygiene.disinfection}
-                                    onChange={() => handleCheckboxChange('hygiene', 'disinfection')}
-                                    className="w-5 h-5 text-primary-600 rounded focus:ring-2 focus:ring-primary-500"
-                                />
-                                <span className="text-gray-700">Khu vực khám đã khử trùng</span>
-                            </label>
-                            <label className="flex items-center gap-3 cursor-pointer hover:bg-white p-2 rounded transition-colors">
-                                <input
-                                    type="checkbox"
-                                    checked={checklist.hygiene.areaPrep}
-                                    onChange={() => handleCheckboxChange('hygiene', 'areaPrep')}
-                                    className="w-5 h-5 text-primary-600 rounded focus:ring-2 focus:ring-primary-500"
-                                />
-                                <span className="text-gray-700">Phòng khám sạch sẽ, ngăn nắp</span>
-                            </label>
-                        </div>
-                    </div>
-
-                    {/* Notes */}
-                    <div className="mb-6">
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Ghi chú thêm
-                        </label>
+                    {/* Ghi chú */}
+                    <div className="mt-6 pt-4 border-t border-gray-200">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Ghi chú thêm (Nếu có thiết bị lỗi, hãy ghi rõ)</label>
                         <textarea
                             value={notes}
                             onChange={(e) => setNotes(e.target.value)}
-                            rows={3}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                            placeholder="Ghi chú về tình trạng chuẩn bị, vấn đề gặp phải..."
+                            rows={2}
+                            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none shadow-sm"
+                            placeholder="Ghi chú về tình trạng chuẩn bị..."
                         />
-                    </div>
 
-                    {/* Progress Indicator */}
-                    {isAllChecked() && (
-                        <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
-                            <p className="text-sm text-green-800 font-medium">
-                                ✅ Tất cả các hạng mục đã được kiểm tra đầy đủ!
-                            </p>
-                        </div>
-                    )}
+                        {/* Warning banner if there's an error */}
+                        {hasError && (
+                            <div className="mt-3 p-3 bg-red-50 text-red-700 rounded-xl flex items-center gap-2 text-sm border border-red-100">
+                                <AlertTriangle size={18} className="shrink-0" />
+                                <span><strong>Lưu ý:</strong> Có thiết bị đang báo lỗi. Việc xác nhận sẽ đồng thời gửi báo cáo bảo trì tự động.</span>
+                            </div>
+                        )}
 
-                    {/* Actions */}
-                    <div className="flex justify-end gap-3 pt-4 border-t">
-                        <button
-                            type="button"
-                            onClick={onClose}
-                            className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
-                        >
-                            Hủy
-                        </button>
-                        <button
-                            type="submit"
-                            disabled={!isAllChecked()}
-                            className={`px-6 py-2 rounded-lg flex items-center gap-2 transition-colors ${isAllChecked()
-                                    ? 'bg-green-600 text-white hover:bg-green-700'
-                                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                                }`}
-                        >
-                            <CheckCircle size={18} />
-                            Xác Nhận Hoàn Thành
-                        </button>
+                        {/* Success banner if completely ready and no errors */}
+                        {isReadyToConfirm && !hasError && (
+                            <div className="mt-3 p-3 bg-green-50 text-green-700 rounded-xl flex items-center gap-2 text-sm border border-green-100">
+                                <CheckCircle size={18} className="shrink-0" />
+                                <span>Tất cả hạng mục đã sẵn sàng. Bạn có thể nhấn Xác nhận hoàn thành.</span>
+                            </div>
+                        )}
                     </div>
-                </form>
+                </div>
+
+                {/* Actions */}
+                <div className="px-6 py-4 bg-white border-t border-gray-100 flex justify-end gap-3 shrink-0">
+                    <button
+                        type="button"
+                        onClick={onClose}
+                        className="px-6 py-2.5 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors font-semibold"
+                    >
+                        Hủy
+                    </button>
+                    <button
+                        type="button"
+                        onClick={handleSubmit}
+                        disabled={!isReadyToConfirm}
+                        className={`px-8 py-2.5 rounded-xl font-semibold flex items-center gap-2 transition-all duration-200 ${isReadyToConfirm
+                            ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-xl shadow-blue-600/20 transform hover:-translate-y-[1px]'
+                            : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                            }`}
+                    >
+                        Trạng thái: Sẵn sàng
+                        <CheckCircle size={18} />
+                    </button>
+                </div>
             </div>
         </div>
     );

@@ -3,6 +3,8 @@ import {
     LayoutDashboard,
     Calendar,
     FileText,
+    ClipboardList,
+    Pill,
     Clock,
     LogOut,
     AlignLeft
@@ -19,6 +21,8 @@ const AssistantSidebar = () => {
         { path: '/assistant/dashboard', icon: LayoutDashboard, label: 'Tổng Quan' },
         { path: '/assistant/appointments', icon: Calendar, label: 'Lịch Khám' },
         { path: '/assistant/medical-records', icon: FileText, label: 'Hồ Sơ' },
+        { path: '/assistant/treatment-plans', icon: ClipboardList, label: 'KH Điều Trị' },
+        { path: '/assistant/prescriptions', icon: Pill, label: 'Đơn Thuốc' },
         { path: '/assistant/leave-requests', icon: Clock, label: 'Nghỉ Phép' },
     ];
 

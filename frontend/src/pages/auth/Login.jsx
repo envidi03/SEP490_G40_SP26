@@ -41,6 +41,7 @@ const Login = () => {
                 account_id: account.id,
                 username: account.username,
                 email: account.email,
+                phone: account.phone || '',
                 status: account.status,
                 email_verified: account.email_verified,
                 role: role.name,

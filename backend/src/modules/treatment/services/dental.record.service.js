@@ -192,6 +192,9 @@ const getListOfPatientService = async (query, patientId) => {
               __v: 0,
               "doctor_info.__v": 0,
               "doctor_info.profile.__v": 0,
+              "doctor_info.password": 0, // Che mật khẩu bác sĩ
+              "doctor_profile": 0, // Ẩn biến tạm
+              "doctor_staff": 0    // Ẩn biến tạm
             },
           },
         ],

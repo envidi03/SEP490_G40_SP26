@@ -10,9 +10,9 @@ import PropTypes from 'prop-types';
 const AppointmentStats = ({ appointments }) => {
     const stats = {
         total: appointments.length,
-        pending: appointments.filter(a => a.status === 'Pending').length,
-        confirmed: appointments.filter(a => a.status === 'Confirmed').length,
-        completed: appointments.filter(a => a.status === 'Completed').length,
+        scheduled: appointments.filter(a => a.status === 'SCHEDULED' || a.status === 'CHECKED_IN').length,
+        inProgress: appointments.filter(a => a.status === 'IN_CONSULTATION').length,
+        completed: appointments.filter(a => a.status === 'COMPLETED').length,
     };
 
     return (
@@ -23,28 +23,28 @@ const AppointmentStats = ({ appointments }) => {
                     <div className="text-2xl font-bold text-gray-900">
                         {stats.total}
                     </div>
-                    <div className="text-sm text-gray-600">Tổng lịch khám</div>
+                    <div className="text-sm text-gray-600">Tổng số</div>
                 </div>
 
-                {/* Pending */}
+                {/* Scheduled & Checked in */}
                 <div>
-                    <div className="text-2xl font-bold text-yellow-600">
-                        {stats.pending}
+                    <div className="text-2xl font-bold text-blue-600">
+                        {stats.scheduled}
                     </div>
-                    <div className="text-sm text-gray-600">Chờ xác nhận</div>
+                    <div className="text-sm text-gray-600">Đã lên lịch / Chờ khám</div>
                 </div>
 
-                {/* Confirmed */}
+                {/* In Progress */}
                 <div>
-                    <div className="text-2xl font-bold text-green-600">
-                        {stats.confirmed}
+                    <div className="text-2xl font-bold text-purple-600">
+                        {stats.inProgress}
                     </div>
-                    <div className="text-sm text-gray-600">Đã xác nhận</div>
+                    <div className="text-sm text-gray-600">Đang khám</div>
                 </div>
 
                 {/* Completed */}
                 <div>
-                    <div className="text-2xl font-bold text-blue-600">
+                    <div className="text-2xl font-bold text-green-600">
                         {stats.completed}
                     </div>
                     <div className="text-sm text-gray-600">Hoàn thành</div>

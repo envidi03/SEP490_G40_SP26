@@ -14,3 +14,17 @@ export const getMyLeaveRequests = (params) =>
  */
 export const createLeaveRequest = (body) =>
     apiClient.post('/api/staff/leave', body);
+
+/**
+ * PATCH /api/staff/leave/:id
+ * Chỉnh sửa đơn xin phép (chỉ khi ở trạng thái PENDING hoặc DRAFT)
+ */
+export const updateLeaveRequest = (id, body) =>
+    apiClient.patch(`/api/staff/leave/${id}`, body);
+
+/**
+ * PATCH /api/staff/leave/cancel/:id
+ * Hủy đơn xin phép
+ */
+export const cancelLeaveRequest = (id) =>
+    apiClient.patch(`/api/staff/leave/cancel/${id}`);

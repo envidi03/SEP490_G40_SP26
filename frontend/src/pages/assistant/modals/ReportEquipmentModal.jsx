@@ -41,8 +41,8 @@ const ReportEquipmentModal = ({ appointment, isOpen, onClose, onSubmit }) => {
     };
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-xl shadow-2xl p-6 max-w-2xl w-full mx-4">
+        <div className="fixed inset-0 bg-white/60 backdrop-blur-[2px] flex items-center justify-center z-50">
+            <div className="bg-white rounded-2xl shadow-xl p-6 max-w-2xl w-full mx-4 border border-gray-200">
                 <div className="flex justify-between items-start mb-4">
                     <div className="flex items-center gap-2">
                         <div className="p-2 bg-orange-100 rounded-lg">
@@ -117,8 +117,8 @@ const ReportEquipmentModal = ({ appointment, isOpen, onClose, onSubmit }) => {
                         </label>
                         <div className="grid grid-cols-3 gap-3">
                             <label className={`flex items-center justify-center p-3 border-2 rounded-lg cursor-pointer transition-all ${formData.severity === 'low'
-                                    ? 'border-yellow-500 bg-yellow-50'
-                                    : 'border-gray-200 hover:border-gray-300'
+                                ? 'border-yellow-500 bg-yellow-50'
+                                : 'border-gray-200 hover:border-gray-300'
                                 }`}>
                                 <input
                                     type="radio"
@@ -134,8 +134,8 @@ const ReportEquipmentModal = ({ appointment, isOpen, onClose, onSubmit }) => {
                                 </span>
                             </label>
                             <label className={`flex items-center justify-center p-3 border-2 rounded-lg cursor-pointer transition-all ${formData.severity === 'medium'
-                                    ? 'border-orange-500 bg-orange-50'
-                                    : 'border-gray-200 hover:border-gray-300'
+                                ? 'border-orange-500 bg-orange-50'
+                                : 'border-gray-200 hover:border-gray-300'
                                 }`}>
                                 <input
                                     type="radio"
@@ -151,8 +151,8 @@ const ReportEquipmentModal = ({ appointment, isOpen, onClose, onSubmit }) => {
                                 </span>
                             </label>
                             <label className={`flex items-center justify-center p-3 border-2 rounded-lg cursor-pointer transition-all ${formData.severity === 'high'
-                                    ? 'border-red-500 bg-red-50'
-                                    : 'border-gray-200 hover:border-gray-300'
+                                ? 'border-red-500 bg-red-50'
+                                : 'border-gray-200 hover:border-gray-300'
                                 }`}>
                                 <input
                                     type="radio"

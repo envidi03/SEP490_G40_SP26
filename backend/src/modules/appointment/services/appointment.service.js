@@ -413,137 +413,43 @@ const staffCreateService = async (dataCreate) => {
     }
 };
 
-/**
- * Update an existing service
- * 
- * @param {ObjectId} id service id to update
- * @param {*} updateData data to update
- * @returns updated service object
- */
-const updateService = async (accountId, data) => {
-    // 1. Khởi tạo Session
-    const session = await mongoose.startSession();
-    session.startTransaction();
-
+const updateService = async (id, data) => {
     try {
-        // --- BƯỚC 1: TÁCH DỮ LIỆU (Giữ nguyên) ---
-        const accountUpdate = {};
-        const profileUpdate = {};
-        const staffUpdate = {};
-        const licenseUpdate = {};
+        // Chỉ cho phép update các trường liên quan đến lịch khám
+        const allowedUpdates = {};
+        if (data.appointment_date) allowedUpdates.appointment_date = data.appointment_date;
+        if (data.appointment_time) allowedUpdates.appointment_time = data.appointment_time;
+        if (data.reason !== undefined) allowedUpdates.reason = data.reason;
 
-        // Mapping Account
-        if (data.username) accountUpdate.username = data.username;
-        if (data.email) accountUpdate.email = data.email;
-        if (data.phone_number) accountUpdate.phone_number = data.phone_number;
-        if (data.password) {
-            const salt = parseInt(process.env.BCRYPT_SALT, 10) || 10;
-            accountUpdate.password = await bcrypt.hash(data.password, salt);
+        // Tìm lịch hẹn hiện tại
+        const existingAppt = await AppointmentModel.findById(id);
+        if (!existingAppt) {
+            throw new errorRes.NotFoundError("Appointment not found");
         }
 
-        // Mapping Profile
-        if (data.full_name) profileUpdate.full_name = data.full_name;
-        if (data.dob) profileUpdate.dob = data.dob;
-        if (data.gender) profileUpdate.gender = data.gender;
-        if (data.address) profileUpdate.address = data.address;
-        if (data.avatar_url) profileUpdate.avatar_url = data.avatar_url;
-
-        // Mapping Staff
-        if (data.work_start) staffUpdate.work_start = data.work_start;
-        if (data.work_end) staffUpdate.work_end = data.work_end;
-
-        // Mapping License
-        if (data.license_number) licenseUpdate.license_number = data.license_number;
-        if (data.issued_by) licenseUpdate.issued_by = data.issued_by;
-        if (data.issued_date) licenseUpdate.issued_date = data.issued_date;
-        if (data.document_url) licenseUpdate.document_url = data.document_url;
-
-        // --- BƯỚC 2: THỰC HIỆN UPDATE ---
-
-        // 2.1 Update Account
-        if (Object.keys(accountUpdate).length > 0) {
-            const updatedAccount = await AuthModel.Account.findByIdAndUpdate(
-                accountId,
-                { $set: accountUpdate },
-                { new: true, session }
-            );
-            if (!updatedAccount) throw new errorRes.NotFoundError("Account not found");
+        // Tùy chọn: Thêm kiểm tra trạng thái, chỉ lịch SCHEDULED mới được sửa
+        if (existingAppt.status !== "SCHEDULED") {
+            throw new errorRes.BadRequestError("Only SCHEDULED appointments can be updated");
         }
 
-        // 2.2 Update Profile
-        if (Object.keys(profileUpdate).length > 0) {
-            await AuthModel.Profile.findOneAndUpdate(
-                { account_id: accountId },
-                { $set: profileUpdate },
-                { new: true, session }
-            );
-        }
+        // Cập nhật
+        const updatedAppt = await AppointmentModel.findByIdAndUpdate(
+            id,
+            { $set: allowedUpdates },
+            { new: true } // trả về document sau khi update
+        ).lean();
 
-        // 2.3 Update Staff & License
-        // Tìm Staff hiện tại (Quan trọng: phải dùng session để đảm bảo tính nhất quán đọc/ghi)
-        const currentStaff = await StaffModel.Staff.findOne({ account_id: accountId }).session(session);
-
-        if (!currentStaff) {
-            // Nếu không tìm thấy Staff, throw lỗi để rollback tất cả (kể cả Account/Profile vừa update)
-            throw new errorRes.NotFoundError("Staff profile not found for this account!");
-        }
-
-        // Update Staff info
-        if (Object.keys(staffUpdate).length > 0) {
-            await StaffModel.Staff.findByIdAndUpdate(
-                currentStaff._id,
-                { $set: staffUpdate },
-                { session }
-            );
-        }
-
-        // Update License (Upsert: Tạo mới nếu chưa có)
-        if (Object.keys(licenseUpdate).length > 0) {
-            await StaffModel.License.findOneAndUpdate(
-                { doctor_id: currentStaff._id },
-                { $set: licenseUpdate },
-                { new: true, session, upsert: true }
-            );
-        }
-
-        // --- BƯỚC 3: COMMIT TRANSACTION ---
-        await session.commitTransaction();
-
-        // --- BƯỚC 4: LẤY DỮ LIỆU TRẢ VỀ (Tối ưu Performance) ---
-        // Session đã kết thúc (commit), ta có thể query song song bằng Promise.all
-        // Lưu ý: Lúc này không cần truyền 'session' vào query nữa
-
-        const [accountResult, profileResult, staffResult, licenseResult] = await Promise.all([
-            AuthModel.Account.findById(accountId).select('-password').lean(),
-            AuthModel.Profile.findOne({ account_id: accountId }).lean(),
-            StaffModel.Staff.findById(currentStaff._id).lean(),
-            StaffModel.License.findOne({ doctor_id: currentStaff._id }).lean()
-        ]);
-
-        return {
-            account: accountResult,
-            profile: profileResult,
-            staff: staffResult,
-            license: licenseResult
-        };
+        return updatedAppt;
 
     } catch (error) {
-        // Rollback nếu transaction đang chạy
-        if (session.inTransaction()) {
-            await session.abortTransaction();
-        }
-
-        // Log lỗi
-        logger.error("Error updating service", {
-            context: "ServiceService.updateService",
+        logger.error("Error updating appointment service", {
+            context: "AppointmentService.updateService",
             message: error.message,
             stack: error.stack,
         });
 
-        // QUAN TRỌNG: Ném lại đúng lỗi gốc để Controller xử lý (400, 404, 409...)
-        throw error;
-    } finally {
-        session.endSession();
+        if (error.statusCode) throw error;
+        throw new errorRes.InternalServerError(`Update fails: ${error.message}`);
     }
 };
 
@@ -581,7 +487,7 @@ const updateStatusOnly = async (id, status, doctorId = null) => {
                 },
                 { new: true } // Trả về object sau khi đã update xong
             );
-        } 
+        }
 
         // --- KỊCH BẢN 2: CÁC TRẠNG THÁI KHÁC (SCHEDULED, IN_CONSULTATION, COMPLETED, CANCELLED...) ---
         else {
@@ -591,7 +497,7 @@ const updateStatusOnly = async (id, status, doctorId = null) => {
             }
             newData = await AppointmentModel.findByIdAndUpdate(
                 id,
-                updateData, 
+                updateData,
                 { new: true }
             );
         }

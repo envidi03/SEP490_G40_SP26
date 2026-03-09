@@ -24,7 +24,7 @@ const DoctorsList = () => {
                 // Call backend with the brand new query filter: role_name='DOCTOR'
                 const response = await staffService.getStaffs({
                     role_name: 'DOCTOR',
-                    limit: 100, // Large enough to get all doctors
+                    limit: 6, // Large enough to get all doctors
                     page: 1
                 });
 
@@ -33,15 +33,13 @@ const DoctorsList = () => {
                 const allDoctors = response.data?.data || response.data || [];
 
                 // Mapped data to UI placeholders for missing backend fields
-                const formattedDoctors = allDoctors.map((doc) => ({
-                    ...doc,
-                    // Temporarily hardcode these missing text fields until backend supports them
-                    education: 'Bác sĩ chuyên khoa Răng Hàm Mặt',
-                    achievements: [
-                        'Chứng chỉ hành nghề khám bệnh, chữa bệnh',
-                        'Chứng chỉ đào tạo liên tục chuyên ngành Nha khoa'
-                    ]
-                }));
+                const formattedDoctors = allDoctors.map((doc) => {
+                    const doctorProfile = doc.profile || doc.profile_id || {};
+                    return {
+                        ...doc,
+                        profile: doctorProfile,
+                    };
+                });
 
                 setDoctorsData(formattedDoctors);
             } catch (err) {
@@ -127,19 +125,6 @@ const DoctorsList = () => {
                                             <h3 className="text-[22px] font-bold text-[#2d3e6e] mb-4">
                                                 {doctor.profile?.full_name || 'Bác sĩ'}
                                             </h3>
-
-                                            <ul className="space-y-2.5 mb-6 text-sm text-gray-600">
-                                                <li className="flex items-start gap-2.5">
-                                                    <span className="w-1 h-1 rounded-full bg-blue-500 mt-2 flex-shrink-0"></span>
-                                                    <span>{doctor.education}</span>
-                                                </li>
-                                                {doctor.achievements?.map((ach, idx) => (
-                                                    <li key={idx} className="flex items-start gap-2.5">
-                                                        <span className="w-1 h-1 rounded-full bg-blue-500 mt-2 flex-shrink-0"></span>
-                                                        <span className="leading-relaxed">{ach}</span>
-                                                    </li>
-                                                ))}
-                                            </ul>
 
                                             <div className="mt-auto">
                                                 <Link

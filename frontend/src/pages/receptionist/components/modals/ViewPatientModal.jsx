@@ -33,8 +33,9 @@ const ViewPatientModal = ({
     if (!isOpen || !patientName) return null;
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-xl shadow-2xl p-8 max-w-3xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+            <div className="absolute inset-0 bg-white/40 backdrop-blur-sm" onClick={onClose}></div>
+            <div className="relative bg-white rounded-xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] p-8 max-w-3xl w-full mx-4 max-h-[90vh] overflow-y-auto">
                 {/* Modal Header */}
                 <div className="flex justify-between items-start mb-6">
                     <div>

@@ -1,15 +1,33 @@
-import React, { useState } from 'react';
-import { X, Save } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, Save, Loader2 } from 'lucide-react';
+import patientService from '../../../../services/patientService';
+import Toast from '../../../../components/ui/Toast';
 
 const EditPatientModal = ({ patient, isOpen, onClose, onSave }) => {
     const [formData, setFormData] = useState({
-        name: patient?.name || '',
-        email: patient?.email || '',
-        phone: patient?.phone || '',
-        dob: patient?.dob || '',
-        gender: patient?.gender || '',
-        address: patient?.address || ''
+        full_name: '',
+        email: '',
+        phone: '',
+        dob: '',
+        gender: '',
+        address: ''
     });
+    const [loading, setLoading] = useState(false);
+    const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
+
+    useEffect(() => {
+        if (patient) {
+            const profile = patient.profile_id || patient.profile || {};
+            setFormData({
+                full_name: profile.full_name || patient.name || '',
+                email: profile.email || patient.email || '',
+                phone: profile.phone || patient.phone || '',
+                dob: profile.dob || patient.dob || '',
+                gender: profile.gender || patient.gender || '',
+                address: profile.address || patient.address || ''
+            });
+        }
+    }, [patient, isOpen]);
 
     if (!isOpen || !patient) return null;
 
@@ -21,19 +39,37 @@ const EditPatientModal = ({ patient, isOpen, onClose, onSave }) => {
         }));
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        // TODO: Call API to update patient
-        console.log('Saving patient:', formData);
-        if (onSave) {
-            onSave(formData);
+        setLoading(true);
+        try {
+            const id = patient._id || patient.id;
+            const response = await patientService.updatePatient(id, formData);
+            setToast({ show: true, message: 'Cập nhật thông tin thành công!', type: 'success' });
+
+            if (onSave) {
+                onSave(response.data?.data || response.data);
+            }
+
+            setTimeout(() => {
+                onClose();
+            }, 1000);
+        } catch (error) {
+            console.error('Error updating patient:', error);
+            setToast({
+                show: true,
+                message: error.response?.data?.message || 'Có lỗi xảy ra khi cập nhật thông tin.',
+                type: 'error'
+            });
+        } finally {
+            setLoading(false);
         }
-        onClose();
     };
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-xl shadow-2xl p-8 max-w-3xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+            <div className="absolute inset-0 bg-white/40 backdrop-blur-sm" onClick={onClose}></div>
+            <div className="relative bg-white rounded-xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] p-8 max-w-3xl w-full mx-4 max-h-[90vh] overflow-y-auto">
                 {/* Modal Header */}
                 <div className="flex justify-between items-start mb-6">
                     <div>
@@ -63,8 +99,8 @@ const EditPatientModal = ({ patient, isOpen, onClose, onSave }) => {
                                     </label>
                                     <input
                                         type="text"
-                                        name="name"
-                                        value={formData.name}
+                                        name="full_name"
+                                        value={formData.full_name}
                                         onChange={handleChange}
                                         required
                                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
@@ -95,9 +131,9 @@ const EditPatientModal = ({ patient, isOpen, onClose, onSave }) => {
                                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                                     >
                                         <option value="">Chọn giới tính</option>
-                                        <option value="Nam">Nam</option>
-                                        <option value="Nữ">Nữ</option>
-                                        <option value="Khác">Khác</option>
+                                        <option value="MALE">Nam</option>
+                                        <option value="FEMALE">Nữ</option>
+                                        <option value="OTHER">Khác</option>
                                     </select>
                                 </div>
                             </div>
@@ -172,13 +208,21 @@ const EditPatientModal = ({ patient, isOpen, onClose, onSave }) => {
                         </button>
                         <button
                             type="submit"
-                            className="px-6 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium transition-colors flex items-center gap-2"
+                            disabled={loading}
+                            className="px-6 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium transition-colors flex items-center gap-2 disabled:opacity-50"
                         >
-                            <Save size={18} />
-                            Lưu thay đổi
+                            {loading ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
+                            {loading ? 'Đang lưu...' : 'Lưu thay đổi'}
                         </button>
                     </div>
                 </form>
+
+                <Toast
+                    show={toast.show}
+                    message={toast.message}
+                    type={toast.type}
+                    onClose={() => setToast({ ...toast, show: false })}
+                />
             </div>
         </div>
     );

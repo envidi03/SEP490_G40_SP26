@@ -16,7 +16,19 @@ const Header = () => {
     const getProfilePath = () => {
         const role = user?.role;
         if (role === 'ADMIN_CLINIC') return '/admin/profile';
+        if (role === 'DOCTOR') return '/doctor/profile';
         return '/';
+    };
+
+    const getInitials = (name) => {
+        if (!name) return 'A';
+        // Get the first letters of all words, up to 2 characters
+        return name
+            .split(' ')
+            .map(n => n[0])
+            .join('')
+            .toUpperCase()
+            .slice(0, 2);
     };
 
     return (
@@ -46,8 +58,14 @@ const Header = () => {
                                 <p className="text-sm font-medium text-gray-900">{user?.full_name}</p>
                                 <p className="text-xs text-gray-500">{user?.email}</p>
                             </div>
-                            <div className="w-10 h-10 bg-primary-600 rounded-full flex items-center justify-center">
-                                <User size={20} className="text-white" />
+                            <div className="w-10 h-10 bg-primary-600 rounded-full flex items-center justify-center overflow-hidden shrink-0">
+                                {user?.avatar_url ? (
+                                    <img src={user.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
+                                ) : (
+                                    <span className="text-white font-bold text-sm">
+                                        {getInitials(user?.full_name)}
+                                    </span>
+                                )}
                             </div>
                             <ChevronDown
                                 size={16}

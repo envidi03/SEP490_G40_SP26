@@ -6,8 +6,14 @@ const ConfirmationModal = ({
     onClose,
     onConfirm,
     title = 'Xác nhận xóa',
-    message = 'Bạn có chắc chắn muốn xóa mục này? Hành động này không thể hoàn tác.',
-    isLoading = false
+    message = 'Bạn có chắc chắn muốn thực hiện hành động này?',
+    isLoading = false,
+    icon: CustomIcon,
+    iconBgClass = 'bg-red-50 text-red-500',
+    confirmBtnClass = 'bg-red-500 text-white hover:bg-red-600 shadow-red-200 focus:ring-red-300',
+    cancelBtnClass = 'border-red-200 text-red-600 hover:bg-red-50 focus:ring-red-200',
+    confirmText = 'Xóa',
+    loadingText = 'Đang xử lý...'
 }) => {
     if (!show) return null;
 
@@ -24,8 +30,8 @@ const ConfirmationModal = ({
 
                 <div className="p-8 text-center">
                     {/* Icon */}
-                    <div className="mx-auto w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mb-4 text-red-500 mb-6">
-                        <Trash2 size={32} />
+                    <div className={`mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-6 ${iconBgClass}`}>
+                        {CustomIcon ? <CustomIcon size={32} /> : <Trash2 size={32} />}
                     </div>
 
                     {/* Content */}
@@ -41,22 +47,22 @@ const ConfirmationModal = ({
                         <button
                             onClick={onClose}
                             disabled={isLoading}
-                            className="flex-1 px-4 py-2.5 border border-red-200 text-red-600 rounded-xl font-medium hover:bg-red-50 transition-colors focus:ring-2 focus:ring-red-200 focus:outline-none"
+                            className={`flex-1 px-4 py-2.5 border rounded-xl font-medium transition-colors focus:ring-2 focus:outline-none ${cancelBtnClass}`}
                         >
                             Hủy
                         </button>
                         <button
                             onClick={onConfirm}
                             disabled={isLoading}
-                            className="flex-1 px-4 py-2.5 bg-red-500 text-white rounded-xl font-medium hover:bg-red-600 transition-colors shadow-lg shadow-red-200 focus:ring-2 focus:ring-red-300 focus:outline-none flex items-center justify-center gap-2"
+                            className={`flex-1 px-4 py-2.5 rounded-xl font-medium transition-colors shadow-lg focus:ring-2 focus:outline-none flex items-center justify-center gap-2 ${confirmBtnClass}`}
                         >
                             {isLoading ? (
                                 <>
                                     <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                    <span>Đang xóa...</span>
+                                    <span>{loadingText}</span>
                                 </>
                             ) : (
-                                <span>Xóa</span>
+                                <span>{confirmText}</span>
                             )}
                         </button>
                     </div>
