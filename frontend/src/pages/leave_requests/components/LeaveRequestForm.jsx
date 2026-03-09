@@ -1,7 +1,4 @@
 import React, { useState } from 'react';
-import Input from '../../../components/ui/Input';
-import Select from '../../../components/ui/Select';
-import Button from '../../../components/ui/Button';
 
 import { useEffect } from 'react';
 
@@ -45,7 +42,7 @@ const LeaveRequestForm = ({ onSubmit, onCancel, initialData }) => {
     };
 
     return (
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-5 mt-2">
             <div className="grid grid-cols-2 gap-4">
                 <Input
                     label="Từ ngày"
@@ -81,22 +78,27 @@ const LeaveRequestForm = ({ onSubmit, onCancel, initialData }) => {
             />
 
             <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Lý do
+                <label className="block text-[13px] font-medium text-gray-700 mb-1">
+                    Lý do xin nghỉ <span className="text-red-500">*</span>
                 </label>
                 <textarea
                     name="reason"
                     rows="3"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    className="w-full px-3 py-2 text-[13px] border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-colors resize-none"
                     value={formData.reason}
                     onChange={handleChange}
                     required
-                    placeholder="Nhập lý do xin nghỉ..."
+                    placeholder="Vui lòng nhập lý do cụ thể..."
                 ></textarea>
             </div>
 
-            <div className="flex justify-end space-x-3 pt-4 border-t">
-                <Button type="button" variant="outline" onClick={onCancel}>
+            <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
+                <button
+                    type="button"
+                    onClick={onCancel}
+                    disabled={isSubmitting}
+                    className="px-4 py-2 text-[13px] font-medium text-gray-600 bg-gray-50 border border-gray-200 rounded-xl hover:bg-gray-100 transition-colors"
+                >
                     Hủy bỏ
                 </Button>
                 <Button type="submit">

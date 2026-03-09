@@ -1,15 +1,12 @@
 // Export doctor dashboard routes
-import DashboardLayout from '../../components/layout/DashboardLayout';
+import DentistDashboardLayout from '../../components/layout/dentist/DentistDashboardLayout';
 import ProtectedRoute from '../guards/ProtectedRoute';
 import DoctorDashboard from '../../pages/dashboard/DoctorDashboard';
 import DentistAppointmentList from '../../pages/appointments/DentistAppointmentList';
 import DentistPatientList from '../../pages/patients/DentistPatientList';
 import LeaveRequestList from '../../pages/leave_requests/LeaveRequestList';
-import MedicalRecordList from '../../pages/medical_records/MedicalRecordList';
-import DentalRecordApprovalList from '../../pages/medical_records/DentalRecordApprovalList';
-import AssistantLeaveRequests from '../../pages/leave_requests/AssistantLeaveRequests/AssistantLeaveRequests';
-import DentalRecordList from '../../pages/medical_records/DentalRecordList';
 import DentalRecordDetail from '../../pages/medical_records/DentalRecordDetail';
+import PatientRecordSearch from '../../pages/medical_records/PatientRecordSearch';
 import TreatmentList from '../../pages/treatments/TreatmentList';
 import TreatmentApproval from '../../pages/treatments/TreatmentApproval';
 
@@ -18,9 +15,9 @@ const dashboardRoutes = [
         path: '/dentist/dashboard',
         element: (
             <ProtectedRoute allowedRoles={['DOCTOR']}>
-                <DashboardLayout>
+                <DentistDashboardLayout>
                     <DoctorDashboard />
-                </DashboardLayout>
+                </DentistDashboardLayout>
             </ProtectedRoute>
         )
     },
@@ -28,9 +25,9 @@ const dashboardRoutes = [
         path: '/dentist/schedule',
         element: (
             <ProtectedRoute allowedRoles={['DOCTOR']}>
-                <DashboardLayout>
+                <DentistDashboardLayout>
                     <DentistAppointmentList />
-                </DashboardLayout>
+                </DentistDashboardLayout>
             </ProtectedRoute>
         )
     },
@@ -38,9 +35,9 @@ const dashboardRoutes = [
         path: '/dentist/patients',
         element: (
             <ProtectedRoute allowedRoles={['DOCTOR']}>
-                <DashboardLayout>
+                <DentistDashboardLayout>
                     <DentistPatientList />
-                </DashboardLayout>
+                </DentistDashboardLayout>
             </ProtectedRoute>
         )
     },
@@ -48,50 +45,19 @@ const dashboardRoutes = [
         path: '/dentist/leave-requests',
         element: (
             <ProtectedRoute allowedRoles={['DOCTOR']}>
-                <DashboardLayout>
+                <DentistDashboardLayout>
                     <LeaveRequestList />
-                </DashboardLayout>
+                </DentistDashboardLayout>
             </ProtectedRoute>
         )
     },
     {
-        path: '/dentist/medical-records',
+        path: '/dentist/dental-records/search',
         element: (
             <ProtectedRoute allowedRoles={['DOCTOR']}>
-                <DashboardLayout>
-                    <MedicalRecordList />
-                </DashboardLayout>
-            </ProtectedRoute>
-        )
-    },
-    {
-        path: '/dentist/medical-record-approvals',
-        element: (
-            <ProtectedRoute allowedRoles={['DOCTOR']}>
-                <DashboardLayout>
-                    <DentalRecordApprovalList />
-                </DashboardLayout>
-            </ProtectedRoute>
-        )
-    },
-    {
-        path: '/dentist/assistant-leave-requests',
-        element: (
-            <ProtectedRoute allowedRoles={['DOCTOR']}>
-                <DashboardLayout>
-                    <AssistantLeaveRequests />
-                </DashboardLayout>
-            </ProtectedRoute>
-        )
-    },
-    // ── New dental record routes ──
-    {
-        path: '/dentist/dental-records',
-        element: (
-            <ProtectedRoute allowedRoles={['DOCTOR']}>
-                <DashboardLayout>
-                    <DentalRecordList />
-                </DashboardLayout>
+                <DentistDashboardLayout>
+                    <PatientRecordSearch />
+                </DentistDashboardLayout>
             </ProtectedRoute>
         )
     },
@@ -99,9 +65,9 @@ const dashboardRoutes = [
         path: '/dentist/dental-records/:id',
         element: (
             <ProtectedRoute allowedRoles={['DOCTOR']}>
-                <DashboardLayout>
+                <DentistDashboardLayout>
                     <DentalRecordDetail />
-                </DashboardLayout>
+                </DentistDashboardLayout>
             </ProtectedRoute>
         )
     },
@@ -110,9 +76,9 @@ const dashboardRoutes = [
         path: '/dentist/treatments',
         element: (
             <ProtectedRoute allowedRoles={['DOCTOR']}>
-                <DashboardLayout>
+                <DentistDashboardLayout>
                     <TreatmentList />
-                </DashboardLayout>
+                </DentistDashboardLayout>
             </ProtectedRoute>
         )
     },
@@ -120,9 +86,9 @@ const dashboardRoutes = [
         path: '/dentist/treatment-approvals',
         element: (
             <ProtectedRoute allowedRoles={['DOCTOR']}>
-                <DashboardLayout>
+                <DentistDashboardLayout>
                     <TreatmentApproval />
-                </DashboardLayout>
+                </DentistDashboardLayout>
             </ProtectedRoute>
         )
     },

@@ -1,32 +1,34 @@
-import { CheckSquare, Clock, CheckCircle, XCircle } from 'lucide-react';
-
-const statCards = [
-    { key: 'all', label: 'Tổng hồ sơ', colorClass: 'bg-blue-50   border-blue-200   text-blue-700' },
-    { key: 'pending', label: 'Chờ duyệt', colorClass: 'bg-yellow-50 border-yellow-200 text-yellow-700' },
-    { key: 'approved', label: 'Đã duyệt', colorClass: 'bg-green-50  border-green-200  text-green-700' },
-    { key: 'rejected', label: 'Từ chối', colorClass: 'bg-red-50    border-red-200    text-red-700' },
-];
-
 /**
- * ApprovalStats - Shows summary stat cards that also act as filter buttons
+ * ApprovalStats - Bộ lọc và thống kê phiếu điều trị cần phê duyệt (Minimalist UI)
  */
-const ApprovalStats = ({ stats, activeFilter, onFilterChange }) => (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {statCards.map(s => (
-            <button
-                key={s.key}
-                onClick={() => onFilterChange(s.key === 'all' ? 'ALL' : s.key.toUpperCase())}
-                className={`rounded-xl border p-4 text-left transition-all ${s.colorClass} ${(s.key === 'all' && activeFilter === 'ALL') ||
-                        (s.key !== 'all' && activeFilter === s.key.toUpperCase())
-                        ? 'ring-2 ring-offset-1 ring-blue-400 shadow-md scale-[1.02]'
-                        : 'hover:shadow-sm hover:scale-[1.01]'
-                    }`}
-            >
-                <p className="text-2xl font-bold">{stats[s.key]}</p>
-                <p className="text-sm font-medium mt-0.5">{s.label}</p>
-            </button>
-        ))}
-    </div>
-);
+const ApprovalStats = ({ stats, activeFilter, onFilterChange }) => {
+    const statCards = [
+        { key: 'ALL', label: 'Tất cả chờ duyệt', bg: 'bg-blue-50 text-blue-700 border-blue-100' },
+        { key: 'WAITING_APPROVAL', label: 'Cần xử lý', bg: 'bg-amber-50 text-amber-700 border-amber-100' },
+        { key: 'APPROVED', label: 'Đã duyệt', bg: 'bg-teal-50 text-teal-700 border-teal-100' },
+        { key: 'REJECTED', label: 'Từ chối', bg: 'bg-red-50 text-red-600 border-red-100' },
+    ];
+
+    return (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {statCards.map(s => {
+                const isActive = activeFilter === s.key;
+                return (
+                    <button
+                        key={s.key}
+                        onClick={() => onFilterChange(s.key)}
+                        className={`rounded-2xl border p-4 text-left transition-all duration-200 ${s.bg} ${isActive
+                                ? 'ring-2 ring-offset-2 ring-teal-400 shadow-md scale-[1.02] border-transparent'
+                                : 'hover:shadow-sm hover:scale-[1.01] opacity-80 hover:opacity-100'
+                            }`}
+                    >
+                        <p className="text-3xl font-bold tracking-tight">{stats[s.key.toLowerCase()] || 0}</p>
+                        <p className="text-[13px] font-medium mt-1">{s.label}</p>
+                    </button>
+                );
+            })}
+        </div>
+    );
+};
 
 export default ApprovalStats;

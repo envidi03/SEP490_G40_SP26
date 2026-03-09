@@ -2,144 +2,42 @@ const logger = require("../../../common/utils/logger");
 const errorRes = require("../../../common/errors");
 const successRes = require("../../../common/success");
 const { cleanObjectData } = require("../../../common/utils/cleanObjectData");
-const Pagination = require("../../../common/responses/Pagination");
-const {
-  uploadToCloudinary,
-  uploadMultipleToCloudinary,
-} = require("../../../utils/cloudinaryHelper");
 
-const {treatment: ServiceProcess} = require("../services/index.service");
+const ServiceProcess = require("../services/treatment.service");
+const dentalService = require("../services/dental.record.service");
+const appointmentService = require("../../appointment/services/appointment.service");
 const { checkRequiredFields } = require("../../../utils/checkRequiredFields");
 
 /*
-    get list appointment of patient with pagination and filter
-    (
-        search: search by full_name, phone, email;
-        filter: filter by status;
-        sort: sort by appointment_date;
-        page
-        limit
-    )
-    only get appointment with account_id
-*/
-const getListController = async (req, res) => {
-  try {
-    const queryParams = req.query;
-
-    logger.debug("Get list appointment of patient request received", {
-      context: "AppointmentController.getListController",
-      query: queryParams,
-    });
-
-    const { data, pagination } = await ServiceProcess.getListService(queryParams);
-
-    const paginationData = new Pagination({
-      page: pagination.page,
-      size: pagination.size,
-      totalItems: pagination.totalItems,
-    });
-
-    return new successRes.GetListSuccess(
-      data,
-      paginationData,
-      "Appointment retrieved successfully",
-    ).send(res);
-  } catch (error) {
-    logger.error("Error get Appointment", {
-      context: "AppointmentController.getListController",
-      message: error.message,
-      stack: error.stack,
-    });
-    throw error;
-  }
-};
-
-/*
-    get list appointment of patient with pagination and filter
-    (
-        search: search by full_name, phone, email;
-        filter: filter by status;
-        sort: sort by appointment_date;
-        page
-        limit
-    )
-    only get appointment with account_id
-*/
-const getListOfPatientController = async (req, res) => {
-  try {
-    const queryParams = req.query;
-    const { account_id } = req.user;
-    if (!account_id) {
-      logger.warn("Missing account_id in token", {
-        context: "AppointmentController.getListOfPatientController",
-        account_id: account_id,
-      });
-      throw new errorRes.UnauthorizedError(
-        "Invalid token: account_id is missing",
-      );
-    }
-
-    logger.debug("Get list appointment of patient request received", {
-      context: "AppointmentController.getListOfPatientController",
-      query: queryParams,
-      account_id: account_id,
-    });
-
-    const { data, pagination } = await ServiceProcess.getListOfPatientService(
-      queryParams,
-      account_id,
-    );
-
-    const paginationData = new Pagination({
-      page: pagination.page,
-      size: pagination.size,
-      totalItems: pagination.totalItems,
-    });
-
-    return new successRes.GetListSuccess(
-      data,
-      paginationData,
-      "Appointment retrieved successfully",
-    ).send(res);
-  } catch (error) {
-    logger.error("Error get Appointment", {
-      context: "AppointmentController.getListController",
-      message: error.message,
-      stack: error.stack,
-    });
-    throw error;
-  }
-};
-
-/*
-    get appointment by id
+    get treatment by id
 */
 const getByIdController = async (req, res) => {
+  const context = "TreatmentController.getByIdController";
   try {
-    const { id } = req.params;
-    logger.debug("Get appointment by id request received", {
-      context: "AppointmentController.getByIdController",
-      appointmentId: id,
+    const { id: treatmentId } = req.params;
+    logger.debug("Get treatment by id request received", {
+      context: context,
+      treatmentId: treatmentId,
     });
 
     // check id empty
-    if (!id) {
+    if (!treatmentId) {
       logger.warn("Empty ID", {
-        context: "AppointmentController.getByIdController",
-        appointmentId: id,
+        context: context,
+        treatmentId: treatmentId,
       });
-      throw new errorRes.BadRequestError("Appointment ID is required");
+      throw new errorRes.BadRequestError("Treatment ID is required");
     }
 
     // Gọi service xử lý logic
-    const service = await ServiceProcess.getByIdService(id);
+    const service = await ServiceProcess.getByIdService(treatmentId);
     return new successRes.GetDetailSuccess(
       service,
-      "Appointment retrieved successfully",
+      "Treatment retrieved successfully",
     ).send(res);
   } catch (error) {
-    logger.error("Error get appointment by id", {
-      context: "AppointmentController.getByIdController",
+    logger.error("Error get treatment by id", {
+      context: "TreatmentController.getByIdController",
       message: error.message,
       stack: error.stack,
     });
@@ -147,310 +45,244 @@ const getByIdController = async (req, res) => {
   }
 };
 
+/**
+ * create new treatment by dental record id and body must have appointment_id
+ * - Lưu ý: Đây là controller dành cho việc tạo mới một treatment dựa trên một dental record đã tồn tại.
+ * - Client sẽ gửi lên ID của dental record mà treatment này thuộc về, cùng với các thông tin cần thiết để tạo treatment.
+ * - Controller sẽ lấy ID của dental record từ URL params, và các thông tin khác từ body request.
+ * * @param {*} req
+ * @param {*} res
+ * @returns
+ */
 const createController = async (req, res) => {
+  const context = "TreatmentController.createController";
   try {
-    const dataCreate = req.body || {};
-    const cleanedData = cleanObjectData(dataCreate);
+    const { id: dentalRecordId } = req.params;
 
-    // Lấy user_id từ token để gán làm người đặt lịch (patient_id)
-    const { account_id } = req.user;
+    const cleanedData = cleanObjectData(req.body || {});
 
-    // 1. Khai báo các fields bắt buộc dựa theo Schema
-    const requiredFields = [
-      "full_name",
-      "phone",
-      "email",
-      "appointment_date",
-      "appointment_time",
-    ];
+    logger.debug("Create new treatment request received", {
+      context: context,
+      dentalRecordId: dentalRecordId,
+      bodyData: cleanedData,
+    });
 
-    // Kiểm tra validation cơ bản
-    checkRequiredFields(requiredFields, cleanedData, this, "createController");
-    // Validate mảng book_service nếu client có gửi kèm dịch vụ
-    if (cleanedData.book_service && Array.isArray(cleanedData.book_service)) {
-      cleanedData.book_service.forEach((item, index) => {
-        if (!item.service_id || item.unit_price === undefined) {
-          throw new Error(
-            `service at the index ${index + 1} is missing service_id or unit_price`,
-          );
-        }
-      });
+    if (!dentalRecordId) {
+      throw new errorRes.BadRequestError("Dental record ID is required in URL");
     }
-    // 2. Chuyển dữ liệu sang Service để xử lý logic nghiệp vụ
-    const newAppointment = await ServiceProcess.createService(
-      cleanedData,
-      account_id,
+
+    /*
+      Kiểm tra xem dental record có tồn tại không và có đang ở trạng thái IN_PROGRESS không
+      - Nếu dental record không tồn tại, trả về lỗi NotFound
+      - Nếu dental record tồn tại nhưng không ở trạng thái IN_PROGRESS, trả về lỗi BadRequest (vì chỉ có thể thêm treatment vào dental record đang tiến hành)
+    */
+    const dental = await dentalService.getDentalRecordById(dentalRecordId);
+    if (!dental) {
+      logger.warn("Dental record not found for given ID", {
+        context,
+        dentalRecordId,
+      });
+      throw new errorRes.NotFoundError("Dental record not found");
+    }
+    if (dental.status !== "IN_PROGRESS") {
+      logger.warn("Attempt to add treatment to a closed dental record", {
+        context,
+        dentalRecordId,
+        status: dental.status,
+        dental: dental,
+      });
+      throw new errorRes.BadRequestError(
+        `Cannot add treatment. Dental record is currently ${dental.status}.`,
+      );
+    }
+    cleanedData.record_id = dental._id;
+    cleanedData.patient_id = dental.patient_id;
+
+    /*
+      Kiểm tra xem appointment có tồn tại không và có thuộc về cùng một bệnh nhân với dental record không
+      - Nếu appointment không tồn tại, trả về lỗi NotFound
+      - Nếu appointment tồn tại nhưng patient_id của appointment không khớp với patient_id của dental record, 
+      trả về lỗi BadRequest (vì treatment phải liên quan đến một cuộc hẹn của cùng một bệnh nhân)
+    */
+    const appointment = await appointmentService.findById(
+      cleanedData.appointment_id,
     );
-    if (!newAppointment) {
-      logger.warn("Failed to create new appointment");
-      throw new errorRes.BadRequestError("Create new appointment fails.")
+    if (!appointment) {
+      logger.warn("Appointment not found for given ID", {
+        context,
+        appointmentId: cleanedData.appointment_id,
+      });
+      throw new errorRes.NotFoundError("Appointment not found");
     }
-    // 3. Trả về response
-    return new successRes.CreateSuccess(newAppointment).send(res);
-  } catch (error) {
-    logger.error("Error create new appointment controller", {
-      context: "appointmentController.createController",
-      message: error.message,
-    });
-    throw error; // Ném lỗi ra để middleware error handler tổng bắt lấy
-  }
-};
+    if (String(appointment.patient_id) !== String(cleanedData.patient_id)) {
+      logger.warn(
+        "Appointment patient ID does not match dental record patient ID",
+        {
+          context,
+          appointmentId: cleanedData.appointment_id,
+          appointmentPatientId: appointment.patient_id,
+          dentalRecordPatientId: cleanedData.patient_id,
+        },
+      );
+      throw new errorRes.BadRequestError(
+        "Appointment does not belong to the same patient as the dental record",
+      );
+    }
+    cleanedData.doctor_id = appointment.doctor_id;
 
-// staff create appointment (không cần token/account của bệnh nhân)
-const staffCreateController = async (req, res) => {
-  try {
-    const dataCreate = req.body || {};
-    const cleanedData = cleanObjectData(dataCreate);
-
-    // 1. Khai báo các fields bắt buộc (ĐÃ BỎ 'email' để phù hợp với người lớn tuổi)
     const requiredFields = [
-      "full_name",
-      "phone",
-      "appointment_date",
-      "appointment_time",
+      "record_id",
+      "appointment_id",
+      "patient_id",
+      "doctor_id",
+      "phase", // Schema yêu cầu bắt buộc (PLAN hoặc SESSION)
     ];
-
-    // Kiểm tra validation cơ bản
     checkRequiredFields(requiredFields, cleanedData, this, "createController");
-
-    // Validate mảng book_service nếu client có gửi kèm dịch vụ
-    if (cleanedData.book_service && Array.isArray(cleanedData.book_service)) {
-      cleanedData.book_service.forEach((item, index) => {
-        if (!item.service_id || item.unit_price === undefined) {
-          throw new errorRes.BadRequestError(
-            `Service at index ${index} is missing service_id or unit_price`
-          );
-        }
+    const newTreatment = await ServiceProcess.createService(cleanedData);
+    if (!newTreatment) {
+      logger.warn("Failed to create new treatment", {
+        context,
+        dentalRecordId,
       });
+      throw new errorRes.BadRequestError("Create new treatment fails.");
     }
-
-    // 2. Chuyển dữ liệu sang Service để xử lý logic nghiệp vụ
-    const newAppointment = await ServiceProcess.staffCreateService(cleanedData);
-
-    if (!newAppointment) {
-      logger.warn("Failed to create new appointment", {
-        context: "appointmentController.staffCreateController",
-        data: cleanedData
-      });
-      throw new errorRes.BadRequestError("Create new appointment fails.");
-    }
-
-    // 3. Trả về response
     return new successRes.CreateSuccess(
-      newAppointment,
-      "Appointment created successfully"
+      newTreatment,
+      "Treatment created successfully",
     ).send(res);
-
   } catch (error) {
-    logger.error("Error appointm create new appointment controller", {
-      context: "appointmentController.staffCreateController",
+    logger.error("Error create new treatment controller", {
+      context: context,
       message: error.message,
+      stack: error.stack,
     });
     throw error;
   }
 };
-// update staff by accountId
+
+/**
+ * update treatment by id
+ * - Lưu ý: Controller này dành cho việc cập nhật thông tin của một treatment đã tồn tại.
+ * @param {*} req
+ * @param {*} res
+ * @returns updated treatment object
+ */
 const updateController = async (req, res) => {
+  const context = "TreatmentController.updateController";
   try {
-    const { id } = req.params;
+    const { id: treatmentId } = req.params;
     const dataUpdate = req.body || {};
-
-    // 2. Làm sạch dữ liệu
-    // Loại bỏ field 'status' để bảo mật, chỉ lấy phần còn lại
-    const { status, ...restData } = dataUpdate;
-    const cleanedData = cleanObjectData(restData);
-
-    // Kiểm tra xem có dữ liệu nào để update không (bao gồm cả file)
-    if (Object.keys(cleanedData).length === 0 && !req.files) {
-      throw new errorRes.BadRequestError("No data provided for update");
+    // 1. Kiểm tra định dạng ID
+    if (!mongoose.Types.ObjectId.isValid(treatmentId)) {
+      throw new errorRes.BadRequestError("Invalid Treatment ID format");
     }
 
-    // 3. VALIDATION: Chỉ kiểm tra những trường có trong dữ liệu gửi lên
-
-    // Kiểm tra Email
-    if (cleanedData.email) {
-      checkEmail(cleanedData.email);
-      // Kiểm tra trùng lặp email, ngoại trừ chính tài khoản này
-      const isEmailExist = await ServiceProcess.checkUniqueEmailNotId(
-        cleanedData.email,
-        accountId,
-      );
-      if (isEmailExist) {
-        throw new errorRes.ConflictError("Email already exists!");
+    // Chỉ cho phép update những trường nội dung, cấm tuyệt đối cập nhật Khóa ngoại và Status
+    const allowedFields = [
+      "tooth_position",
+      "phase",
+      "quantity",
+      "planned_price",
+      "planned_date",
+      "performed_date",
+      "result",
+      "note",
+      "medicine_usage",
+    ];
+    const safeData = {};
+    for (const field of allowedFields) {
+      if (dataUpdate[field] !== undefined) {
+        safeData[field] = dataUpdate[field];
       }
     }
-
-    // Kiểm tra Username
-    if (cleanedData.username) {
-      // Kiểm tra trùng lặp username, ngoại trừ chính tài khoản này
-      const isUsernameExist = await ServiceProcess.checkUniqueUsernameNotId(
-        cleanedData.username,
-        accountId,
-      );
-      if (isUsernameExist) {
-        throw new errorRes.ConflictError("Username already exists!");
-      }
+    const cleanedData = cleanObjectData(safeData);
+    // 3. Kiểm tra xem có dữ liệu nào để update không
+    if (Object.keys(cleanedData).length === 0) {
+      throw new errorRes.BadRequestError("No valid data provided for update");
     }
 
-    // Validate các trường thông thường
-    if (cleanedData.phone_number) checkPhone(cleanedData.phone_number);
-    // Lưu ý: Nếu update password, hãy đảm bảo password được hash trước khi lưu vào DB (có thể xử lý ở Service hoặc tại đây)
-    if (cleanedData.password) checkPassword(cleanedData.password);
+    // 4. Gọi Service
+    const updated = await ServiceProcess.updateService(
+      treatmentId,
+      cleanedData,
+    );
 
-    // 4. Validate License (Logic nghiệp vụ đặc thù)
-    if (cleanedData.license_number) {
-      checkLicenseNumber(cleanedData.license_number);
-      // SỬA LỖI: Dùng biến accountId thay vì id
-      const isLicenseExist = await ServiceProcess.checkUniqueLicenseNumberNotId(
-        cleanedData.license_number,
-        accountId,
-      );
-      if (isLicenseExist) {
-        throw new errorRes.ConflictError("License number already exists!");
-      }
-    }
-
-    if (cleanedData.issued_by) checkIssuedBy(cleanedData.issued_by);
-    if (cleanedData.issued_date) checkIssuedDate(cleanedData.issued_date);
-
-    // 5. Xử lý upload file (Cloudinary)
-    if (req.files) {
-      if (req.files["avatar"]) {
-        // Lấy file đầu tiên trong mảng avatar
-        cleanedData.avatar_url = await uploadToCloudinary(
-          req.files["avatar"][0],
-          "user_avatars",
-        );
-      }
-      if (req.files["license"]) {
-        // Upload nhiều file license nếu cần
-        cleanedData.document_url = await uploadMultipleToCloudinary(
-          req.files["license"],
-          "user_licenses",
-        );
-      }
-    }
-
-    // 6. Gọi Service thực hiện cập nhật
-    // SỬA LỖI: Dùng biến accountId thay vì id
-    const updated = await ServiceProcess.updateService(accountId, cleanedData);
-
-    // Gửi response thành công
-    return new successRes.UpdateSuccess(updated).send(res);
+    return new successRes.UpdateSuccess(
+      updated,
+      "Treatment updated successfully",
+    ).send(res);
   } catch (error) {
-    // Logging lỗi chi tiết để debug
-    logger.error("Error update appointmet", {
-      context: "AppointmentController.updateController",
+    logger.error("Error update treatment", {
+      context: context,
       message: error.message,
-      stack: error.stack, // Nên log thêm stack trace để dễ sửa lỗi
+      stack: error.stack,
     });
     throw error;
   }
 };
 
-// update appointment status only
+/**
+ * upate status of treatment
+ * @param {*} req (status) mới và id của appointment cần cập nhật
+ * @param {*} res
+ * @returns {object} treatment đã được cập nhật
+ */
 const updateStatusController = async (req, res) => {
+  const context = "TreatmentController.updateStatusController";
   try {
     // 1. Lấy ID của Appointment
     const { id } = req.params;
     const { status } = req.body || {};
 
-    logger.debug("Update appointment status request received", {
-      context: "AppointmentController.updateStatusController",
-      appointmentId: id,
+    logger.debug("Update treatment status request received", {
+      context: context,
+      treatmentId: id,
       status: status,
     });
 
     // 2. Validate Status
     const validStatuses = [
-      "SCHEDULED",
-      "CHECKED_IN",
-      "IN_CONSULTATION",
-      "COMPLETED",
+      "PLANNED",
+      "WAITING_APPROVAL",
+      "APPROVED",
+      "REJECTED",
+      "IN_PROGRESS",
+      "DONE",
       "CANCELLED",
-      "NO_SHOW"
     ];
 
     if (!status || !validStatuses.includes(status)) {
       logger.warn("Invalid or missing status value", {
-        context: "AppointmentController.updateStatusController",
+        context: context,
         status: status,
         allowed: validStatuses,
       });
       throw new errorRes.BadRequestError(
-        `Invalid status. Allowed values: ${validStatuses.join(", ")}`
+        `Invalid status. Allowed values: ${validStatuses.join(", ")}`,
       );
     }
 
-    // 3. Gọi Service cập nhật (Đã sửa lỗi: truyền trực tiếp biến status dạng chuỗi)
     const result = await ServiceProcess.updateStatusOnly(id, status);
 
     // Kiểm tra kết quả
     if (!result) {
-      throw new errorRes.NotFoundError("Appointment not found or update failed");
+      throw new errorRes.NotFoundError("Treatment not found or update failed");
     }
 
-    logger.info("Appointment status updated successfully", {
-      context: "AppointmentController.updateStatusController",
-      appointmentId: result._id,
+    logger.info("Treatment status updated successfully", {
+      context: context,
+      treatmentId: result._id,
       newStatus: result.status,
     });
 
     // 4. Trả về kết quả
     return new successRes.UpdateSuccess(
       result,
-      "Appointment status updated successfully"
+      "Treatment status updated successfully",
     ).send(res);
-
   } catch (error) {
-    logger.error("Error updating appointment status", {
-      context: "AppointmentController.updateStatusController",
-      message: error.message,
-      stack: error.stack,
-    });
-    throw error;
-  }
-};
-
-/*
-  checkin by full_name, phone, email. if correct auto change status to CHECK_IN
-*/
-/*
-  Self Check-in by full_name, phone, email. 
-  If correct, auto change status to CHECKED_IN and generate queue number.
-*/
-const checkinController = async (req, res) => {
-  try { // ĐÃ SỬA: Thêm thẻ try bị thiếu
-    const query = req.body || {};
-    const cleanedData = cleanObjectData(query);
-
-    logger.debug("Checkin appointment request received", {
-      context: "AppointmentController.checkinController",
-      query: cleanedData, // ĐÃ SỬA: Xóa biến 'id' rác gây crash app
-    });
-
-    // LƯU Ý: Nếu người lớn tuổi không có email, bạn nên cân nhắc bỏ "email" 
-    // ra khỏi requiredFields để họ chỉ cần nhập Tên + SĐT là check-in được nhé!
-    const requiredFields = [
-      "full_name",
-      "phone",
-      "email",
-    ];
-
-    checkRequiredFields(requiredFields, cleanedData, this, "checkinController");
-
-    // Gọi Service cập nhật
-    const result = await ServiceProcess.checkinService(cleanedData);
-
-    // Trả về kết quả
-    return new successRes.UpdateSuccess(
-      result,
-      `Check-in successful! Your queue number is ${result.queue_number}`
-    ).send(res);
-
-  } catch (error) {
-    logger.error("Error during checkin", {
-      context: "AppointmentController.checkinController", // ĐÃ SỬA đúng tên context
+    logger.error("Error updating treatment status", {
+      context: context,
       message: error.message,
       stack: error.stack,
     });
@@ -459,12 +291,8 @@ const checkinController = async (req, res) => {
 };
 
 module.exports = {
-  getListOfPatientController,
-  getListController,
   getByIdController,
   createController,
   updateController,
   updateStatusController,
-  checkinController,
-  staffCreateController
 };

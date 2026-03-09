@@ -43,19 +43,17 @@ const Sidebar = ({ role }) => {
         Doctor: [
             { path: '/dentist/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
             { path: '/dentist/schedule', icon: Calendar, label: 'Lịch hẹn' },
-            { path: '/dentist/dental-records', icon: FileText, label: 'Hồ Sơ Nha Khoa' },
             {
-                key: 'treatments',
+                key: 'dental-records',
                 icon: Stethoscope,
-                label: 'Quản lý Phiếu Điều Trị',
+                label: 'Quản lý hồ sơ nha khoa',
                 children: [
+                    { path: '/dentist/dental-records/search', icon: ClipboardList, label: 'Tìm kiếm hồ sơ' },
                     { path: '/dentist/treatments', icon: ClipboardList, label: 'Xem phiếu điều trị' },
                     { path: '/dentist/treatment-approvals', icon: CheckSquare, label: 'Phê duyệt phiếu' },
                 ]
             },
-            { path: '/dentist/medical-record-approvals', icon: ClipboardCheck, label: 'Phê duyệt Hồ Sơ' },
             { path: '/dentist/leave-requests', icon: Briefcase, label: 'Nghỉ Phép' },
-            { path: '/dentist/assistant-leave-requests', icon: UserCog, label: 'NP Trợ Lý' },
         ]
     };
 

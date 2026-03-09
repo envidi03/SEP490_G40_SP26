@@ -93,7 +93,7 @@ const treatmentSchema = new Schema(
         // --- TRẠNG THÁI ---
         status: {
             type: String,
-            enum: ['PLANNED', 'APPROVED', 'IN_PROGRESS', 'DONE', 'CANCELLED'],
+            enum: ['PLANNED', 'WAITING_APPROVAL', 'APPROVED', 'REJECTED', 'IN_PROGRESS', 'DONE', 'CANCELLED'],
             default: 'PLANNED'
         }
     },
@@ -107,7 +107,7 @@ const treatmentSchema = new Schema(
 // --- MIDDLEWARE CHẠY NGẦM (HOOKS) XỬ LÝ AUTO-COMPLETE DENTAL RECORD ---
 // =========================================================================
 
-// Hàm Helper dùng chung để hệ thống quét và chốt Bệnh án
+// Hàm Helper dùng chung để hệ thống quét và chốt Bệnh án nếu tất cả các Treatment của Bệnh án đó đã hoàn thành (status = DONE/CANCELLED)
 const checkAndCompleteDentalRecord = async function(recordId) {
     if (!recordId) return;
     

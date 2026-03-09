@@ -4,5 +4,9 @@ const auth = require('../../../common/middlewares/index');
 const controller = require('../controllers/appointment.controller');
 
 router.get('/patient', auth.authenticate, auth.authorize("PATIENT"), controller.getListOfPatientController);
+
 router.get('/staff', controller.getListController);
+
+router.get('/doctor/dental-record', auth.authenticate, auth.authorize("DOCTOR"), controller.getListOfDoctorController);
+
 module.exports = router;

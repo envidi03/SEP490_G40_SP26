@@ -1,119 +1,24 @@
 const logger = require("../../../common/utils/logger");
 const errorRes = require("../../../common/errors");
 const mongoose = require("mongoose");
-const Pagination = require("../../../common/responses/Pagination");
-
-const bcrypt = require("bcrypt");
-const emailService = require("../../../common/service/email.service");
-const appointmentModel = require("../../appointment/models/appointment.model");
 
 const Model = require("../models/index.model");
-const { Model: AuthModel } = require("../../auth/index");
-const PatientModel = require("../../../modules/patient/model/patient.model");
-const AppointmentModel = require("../../appointment/models/index.model");
-const { model: ServiceModel } = require("../../service/index");
-const { Staff: StaffModel } = require("../../staff/models/index.model");
 
-/*
-    get list appointment with pagination and filter
-    (
-        search: search by full_name, phone, email;
-        filter: filter by status;
-        sort: sort by appointment_date;
-        page
-        limit
-    )
-*/
-const getListService = async (query) => {
-  try {
-    logger.debug("Fetching list of appointments with query", {
-      context: "AppointmentService.getListService",
-      query: query,
-    });
-
-    // 1. Lấy và chuẩn hóa các tham số từ query
-    const search = query.search?.trim();
-    const statusFilter = query.status ? query.status.toUpperCase() : null;
-    const sortOrder = query.sort === "desc" ? -1 : 1;
-    const page = Math.max(1, parseInt(query.page || 1));
-    const limit = Math.max(1, parseInt(query.limit || 5));
-    const skip = (page - 1) * limit;
-
-    // 2. Xây dựng điều kiện lọc (Match)
-    const matchCondition = {};
-
-    // Lọc theo trạng thái (status)
-    if (statusFilter) {
-      matchCondition.status = statusFilter;
-    }
-
-    // Tìm kiếm (Search) theo tên, số điện thoại, email
-    if (search) {
-      const regexSearch = { $regex: search, $options: "i" };
-      matchCondition.$or = [
-        { full_name: regexSearch },
-        { phone: regexSearch },
-        { email: regexSearch },
-      ];
-    }
-
-    // 3. Xây dựng Aggregation Pipeline
-    const aggregatePipeline = [
-      { $match: matchCondition },
-      { $sort: { appointment_date: sortOrder } },
-      {
-        $facet: {
-          data: [
-            { $skip: skip },
-            { $limit: limit },
-            {
-              $project: {
-                __v: 0,
-              },
-            },
-          ],
-          totalCount: [{ $count: "count" }],
-        },
-      },
-    ];
-
-    // 4. Thực thi truy vấn
-    const result = await AppointmentModel.aggregate(aggregatePipeline);
-
-    const appointments = result[0]?.data || [];
-    const totalItems = result[0]?.totalCount[0]?.count || 0;
-
-    return {
-      data: appointments,
-      pagination: {
-        page: page,
-        size: limit,
-        totalItems: totalItems,
-      },
-    };
-  } catch (error) {
-    logger.error("Error getting list of appointments", {
-      context: "AppointmentService.getListService",
-      message: error.message,
-      stack: error.stack,
-    });
-    throw new errorRes.InternalServerError(
-      `An error occurred while fetching list of appointments: ${error.message}`,
-    );
-  }
-};
-
-/*
-    get list dental record of patient with pagination and filter
-    (
+/**
+ * get list dental record of patient with pagination and filter
+    
+ * @param {*} query 
+      (
         search: search by record_name(in collection dental_record), doctor_name(in collection staff), tooth_position(in collection treatment);
         filter_dental_record: filter by status (in collection dental_record);
         filter_treatment: filter by status (in collection treatment);
         sort: sort by start_date(in collection dental_record);
         page
         limit (5 record dental_record/page)
-    )
-*/
+      )
+ * @param {ObjectId || null} patientId user id để lấy danh sách bệnh án của bệnh nhân đó, nếu patientId = null thì sẽ lấy tất cả bệnh án không phân biệt bệnh nhân nào (dành cho admin)
+ * @returns Danh sách bệnh án của bệnh nhân đó (nếu patientId != null) hoặc tất cả bệnh án (nếu patientId = null) kèm theo thông tin bác sĩ tạo bệnh án và danh sách treatment của mỗi bệnh án, có hỗ trợ phân trang, filter theo status của bệnh án và status của treatment, search theo tên bệnh án, tên bác sĩ và vị trí răng, sắp xếp theo ngày bắt đầu
+ */
 const getListOfPatientService = async (query, patientId) => {
   const context = "DentalRecordService.getListOfPatientService";
   try {
@@ -137,13 +42,15 @@ const getListOfPatientService = async (query, patientId) => {
     const limit = Math.max(1, parseInt(query.limit || 5));
     const skip = (page - 1) * limit;
 
-    const patientObjectId = new mongoose.Types.ObjectId(patientId);
-
     // 2. KHỞI TẠO PIPELINE AGGREGATION
     const aggregatePipeline = [];
 
     // --- STAGE 1: Lọc cơ bản ở bảng DentalRecord ---
-    const initialMatch = { patient_id: patientObjectId };
+    const initialMatch = {};
+
+    if (patientId) {
+      initialMatch.patient_id = new mongoose.Types.ObjectId(patientId);
+    }
     if (filterDentalRecord) {
       initialMatch.status = filterDentalRecord;
     }
@@ -160,6 +67,7 @@ const getListOfPatientService = async (query, patientId) => {
       },
     });
 
+    // Flatten mảng doctor_info thành object
     aggregatePipeline.push({
       $addFields: {
         doctor_staff: { $arrayElemAt: ["$doctor_staff", 0] },
@@ -188,6 +96,23 @@ const getListOfPatientService = async (query, patientId) => {
       },
     });
 
+    // --- STAGE 2.5: JOIN với bảng Profile (Lấy full_name, avatar... của Bác sĩ) ---
+    aggregatePipeline.push({
+      $lookup: {
+        from: "profiles", // Tên collection được định nghĩa trong Profile model
+        localField: "doctor_info.profile_id", // Khóa ngoại nằm trong object doctor_info
+        foreignField: "_id", // So khớp với _id của bảng Profile
+        as: "doctor_info.profile", // Gắn kết quả vào một field con tên là 'profile'
+      },
+    });
+
+    // Flatten mảng profile bên trong doctor_info
+    aggregatePipeline.push({
+      $addFields: {
+        "doctor_info.profile": { $arrayElemAt: ["$doctor_info.profile", 0] },
+      },
+    });
+
     // --- STAGE 3: JOIN với bảng Treatment ---
     aggregatePipeline.push({
       $lookup: {
@@ -209,7 +134,8 @@ const getListOfPatientService = async (query, patientId) => {
       const searchRegex = { $regex: search, $options: "i" };
       complexMatch.$or = [
         { record_name: searchRegex },
-        { "doctor_info.full_name": searchRegex },
+        // 💡 ĐÃ SỬA LẠI ĐƯỜNG DẪN TÌM KIẾM CHO ĐÚNG VỚI CẤU TRÚC MỚI
+        { "doctor_info.profile.full_name": searchRegex },
         { "treatments.tooth_position": searchRegex },
       ];
     }
@@ -230,6 +156,8 @@ const getListOfPatientService = async (query, patientId) => {
           {
             $project: {
               __v: 0,
+              "doctor_info.__v": 0,
+              "doctor_info.profile.__v": 0,
               "doctor_info.password": 0, // Che mật khẩu bác sĩ
               "doctor_profile": 0, // Ẩn biến tạm
               "doctor_staff": 0    // Ẩn biến tạm
@@ -255,21 +183,24 @@ const getListOfPatientService = async (query, patientId) => {
       },
     };
   } catch (error) {
-    logger.error("Error getting list of patient dental records", {
+    logger.error("Error getting list of dental records", {
       context: context,
       message: error.message,
       stack: error.stack,
     });
     throw new errorRes.InternalServerError(
-      `An error occurred while fetching list of dental records: ${error.message}`,
+      `An error occurred while fetching list of dental records: ${error.message}`
     );
   }
 };
 
-/*
-  view detail dental record by id (include detail dental record and list treatment of dental record)
-*/
-const getByIdService = async (id) => {
+/**
+ * view detail dental record by id (include detail dental record and list treatment of dental record)
+ * @param {ObjectId} id dental record id for searching
+ * @param {String} treatmentStatus filter treatment by status (treatment status: IN_PROGRESS, COMPLETED, CANCELLED)
+ * @returns {Object} object dental record detail and list treatment of dental record
+ */
+const getByIdService = async (id, treatmentStatus) => {
   const context = "DentalRecordService.getByIdService";
   try {
     logger.debug("Fetching dental record by id", {
@@ -277,20 +208,12 @@ const getByIdService = async (id) => {
       dentalRecordId: id,
     });
 
-    // --- 1. KIỂM TRA ĐỊNH DẠNG ID ---
-    // (Thực ra bạn đã check isValidObjectId ở Controller rồi,
-    // nhưng để lại ở Service cho chắc chắn cũng rất tốt)
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      throw new errorRes.BadRequestError("Invalid Dental Record ID format");
-    }
-
-    // --- 2. TRUY VẤN DỮ LIỆU DENTAL RECORD ---
+    // 1. Get Dental Record
     const dentalRecord = await Model.DentalRecord.findById(id)
       .populate("patient_id")
       .populate("created_by")
       .lean();
 
-    // --- 3. KIỂM TRA TỒN TẠI ---
     if (!dentalRecord) {
       logger.warn("Dental record not found", {
         context: context,
@@ -299,23 +222,23 @@ const getByIdService = async (id) => {
       throw new errorRes.NotFoundError("Dental record not found");
     }
 
-    // --- 4. TRUY VẤN DANH SÁCH TREATMENT CỦA RECORD NÀY ---
-    // Tìm tất cả các phiên điều trị (Treatment) có record_id bằng với ID của bệnh án này
-    const treatments = await Model.Treatment.find({ record_id: id })
+    // 2. Get Treatments
+    const treatmentQuery = { record_id: id };
+    if (treatmentStatus) {
+      treatmentQuery.status = treatmentStatus.toUpperCase();
+    }
+    const treatments = await Model.Treatment.find(treatmentQuery)
       .populate("doctor_id")
       .sort({ createdAt: -1 })
       .lean();
 
-    // --- 5. GỘP DỮ LIỆU VÀ TRẢ VỀ ---
-    // Gắn mảng treatments vừa tìm được vào object dentalRecord
+    // 3. Ghép và trả về
     dentalRecord.treatments = treatments;
-
     logger.debug("Dental record and treatments fetched successfully", {
       context: context,
       dentalRecordId: id,
       dentalRecord: dentalRecord,
     });
-
     return dentalRecord;
   } catch (error) {
     logger.error("Error getting dental record by id", {
@@ -532,7 +455,7 @@ const checkDuplicateDentalExcludeId = async (
 };
 
 /**
- * only find dental record by id
+ * get raw dental record by id
  *
  * @param {ObjectId} id dental record id for searching
  * @returns Object {dentalRecord} if found, otherwisr return null
@@ -569,8 +492,112 @@ const getDentalRecordById = async (id) => {
   }
 };
 
+/**
+ * tìm kiếm bệnh án dựa trên thông tin đầu vào có thể là full_name, phone, email, dob
+ * * tìm kiếm bệnh nhân dựa trên thông tin đầu vào có thể là full_name, phone, email, dob 
+ * và trả về danh sách thông tin bệnh nhân trùng với thông tin đầu vào và 
+ * phải nhóm các thông tin cùng patient_id vào cùng 1 nhóm (vì có thể 1 bệnh nhân có nhiều bệnh án) 
+ * và mỗi nhóm sẽ bao gồm thông tin patient_id, full_name, phone, email, dob để khi tìm kiếm bệnh án 
+ * sẽ hiển thị được thông tin bệnh nhân đó để dễ dàng phân biệt với các bệnh nhân khác 
+ * khi có nhiều bệnh nhân trùng tên hoặc trùng số điện thoại, email.
+ * * * @param {*} search infor user để tìm kiếm (có thể là full_name, phone, email, dob) 
+ * và sẽ tìm kiếm theo kiểu gần đúng (partial match) để tăng khả năng tìm kiếm trúng kết quả hơn 
+ * @returns Danh sách bệnh nhân trùng với thông tin đầu vào.
+ */
+const findDentalByInforUser = async (search) => {
+  const context = "DentalRecordService.findDentalByInforUser";
+  try {
+    logger.debug("Finding dental record by user information", {
+      context: context,
+      search: search,
+    });
+
+    // Nếu không có chuỗi tìm kiếm, trả về mảng rỗng để tránh query toàn bộ DB
+    if (!search || search.trim() === "") {
+      return [];
+    }
+
+    const cleanSearch = search.trim();
+
+    // Khởi tạo Pipeline Aggregation
+    const pipeline = [
+      // STAGE 1: Chuyển đổi trường dob (Date) thành String để có thể search bằng Regex (Partial Match)
+      // Định dạng YYYY-MM-DD (VD: 1995-08-20). Nếu user gõ "1995", nó vẫn tìm ra được.
+      {
+        $addFields: {
+          dob_string: {
+            $dateToString: { format: "%Y-%m-%d", date: "$dob" }
+          }
+        }
+      },
+
+      // STAGE 2: Tìm kiếm gần đúng (Partial match không phân biệt hoa thường)
+      {
+        $match: {
+          $or: [
+            { full_name: { $regex: cleanSearch, $options: "i" } },
+            { phone: { $regex: cleanSearch, $options: "i" } },
+            { email: { $regex: cleanSearch, $options: "i" } },
+            { dob_string: { $regex: cleanSearch, $options: "i" } } // Match trên trường ảo vừa tạo
+          ]
+        }
+      },
+
+      // STAGE 3: Nhóm (Group) theo patient_id để loại bỏ các bệnh án trùng lặp của cùng 1 người
+      {
+        $group: {
+          _id: "$patient_id", // Gom nhóm dựa trên patient_id
+          // $first: Lấy thông tin từ bệnh án đầu tiên tìm thấy của người đó
+          full_name: { $first: "$full_name" },
+          phone: { $first: "$phone" },
+          email: { $first: "$email" },
+          dob: { $first: "$dob" }
+        }
+      },
+
+      // STAGE 4: Định dạng lại output cho đẹp (Đổi _id thành patient_id)
+      {
+        $project: {
+          _id: 0, // Ẩn trường _id mặc định của group
+          patient_id: "$_id", // Gán lại thành patient_id
+          full_name: 1,
+          phone: 1,
+          email: 1,
+          dob: 1
+        }
+      },
+
+      // STAGE 5: Sắp xếp theo tên cho dễ nhìn (Tùy chọn)
+      {
+        $sort: { full_name: 1 }
+      }
+    ];
+
+    // Thực thi truy vấn
+    // Đảm bảo bạn gọi đúng tên Model Bệnh án của bạn (ví dụ: Model.DentalRecord)
+    const groupedPatients = await Model.DentalRecord.aggregate(pipeline);
+
+    logger.debug("Successfully found and grouped patients by user information", {
+      context: context,
+      resultCount: groupedPatients.length
+    });
+
+    return groupedPatients;
+
+  } catch (error) {
+    logger.error("Error finding dental record by user information", {
+      context: context,
+      search: search,
+      message: error.message,
+      stack: error.stack,
+    });
+    throw new errorRes.InternalServerError(
+      `An error occurred while finding dental record by user information: ${error.message}`,
+    );
+  }
+};
+
 module.exports = {
-  getListService,
   getByIdService,
   createService,
   updateService,
@@ -578,4 +605,5 @@ module.exports = {
   checkDuplicateDental,
   checkDuplicateDentalExcludeId,
   getDentalRecordById,
+  findDentalByInforUser,
 };

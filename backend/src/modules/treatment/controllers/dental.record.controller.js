@@ -3,40 +3,35 @@ const errorRes = require("../../../common/errors");
 const successRes = require("../../../common/success");
 const { cleanObjectData } = require("../../../common/utils/cleanObjectData");
 const Pagination = require("../../../common/responses/Pagination");
-const mongoose = require("mongoose"); 
+const mongoose = require("mongoose");
 
-const {
-  uploadToCloudinary,
-  uploadMultipleToCloudinary,
-} = require("../../../utils/cloudinaryHelper");
-
-const {dental: ServiceProcess} = require("../services/index.service");
+const { dental: ServiceProcess } = require("../services/index.service");
 const { checkRequiredFields } = require("../../../utils/checkRequiredFields");
 const { findStaffByAccountId, findPatientByAccountId } = require("../../auth/service/account.service");
-const {service: ServiceAppointment} = require("../../appointment/index");
 const { checkDuplicateDental } = require("../services/dental.record.service");
 
-/*
-    get list appointment of patient with pagination and filter
+/* 
+  get list dental record with pagination and filter
     (
-        search: search by full_name, phone, email;
-        filter: filter by status;
-        sort: sort by appointment_date;
+        search: search by record_name(in collection dental_record), doctor_name(in collection staff), tooth_position(in collection treatment);
+        filter_dental_record: filter by status (in collection dental_record);
+        filter_treatment: filter by status (in collection treatment);
+        sort: sort by start_date(in collection dental_record);
         page
-        limit
+        limit (5 record dental_record/page)
     )
-    only get appointment with account_id
 */
 const getListController = async (req, res) => {
+  const context = "DentalRecordController.getListController";
   try {
     const queryParams = req.query;
 
-    logger.debug("Get list appointment of patient request received", {
-      context: "AppointmentController.getListController",
+    logger.debug("Get list dental records request received", {
+      context: context,
       query: queryParams,
     });
 
-    const { data, pagination } = await ServiceProcess.getListService(queryParams);
+    const { data, pagination } = await ServiceProcess.getListOfPatientService(queryParams, null);
 
     const paginationData = new Pagination({
       page: pagination.page,
@@ -47,11 +42,11 @@ const getListController = async (req, res) => {
     return new successRes.GetListSuccess(
       data,
       paginationData,
-      "Appointment retrieved successfully",
+      "Dental records retrieved successfully",
     ).send(res);
   } catch (error) {
-    logger.error("Error get Appointment", {
-      context: "AppointmentController.getListController",
+    logger.error("Error get Dental Record", {
+      context: context,
       message: error.message,
       stack: error.stack,
     });
@@ -91,7 +86,7 @@ const getListDentalOfPatientController = async (queryParams, patientId) => {
       patientId: patientId,
     });
 
-    const { data, pagination } = await ServiceProcess.getListOfPatientService(queryParams,patientId);
+    const { data, pagination } = await ServiceProcess.getListOfPatientService(queryParams, patientId);
 
     const paginationData = new Pagination({
       page: pagination.page,
@@ -99,7 +94,7 @@ const getListDentalOfPatientController = async (queryParams, patientId) => {
       totalItems: pagination.totalItems,
     });
 
-    return {data, pagination: paginationData};
+    return { data, pagination: paginationData };
   } catch (error) {
     logger.error("Error get Dental Record", {
       context: context,
@@ -128,8 +123,8 @@ const getListOfPatientController = async (req, res) => {
   const context = "DentalRecordController.getListOfPatientController";
   try {
     const queryParams = req.query;
-    const {account_id: accountPatientId} = req.user;
-    const {patient} = await findPatientByAccountId(accountPatientId);
+    const { account_id: accountPatientId } = req.user;
+    const { patient } = await findPatientByAccountId(accountPatientId);
     if (!patient) {
       logger.warn("Patient not found for account_id", {
         context: context,
@@ -137,7 +132,7 @@ const getListOfPatientController = async (req, res) => {
       });
       throw new errorRes.NotFoundError("Patient not found!")
     };
-    const {data, pagination} = await getListDentalOfPatientController(queryParams, patient._id);
+    const { data, pagination } = await getListDentalOfPatientController(queryParams, patient._id);
 
     return new successRes.GetListSuccess(
       data,
@@ -206,6 +201,7 @@ const getByIdController = async (req, res) => {
   const context = "DentalRecordController.getByIdController";
   try {
     const { id } = req.params;
+    const { treatment_status } = req.query;
     logger.debug("Get dental record by id request received", {
       context: context,
       dentalRecordId: id,
@@ -229,7 +225,7 @@ const getByIdController = async (req, res) => {
     }
 
     // 3. Gọi service xử lý logic
-    const dentalRecordDetail = await ServiceProcess.getByIdService(id);
+    const dentalRecordDetail = await ServiceProcess.getByIdService(id, treatment_status);
 
     // 4. Xử lý trường hợp không tìm thấy dữ liệu (Rất quan trọng)
     if (!dentalRecordDetail) {
@@ -273,8 +269,8 @@ const createController = async (req, res) => {
     });
 
     // --- 1. FIND DOCTOR & APPOINTMENT ---
-    const {staff: doctor} = await findStaffByAccountId(accountDoctorId);
-    
+    const { staff: doctor } = await findStaffByAccountId(accountDoctorId);
+
     if (!doctor) {
       logger.warn("Doctor not found for account_id", {
         context: context,
@@ -313,10 +309,10 @@ const createController = async (req, res) => {
     // Gán khóa ngoại
     dataCreate.created_by = doctor._id;
     dataCreate.patient_id = patientID;
-    
+
     // --- 2. CLEAN & AUTO-FILL SNAPSHOT DATA ---
     const cleanedData = cleanObjectData(dataCreate);
-    
+
     // --- 3. VALIDATION ---
     // Khai báo các fields BẮT BUỘC dựa theo Schema DentalRecord
     const requiredFields = [
@@ -329,7 +325,7 @@ const createController = async (req, res) => {
 
     // Kiểm tra validation cơ bản
     checkRequiredFields(requiredFields, cleanedData, this, "createController");
-    
+
     // --- 4. CALL SERVICE ---
     const newData = await ServiceProcess.createService(cleanedData);
     if (!newData) {
@@ -339,8 +335,8 @@ const createController = async (req, res) => {
 
     // --- 5. RESPONSE ---
     return new successRes.CreateSuccess(
-        newData, 
-        "Dental record created successfully"
+      newData,
+      "Dental record created successfully"
     ).send(res);
 
   } catch (error) {
@@ -348,7 +344,7 @@ const createController = async (req, res) => {
       context: context,
       message: error.message,
     });
-    throw error; 
+    throw error;
   }
 };
 
@@ -369,7 +365,7 @@ const updateController = async (req, res) => {
     const { id } = req.params;
     const dataUpdate = req.body || {};
     const { account_id: accountDoctorId } = req.user;
-    
+
     logger.debug("Base data for update dental record", {
       context: context,
       dentalRecordId: id,
@@ -396,10 +392,10 @@ const updateController = async (req, res) => {
     // 3. LỌC DỮ LIỆU (Whitelist): Chỉ cho phép lấy các field được phép update
     const allowedUpdates = {};
     const allowedFields = [
-      "full_name", 
-      "phone", 
-      "record_name", 
-      "description", 
+      "full_name",
+      "phone",
+      "record_name",
+      "description",
       "status"
     ];
 
@@ -423,7 +419,7 @@ const updateController = async (req, res) => {
         });
         throw new errorRes.NotFoundError("Dental record not found");
       }
-      
+
       const patientId = currentDentalRecord.patient_id;
       const dentalDuplicate = await ServiceProcess.checkDuplicateDentalExcludeId(patientId, cleanedData.record_name, id);
       if (dentalDuplicate) {
@@ -449,12 +445,46 @@ const updateController = async (req, res) => {
 
     // 6. Gửi response thành công
     return new successRes.UpdateSuccess(
-        updated, 
-        "Dental record updated successfully"
+      updated,
+      "Dental record updated successfully"
     ).send(res);
 
   } catch (error) {
     logger.error("Error updating dental record", {
+      context: context,
+      message: error.message,
+      stack: error.stack,
+    });
+    throw error;
+  }
+};
+
+/**
+ * tìm kiếm bệnh án dựa trên thông tin đầu vào có thể là full_name, phone, email, dob
+ * * tìm kiếm bệnh nhân dựa trên thông tin đầu vào có thể là full_name, phone, email, dob 
+ * và trả về danh sách thông tin bệnh nhân trùng với thông tin đầu vào và 
+ * phải nhóm các thông tin cùng patient_id vào cùng 1 nhóm (vì có thể 1 bệnh nhân có nhiều bệnh án) 
+ * và mỗi nhóm sẽ bao gồm thông tin patient_id, full_name, phone, email, dob để khi tìm kiếm bệnh án 
+ * sẽ hiển thị được thông tin bệnh nhân đó để dễ dàng phân biệt với các bệnh nhân khác 
+ * khi có nhiều bệnh nhân trùng tên hoặc trùng số điện thoại, email.
+ * * * @param {*} search infor user để tìm kiếm (có thể là full_name, phone, email, dob) 
+ * và sẽ tìm kiếm theo kiểu gần đúng (partial match) để tăng khả năng tìm kiếm trúng kết quả hơn 
+ * @returns Danh sách bệnh nhân trùng với thông tin đầu vào.
+ */
+const findUserByUserInfo = async (req, res) => {
+  const context = "DentalRecordController.findUserByUserInfo";
+  try {
+    const { search } = req.query;
+    if (!search) {
+      logger.warn("Missing search query parameter", {
+        context: context,
+      });
+      throw new errorRes.BadRequestError("Search query parameter is required");
+    }
+    const userList = await ServiceProcess.findDentalByInforUser(search);
+    return new successRes.GetListSuccess(userList, "Users found successfully").send(res);
+  } catch (error) {
+    logger.error("Error find user by user info", {
       context: context,
       message: error.message,
       stack: error.stack,
@@ -470,4 +500,5 @@ module.exports = {
   getByIdController,
   createController,
   updateController,
+  findUserByUserInfo,
 };

@@ -1,143 +1,168 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronDown, ChevronRight, FileText, User, ExternalLink, Clock, CheckCircle, XCircle } from 'lucide-react';
-import Badge from '../../../components/ui/Badge';
 import TreatmentRow from './TreatmentRow';
 
-const recordStatusConfig = {
-    IN_PROGRESS: { label: 'Đang điều trị', variant: 'warning' },
-    COMPLETED: { label: 'Hoàn thành', variant: 'success' },
-    CANCELLED: { label: 'Đã hủy', variant: 'danger' },
+const statusConfig = {
+    IN_PROGRESS: { label: 'Đang điều trị', style: 'bg-amber-50 text-amber-700 border-amber-200' },
+    COMPLETED: { label: 'Hoàn thành', style: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+    CANCELLED: { label: 'Đã hủy', style: 'bg-red-50 text-red-500 border-red-200' },
+};
+
+const formatDate = (iso) => {
+    if (!iso) return null;
+    return new Date(iso).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
 };
 
 /**
  * RecordTreatmentCard
  *
- * Card hiển thị 1 hồ sơ nha khoa trong trang Danh Sách Phiếu Điều Trị.
- * Click vào header → expand/collapse danh sách phiếu.
- *
- * Props:
- *   - record         : dental record object
- *   - treatments     : Treatment[] thuộc hồ sơ này (đã filter theo statusFilter từ cha)
- *   - defaultExpanded: mở sẵn hay không (default false)
+ * Card hiển thị 1 hồ sơ nha khoa, click vào để expand/collapse danh sách phiếu bên trong.
+ * (Sử dụng dữ liệu từ API getListOfPatientService trả về có sẵn treatments)
  */
-const RecordTreatmentCard = ({ record, treatments, defaultExpanded = false }) => {
+const RecordTreatmentCard = ({ record, defaultExpanded = false }) => {
     const navigate = useNavigate();
     const [isExpanded, setIsExpanded] = useState(defaultExpanded);
 
-    // Đếm theo trạng thái
+    // Phiếu điều trị từ API (gắn sẵn trong record)
+    const treatments = record.treatments || [];
+
+    // Tính toán mini-stats
     const pendingCount = treatments.filter(t => t.status === 'PENDING').length;
     const approvedCount = treatments.filter(t => t.status === 'APPROVED').length;
     const rejectedCount = treatments.filter(t => t.status === 'REJECTED').length;
-    const totalCost = treatments.reduce((s, t) => s + t.unit_price * t.quantity, 0);
 
-    const rStatus = recordStatusConfig[record.status] || { label: record.status, variant: 'default' };
+    // Tính tổng tiền dựa trên treatments API (tùy thuộc API schema, ví dụ unit_price * quantity, 
+    // bên backend schema Treatment có price, quantity, total)
+    const totalCost = treatments.reduce((sum, t) => sum + (t.total || (t.cost * (t.quantity || 1)) || 0), 0);
 
-    // Màu border theo tình trạng hồ sơ
-    const borderClass =
-        record.status === 'IN_PROGRESS' ? 'border-blue-200' :
-            record.status === 'COMPLETED' ? 'border-green-200' :
-                'border-gray-200';
+    const rStatus = statusConfig[record.status] || { label: record.status, style: 'bg-gray-100 text-gray-500 border-gray-200' };
+
+    // Màu viền và title hover
+    const activeBorderClass = record.status === 'IN_PROGRESS'
+        ? 'hover:border-teal-300'
+        : 'hover:border-emerald-300';
+
+    const activeTextClass = record.status === 'IN_PROGRESS'
+        ? 'group-hover:text-teal-700 text-gray-900'
+        : 'group-hover:text-emerald-700 text-gray-900';
 
     return (
-        <div className={`bg-white rounded-xl border-2 shadow-sm transition-shadow hover:shadow-md ${borderClass}`}>
-            {/* ── Header (clickable) ── */}
+        <div className={`bg-white rounded-2xl border border-gray-100 shadow-sm transition-all duration-200 ${activeBorderClass}`}>
+            {/* Header (Click to toggle expand) */}
             <button
-                className="w-full text-left p-5 flex items-start justify-between gap-4 group"
-                onClick={() => setIsExpanded(prev => !prev)}
+                type="button"
+                className="w-full text-left p-5 flex flex-col md:flex-row md:items-start justify-between gap-4 group rounded-t-2xl focus:outline-none"
+                onClick={() => setIsExpanded(!isExpanded)}
             >
-                <div className="flex-1 space-y-2 min-w-0">
-                    {/* Tên hồ sơ + badge trạng thái */}
-                    <div className="flex items-center gap-2 flex-wrap">
-                        <FileText size={17} className="text-blue-500 flex-shrink-0" />
-                        <h3 className="font-semibold text-gray-900 group-hover:text-blue-700 transition-colors truncate">
+                <div className="flex-1 min-w-0 space-y-2">
+                    {/* Tên hồ sơ + Status */}
+                    <div className="flex flex-wrap items-center gap-2.5">
+                        <h3 className={`text-[15px] font-semibold transition-colors ${activeTextClass} truncate`}>
                             {record.record_name}
                         </h3>
-                        <Badge variant={rStatus.variant}>{rStatus.label}</Badge>
-                    </div>
-
-                    {/* Thông tin bệnh nhân */}
-                    <div className="flex flex-wrap gap-4 text-sm text-gray-500">
-                        <span className="flex items-center gap-1.5">
-                            <User size={14} className="text-gray-400" />
-                            <strong className="text-gray-700">{record.patient_name}</strong>
+                        <span className={`text-[11px] font-medium px-2.5 py-0.5 rounded-full border ${rStatus.style}`}>
+                            {rStatus.label}
                         </span>
-                        {record.patient_dob && (
-                            <span>📅 {record.patient_dob}</span>
+                    </div>
+
+                    {/* Thông tin bệnh nhân & Bác sĩ */}
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[13px] text-gray-500">
+                        {record.patient_id && record.patient_id.full_name && (
+                            <span className="font-medium text-gray-700">{record.patient_id.full_name}</span>
                         )}
-                        {record.patient_gender && (
-                            <span>⚧ {record.patient_gender}</span>
+                        {/* Nếu API trả về patient_id là string thay vì object thì dùng record.full_name nếu có */}
+                        {(!record.patient_id || typeof record.patient_id === 'string') && record.patient_name && (
+                            <span className="font-medium text-gray-700">{record.patient_name}</span>
+                        )}
+
+                        {record.doctor_info?.profile?.full_name && (
+                            <>
+                                <span className="w-1 h-1 rounded-full bg-gray-300"></span>
+                                <span>BS {record.doctor_info.profile.full_name}</span>
+                            </>
+                        )}
+
+                        {(record.start_date || record.end_date) && (
+                            <>
+                                <span className="w-1 h-1 rounded-full bg-gray-300"></span>
+                                <span>
+                                    {formatDate(record.start_date) || '?'} {'→'} {formatDate(record.end_date) || 'Nay'}
+                                </span>
+                            </>
                         )}
                     </div>
 
-                    {/* Mini badges: tổng số phiếu theo trạng thái */}
-                    <div className="flex gap-2 flex-wrap text-xs">
+                    {/* Mini badges đếm trạng thái phiếu */}
+                    <div className="flex flex-wrap gap-2 text-xs pt-1">
                         {pendingCount > 0 && (
-                            <span className="flex items-center gap-1 px-2 py-0.5 bg-yellow-100 text-yellow-700 rounded-full font-medium">
-                                <Clock size={11} /> {pendingCount} chờ duyệt
+                            <span className="bg-amber-50 text-amber-700 border border-amber-100 px-2.5 py-1 rounded-lg font-medium">
+                                {pendingCount} phiếu chờ duyệt
                             </span>
                         )}
                         {approvedCount > 0 && (
-                            <span className="flex items-center gap-1 px-2 py-0.5 bg-green-100 text-green-700 rounded-full font-medium">
-                                <CheckCircle size={11} /> {approvedCount} đã duyệt
+                            <span className="bg-teal-50 text-teal-700 border border-teal-100 px-2.5 py-1 rounded-lg font-medium">
+                                {approvedCount} phiếu đã duyệt
                             </span>
                         )}
                         {rejectedCount > 0 && (
-                            <span className="flex items-center gap-1 px-2 py-0.5 bg-red-100 text-red-700 rounded-full font-medium">
-                                <XCircle size={11} /> {rejectedCount} từ chối
+                            <span className="bg-red-50 text-red-600 border border-red-100 px-2.5 py-1 rounded-lg font-medium">
+                                {rejectedCount} phiếu từ chối
                             </span>
                         )}
                         {treatments.length === 0 && (
-                            <span className="text-gray-400 italic">Không có phiếu nào</span>
+                            <span className="text-gray-400 italic">Chưa có phiếu điều trị</span>
                         )}
                     </div>
                 </div>
 
-                {/* Nút mở xem hồ sơ + chevron */}
-                <div className="flex items-center gap-2 flex-shrink-0 pt-0.5">
-                    <button
-                        onClick={(e) => { e.stopPropagation(); navigate(`/dentist/dental-records/${record.id}`); }}
-                        className="p-1.5 rounded-lg hover:bg-blue-50 text-blue-400 hover:text-blue-600 transition-colors"
-                        title="Xem hồ sơ chi tiết"
+                {/* Nút Xem chi tiết & Chevron */}
+                <div className="flex items-center self-end md:self-auto gap-3 flex-shrink-0 pt-1 md:pt-0">
+                    <div
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/dentist/dental-records/${record._id || record.id}`);
+                        }}
+                        className="px-4 py-1.5 rounded-xl border border-teal-500 text-teal-600 text-[13px] font-medium hover:bg-teal-500 hover:text-white transition-all duration-200"
                     >
-                        <ExternalLink size={16} />
-                    </button>
-                    <div className="text-gray-400 group-hover:text-gray-600 transition-colors">
-                        {isExpanded ? <ChevronDown size={20} /> : <ChevronRight size={20} />}
+                        Xem chi tiết
+                    </div>
+
+                    {/* Fake Chevron built without icons */}
+                    <div className="w-6 h-6 flex items-center justify-center text-gray-400 group-hover:text-gray-600">
+                        {isExpanded ? (
+                            <span className="text-sm font-bold opacity-70 rotate-180 transform">▼</span>
+                        ) : (
+                            <span className="text-sm font-bold opacity-70">▼</span>
+                        )}
                     </div>
                 </div>
             </button>
 
-            {/* ── Danh sách phiếu (expanded) ── */}
+            {/* Danh sách phiếu điều trị (Expanded) */}
             {isExpanded && (
-                <div className="border-t border-gray-100 px-5 pb-4">
+                <div className="border-t border-gray-100 bg-gray-50/30 px-5 pt-2 pb-5 rounded-b-2xl">
                     {treatments.length === 0 ? (
-                        <p className="py-6 text-center text-sm text-gray-400 italic">
-                            Không có phiếu điều trị nào
+                        <p className="py-8 text-center text-[13px] text-gray-400">
+                            Không có phiếu điều trị nào trong hồ sơ này
                         </p>
                     ) : (
-                        <>
-                            {/* Column header */}
-                            <div className="flex items-center justify-between py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide border-b border-gray-100 mb-1">
-                                <span className="flex-1">Phiếu điều trị</span>
-                                <span className="min-w-[110px] text-right pr-4">Đơn giá</span>
-                                <span className="min-w-[110px] text-right">Trạng thái</span>
-                            </div>
-
+                        <div className="space-y-1">
                             {treatments.map((t, idx) => (
-                                <TreatmentRow key={t.id} treatment={t} index={idx} />
+                                <TreatmentRow key={t._id || t.id || idx} treatment={t} index={idx} />
                             ))}
 
-                            {/* Tổng tiền */}
-                            <div className="flex justify-end pt-3 border-t border-gray-100 mt-1">
-                                <span className="text-sm font-semibold text-gray-700">
-                                    Tổng:{' '}
-                                    <span className="text-green-700">
-                                        {totalCost.toLocaleString('vi-VN')}đ
-                                    </span>
-                                </span>
-                            </div>
-                        </>
+                            {/* Tổng giá trị */}
+                            {totalCost > 0 && (
+                                <div className="flex justify-end pt-5 border-t border-gray-200 mt-4 mr-2">
+                                    <div className="text-[13px] font-medium text-gray-500">
+                                        Tổng thiết tính:{' '}
+                                        <span className="text-base font-bold text-teal-700 ml-2">
+                                            {totalCost.toLocaleString('vi-VN')}đ
+                                        </span>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
                     )}
                 </div>
             )}
