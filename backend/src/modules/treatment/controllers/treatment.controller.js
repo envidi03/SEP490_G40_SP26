@@ -7,6 +7,7 @@ const ServiceProcess = require("../services/treatment.service");
 const dentalService = require("../services/dental.record.service");
 const appointmentService = require("../../appointment/services/appointment.service");
 const { checkRequiredFields } = require("../../../utils/checkRequiredFields");
+const mongoose = require("mongoose");
 
 /*
     get treatment by id
