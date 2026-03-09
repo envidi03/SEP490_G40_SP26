@@ -7,6 +7,6 @@ router.get('/patient', auth.authenticate, auth.authorize("PATIENT"), controller.
 
 router.get('/staff', controller.getListController);
 
-router.get('/doctor/dental-record', auth.authenticate, auth.authorize("DOCTOR"), controller.getListOfDoctorController);
+router.get('/doctor/appointment', auth.authenticate, auth.authorize("DOCTOR"), controller.getListOfDoctorController);
 
 module.exports = router;
