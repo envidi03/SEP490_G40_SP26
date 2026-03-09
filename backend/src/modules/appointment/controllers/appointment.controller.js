@@ -151,7 +151,7 @@ const getListOfDoctorController = async (req, res) => {
       );
     }
 
-    const { data, pagination } = await ServiceProcess.getListOfDoctorService(
+    const { data, pagination } = await ServiceProcess.getListService(
       queryParams,
       staff._id,
     );
