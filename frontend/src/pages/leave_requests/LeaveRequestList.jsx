@@ -63,16 +63,26 @@ const LeaveRequestList = () => {
         });
     }, [requests, searchTerm, statusFilter, typeFilter]);
 
-    const handleCreateRequest = (data) => {
-        const newRequest = {
-            id: `leave_${Date.now()}`,
-            user_id: user.id,
-            createdAt: new Date().toISOString().split('T')[0],
-            status: 'PENDING',
-            ...data
-        };
-        setRequests([newRequest, ...requests]);
-        setIsModalOpen(false);
+    const handleCreateRequest = async (data) => {
+        setIsSubmitting(true);
+        try {
+            // Mock API delay
+            await new Promise(resolve => setTimeout(resolve, 1000));
+
+            const newRequest = {
+                id: `leave_${Date.now()}`,
+                user_id: user.id,
+                createdAt: new Date().toISOString(),
+                status: 'PENDING',
+                ...data
+            };
+            setRequests(prev => [newRequest, ...prev]);
+            setIsModalOpen(false);
+        } catch (error) {
+            console.error('Error creating leave request:', error);
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     return (
@@ -157,6 +167,7 @@ const LeaveRequestList = () => {
                 <LeaveRequestForm
                     onSubmit={handleCreateRequest}
                     onCancel={() => setIsModalOpen(false)}
+                    isSubmitting={isSubmitting}
                 />
             </Modal>
         </div>

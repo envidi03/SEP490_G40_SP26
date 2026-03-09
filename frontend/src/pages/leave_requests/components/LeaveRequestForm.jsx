@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
 
 import { useEffect } from 'react';
+import Input from '../../../components/ui/Input';
+import Select from '../../../components/ui/Select';
+import Button from '../../../components/ui/Button';
 
-const LeaveRequestForm = ({ onSubmit, onCancel, initialData }) => {
+const LeaveRequestForm = ({ onSubmit, onCancel, initialData, isSubmitting }) => {
     const [formData, setFormData] = useState({
         startedDate: '',
         endDate: '',
@@ -101,8 +104,12 @@ const LeaveRequestForm = ({ onSubmit, onCancel, initialData }) => {
                 >
                     Hủy bỏ
                 </Button>
-                <Button type="submit">
-                    {initialData ? 'Cập nhật' : 'Gửi yêu cầu'}
+                <Button type="submit" disabled={isSubmitting}>
+                    {isSubmitting ? (
+                        <div className="flex items-center gap-2">
+                            Đang xử lý...
+                        </div>
+                    ) : (initialData ? 'Cập nhật' : 'Gửi yêu cầu')}
                 </Button>
             </div>
         </form>
