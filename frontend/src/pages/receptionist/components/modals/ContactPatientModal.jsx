@@ -4,15 +4,15 @@ const ContactPatientModal = ({ appointment, isOpen, onClose }) => {
     if (!isOpen || !appointment) return null;
 
     const handleCall = () => {
-        console.log('Calling:', appointment.patientPhone);
+        console.log('Calling:', appointment.phone);
         // TODO: Integrate with phone system
-        window.location.href = `tel:${appointment.patientPhone}`;
+        window.location.href = `tel:${appointment.phone}`;
     };
 
     const handleSMS = () => {
-        console.log('Sending SMS to:', appointment.patientPhone);
+        console.log('Sending SMS to:', appointment.phone);
         // TODO: Integrate with SMS service
-        window.location.href = `sms:${appointment.patientPhone}`;
+        window.location.href = `sms:${appointment.phone}`;
     };
 
     const handleEmail = () => {
@@ -34,13 +34,13 @@ const ContactPatientModal = ({ appointment, isOpen, onClose }) => {
                 </div>
 
                 <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                    <p className="font-medium text-gray-900">{appointment.patientName}</p>
+                    <p className="font-medium text-gray-900">{appointment.full_name}</p>
                     <p className="text-sm text-gray-600 mt-1">
                         <Phone size={14} className="inline mr-1" />
-                        {appointment.patientPhone}
+                        {appointment.phone}
                     </p>
                     <p className="text-sm text-gray-600 mt-1">
-                        Lịch hẹn: {appointment.date} - {appointment.time}
+                        Lịch hẹn: {new Date(appointment.appointment_date).toLocaleDateString('vi-VN')} - {appointment.appointment_time}
                     </p>
                 </div>
 
@@ -54,7 +54,7 @@ const ContactPatientModal = ({ appointment, isOpen, onClose }) => {
                         </div>
                         <div className="text-left flex-1">
                             <p className="font-medium text-gray-900">Gọi điện</p>
-                            <p className="text-sm text-gray-600">{appointment.patientPhone}</p>
+                            <p className="text-sm text-gray-600">{appointment.phone}</p>
                         </div>
                     </button>
 

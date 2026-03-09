@@ -3,11 +3,11 @@ import { X, Calendar as CalendarIcon, Clock, User, FileText, Search } from 'luci
 
 const BookAppointmentModal = ({ isOpen, onClose, onBook }) => {
     const [formData, setFormData] = useState({
-        patientPhone: '',
-        patientName: '',
-        date: '',
-        time: '',
-        doctor: '',
+        phone: '',
+        full_name: '',
+        appointment_date: '',
+        appointment_time: '',
+        doctor_id: '',
         reason: '',
         notes: ''
     });
@@ -24,19 +24,18 @@ const BookAppointmentModal = ({ isOpen, onClose, onBook }) => {
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        // TODO: Call API to create appointment on behalf of patient
-        console.log('Booking appointment:', formData);
+        // Call API to create appointment on behalf of patient
         if (onBook) {
             onBook(formData);
         }
 
         // Reset form
         setFormData({
-            patientPhone: '',
-            patientName: '',
-            date: '',
-            time: '',
-            doctor: '',
+            phone: '',
+            full_name: '',
+            appointment_date: '',
+            appointment_time: '',
+            doctor_id: '',
             reason: '',
             notes: ''
         });
@@ -81,8 +80,8 @@ const BookAppointmentModal = ({ isOpen, onClose, onBook }) => {
                                     </label>
                                     <input
                                         type="tel"
-                                        name="patientPhone"
-                                        value={formData.patientPhone}
+                                        name="phone"
+                                        value={formData.phone}
                                         onChange={handleChange}
                                         required
                                         className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
@@ -96,8 +95,8 @@ const BookAppointmentModal = ({ isOpen, onClose, onBook }) => {
                                     </label>
                                     <input
                                         type="text"
-                                        name="patientName"
-                                        value={formData.patientName}
+                                        name="full_name"
+                                        value={formData.full_name}
                                         onChange={handleChange}
                                         required
                                         className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
@@ -120,8 +119,8 @@ const BookAppointmentModal = ({ isOpen, onClose, onBook }) => {
                                     </label>
                                     <input
                                         type="date"
-                                        name="date"
-                                        value={formData.date}
+                                        name="appointment_date"
+                                        value={formData.appointment_date}
                                         onChange={handleChange}
                                         required
                                         min={new Date().toISOString().split('T')[0]}
@@ -135,8 +134,8 @@ const BookAppointmentModal = ({ isOpen, onClose, onBook }) => {
                                     </label>
                                     <input
                                         type="time"
-                                        name="time"
-                                        value={formData.time}
+                                        name="appointment_time"
+                                        value={formData.appointment_time}
                                         onChange={handleChange}
                                         required
                                         className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
@@ -152,8 +151,8 @@ const BookAppointmentModal = ({ isOpen, onClose, onBook }) => {
                                 Bác sĩ khám <span className="text-red-500 ml-1">*</span>
                             </label>
                             <select
-                                name="doctor"
-                                value={formData.doctor}
+                                name="doctor_id"
+                                value={formData.doctor_id}
                                 onChange={handleChange}
                                 required
                                 className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
