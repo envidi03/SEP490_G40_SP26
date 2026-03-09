@@ -231,7 +231,7 @@ const DentistAppointmentList = () => {
                   </tr>
                 ) : (
                   appointments.map((row) => {
-                    const code = row.appointment_id || row.code || "---"
+                    const code = row._id?.slice(-6) || "---"
                     const dateStr = row.appointment_date
                       ? new Date(row.appointment_date).toLocaleDateString("vi-VN", { day: '2-digit', month: '2-digit' })
                       : row.date

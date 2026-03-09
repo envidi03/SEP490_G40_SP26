@@ -7,6 +7,7 @@ const getStatusStyle = (status) => {
     Pending: "bg-amber-50 text-amber-700 border-amber-200",
     Completed: "bg-blue-50 text-blue-700 border-blue-200",
     Cancelled: "bg-red-50 text-red-600 border-red-200",
+    CHECKED_IN: "bg-purple-50 text-purple-700 border-purple-200"
   }
   return colorMap[status] || "bg-gray-50 text-gray-600 border-gray-200"
 }
@@ -14,13 +15,19 @@ const getStatusStyle = (status) => {
 const AppointmentDetailModal = ({ isOpen, onClose, appointment }) => {
   if (!appointment) return null
 
-  // Ensure patient uses optional chaining in case of nested data structure
-  const patientName = appointment.patient_id?.full_name || appointment.patientName || "Bệnh nhân không rõ"
-  const patientPhone = appointment.patient_id?.phone || appointment.patientPhone || "Không có SĐT"
+  // Đảm bảo lấy đúng thông tin bệnh nhân từ cấp ngoài cùng hoặc qua populate
+  const patientName = appointment.patient_id?.full_name || appointment.full_name || appointment.patientName || "Bệnh nhân không rõ"
+  const patientPhone = appointment.patient_id?.phone || appointment.phone || appointment.patientPhone || "Không có SĐT"
   const dateStr = appointment.appointment_date
-    ? new Date(appointment.appointment_date).toLocaleDateString("vi-VN")
-    : appointment.date
-  const timeStr = appointment.start_time || appointment.time
+    ? new Date(appointment.appointment_date).toLocaleDateString("vi-VN", { day: '2-digit', month: '2-digit', year: 'numeric' })
+    : appointment.date || "Chưa xác định"
+  const timeStr = appointment.appointment_time || appointment.start_time || appointment.time || "Theo giờ hẹn"
+
+  // Xử lý hiển thị thông tin dịch vụ
+  let service = appointment.appointment_type || appointment.reason || "Khám định kỳ"
+  if (appointment.book_service && appointment.book_service.length > 0 && appointment.book_service[0]?.service_id?.name) {
+    service = appointment.book_service.map(s => s.service_id.name).join(', ')
+  }
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Chi tiết lịch hẹn" size="lg">
@@ -29,7 +36,9 @@ const AppointmentDetailModal = ({ isOpen, onClose, appointment }) => {
         <div className="flex items-center justify-between pb-4 border-b border-gray-100">
           <div>
             <p className="text-xs text-gray-500 font-medium">MÃ LỊCH HẸN</p>
-            <p className="text-lg font-bold text-gray-800 mt-1">{appointment.appointment_id || appointment.code || "---"}</p>
+            <p className="text-lg font-bold text-gray-800 mt-1 uppercase">
+              {appointment._id?.slice(-6) || appointment.appointment_id || appointment.code || "---"}
+            </p>
           </div>
           <span className={`px-3 py-1 text-[13px] font-medium rounded-full border ${getStatusStyle(appointment.status)}`}>
             {appointment.status}
@@ -49,15 +58,15 @@ const AppointmentDetailModal = ({ isOpen, onClose, appointment }) => {
               <div>
                 <p className="text-gray-500 mb-1">Dịch vụ / Loại khám</p>
                 <p className="font-medium text-gray-800 bg-gray-50 p-2 rounded-lg border border-gray-100">
-                  {appointment.appointment_type || appointment.reason || "Khám định kỳ"}
+                  {service}
                 </p>
               </div>
 
-              {appointment.notes && (
+              {appointment.reason && appointment.reason !== service && (
                 <div>
-                  <p className="text-gray-500 mb-1">Ghi chú từ bệnh nhân</p>
-                  <p className="font-medium text-amber-700 bg-amber-50 p-2 rounded-lg border border-amber-100">
-                    {appointment.notes}
+                  <p className="text-gray-500 mb-1">Lý do khám / Ghi chú</p>
+                  <p className="font-medium text-amber-700 bg-amber-50 p-2 rounded-lg border border-amber-100 break-words">
+                    {appointment.reason}
                   </p>
                 </div>
               )}
