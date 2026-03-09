@@ -13,13 +13,12 @@ import Toast from '../../components/ui/Toast';
 import { getStatusBadge, formatCurrency } from './components/medical-records/statusHelpers';
 import TreatmentPlanTab from './components/medical-records/TreatmentPlanTab';
 import TreatmentsTab from './components/medical-records/TreatmentsTab';
-import PrescriptionsTab from './components/medical-records/PrescriptionsTab';
+
 import TreatmentDetailModal from './components/medical-records/TreatmentDetailModal';
 
 const TABS = [
     { key: 'plan', label: 'Kế hoạch điều trị', icon: ListChecks },
     { key: 'treatments', label: 'Quá trình điều trị', icon: Stethoscope },
-    { key: 'prescriptions', label: 'Đơn thuốc', icon: Pill },
 ];
 
 const PatientMedicalRecords = () => {
@@ -228,8 +227,8 @@ const PatientMedicalRecords = () => {
                                                                 key={tab.key}
                                                                 onClick={() => switchTab(record._id, tab.key)}
                                                                 className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-t-lg transition-colors ${isActive
-                                                                        ? 'bg-white text-primary-700 border border-gray-200 border-b-white -mb-px'
-                                                                        : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+                                                                    ? 'bg-white text-primary-700 border border-gray-200 border-b-white -mb-px'
+                                                                    : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
                                                                     }`}
                                                             >
                                                                 <Icon size={16} />
@@ -253,9 +252,7 @@ const PatientMedicalRecords = () => {
                                                             onViewDetail={setDetailTreatment}
                                                         />
                                                     )}
-                                                    {currentTab === 'prescriptions' && (
-                                                        <PrescriptionsTab treatments={record.treatments} />
-                                                    )}
+
                                                 </div>
                                             </div>
                                         )}
@@ -277,6 +274,7 @@ const PatientMedicalRecords = () => {
 
             {toast.show && (
                 <Toast
+                    show={toast.show}
                     type={toast.type}
                     message={toast.message}
                     onClose={() => setToast({ ...toast, show: false })}
