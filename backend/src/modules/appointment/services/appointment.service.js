@@ -23,9 +23,10 @@ const emailService = require("../../../common/service/email.service");
     )
 */
 const getListService = async (query, doctor_id) => {
+    const context = "AppointmentService.getListService";
     try {
         logger.debug("Fetching list of appointments with query", {
-            context: "AppointmentService.getListService",
+            context: context,
             query: query,
             doctor_id: doctor_id
         });
@@ -46,9 +47,9 @@ const getListService = async (query, doctor_id) => {
             matchCondition.status = statusFilter;
         }
 
-        // Lọc theo doctor_id
+        // Lọc theo doctor_id (Phải ép kiểu về ObjectId trong Aggregation)
         if (doctor_id) {
-            matchCondition.doctor_id = doctor_id;
+            matchCondition.doctor_id = new mongoose.Types.ObjectId(doctor_id);
         }
 
         // Tìm kiếm (Search) theo tên, số điện thoại, email
@@ -63,16 +64,56 @@ const getListService = async (query, doctor_id) => {
 
         // 3. Xây dựng Aggregation Pipeline
         const aggregatePipeline = [
+            // BƯỚC 1 & 2: Lọc và Sắp xếp toàn bộ dữ liệu (rất nhanh vì có index)
             { $match: matchCondition },
             { $sort: { appointment_date: sortOrder } },
+            
+            // BƯỚC 3: Phân luồng (1 luồng đếm tổng, 1 luồng lấy data)
             {
                 $facet: {
                     data: [
+                        // Cắt lấy đúng số lượng của trang hiện tại trước (Ví dụ: 5 record)
                         { $skip: skip },
                         { $limit: limit },
+                        
+                        // HIỆU NĂNG CAO: Chỉ Lookup thông tin bác sĩ cho 5 record này
+                        {
+                            $lookup: {
+                                from: "staffs", // Tên collection chứa Staff
+                                localField: "doctor_id",
+                                foreignField: "_id",
+                                as: "doctor_info"
+                            }
+                        },
+                        // Flatten mảng doctor_info thành object
+                        {
+                            $addFields: {
+                                doctor_info: { $arrayElemAt: ["$doctor_info", 0] }
+                            }
+                        },
+                        
+                        // Tùy chọn: Nếu bạn muốn lấy luôn Tên và Avatar Bác sĩ từ bảng Profile
+                        {
+                            $lookup: {
+                                from: "profiles", 
+                                localField: "doctor_info.profile_id",
+                                foreignField: "_id",
+                                as: "doctor_info.profile"
+                            }
+                        },
+                        {
+                            $addFields: {
+                                "doctor_info.profile": { $arrayElemAt: ["$doctor_info.profile", 0] }
+                            }
+                        },
+
+                        // BƯỚC CUỐI: Dọn dẹp các field rác và bảo mật
                         {
                             $project: {
-                                __v: 0
+                                __v: 0,
+                                "doctor_info.__v": 0,
+                                "doctor_info.password": 0, // Che password nếu có
+                                "doctor_info.profile.__v": 0
                             }
                         }
                     ],
@@ -84,6 +125,7 @@ const getListService = async (query, doctor_id) => {
         ];
 
         // 4. Thực thi truy vấn
+        // (Đảm bảo gọi đúng Model Lịch hẹn của bạn)
         const result = await AppointmentModel.aggregate(aggregatePipeline);
 
         const appointments = result[0]?.data || [];
@@ -100,7 +142,7 @@ const getListService = async (query, doctor_id) => {
 
     } catch (error) {
         logger.error("Error getting list of appointments", {
-            context: "AppointmentService.getListService",
+            context: context,
             message: error.message,
             stack: error.stack
         });
@@ -236,9 +278,10 @@ const getListOfPatientService = async (query, account_id) => {
     get appointment by appointmentId
 */
 const getByIdService = async (id) => {
+    const context = "AppointmentService.getByIdService";
     try {
         logger.debug("Fetching appointment by id", {
-            context: "AppointmentService.getByIdService",
+            context: context,
             appointmentId: id,
         });
 
@@ -251,29 +294,36 @@ const getByIdService = async (id) => {
         const appointment = await AppointmentModel.findById(id)
             .populate("patient_id")
             .populate("book_service.service_id")
+            // 💡 POPULATE LỒNG NHAU (Lấy Bác sĩ -> Lấy tiếp Profile của Bác sĩ)
+            .populate({
+                path: "doctor_id", // Lấy thông tin Staff
+                populate: {
+                    path: "profile_id", // Từ Staff lấy tiếp sang Profile để có full_name, avatar...
+                    select: "-__v" // Tùy chọn: ẩn các trường không cần thiết
+                },
+                select: "-password -__v" // Ẩn mật khẩu của Staff (nếu có)
+            })
             .lean();
 
         // --- 3. KIỂM TRA TỒN TẠI ---
         if (!appointment) {
             logger.warn("Appointment not found", {
-                context: "AppointmentService.getByIdService",
+                context: context,
                 appointmentId: id,
             });
             throw new errorRes.NotFoundError("Appointment not found");
         }
 
         logger.debug("Appointment fetched successfully", {
-            context: "AppointmentService.getByIdService",
+            context: context,
             appointmentId: id,
         });
 
-        // Đã sửa lỗi: Trả về đúng biến appointment thay vì staffInfo
         return appointment;
 
     } catch (error) {
-        // Đã sửa lỗi: Cập nhật lại log lỗi cho đúng ngữ cảnh Appointment
         logger.error("Error getting appointment by id", {
-            context: "AppointmentService.getByIdService",
+            context: context,
             message: error.message,
             stack: error.stack,
         });
