@@ -56,7 +56,7 @@ const getListOfPatientService = async (query, patientId) => {
     }
     aggregatePipeline.push({ $match: initialMatch });
 
-    // --- STAGE 2: JOIN với bảng Staff (Bác sĩ) ---
+    // --- STAGE 2: JOIN với bảng Staff (Lấy thông tin tài khoản Bác sĩ) ---
     aggregatePipeline.push({
       $lookup: {
         from: "staffs",
@@ -66,7 +66,7 @@ const getListOfPatientService = async (query, patientId) => {
       },
     });
 
-    // Flatten mảng doctor_info thành object
+    // Ép mảng doctor_info thành object
     aggregatePipeline.push({
       $addFields: {
         doctor_info: { $arrayElemAt: ["$doctor_info", 0] },
@@ -76,31 +76,89 @@ const getListOfPatientService = async (query, patientId) => {
     // --- STAGE 2.5: JOIN với bảng Profile (Lấy full_name, avatar... của Bác sĩ) ---
     aggregatePipeline.push({
       $lookup: {
-        from: "profiles", // Tên collection được định nghĩa trong Profile model
-        localField: "doctor_info.profile_id", // Khóa ngoại nằm trong object doctor_info
-        foreignField: "_id", // So khớp với _id của bảng Profile
-        as: "doctor_info.profile", // Gắn kết quả vào một field con tên là 'profile'
+        from: "profiles",
+        localField: "doctor_info.profile_id",
+        foreignField: "_id",
+        as: "doctor_info.profile",
       },
     });
 
-    // Flatten mảng profile bên trong doctor_info
+    // Ép mảng profile thành object nằm gọn bên trong doctor_info
     aggregatePipeline.push({
       $addFields: {
         "doctor_info.profile": { $arrayElemAt: ["$doctor_info.profile", 0] },
       },
     });
 
-    // --- STAGE 3: JOIN với bảng Treatment ---
+    // --- STAGE 3: JOIN BẢNG TREATMENT + BẢNG MEDICINE (KHÔNG DÙNG UNWIND) ---
     aggregatePipeline.push({
       $lookup: {
         from: "treatments",
-        localField: "_id",
-        foreignField: "record_id",
+        let: { recordId: "$_id" },
+        pipeline: [
+          // 3.1: Chỉ lấy các treatment thuộc bệnh án này
+          { $match: { $expr: { $eq: ["$record_id", "$$recordId"] } } },
+
+          // 3.2: Lấy tất cả thông tin thuốc có mặt trong đơn thuốc của treatment này
+          {
+            $lookup: {
+              from: "medicines",
+              localField: "medicine_usage.medicine_id",
+              foreignField: "_id",
+              as: "medicine_details_temp",
+            },
+          },
+
+          // 💡 [THÊM MỚI Ở ĐÂY]: Dọn dẹp cục data thuốc vừa lấy về
+          // Dùng $unset để chém bỏ mảng medicine_restock_requests trước khi ghép vào Đơn thuốc
+          {
+            $unset: "medicine_details_temp.medicine_restock_requests",
+          },
+
+          // 3.3: Dùng $map lặp qua đơn thuốc và nhét chi tiết thuốc vào
+          {
+            $addFields: {
+              medicine_usage: {
+                $map: {
+                  input: { $ifNull: ["$medicine_usage", []] },
+                  as: "usage",
+                  in: {
+                    $mergeObjects: [
+                      "$$usage",
+                      {
+                        medicine_id: {
+                          $arrayElemAt: [
+                            {
+                              $filter: {
+                                input: "$medicine_details_temp",
+                                as: "med",
+                                cond: {
+                                  $eq: ["$$med._id", "$$usage.medicine_id"],
+                                },
+                              },
+                            },
+                            0,
+                          ],
+                        },
+                      },
+                    ],
+                  },
+                },
+              },
+            },
+          },
+
+          // 3.4: Xóa mảng tạm để JSON trả về được sạch đẹp
+          { $project: { medicine_details_temp: 0 } },
+
+          // 3.5: Sắp xếp danh sách treatment theo thời gian tạo
+          { $sort: { createdAt: 1 } },
+        ],
         as: "treatments",
       },
     });
 
-    // --- STAGE 4: Lọc và Search Nâng cao ---
+    // --- STAGE 4: Lọc và Search Nâng cao (Sau khi đã Join đầy đủ) ---
     const complexMatch = {};
 
     if (filterTreatment) {
@@ -111,8 +169,7 @@ const getListOfPatientService = async (query, patientId) => {
       const searchRegex = { $regex: search, $options: "i" };
       complexMatch.$or = [
         { record_name: searchRegex },
-        // 💡 ĐÃ SỬA LẠI ĐƯỜNG DẪN TÌM KIẾM CHO ĐÚNG VỚI CẤU TRÚC MỚI
-        { "doctor_info.profile.full_name": searchRegex }, 
+        { "doctor_info.profile.full_name": searchRegex }, // Tìm theo tên trong Profile
         { "treatments.tooth_position": searchRegex },
       ];
     }
@@ -121,10 +178,10 @@ const getListOfPatientService = async (query, patientId) => {
       aggregatePipeline.push({ $match: complexMatch });
     }
 
-    // --- STAGE 5: Sắp xếp ---
+    // --- STAGE 5: Sắp xếp theo ngày bắt đầu bệnh án ---
     aggregatePipeline.push({ $sort: { start_date: sortOrder } });
 
-    // --- STAGE 6: Phân trang ---
+    // --- STAGE 6: Phân trang (Pagination) ---
     aggregatePipeline.push({
       $facet: {
         data: [
@@ -163,7 +220,7 @@ const getListOfPatientService = async (query, patientId) => {
       stack: error.stack,
     });
     throw new errorRes.InternalServerError(
-      `An error occurred while fetching list of dental records: ${error.message}`
+      `An error occurred while fetching list of dental records: ${error.message}`,
     );
   }
 };
@@ -468,14 +525,14 @@ const getDentalRecordById = async (id) => {
 
 /**
  * tìm kiếm bệnh án dựa trên thông tin đầu vào có thể là full_name, phone, email, dob
- * * tìm kiếm bệnh nhân dựa trên thông tin đầu vào có thể là full_name, phone, email, dob 
- * và trả về danh sách thông tin bệnh nhân trùng với thông tin đầu vào và 
- * phải nhóm các thông tin cùng patient_id vào cùng 1 nhóm (vì có thể 1 bệnh nhân có nhiều bệnh án) 
- * và mỗi nhóm sẽ bao gồm thông tin patient_id, full_name, phone, email, dob để khi tìm kiếm bệnh án 
- * sẽ hiển thị được thông tin bệnh nhân đó để dễ dàng phân biệt với các bệnh nhân khác 
+ * * tìm kiếm bệnh nhân dựa trên thông tin đầu vào có thể là full_name, phone, email, dob
+ * và trả về danh sách thông tin bệnh nhân trùng với thông tin đầu vào và
+ * phải nhóm các thông tin cùng patient_id vào cùng 1 nhóm (vì có thể 1 bệnh nhân có nhiều bệnh án)
+ * và mỗi nhóm sẽ bao gồm thông tin patient_id, full_name, phone, email, dob để khi tìm kiếm bệnh án
+ * sẽ hiển thị được thông tin bệnh nhân đó để dễ dàng phân biệt với các bệnh nhân khác
  * khi có nhiều bệnh nhân trùng tên hoặc trùng số điện thoại, email.
- * * * @param {*} search infor user để tìm kiếm (có thể là full_name, phone, email, dob) 
- * và sẽ tìm kiếm theo kiểu gần đúng (partial match) để tăng khả năng tìm kiếm trúng kết quả hơn 
+ * * * @param {*} search infor user để tìm kiếm (có thể là full_name, phone, email, dob)
+ * và sẽ tìm kiếm theo kiểu gần đúng (partial match) để tăng khả năng tìm kiếm trúng kết quả hơn
  * @returns Danh sách bệnh nhân trùng với thông tin đầu vào.
  */
 const findDentalByInforUser = async (search) => {
@@ -500,9 +557,9 @@ const findDentalByInforUser = async (search) => {
       {
         $addFields: {
           dob_string: {
-            $dateToString: { format: "%Y-%m-%d", date: "$dob" }
-          }
-        }
+            $dateToString: { format: "%Y-%m-%d", date: "$dob" },
+          },
+        },
       },
 
       // STAGE 2: Tìm kiếm gần đúng (Partial match không phân biệt hoa thường)
@@ -512,9 +569,9 @@ const findDentalByInforUser = async (search) => {
             { full_name: { $regex: cleanSearch, $options: "i" } },
             { phone: { $regex: cleanSearch, $options: "i" } },
             { email: { $regex: cleanSearch, $options: "i" } },
-            { dob_string: { $regex: cleanSearch, $options: "i" } } // Match trên trường ảo vừa tạo
-          ]
-        }
+            { dob_string: { $regex: cleanSearch, $options: "i" } }, // Match trên trường ảo vừa tạo
+          ],
+        },
       },
 
       // STAGE 3: Nhóm (Group) theo patient_id để loại bỏ các bệnh án trùng lặp của cùng 1 người
@@ -525,8 +582,8 @@ const findDentalByInforUser = async (search) => {
           full_name: { $first: "$full_name" },
           phone: { $first: "$phone" },
           email: { $first: "$email" },
-          dob: { $first: "$dob" } 
-        }
+          dob: { $first: "$dob" },
+        },
       },
 
       // STAGE 4: Định dạng lại output cho đẹp (Đổi _id thành patient_id)
@@ -537,27 +594,29 @@ const findDentalByInforUser = async (search) => {
           full_name: 1,
           phone: 1,
           email: 1,
-          dob: 1
-        }
+          dob: 1,
+        },
       },
 
       // STAGE 5: Sắp xếp theo tên cho dễ nhìn (Tùy chọn)
       {
-        $sort: { full_name: 1 }
-      }
+        $sort: { full_name: 1 },
+      },
     ];
 
     // Thực thi truy vấn
     // Đảm bảo bạn gọi đúng tên Model Bệnh án của bạn (ví dụ: Model.DentalRecord)
     const groupedPatients = await Model.DentalRecord.aggregate(pipeline);
 
-    logger.debug("Successfully found and grouped patients by user information", {
-      context: context,
-      resultCount: groupedPatients.length
-    });
+    logger.debug(
+      "Successfully found and grouped patients by user information",
+      {
+        context: context,
+        resultCount: groupedPatients.length,
+      },
+    );
 
     return groupedPatients;
-
   } catch (error) {
     logger.error("Error finding dental record by user information", {
       context: context,
