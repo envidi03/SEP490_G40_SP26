@@ -11,15 +11,12 @@ const getListInvoice = async (query) => {
         const limit = Math.max(1, parseInt(query.limit || 10));
         const skip = (page - 1) * limit;
 
-        // ── Build match condition ──────────────────────────
         const matchCondition = {};
 
-        // Filter theo status: PENDING | COMPLETED | CANCELLED
         if (statusFilter) {
             matchCondition.status = statusFilter;
         }
 
-        // Search theo invoice_code hoặc tên bệnh nhân (từ profile)
         if (search) {
             const regex = { $regex: search, $options: 'i' };
             matchCondition.$or = [
@@ -28,9 +25,7 @@ const getListInvoice = async (query) => {
             ];
         }
 
-        // ── Aggregation Pipeline ───────────────────────────
         const pipeline = [
-            // JOIN patients để lấy thông tin bệnh nhân
             {
                 $lookup: {
                     from: 'patients',
@@ -41,7 +36,6 @@ const getListInvoice = async (query) => {
             },
             { $unwind: { path: '$patient', preserveNullAndEmptyArrays: true } },
 
-            // JOIN profiles để lấy tên bệnh nhân (cho search và hiển thị)
             {
                 $lookup: {
                     from: 'profiles',
@@ -52,10 +46,8 @@ const getListInvoice = async (query) => {
             },
             { $unwind: { path: '$patient.profile', preserveNullAndEmptyArrays: true } },
 
-            // Lọc theo điều kiện
             { $match: matchCondition },
 
-            // $facet: lấy data và đếm tổng cùng lúc
             {
                 $facet: {
                     data: [
@@ -101,4 +93,32 @@ const getListInvoice = async (query) => {
     }
 };
 
-module.exports = { getListInvoice };
+const getInvoiceById = async (id) => {
+    try {
+        const invoice = await InvoiceModel.findById(id)
+            .populate('patient_id', 'patient_code status profile_id')
+            .populate({
+                path: 'patient_id',
+                populate: { path: 'profile_id', select: 'full_name phone email' }
+            })
+            .populate('items.service_id', 'service_name price')
+            .populate('created_by', 'username');
+
+        if (!invoice) {
+            throw new errorRes.NotFoundError('Invoice not found');
+        }
+
+        return invoice;
+
+    } catch (error) {
+        if (error.name === 'NotFoundError') throw error;
+        logger.error('Error getting invoice by id', {
+            context: 'InvoiceService.getInvoiceById',
+            message: error.message,
+        });
+        throw new errorRes.InternalServerError(error.message);
+    }
+};
+
+
+module.exports = { getListInvoice, getInvoiceById };
