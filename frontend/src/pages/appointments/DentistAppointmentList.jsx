@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import { useAuth } from "../../contexts/AuthContext"
-import { getDoctorAppointments } from "../../services/appointmentService"
+import appointmentService from "../../services/appointmentService"
+import { getDentalRecordsByPatient } from "../../services/dentalRecordService"
 
 import AppointmentDetailModal from "./components/AppointmentDetailModal"
 import PatientInfoModal from "./components/PatientInfoModal"
+import CreateDentalRecordModal from "../medical_records/components/CreateDentalRecordModal"
 import AppointmentFilters from "./components/AppointmentFilters"
 import AppointmentTable from "./components/AppointmentTable"
 import AppointmentPagination from "./components/AppointmentPagination"
@@ -21,7 +23,6 @@ const DentistAppointmentList = () => {
   const [searchTerm, setSearchTerm] = useState("")
   const [debouncedSearch, setDebouncedSearch] = useState("")
 
-  const [statusFilter, setStatusFilter] = useState("All")
   const [sortOrder, setSortOrder] = useState("")
   const [page, setPage] = useState(1)
   const [totalItems, setTotalItems] = useState(0)
@@ -30,6 +31,7 @@ const DentistAppointmentList = () => {
   const [selectedAppointment, setSelectedAppointment] = useState(null)
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false)
   const [isPatientInfoModalOpen, setIsPatientInfoModalOpen] = useState(false)
+  const [isCreateRecordModalOpen, setIsCreateRecordModalOpen] = useState(false)
   const [appointmentForRecord, setAppointmentForRecord] = useState(null)
 
   // Debounce search term
@@ -45,19 +47,17 @@ const DentistAppointmentList = () => {
       const params = {
         page,
         limit,
+        status: "IN_CONSULTATION",
       };
 
       if (debouncedSearch) {
         params.search = debouncedSearch;
       }
-      if (statusFilter !== "All") {
-        params.status = statusFilter;
-      }
       if (sortOrder) {
         params.sort = sortOrder;
       }
 
-      const res = await getDoctorAppointments(params);
+      const res = await appointmentService.getDoctorAppointments(params);
 
       if (res?.data) {
         const responseData = res.data;
@@ -82,14 +82,14 @@ const DentistAppointmentList = () => {
   // Reset trang về 1 khi đổi bộ lọc
   useEffect(() => {
     setPage(1);
-  }, [debouncedSearch, statusFilter, sortOrder]);
+  }, [debouncedSearch, sortOrder]);
 
   // Fetch call
   useEffect(() => {
     if (user) {
       fetchAppointments();
     }
-  }, [user, page, debouncedSearch, statusFilter, sortOrder])
+  }, [user, page, debouncedSearch, sortOrder])
 
   // Actions
   const handleViewDetail = (appointment) => {
@@ -97,8 +97,29 @@ const DentistAppointmentList = () => {
     setIsDetailModalOpen(true)
   }
 
-  const handleCreateRecord = (appointment) => {
+  const handleCreateRecord = async (appointment) => {
     setAppointmentForRecord(appointment)
+
+    if (appointment.status === 'IN_CONSULTATION') {
+      try {
+        const patientObj = appointment.patient_id || {};
+        const patientId = patientObj._id || patientObj.id || patientObj;
+
+        if (patientId && typeof patientId === 'string') {
+          const res = await getDentalRecordsByPatient(patientId);
+          const records = res.data || [];
+          if (records.length === 0) {
+            // No existing records -> open Create Modal directly
+            setIsCreateRecordModalOpen(true);
+            return;
+          }
+        }
+      } catch (err) {
+        console.error("Failed to check patient records:", err);
+      }
+    }
+
+    // Default flow if condition not met, or fallback
     setIsPatientInfoModalOpen(true)
   }
 
@@ -113,12 +134,29 @@ const DentistAppointmentList = () => {
     navigate(`/dentist/dental-records/search?${params.toString()}`)
   }
 
+  const handleCreateRecordSuccess = (newRecord) => {
+    setIsCreateRecordModalOpen(false);
+    if (newRecord?._id) {
+      navigate(`/dentist/dental-records/${newRecord._id}`);
+    } else {
+      // Fallback
+      handlePatientInfoConfirm({
+        name: appointmentForRecord?.patient_id?.full_name || '',
+        dob: appointmentForRecord?.patient_id?.dob ? new Date(appointmentForRecord.patient_id.dob).toISOString().split('T')[0] : '',
+        gender: appointmentForRecord?.patient_id?.gender ? "MALE" : "FEMALE",
+        phone: appointmentForRecord?.patient_id?.phone || '',
+      });
+    }
+  }
+
   const handleClearFilters = () => {
     setSearchTerm("");
-    setStatusFilter("All");
     setSortOrder("");
     setPage(1);
   }
+
+  // Helpers for exact bindings
+  const patientData = appointmentForRecord?.patient_id || {};
 
   return (
     <div className="space-y-6">
@@ -139,8 +177,6 @@ const DentistAppointmentList = () => {
       <AppointmentFilters
         searchTerm={searchTerm}
         onSearchChange={setSearchTerm}
-        statusFilter={statusFilter}
-        onStatusChange={setStatusFilter}
         sortOrder={sortOrder}
         onSortChange={setSortOrder}
         onClearFilters={handleClearFilters}
@@ -186,6 +222,18 @@ const DentistAppointmentList = () => {
         onClose={() => setIsPatientInfoModalOpen(false)}
         appointment={appointmentForRecord}
         onConfirm={handlePatientInfoConfirm}
+      />
+
+      <CreateDentalRecordModal
+        isOpen={isCreateRecordModalOpen}
+        onClose={() => setIsCreateRecordModalOpen(false)}
+        onSuccess={handleCreateRecordSuccess}
+        patientId={patientData._id || patientData.id}
+        patientName={patientData.full_name || appointmentForRecord?.full_name || ''}
+        patientPhone={patientData.phone || appointmentForRecord?.phone || ''}
+        patientEmail={patientData.email || appointmentForRecord?.email || ''}
+        patientGender={patientData.gender === true ? 'MALE' : patientData.gender === false ? 'FEMALE' : ''}
+        patientDateOfBirth={patientData.dob || ''}
       />
     </div>
   )

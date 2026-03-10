@@ -4,8 +4,6 @@ import AppointmentSearchBar from "./AppointmentSearchBar"
 const AppointmentFilters = ({
     searchTerm,
     onSearchChange,
-    statusFilter,
-    onStatusChange,
     sortOrder,
     onSortChange,
     onClearFilters
@@ -15,20 +13,6 @@ const AppointmentFilters = ({
             <AppointmentSearchBar searchTerm={searchTerm} onSearchChange={onSearchChange} />
 
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 pt-4 border-t border-gray-100">
-                <div>
-                    <label className="block text-[12px] font-semibold text-gray-500 mb-1.5 uppercase tracking-wider">Trạng thái</label>
-                    <select
-                        value={statusFilter}
-                        onChange={(e) => onStatusChange(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-200 rounded-xl text-[13px] text-gray-800 focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-colors bg-white outline-none cursor-pointer"
-                    >
-                        <option value="All">Tất cả trạng thái</option>
-                        <option value="Confirmed">Đã xác nhận</option>
-                        <option value="Pending">Chờ xác nhận</option>
-                        <option value="Completed">Hoàn thành</option>
-                        <option value="Cancelled">Đã hủy</option>
-                    </select>
-                </div>
                 <div>
                     <label className="block text-[12px] font-semibold text-gray-500 mb-1.5 uppercase tracking-wider">Sắp xếp ngày hẹn</label>
                     <select
