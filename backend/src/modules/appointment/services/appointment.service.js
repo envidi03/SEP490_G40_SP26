@@ -123,13 +123,59 @@ const getListService = async (query, doctor_id) => {
                             }
                         },
 
+                        // Lookup thông tin các dịch vụ đã đặt và map thẳng tên dịch vụ vào book_service
+                        {
+                            $lookup: {
+                                from: "services",
+                                localField: "book_service.service_id",
+                                foreignField: "_id",
+                                as: "services_data"
+                            }
+                        },
+                        {
+                            $addFields: {
+                                book_service: {
+                                    $map: {
+                                        input: "$book_service",
+                                        as: "bs",
+                                        in: {
+                                            $mergeObjects: [
+                                                "$$bs",
+                                                {
+                                                    service_name: {
+                                                        $let: {
+                                                            vars: {
+                                                                matchedService: {
+                                                                    $arrayElemAt: [
+                                                                        {
+                                                                            $filter: {
+                                                                                input: "$services_data",
+                                                                                cond: { $eq: ["$$this._id", "$$bs.service_id"] }
+                                                                            }
+                                                                        },
+                                                                        0
+                                                                    ]
+                                                                }
+                                                            },
+                                                            in: "$$matchedService.service_name"
+                                                        }
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            }
+                        },
+
                         // BƯỚC CUỐI: Dọn dẹp các field rác và bảo mật
                         {
                             $project: {
                                 __v: 0,
                                 "doctor_info.__v": 0,
                                 "doctor_info.password": 0, // Che password nếu có
-                                "doctor_info.profile.__v": 0
+                                "doctor_info.profile.__v": 0,
+                                services_data: 0
                             }
                         }
                     ],

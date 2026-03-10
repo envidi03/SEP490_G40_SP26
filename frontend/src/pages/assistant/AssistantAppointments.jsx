@@ -262,7 +262,10 @@ const AssistantAppointments = () => {
                                                 {apt.phone}
                                             </div>
                                             <p className="text-sm text-gray-700 mt-2">
-                                                <span className="font-medium">Dịch vụ:</span> {apt.book_service?.map(s => s.service_id?.service_name).join(', ') || 'Khám chung'}
+                                                <span className="font-medium">Dịch vụ: </span>
+                                                {(apt.book_service && apt.book_service.length > 0)
+                                                    ? apt.book_service.map(s => s.service_name || 'Khám chung').join(', ')
+                                                    : (apt.reason || 'Khám chung')}
                                             </p>
                                             <p className="text-sm text-gray-600 mt-1">
                                                 <span className="font-medium">Bác sĩ:</span> {apt.doctor_info?.profile?.full_name || 'Chưa chỉ định'}
