@@ -351,7 +351,15 @@ const updateController = async (req, res) => {
   }
 };
 
-// update appointment status only
+/**
+ * update appointment status only 
+ * - Chỉ cập nhật trường status, không thay đổi các thông tin khác của appointment
+ * - Kiểm tra tính hợp lệ của status mới (phải nằm trong danh sách các trạng thái cho phép)
+ * - Nếu status mới là "IN_CONSULTATION", bắt buộc phải có doctorId để gán bác sĩ đang khám bệnh nhân này
+ * @param {*} req 
+ * @param {*} res 
+ * @returns 
+ */
 const updateStatusController = async (req, res) => {
   try {
     // 1. Lấy ID của Appointment
