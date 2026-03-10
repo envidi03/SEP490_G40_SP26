@@ -18,7 +18,7 @@ export function useServicesData() {
         queryKey: ['services'],
         queryFn: async () => {
             const { data } = await apiClient.get('/api/service', {
-                params: { status: 'ACTIVE' },
+                params: { limit: 100, page: 1, filter: 'AVAILABLE' },
             });
             return data;
         },
