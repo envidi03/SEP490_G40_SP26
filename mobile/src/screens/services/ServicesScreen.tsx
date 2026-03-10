@@ -1,8 +1,8 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Stack } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useServicesData } from '@/src/hooks/useHomeData';
+import { useInfiniteServicesData } from '@/src/hooks/useHomeData';
 
 import { ServicesHeader } from '@/src/components/features/services/ServicesHeader';
 import { ServicesSearchBar } from '@/src/components/features/services/ServicesSearchBar';
@@ -10,17 +10,31 @@ import { ServiceList } from '@/src/components/features/services/ServiceList';
 
 export function ServicesScreen() {
     const insets = useSafeAreaInsets();
-    const { data: rawData, isLoading, isError } = useServicesData();
     const [searchQuery, setSearchQuery] = useState('');
+    const [debouncedQuery, setDebouncedQuery] = useState('');
 
-    // Backend may wrap list inside data or metadata
-    const services = Array.isArray(rawData) ? rawData : (rawData?.data || []);
+    useEffect(() => {
+        const handler = setTimeout(() => {
+            setDebouncedQuery(searchQuery);
+        }, 500); // 500ms debounce
+        return () => clearTimeout(handler);
+    }, [searchQuery]);
 
-    const filteredServices = useMemo(() => {
-        if (!searchQuery.trim()) return services;
-        const lowerQuery = searchQuery.toLowerCase();
-        return services.filter((s: any) => s.service_name.toLowerCase().includes(lowerQuery));
-    }, [services, searchQuery]);
+    const {
+        data: rawData,
+        isLoading,
+        isError,
+        fetchNextPage,
+        hasNextPage,
+        isFetchingNextPage
+    } = useInfiniteServicesData(debouncedQuery);
+
+    const services = useMemo(() => {
+        if (!rawData) return [];
+        return rawData.pages.flatMap((page: any) =>
+            Array.isArray(page) ? page : (page?.data || [])
+        );
+    }, [rawData]);
 
     return (
         <View style={[styles.container, { paddingTop: Math.max(insets.top, 20) }]}>
@@ -34,9 +48,15 @@ export function ServicesScreen() {
             />
 
             <ServiceList
-                data={filteredServices}
+                data={services}
                 isLoading={isLoading}
                 isError={isError}
+                onEndReached={() => {
+                    if (hasNextPage && !isFetchingNextPage) {
+                        fetchNextPage();
+                    }
+                }}
+                isFetchingNextPage={isFetchingNextPage}
             />
         </View>
     );

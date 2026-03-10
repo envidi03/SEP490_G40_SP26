@@ -2,25 +2,17 @@ import { StyleSheet, View, TouchableOpacity, FlatList, ActivityIndicator } from 
 import { Image } from 'expo-image';
 import { ThemedText } from '@/src/components/ui/themed-text';
 
-const FALLBACK_IMAGES = [
-    'https://images.unsplash.com/photo-1606811841689-23dfddce3e95?auto=format&fit=crop&w=400&q=80',
-    'https://images.unsplash.com/photo-1598256989800-efa5ea5ce122?auto=format&fit=crop&w=400&q=80',
-    'https://images.unsplash.com/photo-1629909613654-28e377c37b09?auto=format&fit=crop&w=400&q=80',
-    'https://images.unsplash.com/photo-1588776814546-1ffcf47267a5?auto=format&fit=crop&w=400&q=80'
-];
-
 type Props = {
     data: any[];
     isLoading: boolean;
     isError: boolean;
+    onEndReached?: () => void;
+    isFetchingNextPage?: boolean;
 };
 
-export function ServiceList({ data, isLoading, isError }: Props) {
-    const renderServiceCard = ({ item, index }: { item: any; index: number }) => {
-        let imageUrl = item.image_url || item.icon;
-        if (!imageUrl || !imageUrl.startsWith('http')) {
-            imageUrl = FALLBACK_IMAGES[index % FALLBACK_IMAGES.length];
-        }
+export function ServiceList({ data, isLoading, isError, onEndReached, isFetchingNextPage }: Props) {
+    const renderServiceCard = ({ item }: { item: any }) => {
+        let imageUrl = item.icon;
 
         const priceText = item.price
             ? `${item.price.toLocaleString('vi-VN')} đ`
@@ -71,6 +63,15 @@ export function ServiceList({ data, isLoading, isError }: Props) {
             contentContainerStyle={styles.listContent}
             columnWrapperStyle={styles.columnWrapper}
             showsVerticalScrollIndicator={false}
+            onEndReached={onEndReached}
+            onEndReachedThreshold={0.5}
+            ListFooterComponent={
+                isFetchingNextPage ? (
+                    <View style={styles.footerLoader}>
+                        <ActivityIndicator size="small" color="#111827" />
+                    </View>
+                ) : <View style={{ height: 20 }} />
+            }
             ListEmptyComponent={
                 <View style={styles.emptyContainer}>
                     <ThemedText style={styles.emptyText}>Không tìm thấy dịch vụ nào phù hợp.</ThemedText>
@@ -150,5 +151,9 @@ const styles = StyleSheet.create({
         color: '#6B7280',
         fontSize: 15,
         fontStyle: 'italic',
+    },
+    footerLoader: {
+        paddingVertical: 20,
+        alignItems: 'center',
     }
 });
