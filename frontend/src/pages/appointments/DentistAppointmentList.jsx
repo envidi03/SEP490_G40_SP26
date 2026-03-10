@@ -21,7 +21,6 @@ const DentistAppointmentList = () => {
   const [searchTerm, setSearchTerm] = useState("")
   const [debouncedSearch, setDebouncedSearch] = useState("")
 
-  const [statusFilter, setStatusFilter] = useState("All")
   const [sortOrder, setSortOrder] = useState("")
   const [page, setPage] = useState(1)
   const [totalItems, setTotalItems] = useState(0)
@@ -45,13 +44,11 @@ const DentistAppointmentList = () => {
       const params = {
         page,
         limit,
+        status: "IN_CONSULTATION",
       };
 
       if (debouncedSearch) {
         params.search = debouncedSearch;
-      }
-      if (statusFilter !== "All") {
-        params.status = statusFilter;
       }
       if (sortOrder) {
         params.sort = sortOrder;
@@ -82,14 +79,14 @@ const DentistAppointmentList = () => {
   // Reset trang về 1 khi đổi bộ lọc
   useEffect(() => {
     setPage(1);
-  }, [debouncedSearch, statusFilter, sortOrder]);
+  }, [debouncedSearch, sortOrder]);
 
   // Fetch call
   useEffect(() => {
     if (user) {
       fetchAppointments();
     }
-  }, [user, page, debouncedSearch, statusFilter, sortOrder])
+  }, [user, page, debouncedSearch, sortOrder])
 
   // Actions
   const handleViewDetail = (appointment) => {
@@ -115,7 +112,6 @@ const DentistAppointmentList = () => {
 
   const handleClearFilters = () => {
     setSearchTerm("");
-    setStatusFilter("All");
     setSortOrder("");
     setPage(1);
   }
@@ -139,8 +135,6 @@ const DentistAppointmentList = () => {
       <AppointmentFilters
         searchTerm={searchTerm}
         onSearchChange={setSearchTerm}
-        statusFilter={statusFilter}
-        onStatusChange={setStatusFilter}
         sortOrder={sortOrder}
         onSortChange={setSortOrder}
         onClearFilters={handleClearFilters}
