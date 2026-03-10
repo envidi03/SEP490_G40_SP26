@@ -1,4 +1,4 @@
-import { useQuery, useInfiniteQuery } from '@tanstack/react-query';
+import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '@/src/services/api';
 
 // 1. Fetch Profile Data
@@ -71,3 +71,30 @@ export function useAppointmentsData() {
         },
     });
 }
+
+// ==========================================
+// APPOINTMENT BOOKING API
+// ==========================================
+
+export function useCreateAppointment() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async (payload: {
+            full_name: string;
+            phone: string;
+            email?: string;
+            appointment_date: string;
+            appointment_time: string;
+            book_service: Array<{ service_id: string; unit_price: number }>;
+        }) => {
+            const { data } = await apiClient.post('/api/appointment', payload);
+            return data;
+        },
+        onSuccess: () => {
+            // Invalidate appointments to trigger a re-fetch of the upcoming appointments on the Home screen
+            queryClient.invalidateQueries({ queryKey: ['appointments', 'patient'] });
+        }
+    });
+}
+

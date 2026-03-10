@@ -8,7 +8,7 @@ export function PromoBanner({ isLoggedIn }: { isLoggedIn: boolean }) {
         if (!isLoggedIn) {
             router.push('/(auth)/login');
         } else {
-            Alert.alert("Tính năng đang phát triển", "Màn hình Đặt lịch đang được xây dựng.");
+            router.push('/booking' as any);
         }
     };
 

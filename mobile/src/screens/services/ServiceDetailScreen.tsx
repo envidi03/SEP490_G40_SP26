@@ -22,8 +22,10 @@ export function ServiceDetailScreen({ serviceId }: Props) {
         if (!isLoggedIn) {
             router.push('/(auth)/login');
         } else {
-            // Placeholder for booking navigation when it's built
-            Alert.alert("Tính năng đang phát triển", "Màn hình Đặt lịch đang được xây dựng.");
+            router.push({
+                pathname: '/booking' as any,
+                params: { serviceId }
+            });
         }
     };
 
