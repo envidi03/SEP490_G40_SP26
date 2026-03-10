@@ -225,7 +225,7 @@ const EquipmentDetailModal = ({ show, equipment, onClose, getStatusColor, getSta
                         {/* ===== TAB: Lịch sử bảo trì ===== */}
                         {activeTab === 'maintenance' && (
                             <LogSection
-                                title="Lịch sử bảo trì"
+                                title="Lịch sử bảo trì / Sự cố"
                                 items={maintItems}
                                 pagination={maintPagination}
                                 page={maintPage}
@@ -239,20 +239,51 @@ const EquipmentDetailModal = ({ show, equipment, onClose, getStatusColor, getSta
                                 onApplyFilter={handleApplyMaint}
                                 onClearFilter={handleClearMaint}
                                 onPageChange={handleMaintPageChange}
-                                renderRow={(item, idx) => (
-                                    <tr key={idx} className="hover:bg-gray-50">
-                                        <td className="px-4 py-3 text-sm text-gray-900">
-                                            <div className="flex items-center gap-1">
-                                                <Calendar size={13} className="text-orange-400" />
-                                                {item.maintenance_date ? formatDate(item.maintenance_date) : '—'}
-                                            </div>
-                                        </td>
-                                        <td className="px-4 py-3 text-sm text-gray-700">{item.description || '—'}</td>
-                                        <td className="px-4 py-3 text-sm text-gray-600">{item.performed_by || '—'}</td>
-                                    </tr>
-                                )}
-                                headers={['Ngày bảo trì', 'Mô tả', 'Người thực hiện']}
-                                emptyText="Chưa có lịch sử bảo trì"
+                                renderRow={(item, idx) => {
+                                    const getTypeBadge = (type) => {
+                                        const maps = {
+                                            'MALFUNCTION': { t: 'Hỏng hóc', c: 'bg-red-50 text-red-700 border-red-200' },
+                                            'MAINTENANCE': { t: 'Bảo trì', c: 'bg-orange-50 text-orange-700 border-orange-200' },
+                                            'BROKEN': { t: 'Hư hẳn', c: 'bg-pink-50 text-pink-700 border-pink-200' },
+                                            'MISSING': { t: 'Thất lạc', c: 'bg-yellow-50 text-yellow-700 border-yellow-200' },
+                                            'OTHER': { t: 'Khác', c: 'bg-gray-50 text-gray-700 border-gray-200' }
+                                        };
+                                        const info = maps[type] || maps['OTHER'];
+                                        return <span className={`px-2 py-0.5 text-xs font-medium border rounded ${info.c}`}>{info.t}</span>;
+                                    };
+
+                                    const getSeverityBadge = (sev) => {
+                                        const maps = {
+                                            'HIGH': { t: 'Cao', c: 'text-red-700 font-semibold' },
+                                            'MEDIUM': { t: 'TB', c: 'text-orange-600 font-semibold' },
+                                            'LOW': { t: 'Thấp', c: 'text-blue-600 font-semibold' }
+                                        };
+                                        if (!sev) return null;
+                                        const info = maps[sev] || maps['LOW'];
+                                        return <span className={`text-xs ${info.c}`}>{info.t}</span>;
+                                    };
+
+                                    return (
+                                        <tr key={idx} className="hover:bg-gray-50">
+                                            <td className="px-4 py-3 text-sm text-gray-900">
+                                                <div className="flex items-center gap-1">
+                                                    <Calendar size={13} className="text-orange-400" />
+                                                    {item.maintenance_date ? formatDate(item.maintenance_date) : '—'}
+                                                </div>
+                                            </td>
+                                            <td className="px-4 py-3 text-sm">
+                                                <div className="flex flex-col gap-1 items-start">
+                                                    {item.issue_type ? getTypeBadge(item.issue_type) : <span className="text-gray-500">Bảo trì</span>}
+                                                    {getSeverityBadge(item.severity)}
+                                                </div>
+                                            </td>
+                                            <td className="px-4 py-3 text-sm text-gray-700">{item.description || '—'}</td>
+                                            <td className="px-4 py-3 text-sm text-gray-600">{item.performed_by || 'Chưa XL'}</td>
+                                        </tr>
+                                    );
+                                }}
+                                headers={['Ngày ghi nhận', 'Phân loại', 'Mô tả', 'Người xử lý']}
+                                emptyText="Chưa có lịch sử bảo trì / sự cố"
                             />
                         )}
                     </div>

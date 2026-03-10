@@ -1,9 +1,9 @@
 import { X, Wrench, AlertTriangle } from 'lucide-react';
 import { useState } from 'react';
 
-const ReportEquipmentModal = ({ appointment, isOpen, onClose, onSubmit }) => {
+const ReportEquipmentModal = ({ appointment, isOpen, onClose, onSubmit, equipments }) => {
     const [formData, setFormData] = useState({
-        equipmentName: '',
+        equipmentId: '',
         issueType: 'malfunction',
         severity: 'medium',
         description: ''
@@ -22,17 +22,17 @@ const ReportEquipmentModal = ({ appointment, isOpen, onClose, onSubmit }) => {
     const handleSubmit = (e) => {
         e.preventDefault();
         const data = {
-            ...formData,
-            appointmentId: appointment.id,
-            reportedAt: new Date().toISOString(),
-            reportedBy: 'Current User' // TODO: Get from auth context
+            equipmentId: formData.equipmentId,
+            issue_type: formData.issueType,
+            severity: formData.severity,
+            description: formData.description
         };
         if (onSubmit) {
-            onSubmit(appointment.id, data);
+            onSubmit(appointment._id || appointment.id, data);
         }
         // Reset form
         setFormData({
-            equipmentName: '',
+            equipmentId: '',
             issueType: 'malfunction',
             severity: 'medium',
             description: ''
@@ -61,7 +61,7 @@ const ReportEquipmentModal = ({ appointment, isOpen, onClose, onSubmit }) => {
                 {/* Appointment Context */}
                 <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
                     <p className="text-sm text-gray-700">
-                        <span className="font-medium">Liên quan đến lịch hẹn:</span> {appointment.patientName} - {appointment.date} {appointment.time}
+                        <span className="font-medium">Liên quan đến lịch hẹn:</span> {appointment.full_name || appointment.patientName}
                     </p>
                 </div>
 
@@ -72,21 +72,18 @@ const ReportEquipmentModal = ({ appointment, isOpen, onClose, onSubmit }) => {
                             Tên thiết bị <span className="text-red-500">*</span>
                         </label>
                         <select
-                            name="equipmentName"
-                            value={formData.equipmentName}
+                            name="equipmentId"
+                            value={formData.equipmentId}
                             onChange={handleChange}
                             required
                             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
                         >
                             <option value="">-- Chọn thiết bị --</option>
-                            <option value="Ghế nha khoa">Ghế nha khoa</option>
-                            <option value="Máy X-quang">Máy X-quang</option>
-                            <option value="Máy khoan">Máy khoan</option>
-                            <option value="Máy hút">Máy hút</option>
-                            <option value="Máy cạo vôi siêu âm">Máy cạo vôi siêu âm</option>
-                            <option value="Đèn chiếu sáng">Đèn chiếu sáng</option>
-                            <option value="Tủ tiệt trùng">Tủ tiệt trùng</option>
-                            <option value="Thiết bị khác">Thiết bị khác</option>
+                            {equipments?.map(eq => (
+                                <option key={eq._id} value={eq._id}>
+                                    {eq.equipment_name} ({eq.equipment_serial_number}) - [{eq.status}]
+                                </option>
+                            ))}
                         </select>
                     </div>
 

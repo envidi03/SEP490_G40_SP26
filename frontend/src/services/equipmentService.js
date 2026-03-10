@@ -71,6 +71,21 @@ const equipmentService = {
         } catch (error) {
             throw error.response || error;
         }
+    },
+
+    /**
+     * Report an incident for a specific equipment
+     * @param {string} equipmentId 
+     * @param {Object} data - Incident data (issue_type, severity, description, appointment_id)
+     * @returns {Promise} API response
+     */
+    reportIncident: async (equipmentId, data) => {
+        try {
+            const response = await apiClient.post(`/api/equipment/report-incident/${equipmentId}`, data);
+            return response;
+        } catch (error) {
+            throw error.response || error;
+        }
     }
 };
 

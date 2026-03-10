@@ -19,13 +19,13 @@ const getEquipments = async (query) => {
     try {
         // Lấy từ khóa tìm kiếm
         const search = query.search?.trim();
-        
+
         // --- XỬ LÝ FILTER ---
         // 1. Nhận status trực tiếp từ query.status và chuyển thành IN HOA để khớp với Enum trong DB
         const statusFilter = query.status ? query.status.toUpperCase() : null;
-        
+
         // 2. Nhận equipment_type trực tiếp từ query.equipment_type
-        const equipmentTypeFilter = query.equipment_type; 
+        const equipmentTypeFilter = query.equipment_type;
 
         // --- XỬ LÝ SẮP XẾP & PHÂN TRANG ---
         const sort = query.sort === "desc" ? -1 : 1;
@@ -462,6 +462,65 @@ const getStatistics = async () => {
     }
 };
 
+/**
+ * Report an incident for a specific equipment
+ * @param {ObjectId} id equipment id
+ * @param {Object} incidentData incident details (issue_type, severity, description, appointment_id, reported_by)
+ * @returns updated equipment object
+ */
+const reportIncident = async (id, incidentData) => {
+    try {
+        logger.debug("Reporting equipment incident", {
+            context: "EquipmentService.reportIncident",
+            id: id,
+            incidentData: incidentData,
+        });
+
+        // Determine new status based on issue type
+        let newStatus = "FAULTY";
+        if (incidentData.issue_type === "MAINTENANCE") {
+            newStatus = "MAINTENANCE";
+        }
+
+        const updatePayload = {
+            $set: { status: newStatus },
+            $push: {
+                maintenance_history: {
+                    appointment_id: incidentData.appointment_id,
+                    issue_type: incidentData.issue_type,
+                    severity: incidentData.severity,
+                    description: incidentData.description,
+                    reported_by: incidentData.reported_by,
+                    maintenance_date: new Date()
+                }
+            }
+        };
+
+        const updatedEquipment = await EquipmentModel.findByIdAndUpdate(
+            id,
+            updatePayload,
+            { new: true, runValidators: true }
+        );
+
+        logger.info("Equipment incident reported successfully", {
+            context: "EquipmentService.reportIncident",
+            equipmentId: id,
+            newStatus: newStatus
+        });
+
+        return updatedEquipment;
+    } catch (error) {
+        logger.error("Error reporting equipment incident", {
+            context: "EquipmentService.reportIncident",
+            message: error.message,
+            stack: error.stack,
+        });
+        throw new errorRes.InternalServerError(
+            `An error occurred while reporting equipment incident: ${error.message}`
+        );
+    }
+};
+
 module.exports = {
     getStatistics,
     getEquipments,
@@ -469,5 +528,6 @@ module.exports = {
     checkExitSerialNumber,
     createEquipment,
     checkExitSerialNumberNotId,
-    updateEquipment
+    updateEquipment,
+    reportIncident
 };

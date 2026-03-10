@@ -8,6 +8,7 @@ import AssignDoctorModal from './modals/AssignDoctorModal';
 import ReportEquipmentModal from './modals/ReportEquipmentModal';
 import appointmentService from '../../services/appointmentService';
 import staffService from '../../services/staffService';
+import equipmentService from '../../services/equipmentService';
 import { formatDate } from '../../utils/dateUtils';
 
 const AssistantAppointments = () => {
@@ -19,6 +20,7 @@ const AssistantAppointments = () => {
 
     const [appointments, setAppointments] = useState([]);
     const [doctors, setDoctors] = useState([]);
+    const [equipments, setEquipments] = useState([]);
     const [loading, setLoading] = useState(true);
     const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
 
@@ -68,6 +70,12 @@ const AssistantAppointments = () => {
                     }
                 }
                 setDoctors(docsData);
+            }
+
+            // 3. Fetch equipments for reporting
+            if (equipments.length === 0) {
+                const equipResponse = await equipmentService.getEquipments({ limit: 100 });
+                setEquipments(equipResponse.data?.data || equipResponse.data || []);
             }
         } catch (error) {
             console.error('Error fetching data:', error);
@@ -146,6 +154,22 @@ const AssistantAppointments = () => {
         // Here we update the status to IN_CONSULTATION and assign the doctor
         console.log('Doctor assigned:', appointmentId, data);
         await handleUpdateStatus(appointmentId, 'IN_CONSULTATION', data.doctorId);
+    };
+
+    const handleReportSubmit = async (appointmentId, data) => {
+        try {
+            console.log('Reporting incident:', appointmentId, data);
+            const { equipmentId, ...rest } = data;
+            await equipmentService.reportIncident(equipmentId, {
+                ...rest,
+                appointment_id: appointmentId
+            });
+            setToast({ show: true, message: 'Gửi báo cáo sự cố thành công!', type: 'success' });
+            fetchData(); // Refresh to see updated equipment status if displayed
+        } catch (error) {
+            console.error('Error reporting incident:', error);
+            setToast({ show: true, message: 'Lỗi khi gửi báo cáo sự cố!', type: 'error' });
+        }
     };
 
     return (
@@ -348,6 +372,8 @@ const AssistantAppointments = () => {
                 appointment={selectedAppointment}
                 isOpen={showReportModal}
                 onClose={closeModals}
+                onSubmit={handleReportSubmit}
+                equipments={equipments}
             />
 
             <Toast
