@@ -1,14 +1,9 @@
 import { StyleSheet, View, TouchableOpacity, ScrollView } from 'react-native';
 import { ThemedText } from '@/src/components/ui/themed-text';
 
-const SERVICES = [
-    { id: '1', name: 'Khám\nTổng Quát', color: '#F3F4F6' },
-    { id: '2', name: 'Tẩy Trắng\nRăng', color: '#FDF2F8' },
-    { id: '3', name: 'Chỉnh Nha\nNiềng Răng', color: '#EFF6FF' },
-    { id: '4', name: 'Nhổ Răng\nKhôn', color: '#FEF2F2' },
-];
+const FALLBACK_COLORS = ['#F3F4F6', '#FDF2F8', '#EFF6FF', '#FEF2F2'];
 
-export function DentalServices() {
+export function DentalServices({ services, isLoading }: { services: any[], isLoading: boolean }) {
     return (
         <View style={styles.container}>
             <View style={styles.header}>
@@ -19,16 +14,25 @@ export function DentalServices() {
             </View>
 
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-                {SERVICES.map((service) => (
-                    <TouchableOpacity
-                        key={service.id}
-                        style={[styles.serviceCard, { backgroundColor: service.color }]}
-                        activeOpacity={0.7}
-                    >
-                        <View style={styles.dot} />
-                        <ThemedText style={styles.serviceName}>{service.name}</ThemedText>
-                    </TouchableOpacity>
-                ))}
+                {isLoading ? (
+                    // Skeleton loading state
+                    [1, 2, 3].map((key) => (
+                        <View key={key} style={[styles.serviceCard, styles.skeletonCard]} />
+                    ))
+                ) : services?.length > 0 ? (
+                    services.map((service, index) => (
+                        <TouchableOpacity
+                            key={service.service_id || index}
+                            style={[styles.serviceCard, { backgroundColor: FALLBACK_COLORS[index % FALLBACK_COLORS.length] }]}
+                            activeOpacity={0.7}
+                        >
+                            <View style={styles.dot} />
+                            <ThemedText style={styles.serviceName}>{service.service_name}</ThemedText>
+                        </TouchableOpacity>
+                    ))
+                ) : (
+                    <ThemedText style={{ color: '#6B7280', padding: 20 }}>Chưa có dịch vụ nào.</ThemedText>
+                )}
             </ScrollView>
         </View>
     );
@@ -78,4 +82,7 @@ const styles = StyleSheet.create({
         lineHeight: 24,
         color: '#111827',
     },
+    skeletonCard: {
+        backgroundColor: '#E5E7EB',
+    }
 });

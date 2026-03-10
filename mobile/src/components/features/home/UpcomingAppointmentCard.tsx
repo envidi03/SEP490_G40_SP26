@@ -2,7 +2,39 @@ import { StyleSheet, View, TouchableOpacity } from 'react-native';
 import { Image } from 'expo-image';
 import { ThemedText } from '@/src/components/ui/themed-text';
 
-export function UpcomingAppointmentCard() {
+export function UpcomingAppointmentCard({ appointments, isLoading }: { appointments: any[], isLoading: boolean }) {
+    if (isLoading) {
+        return (
+            <View style={styles.container}>
+                <View style={styles.header}>
+                    <ThemedText style={styles.sectionTitle}>Lịch hẹn sắp tới</ThemedText>
+                </View>
+                <View style={[styles.card, { height: 160, backgroundColor: '#F9FAFB' }]} />
+            </View>
+        );
+    }
+
+    if (!appointments || appointments.length === 0) {
+        return (
+            <View style={styles.container}>
+                <View style={styles.header}>
+                    <ThemedText style={styles.sectionTitle}>Lịch hẹn sắp tới</ThemedText>
+                </View>
+                <View style={[styles.card, { alignItems: 'center', justifyContent: 'center', paddingVertical: 40 }]}>
+                    <ThemedText style={{ color: '#6B7280' }}>Bạn chưa có lịch hẹn nào sắp tới. Hãy đăng nhập để xem lịch hẹn của bạn.</ThemedText>
+                </View>
+            </View>
+        );
+    }
+
+    // Lấy cuộc hẹn gần nhất
+    const appointment = appointments[0];
+    // Tuỳ vào backend trả dữ liệu gì, đây là giả lập parsing cơ bản
+    const doctorName = appointment.doctor?.full_name || 'BS. Trần Văn Bình';
+    const statusText = appointment.status === 'CONFIRMED' ? 'Đã xác nhận' : 'Chờ xác nhận';
+    const appointmentDate = appointment.appointment_date || 'Thứ 2, 10 Thg 11';
+    const appointmentTime = appointment.appointment_time || '09:00 - 10:00';
+
     return (
         <View style={styles.container}>
             <View style={styles.header}>
@@ -17,11 +49,11 @@ export function UpcomingAppointmentCard() {
                         style={styles.avatar}
                     />
                     <View style={styles.doctorInfo}>
-                        <ThemedText style={styles.doctorName}>BS. Trần Văn Bình</ThemedText>
-                        <ThemedText style={styles.specialty}>Chuyên khoa Chỉnh nha</ThemedText>
+                        <ThemedText style={styles.doctorName}>{doctorName}</ThemedText>
+                        <ThemedText style={styles.specialty}>Chuyên khoa Răng Hàm Mặt</ThemedText>
                     </View>
                     <View style={styles.statusBadge}>
-                        <ThemedText style={styles.statusText}>Đã xác nhận</ThemedText>
+                        <ThemedText style={styles.statusText}>{statusText}</ThemedText>
                     </View>
                 </View>
 
@@ -32,14 +64,14 @@ export function UpcomingAppointmentCard() {
                 <View style={styles.timeSection}>
                     <View style={styles.timeBlock}>
                         <ThemedText style={styles.timeLabel}>NGÀY</ThemedText>
-                        <ThemedText style={styles.timeValue}>Thứ 2, 10 Thg 11</ThemedText>
+                        <ThemedText style={styles.timeValue}>{appointmentDate}</ThemedText>
                     </View>
 
                     <View style={styles.verticalDivider} />
 
                     <View style={styles.timeBlock}>
                         <ThemedText style={styles.timeLabel}>GIỜ</ThemedText>
-                        <ThemedText style={styles.timeValue}>09:00 - 10:00</ThemedText>
+                        <ThemedText style={styles.timeValue}>{appointmentTime}</ThemedText>
                     </View>
                 </View>
             </TouchableOpacity>

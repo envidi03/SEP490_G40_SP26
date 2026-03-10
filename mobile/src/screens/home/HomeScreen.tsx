@@ -11,10 +11,22 @@ import { PromoBanner } from '@/src/components/features/home/PromoBanner';
 import { DentalServices } from '@/src/components/features/home/DentalServices';
 import { UpcomingAppointmentCard } from '@/src/components/features/home/UpcomingAppointmentCard';
 
+import { useProfileData, useServicesData, useAppointmentsData } from '@/src/hooks/useHomeData';
+
 export function HomeScreenWrapper() {
     const colorScheme = useColorScheme();
     const theme = Colors[colorScheme ?? 'light'];
     const insets = useSafeAreaInsets();
+
+    const { data: profileData, isLoading: isLoadingProfile } = useProfileData();
+    const { data: servicesResponse, isLoading: isLoadingServices } = useServicesData();
+    const { data: appointmentsResponse, isLoading: isLoadingAppointments } = useAppointmentsData();
+
+    // Extract the arrays/objects from backend response wrappers if needed
+    const profile = profileData?.data || null;
+    const services = servicesResponse?.data || [];
+    const appointments = appointmentsResponse?.data || [];
+
 
     return (
         <SafeAreaProvider style={[styles.container, { backgroundColor: '#FFFFFF' }]}>
@@ -26,7 +38,7 @@ export function HomeScreenWrapper() {
                     { paddingTop: Math.max(insets.top, 20), paddingBottom: insets.bottom + 100 }
                 ]}
             >
-                <HomeHeader />
+                <HomeHeader profile={profile} isLoading={isLoadingProfile} />
 
                 <View style={styles.sectionSpacer}>
                     <HomeSearchBar />
@@ -37,11 +49,11 @@ export function HomeScreenWrapper() {
                 </View>
 
                 <View style={styles.sectionSpacer}>
-                    <DentalServices />
+                    <DentalServices services={services} isLoading={isLoadingServices} />
                 </View>
 
                 <View style={styles.sectionSpacer}>
-                    <UpcomingAppointmentCard />
+                    <UpcomingAppointmentCard appointments={appointments} isLoading={isLoadingAppointments} />
                 </View>
 
             </ScrollView>

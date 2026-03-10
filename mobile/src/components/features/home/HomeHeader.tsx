@@ -2,16 +2,31 @@ import { StyleSheet, View } from 'react-native';
 import { Image } from 'expo-image';
 import { ThemedText } from '@/src/components/ui/themed-text';
 
-export function HomeHeader() {
+export function HomeHeader({ profile, isLoading }: { profile: any, isLoading: boolean }) {
+    if (isLoading) {
+        return (
+            <View style={styles.header}>
+                <View>
+                    <View style={[styles.skeletonText, { width: 80, height: 20, marginBottom: 8 }]} />
+                    <View style={[styles.skeletonText, { width: 150, height: 30 }]} />
+                </View>
+                <View style={styles.skeletonAvatar} />
+            </View>
+        );
+    }
+
+    const userName = profile?.full_name || 'Khách hàng';
+    const avatarUrl = profile?.avatar_url;
+
     return (
         <View style={styles.header}>
             <View>
                 <ThemedText style={styles.greeting}>Xin chào,</ThemedText>
-                <ThemedText type="title" style={styles.userName}>Nguyễn Văn A.</ThemedText>
+                <ThemedText type="title" style={styles.userName}>{userName}</ThemedText>
             </View>
             <View style={styles.avatarContainer}>
                 <Image
-                    source={{ uri: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80' }}
+                    source={{ uri: avatarUrl }}
                     style={styles.avatar}
                     contentFit="cover"
                 />
@@ -59,4 +74,14 @@ const styles = StyleSheet.create({
         borderWidth: 2,
         borderColor: '#FFFFFF',
     },
+    skeletonText: {
+        backgroundColor: '#E5E7EB',
+        borderRadius: 8,
+    },
+    skeletonAvatar: {
+        width: 52,
+        height: 52,
+        borderRadius: 26,
+        backgroundColor: '#E5E7EB',
+    }
 });
