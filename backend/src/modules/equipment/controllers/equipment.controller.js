@@ -161,8 +161,8 @@ const updateEquipment = async (req, res) => {
     try {
         const { equipmentId } = req.params;
         const equipmentData = req.body || {};
-        // remove purchase_date, status, maintenance_history and equipments_log from the data to be updated
-        const { purchase_date, status, maintenance_history, equipments_log, ...dataUpdate } = cleanObjectData(equipmentData, Equipment.createFields);
+        // remove purchase_date, maintenance_history and equipments_log from the data to be updated (allow status)
+        const { purchase_date, maintenance_history, equipments_log, ...dataUpdate } = cleanObjectData(equipmentData, Equipment.createFields);
         // check field is empty
         if (Object.keys(dataUpdate).length === 0) {
             logger.warn('No equipment data provided in request body', {
@@ -172,8 +172,8 @@ const updateEquipment = async (req, res) => {
         }
         // check unique serial_number and not belong to this equipment
         if (dataUpdate.equipment_serial_number) {
-            const existingEquipment = await EquipmentService.checkExitSerialNumberNotId(dataUpdate.equipment_serial_number);
-            if (existingEquipment && existingEquipment.id !== equipmentId) {
+            const existingEquipment = await EquipmentService.checkExitSerialNumberNotId(dataUpdate.equipment_serial_number, equipmentId);
+            if (existingEquipment) {
                 logger.warn('Serial number already exists', {
                     context: 'EquipmentController.updateEquipment',
                     serial_number: dataUpdate.equipment_serial_number

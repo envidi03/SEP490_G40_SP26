@@ -194,8 +194,7 @@ const getEquipmentById = async (id, query) => {
             },
             {
                 $project: {
-                    // Giữ lại các trường thông tin chung
-                    name: 1, code: 1, status: 1, type: 1, clinic_id: 1, // Thêm các trường bạn cần
+                    document: "$$ROOT",
 
                     // Thông tin phục vụ phân trang
                     maint_total: { $size: "$filtered_maint" },
@@ -214,6 +213,21 @@ const getEquipmentById = async (id, query) => {
                             { $sortArray: { input: "$filtered_logs", sortBy: { usage_date: sort_logs_val } } },
                             skip_logs,
                             limit_logs
+                        ]
+                    }
+                }
+            },
+            {
+                $replaceRoot: {
+                    newRoot: {
+                        $mergeObjects: [
+                            "$document",
+                            {
+                                maint_total: "$maint_total",
+                                logs_total: "$logs_total",
+                                maint_items: "$maint_items",
+                                logs_items: "$logs_items"
+                            }
                         ]
                     }
                 }
