@@ -1,4 +1,5 @@
 import { StyleSheet, View, TouchableOpacity, FlatList, ActivityIndicator } from 'react-native';
+import { Link } from 'expo-router';
 import { Image } from 'expo-image';
 import { ThemedText } from '@/src/components/ui/themed-text';
 
@@ -19,22 +20,24 @@ export function ServiceList({ data, isLoading, isError, onEndReached, isFetching
             : 'Liên hệ';
 
         return (
-            <TouchableOpacity style={styles.card} activeOpacity={0.8}>
-                <Image
-                    source={{ uri: imageUrl }}
-                    style={styles.cardImage}
-                    contentFit="cover"
-                    transition={200}
-                />
-                <View style={styles.cardContent}>
-                    <ThemedText style={styles.serviceName} numberOfLines={2}>
-                        {item.service_name}
-                    </ThemedText>
-                    <View style={styles.priceTagContainer}>
-                        <ThemedText style={styles.servicePrice}>{priceText}</ThemedText>
+            <Link href={`/services/${item._id}` as any} asChild>
+                <TouchableOpacity style={styles.card} activeOpacity={0.8}>
+                    <Image
+                        source={{ uri: imageUrl }}
+                        style={styles.cardImage}
+                        contentFit="cover"
+                        transition={200}
+                    />
+                    <View style={styles.cardContent}>
+                        <ThemedText style={styles.serviceName} numberOfLines={2}>
+                            {item.service_name}
+                        </ThemedText>
+                        <View style={styles.priceTagContainer}>
+                            <ThemedText style={styles.servicePrice}>{priceText}</ThemedText>
+                        </View>
                     </View>
-                </View>
-            </TouchableOpacity>
+                </TouchableOpacity>
+            </Link>
         );
     };
 

@@ -47,6 +47,18 @@ export function useInfiniteServicesData(searchQuery: string = '') {
     });
 }
 
+// 2c. Fetch Single Service Detail
+export function useServiceDetail(id: string) {
+    return useQuery({
+        queryKey: ['service', id],
+        queryFn: async () => {
+            const { data } = await apiClient.get(`/api/service/${id}`);
+            return data?.data || data; // Handle data wrapping if any
+        },
+        enabled: !!id, // Only run the query if we have an ID
+    });
+}
+
 // 3. Fetch Upcoming Appointments
 export function useAppointmentsData() {
     return useQuery({

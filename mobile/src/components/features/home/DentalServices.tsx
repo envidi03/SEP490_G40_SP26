@@ -31,28 +31,29 @@ export function DentalServices({ services, isLoading }: { services: any[], isLoa
                             : 'Liên hệ';
 
                         return (
-                            <TouchableOpacity
-                                key={service.service_id || service._id || index}
-                                style={styles.serviceCard}
-                                activeOpacity={0.8}
-                            >
-                                <Image
-                                    source={{ uri: imageUrl }}
-                                    style={styles.cardImage}
-                                    contentFit="cover"
-                                    transition={200}
-                                />
-                                <View style={styles.cardContent}>
-                                    <View>
-                                        <ThemedText style={styles.serviceName} numberOfLines={2}>
-                                            {service.service_name}
-                                        </ThemedText>
+                            <Link href={`/services/${service.service_id || service._id}` as any} asChild key={service.service_id || service._id || index}>
+                                <TouchableOpacity
+                                    style={styles.serviceCard}
+                                    activeOpacity={0.8}
+                                >
+                                    <Image
+                                        source={{ uri: imageUrl }}
+                                        style={styles.cardImage}
+                                        contentFit="cover"
+                                        transition={200}
+                                    />
+                                    <View style={styles.cardContent}>
+                                        <View>
+                                            <ThemedText style={styles.serviceName} numberOfLines={2}>
+                                                {service.service_name}
+                                            </ThemedText>
+                                        </View>
+                                        <View style={styles.priceTagContainer}>
+                                            <ThemedText style={styles.servicePrice}>{priceText}</ThemedText>
+                                        </View>
                                     </View>
-                                    <View style={styles.priceTagContainer}>
-                                        <ThemedText style={styles.servicePrice}>{priceText}</ThemedText>
-                                    </View>
-                                </View>
-                            </TouchableOpacity>
+                                </TouchableOpacity>
+                            </Link>
                         );
                     })
                 ) : (
