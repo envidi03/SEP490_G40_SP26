@@ -1,13 +1,12 @@
 import { StyleSheet, View, TouchableOpacity, ScrollView } from 'react-native';
 import { ThemedText } from '@/src/components/ui/themed-text';
-
-const FALLBACK_COLORS = ['#F3F4F6', '#FDF2F8', '#EFF6FF', '#FEF2F2'];
+import { Image } from 'expo-image';
 
 export function DentalServices({ services, isLoading }: { services: any[], isLoading: boolean }) {
     return (
         <View style={styles.container}>
             <View style={styles.header}>
-                <ThemedText style={styles.sectionTitle}>Dịch vụ nha khoa</ThemedText>
+                <ThemedText style={styles.sectionTitle}>Dịch vụ nổi bật</ThemedText>
                 <TouchableOpacity>
                     <ThemedText style={styles.seeAllText}>Xem tất cả</ThemedText>
                 </TouchableOpacity>
@@ -17,21 +16,44 @@ export function DentalServices({ services, isLoading }: { services: any[], isLoa
                 {isLoading ? (
                     // Skeleton loading state
                     [1, 2, 3].map((key) => (
-                        <View key={key} style={[styles.serviceCard, styles.skeletonCard]} />
+                        <View key={key} style={styles.skeletonCard} />
                     ))
                 ) : services?.length > 0 ? (
-                    services.map((service, index) => (
-                        <TouchableOpacity
-                            key={service.service_id || index}
-                            style={[styles.serviceCard, { backgroundColor: FALLBACK_COLORS[index % FALLBACK_COLORS.length] }]}
-                            activeOpacity={0.7}
-                        >
-                            <View style={styles.dot} />
-                            <ThemedText style={styles.serviceName}>{service.service_name}</ThemedText>
-                        </TouchableOpacity>
-                    ))
+                    services.map((service, index) => {
+                        // Backend might not have real images yet, use fallback gracefully
+                        let imageUrl = service.icon;
+
+                        const priceText = service.price
+                            ? `${service.price.toLocaleString('vi-VN')} đ`
+                            : 'Liên hệ';
+
+                        return (
+                            <TouchableOpacity
+                                key={service.service_id || service._id || index}
+                                style={styles.serviceCard}
+                                activeOpacity={0.8}
+                            >
+                                <Image
+                                    source={{ uri: imageUrl }}
+                                    style={styles.cardImage}
+                                    contentFit="cover"
+                                    transition={200}
+                                />
+                                <View style={styles.cardContent}>
+                                    <View>
+                                        <ThemedText style={styles.serviceName} numberOfLines={2}>
+                                            {service.service_name}
+                                        </ThemedText>
+                                    </View>
+                                    <View style={styles.priceTagContainer}>
+                                        <ThemedText style={styles.servicePrice}>{priceText}</ThemedText>
+                                    </View>
+                                </View>
+                            </TouchableOpacity>
+                        );
+                    })
                 ) : (
-                    <ThemedText style={{ color: '#6B7280', padding: 20 }}>Chưa có dịch vụ nào.</ThemedText>
+                    <ThemedText style={styles.emptyText}>Chưa có dịch vụ nào.</ThemedText>
                 )}
             </ScrollView>
         </View>
@@ -61,28 +83,62 @@ const styles = StyleSheet.create({
     },
     scrollContent: {
         gap: 16,
+        paddingRight: 24,
     },
     serviceCard: {
-        width: 140,
+        width: 170,
+        backgroundColor: '#FFFFFF',
+        borderRadius: 20,
+        overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: '#F3F4F6',
+        // Subtle premium shadow
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.04,
+        shadowRadius: 16,
+        elevation: 3,
+    },
+    cardImage: {
+        width: '100%',
         height: 140,
-        borderRadius: 24,
-        padding: 20,
+        backgroundColor: '#F3F4F6',
+    },
+    cardContent: {
+        padding: 16,
+        height: 104,
         justifyContent: 'space-between',
     },
-    dot: {
-        width: 8,
-        height: 8,
-        borderRadius: 4,
-        backgroundColor: '#111827',
-        opacity: 0.2,
-    },
     serviceName: {
-        fontSize: 18,
+        fontSize: 16,
         fontWeight: '700',
-        lineHeight: 24,
+        lineHeight: 22,
         color: '#111827',
+        marginBottom: 8,
+    },
+    priceTagContainer: {
+        alignSelf: 'flex-start',
+        backgroundColor: '#ECFDF5', // Light emerald background
+        paddingHorizontal: 8,
+        paddingVertical: 5,
+        borderRadius: 8,
+    },
+    servicePrice: {
+        fontSize: 14,
+        fontWeight: '700',
+        color: '#059669', // Emerald text
     },
     skeletonCard: {
+        width: 170,
+        height: 244,
         backgroundColor: '#E5E7EB',
+        borderRadius: 20,
+        borderWidth: 1,
+        borderColor: '#F3F4F6',
+    },
+    emptyText: {
+        color: '#6B7280',
+        paddingVertical: 40,
+        fontStyle: 'italic',
     }
 });
