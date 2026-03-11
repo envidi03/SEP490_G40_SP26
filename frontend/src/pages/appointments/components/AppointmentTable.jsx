@@ -58,8 +58,6 @@ const AppointmentTable = ({ appointments, isLoading, onViewDetail, onCreateRecor
                                     service = "Đã chọn dịch vụ"
                                 }
 
-                                const isActionable = row.status === 'Confirmed' || row.status === 'Completed' || row.status === 'CHECKED_IN'
-
                                 return (
                                     <tr
                                         key={row._id || row.id || code}
@@ -88,14 +86,12 @@ const AppointmentTable = ({ appointments, isLoading, onViewDetail, onCreateRecor
                                             {getStatusBadge(row.status)}
                                         </td>
                                         <td className="px-5 py-4 text-right">
-                                            {isActionable && (
-                                                <button
-                                                    onClick={(e) => { e.stopPropagation(); onCreateRecord(row) }}
-                                                    className="inline-flex items-center gap-1 px-3 py-1.5 bg-teal-50 text-teal-700 hover:bg-teal-500 hover:text-white rounded-lg font-medium text-[12px] transition-all opacity-0 group-hover:opacity-100 border border-teal-200 hover:border-transparent transform translate-x-2 group-hover:translate-x-0"
-                                                >
-                                                    ➔ Hồ Sơ
-                                                </button>
-                                            )}
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); onCreateRecord(row) }}
+                                                className="inline-flex items-center gap-1 px-3 py-1.5 bg-teal-50 text-teal-700 hover:bg-teal-500 hover:text-white rounded-lg font-medium text-[12px] transition-all border border-teal-200 hover:border-transparent"
+                                            >
+                                                ➔ Hồ Sơ
+                                            </button>
                                         </td>
                                     </tr>
                                 )

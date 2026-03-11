@@ -1,15 +1,5 @@
 import apiClient from './api';
 
-// Lấy danh sách lịch hẹn của nha sĩ đang đăng nhập
-export const getDoctorAppointments = async (params) => {
-    try {
-        const response = await apiClient.get('/api/appointment/doctor/appointment', { params });
-        return response;
-    } catch (error) {
-        throw error;
-    }
-};
-
 const appointmentService = {
     // Lấy danh sách cuộc hẹn của bệnh nhân (dành cho Patient dashboard)
     getPatientAppointments: async (params) => {
