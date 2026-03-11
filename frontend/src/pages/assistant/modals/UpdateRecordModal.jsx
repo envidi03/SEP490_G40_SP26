@@ -11,10 +11,27 @@ const UpdateRecordModal = ({ record, isOpen, onClose, onSave }) => {
 
     useEffect(() => {
         if (record) {
+            const treatmentInfo = record.treatment || (record.treatments?.length > 0 
+                ? record.treatments.map(t => t.note).filter(Boolean).join('\n') 
+                : '');
+                
+            let prescriptionInfo = record.prescription || '';
+            if (!prescriptionInfo && record.treatments) {
+                const meds = [];
+                record.treatments.forEach(t => {
+                    if (t.medicine_usage && t.medicine_usage.length > 0) {
+                        t.medicine_usage.forEach(m => {
+                            meds.push(m.note ? m.note : JSON.stringify(m));
+                        });
+                    }
+                });
+                if (meds.length > 0) prescriptionInfo = meds.join('\n');
+            }
+
             setFormData({
                 diagnosis: record.diagnosis || '',
-                treatment: record.treatment || '',
-                prescription: record.prescription || '',
+                treatment: treatmentInfo,
+                prescription: prescriptionInfo,
                 notes: record.notes || ''
             });
         }
@@ -71,16 +88,16 @@ const UpdateRecordModal = ({ record, isOpen, onClose, onSave }) => {
                 <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
                     <div className="grid grid-cols-3 gap-4 text-sm">
                         <div>
-                            <span className="text-blue-600 font-medium">Bệnh nhân:</span>
-                            <span className="ml-2 text-blue-900">{record.patientName}</span>
+                            <span className="text-blue-600 font-medium">Hồ sơ:</span>
+                            <span className="ml-2 text-blue-900">{record.record_name || 'Không xác định'}</span>
                         </div>
                         <div>
-                            <span className="text-blue-600 font-medium">Ngày khám:</span>
-                            <span className="ml-2 text-blue-900">{record.date}</span>
+                            <span className="text-blue-600 font-medium">Bệnh nhân:</span>
+                            <span className="ml-2 text-blue-900">{record.full_name || record.patientName}</span>
                         </div>
                         <div>
                             <span className="text-blue-600 font-medium">Bác sĩ:</span>
-                            <span className="ml-2 text-blue-900">{record.doctorName}</span>
+                            <span className="ml-2 text-blue-900">{record.doctor_info?.profile?.full_name || record.doctorName || 'Chưa có'}</span>
                         </div>
                     </div>
                 </div>

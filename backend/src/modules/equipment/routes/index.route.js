@@ -6,11 +6,13 @@ const viewDetailEquipmentRoute = require('./equipment.detail.route');
 const viewListEquipmentRoute = require('./equipment.list.route');
 const updateEquipmentRoute = require('./equipment.update.route');
 const updateStatusRoute = require('./equipment.update.status.route');
+const reportIncidentRoute = require('./equipment.report.route');
 
 router.use(viewListEquipmentRoute);
 router.use(viewDetailEquipmentRoute);
 router.use(createEquipmentRoute);
 router.use(updateEquipmentRoute);
 router.use(updateStatusRoute);
+router.use(reportIncidentRoute);
 
 module.exports = router;

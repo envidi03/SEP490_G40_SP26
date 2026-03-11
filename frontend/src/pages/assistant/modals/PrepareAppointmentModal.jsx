@@ -1,7 +1,7 @@
-import { X, CheckCircle, Package, Laptop, AlertTriangle } from 'lucide-react';
-import { useState } from 'react';
+import { X, CheckCircle, Package, Laptop, AlertTriangle, User } from 'lucide-react';
+import { useState, useEffect } from 'react';
 
-const PrepareAppointmentModal = ({ appointment, isOpen, onClose, onComplete }) => {
+const PrepareAppointmentModal = ({ appointment, isOpen, onClose, onComplete, doctors }) => {
     // Vật tư tiêu hao (Supplies)
     const [supplies, setSupplies] = useState({
         tray: false,
@@ -21,6 +21,13 @@ const PrepareAppointmentModal = ({ appointment, isOpen, onClose, onComplete }) =
     });
 
     const [notes, setNotes] = useState('');
+    const [selectedDoctor, setSelectedDoctor] = useState('');
+
+    useEffect(() => {
+        if (appointment) {
+            setSelectedDoctor(appointment.doctor_id || '');
+        }
+    }, [appointment]);
 
     if (!isOpen || !appointment) return null;
 
@@ -58,8 +65,10 @@ const PrepareAppointmentModal = ({ appointment, isOpen, onClose, onComplete }) =
 
     const progress = checkedSupplies + checkedEquipment;
     const progressPercent = Math.round((progress / totalItems) * 100);
-    const isReadyToConfirm = progress === totalItems;
     const hasError = Object.values(equipment).some(v => v === 'error');
+
+    // Yêu cầu: Đã check hết đồ VÀ đã chọn bác sĩ
+    const isReadyToConfirm = progress === totalItems && selectedDoctor !== '';
 
     const handleSubmit = (e) => {
         e.preventDefault();
@@ -70,10 +79,11 @@ const PrepareAppointmentModal = ({ appointment, isOpen, onClose, onComplete }) =
             equipment,
             notes,
             hasError,
+            doctorId: selectedDoctor,
             completedAt: new Date().toISOString()
         };
         if (onComplete) {
-            onComplete(appointment.id, data);
+            onComplete(appointment._id, data);
         }
         onClose();
     };
@@ -93,12 +103,41 @@ const PrepareAppointmentModal = ({ appointment, isOpen, onClose, onComplete }) =
                         </div>
                         <div>
                             <h2 className="text-xl font-bold text-gray-900">Chuẩn Bị Ca Khám</h2>
-                            <p className="text-sm text-gray-500">Bệnh nhân: <span className="font-semibold text-gray-700">{appointment.patientName}</span> - Dịch vụ: <span className="font-semibold text-gray-700">{appointment.reason}</span></p>
+                            <p className="text-sm text-gray-500">
+                                Bệnh nhân: <span className="font-semibold text-gray-700">{appointment.full_name}</span> -
+                                Dịch vụ: <span className="font-semibold text-gray-700">
+                                    {(appointment.book_service && appointment.book_service.length > 0)
+                                        ? appointment.book_service.map(s => s.service_name).join(', ')
+                                        : (appointment.reason || 'Khám chung')}
+                                </span>
+                            </p>
                         </div>
                     </div>
                     <button onClick={onClose} className="p-2 hover:bg-gray-200 bg-gray-100 rounded-lg transition-colors text-gray-500">
                         <X size={20} />
                     </button>
+                </div>
+
+                {/* Doctor Selection (New) */}
+                <div className="px-6 py-4 bg-white border-b border-gray-100 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                        <div className="p-2 bg-indigo-50 text-indigo-600 rounded-lg">
+                            <User size={20} />
+                        </div>
+                        <span className="font-semibold text-gray-800">Chỉ định bác sĩ phụ trách:</span>
+                    </div>
+                    <select
+                        value={selectedDoctor}
+                        onChange={(e) => setSelectedDoctor(e.target.value)}
+                        className={`px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 w-64 ${!selectedDoctor ? 'border-red-300 bg-red-50' : 'border-gray-300'}`}
+                    >
+                        <option value="" disabled>-- Chọn Bác Sĩ --</option>
+                        {doctors?.map(doctor => (
+                            <option key={doctor._id} value={doctor._id}>
+                                {doctor.profile?.full_name || doctor.name}
+                            </option>
+                        ))}
+                    </select>
                 </div>
 
                 {/* Progress Bar Container */}

@@ -1,10 +1,19 @@
 import { useState, useEffect } from 'react';
 import { X, Plus, Trash2, CheckCircle, Clock, AlertCircle } from 'lucide-react';
 
-const TreatmentPlanModal = ({ plan, isOpen, mode, onClose, onSave }) => {
+const formatDateForInput = (dateString) => {
+    if (!dateString) return '';
+    const d = new Date(dateString);
+    if (isNaN(d.getTime())) return '';
+    return d.toISOString().split('T')[0];
+};
+
+const TreatmentPlanModal = ({ plan, isOpen, mode, onClose, onSave, patients = [], doctors = [] }) => {
     const [formData, setFormData] = useState({
+        patient_id: '',
         patientName: '',
         patientPhone: '',
+        doctor_id: '',
         doctorName: '',
         planName: '',
         diagnosis: '',
@@ -15,24 +24,35 @@ const TreatmentPlanModal = ({ plan, isOpen, mode, onClose, onSave }) => {
         phases: [{ name: '', status: 'pending', startDate: '', endDate: '' }]
     });
 
+    console.log("patients: ", patients);
+    console.log("doctors: ", doctors);
+
     useEffect(() => {
         if (plan && (mode === 'edit' || mode === 'view')) {
             setFormData({
+                patient_id: plan.patient_id || '',
                 patientName: plan.patientName || '',
                 patientPhone: plan.patientPhone || '',
+                doctor_id: plan.doctor_id || plan.created_by || '',
                 doctorName: plan.doctorName || '',
                 planName: plan.planName || '',
                 diagnosis: plan.diagnosis || '',
-                startDate: plan.startDate || '',
-                estimatedEndDate: plan.estimatedEndDate || '',
+                startDate: formatDateForInput(plan.startDate),
+                estimatedEndDate: formatDateForInput(plan.estimatedEndDate),
                 totalCost: plan.totalCost || '',
                 notes: plan.notes || '',
-                phases: plan.phases || [{ name: '', status: 'pending', startDate: '', endDate: '' }]
+                phases: (plan.phases || [{ name: '', status: 'pending', startDate: '', endDate: '' }]).map(p => ({
+                    ...p,
+                    startDate: formatDateForInput(p.startDate),
+                    endDate: formatDateForInput(p.endDate)
+                }))
             });
         } else if (mode === 'create') {
             setFormData({
+                patient_id: '',
                 patientName: '',
                 patientPhone: '',
+                doctor_id: '',
                 doctorName: '',
                 planName: '',
                 diagnosis: '',
@@ -153,15 +173,35 @@ const TreatmentPlanModal = ({ plan, isOpen, mode, onClose, onSave }) => {
                                 <label className="block text-sm font-medium text-gray-700 mb-1">
                                     Bệnh nhân <span className="text-red-500">*</span>
                                 </label>
-                                <input
-                                    type="text"
-                                    value={formData.patientName}
-                                    onChange={(e) => handleChange('patientName', e.target.value)}
-                                    placeholder="Họ tên bệnh nhân"
-                                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-50 disabled:text-gray-600"
-                                    disabled={isReadOnly}
-                                    required
-                                />
+                                {isReadOnly ? (
+                                    <input
+                                        type="text"
+                                        value={formData.patientName}
+                                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg disabled:bg-gray-50 disabled:text-gray-600"
+                                        disabled
+                                    />
+                                ) : (
+                                    <select
+                                        value={formData.patient_id}
+                                        onChange={(e) => {
+                                            const selectedId = e.target.value;
+                                            const patient = patients.find(p => p._id === selectedId);
+                                            setFormData(prev => ({
+                                                ...prev,
+                                                patient_id: selectedId,
+                                                patientName: patient ? patient.full_name : '',
+                                                patientPhone: patient ? patient.phone : prev.patientPhone
+                                            }));
+                                        }}
+                                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                        required
+                                    >
+                                        <option value="">-- Chọn bệnh nhân --</option>
+                                        {patients.map(p => (
+                                            <option key={p._id} value={p._id}>{p.profile?.full_name} ({p.profile?.phone})</option>
+                                        ))}
+                                    </select>
+                                )}
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">SĐT bệnh nhân</label>
@@ -169,24 +209,43 @@ const TreatmentPlanModal = ({ plan, isOpen, mode, onClose, onSave }) => {
                                     type="text"
                                     value={formData.patientPhone}
                                     onChange={(e) => handleChange('patientPhone', e.target.value)}
-                                    placeholder="0901234567"
+                                    placeholder="Tự động điền theo bệnh nhân"
                                     className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-50 disabled:text-gray-600"
-                                    disabled={isReadOnly}
+                                    disabled={true}
                                 />
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">
                                     Bác sĩ phụ trách <span className="text-red-500">*</span>
                                 </label>
-                                <input
-                                    type="text"
-                                    value={formData.doctorName}
-                                    onChange={(e) => handleChange('doctorName', e.target.value)}
-                                    placeholder="Tên bác sĩ"
-                                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-50 disabled:text-gray-600"
-                                    disabled={isReadOnly}
-                                    required
-                                />
+                                {isReadOnly ? (
+                                    <input
+                                        type="text"
+                                        value={formData.doctorName}
+                                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg disabled:bg-gray-50 disabled:text-gray-600"
+                                        disabled
+                                    />
+                                ) : (
+                                    <select
+                                        value={formData.doctor_id}
+                                        onChange={(e) => {
+                                            const selectedId = e.target.value;
+                                            const doctor = doctors.find(d => d._id === selectedId);
+                                            setFormData(prev => ({
+                                                ...prev,
+                                                doctor_id: selectedId,
+                                                doctorName: doctor ? (doctor.account_id?.full_name || doctor.full_name || 'Bác sĩ') : ''
+                                            }));
+                                        }}
+                                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                        required
+                                    >
+                                        <option value="">-- Chọn bác sĩ --</option>
+                                        {doctors.map(d => (
+                                            <option key={d._id} value={d._id}>{d.profile?.full_name || 'N/A'}</option>
+                                        ))}
+                                    </select>
+                                )}
                             </div>
                         </div>
 

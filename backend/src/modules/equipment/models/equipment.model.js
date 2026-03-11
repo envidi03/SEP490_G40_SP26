@@ -19,7 +19,7 @@ const equipmentSchema = new Schema(
         },
         purchase_date: {
             type: Date,
-            default: Date.now, 
+            default: Date.now,
             immutable: true
         },
         supplier: {
@@ -47,17 +47,35 @@ const equipmentSchema = new Schema(
             {
                 room_id: {
                     type: Schema.Types.ObjectId,
-                    ref: "Room" // LƯU Ý: Thay 'Room' bằng tên model Phòng của bạn nếu khác
+                    ref: "Room"
+                },
+                appointment_id: {
+                    type: Schema.Types.ObjectId,
+                    ref: "Appointment"
                 },
                 maintenance_date: {
                     type: Date,
                     default: Date.now
                 },
+                issue_type: {
+                    type: String,
+                    enum: ["MALFUNCTION", "MAINTENANCE", "BROKEN", "MISSING", "OTHER"],
+                    default: "OTHER"
+                },
+                severity: {
+                    type: String,
+                    enum: ["LOW", "MEDIUM", "HIGH"],
+                    default: "LOW"
+                },
                 description: {
                     type: String
                 },
+                reported_by: {
+                    type: Schema.Types.ObjectId,
+                    ref: "Staff"
+                },
                 performed_by: {
-                    type: String // Tên người thực hiện
+                    type: String // Tên người thực hiện sửa chữa/bảo trì
                 }
             }
         ],
@@ -81,9 +99,9 @@ const equipmentSchema = new Schema(
             }
         ]
     },
-    { 
-        timestamps: true, 
-        collection: "equipments" 
+    {
+        timestamps: true,
+        collection: "equipments"
     }
 );
 

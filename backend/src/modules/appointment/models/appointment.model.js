@@ -5,13 +5,13 @@ const appointmentSchema = new Schema(
     {
         patient_id: {
             type: Schema.Types.ObjectId,
-            ref: "Patient", 
+            ref: "Patient",
             required: false,
             default: null
         },
         doctor_id: {
             type: Schema.Types.ObjectId,
-            ref: "Staff", 
+            ref: "Staff",
             required: false,
             default: null
         },
@@ -48,11 +48,11 @@ const appointmentSchema = new Schema(
         status: {
             type: String,
             enum: [
-                "SCHEDULED", 
-                "CHECKED_IN", 
-                "IN_CONSULTATION", 
-                "COMPLETED", 
-                "CANCELLED", 
+                "SCHEDULED",
+                "CHECKED_IN",
+                "IN_CONSULTATION",
+                "COMPLETED",
+                "CANCELLED",
                 "NO_SHOW"
             ],
             default: "SCHEDULED"
@@ -72,9 +72,9 @@ const appointmentSchema = new Schema(
             }
         ]
     },
-    { 
-        timestamps: true, 
-        collection: "appointments" 
+    {
+        timestamps: true,
+        collection: "appointments"
     }
 );
 
@@ -84,7 +84,7 @@ appointmentSchema.index({ phone: 1 });
 
 // --- ĐÃ SỬA LỖI LOGIC Ở ĐÂY ---
 // Hàm static để lấy số thứ tự lớn nhất trong ngày
-appointmentSchema.statics.getNextQueueNumber = async function(date) {
+appointmentSchema.statics.getNextQueueNumber = async function (date) {
     // 1. Tạo mốc bắt đầu ngày (00:00:00.000)
     const startOfDay = new Date(date);
     startOfDay.setHours(0, 0, 0, 0);
@@ -101,13 +101,13 @@ appointmentSchema.statics.getNextQueueNumber = async function(date) {
         },
         queue_number: { $exists: true, $ne: null } // Chỉ tìm những người đã được cấp số
     })
-    .sort({ queue_number: -1 }) // Sắp xếp giảm dần để lấy số to nhất đưa lên đầu
-    .select('queue_number')
-    .lean();
+        .sort({ queue_number: -1 }) // Sắp xếp giảm dần để lấy số to nhất đưa lên đầu
+        .select('queue_number')
+        .lean();
 
     // 4. Nếu chưa có ai check-in hôm đó, trả về 1, ngược lại cộng thêm 1
-    return lastAppointment && lastAppointment.queue_number 
-        ? lastAppointment.queue_number + 1 
+    return lastAppointment && lastAppointment.queue_number
+        ? lastAppointment.queue_number + 1
         : 1;
 };
 

@@ -4,62 +4,10 @@ import Card from '../../components/ui/Card';
 import Badge from '../../components/ui/Badge';
 import ViewRecordModal from './modals/ViewRecordModal';
 import UpdateRecordModal from './modals/UpdateRecordModal';
+import { getAllDentalRecords, updateDentalRecord } from '../../services/dentalRecordService';
+import { useEffect } from 'react';
 
-// Mock medical records data
-const mockMedicalRecords = [
-    {
-        id: 'rec_001',
-        patientName: 'Nguyễn Văn A',
-        patientPhone: '0901234567',
-        date: '2026-01-15',
-        doctorName: 'BS. Nguyễn Văn Anh',
-        diagnosis: 'Sâu răng hàm số 6',
-        treatment: 'Trám răng composite',
-        prescription: 'Thuốc giảm đau: Paracetamol 500mg x 2 viên/ngày x 3 ngày',
-        notes: 'Bệnh nhân cần tái khám sau 1 tuần',
-        status: 'completed',
-        isDraft: false
-    },
-    {
-        id: 'rec_002',
-        patientName: 'Trần Thị B',
-        patientPhone: '0912345678',
-        date: '2026-01-16',
-        doctorName: 'BS. Trần Thị Bình',
-        diagnosis: 'Răng khôn mọc lệch',
-        treatment: 'Nhổ răng khôn hàm dưới bên phải',
-        prescription: 'Kháng sinh: Amoxicillin 500mg x 3 lần/ngày x 5 ngày\nGiảm đau: Ibuprofen 400mg khi đau',
-        notes: 'Đã nhổ răng thành công, không biến chứng',
-        status: 'pending_update',
-        isDraft: false
-    },
-    {
-        id: 'rec_003',
-        patientName: 'Lê Văn C',
-        patientPhone: '0923456789',
-        date: '2026-01-17',
-        doctorName: 'BS. Nguyễn Văn Anh',
-        diagnosis: 'Viêm nướu',
-        treatment: 'Cạo vôi răng, vệ sinh răng miệng',
-        prescription: 'Nước súc miệng Listerine 2 lần/ngày',
-        notes: '',
-        status: 'draft',
-        isDraft: true
-    },
-    {
-        id: 'rec_004',
-        patientName: 'Phạm Thị D',
-        patientPhone: '0934567890',
-        date: '2026-01-17',
-        doctorName: 'BS. Lê Hoàng Cường',
-        diagnosis: '',
-        treatment: '',
-        prescription: '',
-        notes: '',
-        status: 'draft',
-        isDraft: true
-    }
-];
+// Mock medical records data (removed)
 
 const AssistantMedicalRecords = () => {
     const [searchTerm, setSearchTerm] = useState('');
@@ -70,22 +18,74 @@ const AssistantMedicalRecords = () => {
     const [showViewModal, setShowViewModal] = useState(false);
     const [showUpdateModal, setShowUpdateModal] = useState(false);
 
-    const filteredRecords = mockMedicalRecords.filter(record => {
-        const matchesSearch = record.patientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            record.patientPhone.includes(searchTerm);
-        const matchesStatus = filterStatus === 'all' || record.status === filterStatus;
-        const matchesDoctor = filterDoctor === 'all' || record.doctorName === filterDoctor;
-        return matchesSearch && matchesStatus && matchesDoctor;
+    const [records, setRecords] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const [totalPages, setTotalPages] = useState(1);
+    const [currentPage, setCurrentPage] = useState(1);
+
+    const fetchRecords = async () => {
+        try {
+            setLoading(true);
+            const params = {
+                page: currentPage,
+                limit: 10,
+                search: searchTerm || undefined,
+                filter_dental_record: filterStatus !== 'all' ? filterStatus : undefined,
+            };
+
+            const response = await getAllDentalRecords(params);
+            console.log("Results: ", response);
+            if (response && response.data) {
+                setRecords(response.data);
+                if (response.pagination) {
+                    setTotalPages(response.pagination.totalPages || 1);
+                }
+            }
+        } catch (error) {
+            console.error('Failed to fetch records:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchRecords();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [currentPage, filterStatus]);
+
+    // Use a debounced search or manual search button, here we just trigger on search term change for simplicity
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            if (currentPage !== 1) {
+                setCurrentPage(1); // Reset page on new search
+            } else {
+                fetchRecords();
+            }
+        }, 500);
+
+        return () => clearTimeout(timer);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [searchTerm]);
+
+    const filteredRecords = records.filter(record => {
+        // If we want to support local doctor filtering since it might not be supported natively by backend API
+        const matchesSearch = (record.full_name?.toLowerCase() || record.patientName?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+            (record.phone || record.patientPhone || '').includes(searchTerm);
+        const matchesDoctor = filterDoctor === 'all' ||
+            (record.doctor_info && record.doctor_info.profile && record.doctor_info.profile.full_name === filterDoctor);
+        return matchesSearch && matchesDoctor;
     });
+
+    console.log("Filtered Records: ", filteredRecords);
 
     const getStatusInfo = (status) => {
         switch (status) {
-            case 'completed':
+            case 'COMPLETED':
                 return { label: 'Hoàn thành', variant: 'success', icon: CheckCircle };
-            case 'pending_update':
-                return { label: 'Chờ cập nhật', variant: 'warning', icon: Clock };
-            case 'draft':
-                return { label: 'Bản nháp', variant: 'default', icon: Edit };
+            case 'IN_PROGRESS':
+                return { label: 'Đang điều trị', variant: 'warning', icon: Clock };
+            case 'CANCELLED':
+                return { label: 'Đã hủy', variant: 'danger', icon: FileText };
             default:
                 return { label: status, variant: 'default', icon: FileText };
         }
@@ -107,13 +107,19 @@ const AssistantMedicalRecords = () => {
         setSelectedRecord(null);
     };
 
-    const handleSaveRecord = (recordId, data, isDraft) => {
-        // TODO: Call API to save/update medical record
-        console.log('Saving record:', recordId, data, 'isDraft:', isDraft);
+    const handleSaveRecord = async (recordId, data, isDraft) => {
+        try {
+            await updateDentalRecord(recordId, data);
+            fetchRecords(); // Refresh data after update
+            closeModals();
+        } catch (error) {
+            console.error('Error updating record:', error);
+            // Optionally add toast notification here
+        }
     };
 
-    // Get unique doctors for filter
-    const doctors = ['all', ...new Set(mockMedicalRecords.map(r => r.doctorName).filter(d => d))];
+    // Get unique doctors for filter based on current fetched records (or ideally from a separate API)
+    const doctors = ['all', ...new Set(records.map(r => r.doctor_info?.profile?.full_name).filter(d => d))];
 
     return (
         <div>
@@ -130,7 +136,7 @@ const AssistantMedicalRecords = () => {
                         <div>
                             <p className="text-sm text-gray-600">Tổng hồ sơ</p>
                             <p className="text-3xl font-bold text-blue-600 mt-1">
-                                {mockMedicalRecords.length}
+                                {records.length}
                             </p>
                         </div>
                         <div className="p-3 bg-blue-100 rounded-full">
@@ -142,9 +148,9 @@ const AssistantMedicalRecords = () => {
                 <Card>
                     <div className="flex items-center justify-between">
                         <div>
-                            <p className="text-sm text-gray-600">Chờ cập nhật</p>
+                            <p className="text-sm text-gray-600">Đang điều trị</p>
                             <p className="text-3xl font-bold text-orange-600 mt-1">
-                                {mockMedicalRecords.filter(r => r.status === 'pending_update').length}
+                                {records.filter(r => r.status === 'IN_PROGRESS').length}
                             </p>
                         </div>
                         <div className="p-3 bg-orange-100 rounded-full">
@@ -156,13 +162,13 @@ const AssistantMedicalRecords = () => {
                 <Card>
                     <div className="flex items-center justify-between">
                         <div>
-                            <p className="text-sm text-gray-600">Bản nháp</p>
-                            <p className="text-3xl font-bold text-gray-600 mt-1">
-                                {mockMedicalRecords.filter(r => r.isDraft).length}
+                            <p className="text-sm text-gray-600">Hoàn thành</p>
+                            <p className="text-3xl font-bold text-success-600 mt-1">
+                                {records.filter(r => r.status === 'COMPLETED').length}
                             </p>
                         </div>
-                        <div className="p-3 bg-gray-100 rounded-full">
-                            <Edit size={24} className="text-gray-600" />
+                        <div className="p-3 bg-success-100 rounded-full">
+                            <CheckCircle size={24} className="text-success-600" />
                         </div>
                     </div>
                 </Card>
@@ -199,9 +205,9 @@ const AssistantMedicalRecords = () => {
                             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
                         >
                             <option value="all">Tất cả</option>
-                            <option value="completed">Hoàn thành</option>
-                            <option value="pending_update">Chờ cập nhật</option>
-                            <option value="draft">Bản nháp</option>
+                            <option value="COMPLETED">Hoàn thành</option>
+                            <option value="IN_PROGRESS">Đang điều trị</option>
+                            <option value="CANCELLED">Đã hủy</option>
                         </select>
                     </div>
 
@@ -226,25 +232,31 @@ const AssistantMedicalRecords = () => {
 
             {/* Records List */}
             <div className="grid grid-cols-1 gap-4">
-                {filteredRecords.length > 0 ? (
+                {loading ? (
+                    <div className="text-center py-12">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto"></div>
+                        <p className="mt-2 text-gray-500">Đang tải dữ liệu...</p>
+                    </div>
+                ) : filteredRecords.length > 0 ? (
                     filteredRecords.map((record) => {
                         const statusInfo = getStatusInfo(record.status);
                         const StatusIcon = statusInfo.icon;
+                        const formattedDate = new Date(record.start_date || record.createdAt).toLocaleDateString('vi-VN');
 
                         return (
-                            <Card key={record.id} className="hover:shadow-lg transition-shadow">
+                            <Card key={record._id || record.id} className="hover:shadow-lg transition-shadow">
                                 <div className="flex items-start justify-between">
                                     <div className="flex items-start gap-4 flex-1">
                                         {/* Date Badge */}
                                         <div className="bg-primary-100 px-3 py-2 rounded-lg text-center min-w-[90px]">
                                             <div className="text-xs text-primary-600 font-medium">Ngày khám</div>
-                                            <div className="text-sm font-bold text-primary-700">{record.date}</div>
+                                            <div className="text-sm font-bold text-primary-700">{formattedDate}</div>
                                         </div>
 
                                         {/* Record Info */}
                                         <div className="flex-1">
                                             <div className="flex items-center gap-3 mb-2">
-                                                <h3 className="text-lg font-semibold text-gray-900">{record.patientName}</h3>
+                                                <h3 className="text-lg font-semibold text-gray-900">{record.full_name || record.patientName}</h3>
                                                 <Badge variant={statusInfo.variant}>
                                                     <StatusIcon size={14} className="inline mr-1" />
                                                     {statusInfo.label}
@@ -252,33 +264,26 @@ const AssistantMedicalRecords = () => {
                                             </div>
 
                                             <div className="text-sm text-gray-600 space-y-1">
-                                                <p><span className="font-medium">SĐT:</span> {record.patientPhone}</p>
-                                                <p><span className="font-medium">Bác sĩ:</span> {record.doctorName || 'Chưa có'}</p>
-                                                {record.diagnosis && (
-                                                    <p><span className="font-medium">Chẩn đoán:</span> {record.diagnosis}</p>
-                                                )}
-                                                {record.treatment && (
-                                                    <p><span className="font-medium">Điều trị:</span> {record.treatment}</p>
-                                                )}
+                                                <p><span className="font-medium">Hồ sơ:</span> {record.record_name}</p>
+                                                <p><span className="font-medium">SĐT:</span> {record.phone || record.patientPhone}</p>
+                                                <p><span className="font-medium">Bác sĩ:</span> {record.doctor_info?.profile?.full_name || record.doctorName || 'Chưa có'}</p>
                                             </div>
                                         </div>
                                     </div>
 
                                     {/* Actions */}
                                     <div className="flex gap-2 ml-4">
-                                        {!record.isDraft && (
-                                            <button
-                                                onClick={() => handleViewClick(record)}
-                                                className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                                                title="Xem chi tiết"
-                                            >
-                                                <Eye size={20} />
-                                            </button>
-                                        )}
+                                        <button
+                                            onClick={() => handleViewClick(record)}
+                                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                            title="Xem chi tiết"
+                                        >
+                                            <Eye size={20} />
+                                        </button>
                                         <button
                                             onClick={() => handleUpdateClick(record)}
                                             className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                                            title={record.isDraft ? 'Chỉnh sửa nháp' : 'Cập nhật'}
+                                            title="Cập nhật"
                                         >
                                             <Edit size={20} />
                                         </button>
@@ -296,6 +301,28 @@ const AssistantMedicalRecords = () => {
                     </Card>
                 )}
             </div>
+
+            {totalPages > 1 && (
+                <div className="mt-6 flex justify-center gap-2">
+                    <button
+                        className="px-4 py-2 border rounded hover:bg-gray-50 disabled:opacity-50"
+                        disabled={currentPage === 1}
+                        onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                    >
+                        Trước
+                    </button>
+                    <span className="px-4 py-2">
+                        Trang {currentPage} / {totalPages}
+                    </span>
+                    <button
+                        className="px-4 py-2 border rounded hover:bg-gray-50 disabled:opacity-50"
+                        disabled={currentPage === totalPages}
+                        onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                    >
+                        Sau
+                    </button>
+                </div>
+            )}
 
             {/* Modals */}
             <ViewRecordModal

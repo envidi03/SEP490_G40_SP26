@@ -214,6 +214,7 @@ const getListOfPatientService = async (query, patientId) => {
         page: page,
         size: limit,
         totalItems: totalItems,
+        totalPages: Math.ceil(totalItems / limit) || 1,
       },
     };
   } catch (error) {
@@ -265,6 +266,12 @@ const getByIdService = async (id, treatmentStatus) => {
       .populate("doctor_id")
       .sort({ createdAt: -1 })
       .lean();
+    // 2.5 Rename end_date to endDate for frontend consumption
+    treatments.forEach(t => {
+      if (t.phase === 'PLAN' && t.end_date) {
+        t.endDate = t.end_date;
+      }
+    });
 
     // 3. Ghép và trả về
     dentalRecord.treatments = treatments;
@@ -633,6 +640,122 @@ const findDentalByInforUser = async (search) => {
   }
 };
 
+
+/**
+ * Create a Treatment Plan (`DentalRecord` + list of `Treatment` phases)
+ * @param {*} data 
+ * @param {*} accountDoctorId 
+ */
+const createTreatmentPlanService = async (data, accountDoctorId) => {
+  const context = "DentalRecordService.createTreatmentPlanService";
+  const session = await mongoose.startSession();
+  session.startTransaction();
+  try {
+    const { phases, ...dentalRecordData } = data;
+
+    // 1. Create DentalRecord
+    const newRecords = await Model.DentalRecord.create([dentalRecordData], { session });
+    const recordId = newRecords[0]._id;
+
+    // 2. Insert Phases (Treatments)
+    if (phases && phases.length > 0) {
+      const treatmentsToInsert = phases.map(phase => ({
+        record_id: recordId,
+        patient_id: dentalRecordData.patient_id,
+        doctor_id: dentalRecordData.created_by,
+        phase: 'PLAN',
+        tooth_position: phase.name, // Using tooth_position or note to store phase name since Schema has tooth_position, result, note
+        note: phase.name,
+        planned_date: phase.startDate || null,
+        end_date: phase.endDate || null,
+        status: phase.status === 'completed' ? 'DONE' : (phase.status === 'in_progress' ? 'IN_PROGRESS' : 'PLANNED')
+      }));
+
+      await Model.Treatment.insertMany(treatmentsToInsert, { session });
+    }
+
+    await session.commitTransaction();
+    session.endSession();
+
+    return getDentalRecordById(recordId);
+  } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
+    logger.error("Transaction Error creating treatment plan.", {
+      context: context,
+      message: error.message,
+    });
+    if (error.statusCode) throw error;
+    throw new errorRes.InternalServerError(`Error creating treatment plan: ${error.message}`);
+  }
+};
+
+/**
+ * Update a Treatment Plan (Update `DentalRecord` + Rewrite list of `Treatment` phases)
+ * @param {*} id 
+ * @param {*} data 
+ */
+const updateTreatmentPlanService = async (id, data) => {
+  const context = "DentalRecordService.updateTreatmentPlanService";
+  const session = await mongoose.startSession();
+  session.startTransaction();
+  try {
+    const { phases, ...dentalRecordData } = data;
+
+    const existingRecord = await Model.DentalRecord.findById(id).session(session);
+    if (!existingRecord) {
+      throw new errorRes.NotFoundError("Treatment plan not found");
+    }
+
+    // 1. Update DentalRecord
+    if (Object.keys(dentalRecordData).length > 0) {
+      await Model.DentalRecord.findByIdAndUpdate(id, dentalRecordData, { new: true, session });
+    }
+
+    // 2. Handle Phases (Delete existing PLAN phases and recreate them to sync with UI)
+    // Note: If phases are being executed, they might have transitioned from PLAN to SESSION. 
+    // Usually PLAN phases are just planning. We will remove all 'PLAN' phases and recreate them.
+    if (phases) {
+      await Model.Treatment.deleteMany({ record_id: id, phase: 'PLAN' }).session(session);
+
+      if (phases.length > 0) {
+        const treatmentsToInsert = phases.map(phase => ({
+          record_id: id,
+          patient_id: existingRecord.patient_id,
+          doctor_id: existingRecord.created_by,
+          phase: 'PLAN',
+          note: phase.name,
+          planned_date: phase.startDate || null,
+          end_date: phase.endDate || null,
+          status: phase.status === 'completed' ? 'DONE' : (phase.status === 'in_progress' ? 'IN_PROGRESS' : 'PLANNED')
+        }));
+
+        await Model.Treatment.insertMany(treatmentsToInsert, { session });
+      }
+    }
+
+    await session.commitTransaction();
+    session.endSession();
+
+    // Gọi trigger bằng tay sau khi đã commit transaction xong
+    // Vì transaction đã đóng nên logic checkAndCompleteDentalRecord sẽ lấy được dữ liệu mới nhất
+    if (Model.Treatment.checkAndCompleteDentalRecord) {
+      await Model.Treatment.checkAndCompleteDentalRecord(id);
+    }
+
+    return getDentalRecordById(id);
+  } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
+    logger.error("Transaction Error updating treatment plan.", {
+      context: context,
+      message: error.message,
+    });
+    if (error.statusCode) throw error;
+    throw new errorRes.InternalServerError(`Error updating treatment plan: ${error.message}`);
+  }
+};
+
 module.exports = {
   getByIdService,
   createService,
@@ -642,4 +765,6 @@ module.exports = {
   checkDuplicateDentalExcludeId,
   getDentalRecordById,
   findDentalByInforUser,
+  createTreatmentPlanService,
+  updateTreatmentPlanService
 };
