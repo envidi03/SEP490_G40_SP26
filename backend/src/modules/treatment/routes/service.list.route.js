@@ -11,4 +11,6 @@ router.get('/staff/patient/:id/dental-record', controller.dental.getListOfStaffC
 
 router.get("/patient", controller.dental.findUserByUserInfo);
 
+router.get('/dental-records/plans', auth.authenticate, controller.dental.getListTreatmentPlansController);
+
 module.exports = router;

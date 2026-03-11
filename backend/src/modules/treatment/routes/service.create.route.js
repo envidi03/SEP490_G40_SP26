@@ -7,4 +7,6 @@ router.post('/treatment/:id', controller.treatment.createController);
 
 router.post('/dental-record/:id', auth.authenticate, auth.authorize("DOCTOR"), controller.dental.createController);
 
+router.post('/dental-records/plans', auth.authenticate, controller.dental.createTreatmentPlanController);
+
 module.exports = router;

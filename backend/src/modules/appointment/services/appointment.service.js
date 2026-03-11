@@ -34,6 +34,8 @@ const getListService = async (query, doctor_id) => {
         // 1. Lấy và chuẩn hóa các tham số từ query
         const search = query.search?.trim();
         const statusFilter = query.status ? query.status.toUpperCase() : null;
+        const appointmentDate = query.appointment_date;
+        const filterDoctorId = query.doctor_id || doctor_id; // Check both Places
         const sortOrder = query.sort === "desc" ? -1 : 1;
         const page = Math.max(1, parseInt(query.page || 1));
         const limit = Math.max(1, parseInt(query.limit || 5));
@@ -47,9 +49,23 @@ const getListService = async (query, doctor_id) => {
             matchCondition.status = statusFilter;
         }
 
+        // Lọc theo ngày (appointment_date)
+        if (appointmentDate) {
+            const startOfDay = new Date(appointmentDate);
+            startOfDay.setUTCHours(0, 0, 0, 0);
+
+            const endOfDay = new Date(appointmentDate);
+            endOfDay.setUTCHours(23, 59, 59, 999);
+
+            matchCondition.appointment_date = {
+                $gte: startOfDay,
+                $lte: endOfDay
+            };
+        }
+
         // Lọc theo doctor_id (Phải ép kiểu về ObjectId trong Aggregation)
-        if (doctor_id) {
-            matchCondition.doctor_id = new mongoose.Types.ObjectId(doctor_id);
+        if (filterDoctorId) {
+            matchCondition.doctor_id = new mongoose.Types.ObjectId(filterDoctorId);
         }
 
         // Tìm kiếm (Search) theo tên, số điện thoại, email
@@ -67,7 +83,7 @@ const getListService = async (query, doctor_id) => {
             // BƯỚC 1 & 2: Lọc và Sắp xếp toàn bộ dữ liệu (rất nhanh vì có index)
             { $match: matchCondition },
             { $sort: { appointment_date: sortOrder } },
-            
+
             // BƯỚC 3: Phân luồng (1 luồng đếm tổng, 1 luồng lấy data)
             {
                 $facet: {
@@ -75,7 +91,7 @@ const getListService = async (query, doctor_id) => {
                         // Cắt lấy đúng số lượng của trang hiện tại trước (Ví dụ: 5 record)
                         { $skip: skip },
                         { $limit: limit },
-                        
+
                         // HIỆU NĂNG CAO: Chỉ Lookup thông tin bác sĩ cho 5 record này
                         {
                             $lookup: {
@@ -91,11 +107,11 @@ const getListService = async (query, doctor_id) => {
                                 doctor_info: { $arrayElemAt: ["$doctor_info", 0] }
                             }
                         },
-                        
+
                         // Tùy chọn: Nếu bạn muốn lấy luôn Tên và Avatar Bác sĩ từ bảng Profile
                         {
                             $lookup: {
-                                from: "profiles", 
+                                from: "profiles",
                                 localField: "doctor_info.profile_id",
                                 foreignField: "_id",
                                 as: "doctor_info.profile"
@@ -107,13 +123,59 @@ const getListService = async (query, doctor_id) => {
                             }
                         },
 
+                        // Lookup thông tin các dịch vụ đã đặt và map thẳng tên dịch vụ vào book_service
+                        {
+                            $lookup: {
+                                from: "services",
+                                localField: "book_service.service_id",
+                                foreignField: "_id",
+                                as: "services_data"
+                            }
+                        },
+                        {
+                            $addFields: {
+                                book_service: {
+                                    $map: {
+                                        input: "$book_service",
+                                        as: "bs",
+                                        in: {
+                                            $mergeObjects: [
+                                                "$$bs",
+                                                {
+                                                    service_name: {
+                                                        $let: {
+                                                            vars: {
+                                                                matchedService: {
+                                                                    $arrayElemAt: [
+                                                                        {
+                                                                            $filter: {
+                                                                                input: "$services_data",
+                                                                                cond: { $eq: ["$$this._id", "$$bs.service_id"] }
+                                                                            }
+                                                                        },
+                                                                        0
+                                                                    ]
+                                                                }
+                                                            },
+                                                            in: "$$matchedService.service_name"
+                                                        }
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            }
+                        },
+
                         // BƯỚC CUỐI: Dọn dẹp các field rác và bảo mật
                         {
                             $project: {
                                 __v: 0,
                                 "doctor_info.__v": 0,
                                 "doctor_info.password": 0, // Che password nếu có
-                                "doctor_info.profile.__v": 0
+                                "doctor_info.profile.__v": 0,
+                                services_data: 0
                             }
                         }
                     ],

@@ -1,101 +1,81 @@
-import { useState } from 'react';
-import { ClipboardList, Search, Plus, Eye, Edit, CheckCircle, Clock, AlertCircle, Filter } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { ClipboardList, Search, Plus, Eye, Edit, CheckCircle, Clock, AlertCircle, Filter, Loader2 } from 'lucide-react';
+import Toast from '../../components/ui/Toast';
 import Card from '../../components/ui/Card';
 import Badge from '../../components/ui/Badge';
 import TreatmentPlanModal from './modals/TreatmentPlanModal';
-
-// Mock treatment plans data
-const mockTreatmentPlans = [
-    {
-        id: 'tp_001',
-        patientName: 'Nguyễn Văn A',
-        patientPhone: '0901234567',
-        doctorName: 'BS. Nguyễn Văn Anh',
-        planName: 'Niềng răng chỉnh nha',
-        diagnosis: 'Răng lệch hàm trên, khớp cắn sâu',
-        startDate: '2026-01-10',
-        estimatedEndDate: '2028-01-10',
-        totalCost: 45000000,
-        progress: 15,
-        status: 'in_progress',
-        phases: [
-            { name: 'Khám tổng quát & chụp phim', status: 'completed', startDate: '2026-01-10', endDate: '2026-01-15' },
-            { name: 'Gắn mắc cài', status: 'in_progress', startDate: '2026-01-20', endDate: '2026-02-01' },
-            { name: 'Điều chỉnh định kỳ (6 tháng)', status: 'pending', startDate: '2026-02-01', endDate: '2026-08-01' },
-            { name: 'Tháo mắc cài & đeo hàm duy trì', status: 'pending', startDate: '2028-01-01', endDate: '2028-01-10' }
-        ],
-        notes: 'Bệnh nhân cần tái khám mỗi tháng một lần'
-    },
-    {
-        id: 'tp_002',
-        patientName: 'Trần Thị B',
-        patientPhone: '0912345678',
-        doctorName: 'BS. Trần Thị Bình',
-        planName: 'Trồng răng Implant',
-        diagnosis: 'Mất răng hàm dưới số 6 bên trái',
-        startDate: '2025-11-01',
-        estimatedEndDate: '2026-05-01',
-        totalCost: 25000000,
-        progress: 60,
-        status: 'in_progress',
-        phases: [
-            { name: 'Chụp CT & lên kế hoạch phẫu thuật', status: 'completed', startDate: '2025-11-01', endDate: '2025-11-10' },
-            { name: 'Cấy trụ Implant', status: 'completed', startDate: '2025-11-15', endDate: '2025-11-15' },
-            { name: 'Chờ tích hợp xương (3-6 tháng)', status: 'in_progress', startDate: '2025-11-16', endDate: '2026-04-01' },
-            { name: 'Lắp mão răng sứ', status: 'pending', startDate: '2026-04-15', endDate: '2026-05-01' }
-        ],
-        notes: 'Tiến trình tích hợp xương đang tốt'
-    },
-    {
-        id: 'tp_003',
-        patientName: 'Lê Văn C',
-        patientPhone: '0923456789',
-        doctorName: 'BS. Nguyễn Văn Anh',
-        planName: 'Điều trị viêm nha chu',
-        diagnosis: 'Viêm nha chu mãn tính giai đoạn 2',
-        startDate: '2026-01-05',
-        estimatedEndDate: '2026-04-05',
-        totalCost: 8000000,
-        progress: 100,
-        status: 'completed',
-        phases: [
-            { name: 'Cạo vôi & xử lý túi nha chu', status: 'completed', startDate: '2026-01-05', endDate: '2026-01-05' },
-            { name: 'Phẫu thuật nạo túi nha chu', status: 'completed', startDate: '2026-01-20', endDate: '2026-01-20' },
-            { name: 'Tái khám & duy trì', status: 'completed', startDate: '2026-02-20', endDate: '2026-04-05' }
-        ],
-        notes: 'Đã hoàn thành điều trị, nướu hồi phục tốt'
-    },
-    {
-        id: 'tp_004',
-        patientName: 'Phạm Thị D',
-        patientPhone: '0934567890',
-        doctorName: 'BS. Lê Hoàng Cường',
-        planName: 'Tẩy trắng & thẩm mỹ răng',
-        diagnosis: 'Răng ố vàng, muốn cải thiện thẩm mỹ',
-        startDate: '2026-02-01',
-        estimatedEndDate: '2026-03-01',
-        totalCost: 15000000,
-        progress: 0,
-        status: 'pending',
-        phases: [
-            { name: 'Khám & tư vấn phương án', status: 'pending', startDate: '2026-02-01', endDate: '2026-02-01' },
-            { name: 'Tẩy trắng tại phòng khám', status: 'pending', startDate: '2026-02-10', endDate: '2026-02-10' },
-            { name: 'Dán sứ Veneer (6 răng cửa)', status: 'pending', startDate: '2026-02-20', endDate: '2026-03-01' }
-        ],
-        notes: 'Bệnh nhân yêu cầu màu trắng A1'
-    }
-];
+import treatmentPlanService from '../../services/treatmentPlanService';
+import patientService from '../../services/patientService';
+import staffService from '../../services/staffService';
+import appointmentService from '../../services/appointmentService';
 
 const AssistantTreatmentPlans = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [filterStatus, setFilterStatus] = useState('all');
     const [filterDoctor, setFilterDoctor] = useState('all');
+    const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
 
     const [selectedPlan, setSelectedPlan] = useState(null);
     const [showModal, setShowModal] = useState(false);
     const [modalMode, setModalMode] = useState('view'); // 'view', 'create', 'edit'
 
-    const filteredPlans = mockTreatmentPlans.filter(plan => {
+    const [plans, setPlans] = useState([]);
+    const [patients, setPatients] = useState([]);
+    const [doctorsList, setDoctorsList] = useState([]);
+    const [isLoading, setIsLoading] = useState(true);
+
+    const [currentPage, setCurrentPage] = useState(1);
+    const [pagination, setPagination] = useState({ totalPages: 1, totalItems: 0 });
+
+    const loadData = async () => {
+        try {
+            setIsLoading(true);
+            const today = new Date().toISOString().split('T')[0];
+            const [plansRes, patientsRes, staffRes, appointmentsRes] = await Promise.all([
+                treatmentPlanService.getTreatmentPlans({ limit: 4, page: currentPage }),
+                patientService.getAllPatients({ limit: 1000 }),
+                staffService.getStaffs({ limit: 1000 }),
+                appointmentService.getStaffAppointments({ appointment_date: today, limit: 1000 })
+            ]);
+            setPlans(plansRes?.data || []);
+            const apiPagi = plansRes?.pagination || { totalItems: 0, size: 4, page: 1 };
+            setPagination({
+                ...apiPagi,
+                totalPages: apiPagi.totalPages || Math.ceil(apiPagi.totalItems / (apiPagi.size || 4)) || 1
+            });
+
+            // Lọc bệnh nhân: Chỉ lấy những bệnh nhân có lịch khám hôm nay (Assistant view)
+            const allPatients = patientsRes?.data?.data || patientsRes?.data || [];
+            const todayAppointments = appointmentsRes?.data?.data || appointmentsRes?.data || [];
+
+            // Trích xuất danh sách ID bệnh nhân từ lịch khám hôm nay
+            const todayPatientIds = new Set(
+                todayAppointments
+                    .map(app => app.patient_id?.toString() || app.patient_id)
+                    .filter(Boolean)
+            );
+
+            const todayPatients = allPatients.filter(p => todayPatientIds.has(p._id.toString()));
+            setPatients(todayPatients);
+
+            // Filter only doctors
+            const allStaff = staffRes?.data?.data || staffRes?.data || [];
+            const docs = allStaff.filter(s => s.account?.role_id?.name === 'DOCTOR');
+            // Remove fallback to allStaff so it doesn't accidentally show non-doctors
+            setDoctorsList(docs);
+        } catch (error) {
+            setToast({ show: true, message: 'Gặp lỗi khi tải dữ liệu', type: 'error' });
+            console.error(error);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        loadData();
+    }, [currentPage]);
+
+    const filteredPlans = plans.filter(plan => {
         const matchesSearch = plan.patientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
             plan.planName.toLowerCase().includes(searchTerm.toLowerCase()) ||
             plan.patientPhone.includes(searchTerm);
@@ -144,22 +124,56 @@ const AssistantTreatmentPlans = () => {
         setSelectedPlan(null);
     };
 
-    const handleSave = (data) => {
-        // TODO: Call API to create/update treatment plan
-        console.log('Save treatment plan:', data);
-        closeModal();
+    const handleSave = async (data) => {
+        try {
+            // Create proper payload
+            const payload = {
+                patient_id: data.patient_id,
+                created_by: data.doctor_id, // For backend it expects created_by for the doctor
+                full_name: data.patientName,
+                phone: data.patientPhone,
+                record_name: data.planName,
+                diagnosis: data.diagnosis,
+                start_date: data.startDate || new Date(),
+                end_date: data.estimatedEndDate || null,
+                total_amount: data.totalCost ? Number(data.totalCost) : 0,
+                description: data.notes,
+                phases: data.phases
+            };
+
+            if (modalMode === 'create') {
+                await treatmentPlanService.createTreatmentPlan(payload);
+                setToast({ show: true, message: 'Đã tạo kế hoạch mới thành công!', type: 'success' });
+            } else if (modalMode === 'edit') {
+                await treatmentPlanService.updateTreatmentPlan(selectedPlan.id, payload);
+                setToast({ show: true, message: 'Đã cập nhật kế hoạch thành công!', type: 'success' });
+            }
+            closeModal();
+            loadData(); // Reload list
+        } catch (error) {
+            setToast({ show: true, message: error.response?.data?.message || 'Có lỗi xảy ra khi lưu kế hoạch', type: 'error' });
+            console.error(error);
+        }
     };
 
     // Get unique doctors for filter
-    const doctors = ['all', ...new Set(mockTreatmentPlans.map(p => p.doctorName))];
+    const doctors = ['all', ...new Set(plans.map(p => p.doctorName).filter(Boolean))];
 
     // Stats
     const stats = {
-        total: mockTreatmentPlans.length,
-        inProgress: mockTreatmentPlans.filter(p => p.status === 'in_progress').length,
-        completed: mockTreatmentPlans.filter(p => p.status === 'completed').length,
-        pending: mockTreatmentPlans.filter(p => p.status === 'pending').length,
+        total: plans.length,
+        inProgress: plans.filter(p => p.status === 'in_progress').length,
+        completed: plans.filter(p => p.status === 'completed').length,
+        pending: plans.filter(p => p.status === 'pending').length,
     };
+
+    if (isLoading) {
+        return (
+            <div className="flex justify-center items-center h-64">
+                <Loader2 className="w-8 h-8 animate-spin text-primary-500" />
+            </div>
+        );
+    }
 
     return (
         <div>
@@ -316,8 +330,8 @@ const AssistantTreatmentPlans = () => {
                                             <div className="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
                                                 <div
                                                     className={`h-full rounded-full transition-all duration-500 ${plan.progress === 100
-                                                            ? 'bg-gradient-to-r from-green-400 to-green-500'
-                                                            : 'bg-gradient-to-r from-blue-400 to-blue-600'
+                                                        ? 'bg-gradient-to-r from-green-400 to-green-500'
+                                                        : 'bg-gradient-to-r from-blue-400 to-blue-600'
                                                         }`}
                                                     style={{ width: `${plan.progress}%` }}
                                                 />
@@ -330,8 +344,8 @@ const AssistantTreatmentPlans = () => {
                                                 <div
                                                     key={idx}
                                                     className={`flex-1 h-1.5 rounded-full ${phase.status === 'completed' ? 'bg-green-400' :
-                                                            phase.status === 'in_progress' ? 'bg-amber-400 animate-pulse' :
-                                                                'bg-gray-200'
+                                                        phase.status === 'in_progress' ? 'bg-amber-400 animate-pulse' :
+                                                            'bg-gray-200'
                                                         }`}
                                                     title={`${phase.name} - ${phase.status === 'completed' ? 'Hoàn thành' : phase.status === 'in_progress' ? 'Đang thực hiện' : 'Chưa bắt đầu'}`}
                                                 />
@@ -372,6 +386,74 @@ const AssistantTreatmentPlans = () => {
                 )}
             </div>
 
+            {/* Pagination */}
+            {!isLoading && (
+                <div className="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6 mt-4 rounded-xl shadow-sm">
+                    <div className="flex flex-1 justify-between sm:hidden">
+                        <button
+                            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                            disabled={currentPage === 1}
+                            className="relative inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                        >
+                            Trước
+                        </button>
+                        <button
+                            onClick={() => setCurrentPage(p => Math.min(pagination.totalPages, p + 1))}
+                            disabled={currentPage === pagination.totalPages}
+                            className="relative ml-3 inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                        >
+                            Sau
+                        </button>
+                    </div>
+                    <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
+                        <div>
+                            <p className="text-sm text-gray-700">
+                                Hiển thị trang <span className="font-medium">{currentPage}</span> / <span className="font-medium">{pagination.totalPages}</span>
+                                {' '}(Tổng {pagination.totalItems} kết quả)
+                            </p>
+                        </div>
+                        <div>
+                            <nav className="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
+                                <button
+                                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                                    disabled={currentPage === 1}
+                                    className="relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50"
+                                >
+                                    <span className="sr-only">Previous</span>
+                                    <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                        <path fillRule="evenodd" d="M12.79 5.23a.75.75 0 01-.02 1.06L8.832 10l3.938 3.71a.75.75 0 11-1.04 1.08l-4.5-4.25a.75.75 0 010-1.08l4.5-4.25a.75.75 0 011.06.02z" clipRule="evenodd" />
+                                    </svg>
+                                </button>
+                                {[...Array(pagination.totalPages)].map((_, idx) => {
+                                    const pageNumber = idx + 1;
+                                    const isCurrent = pageNumber === currentPage;
+                                    return (
+                                        <button
+                                            key={pageNumber}
+                                            onClick={() => setCurrentPage(pageNumber)}
+                                            aria-current={isCurrent ? "page" : undefined}
+                                            className={`relative inline-flex items-center px-4 py-2 text-sm font-semibold focus:z-20 ${isCurrent ? 'z-10 bg-primary-600 text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600' : 'text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:outline-offset-0'}`}
+                                        >
+                                            {pageNumber}
+                                        </button>
+                                    );
+                                })}
+                                <button
+                                    onClick={() => setCurrentPage(p => Math.min(pagination.totalPages, p + 1))}
+                                    disabled={currentPage === pagination.totalPages}
+                                    className="relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50"
+                                >
+                                    <span className="sr-only">Next</span>
+                                    <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                        <path fillRule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clipRule="evenodd" />
+                                    </svg>
+                                </button>
+                            </nav>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Modal */}
             <TreatmentPlanModal
                 plan={selectedPlan}
@@ -379,6 +461,15 @@ const AssistantTreatmentPlans = () => {
                 mode={modalMode}
                 onClose={closeModal}
                 onSave={handleSave}
+                patients={patients}
+                doctors={doctorsList}
+            />
+
+            <Toast
+                show={toast.show}
+                message={toast.message}
+                type={toast.type}
+                onClose={() => setToast(prev => ({ ...prev, show: false }))}
             />
         </div>
     );

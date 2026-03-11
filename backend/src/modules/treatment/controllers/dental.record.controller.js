@@ -493,6 +493,145 @@ const findUserByUserInfo = async (req, res) => {
   }
 };
 
+/**
+ * Create a Treatment Plan
+ */
+const createTreatmentPlanController = async (req, res) => {
+  const context = "DentalRecordController.createTreatmentPlanController";
+  try {
+    const dataCreate = req.body || {};
+    const { account_id: accountDoctorId } = req.user;
+
+    logger.debug("Create Treatment Plan request received", {
+      context: context,
+      accountDoctorId: accountDoctorId,
+      body: dataCreate
+    });
+
+    const { staff: doctor } = await findStaffByAccountId(accountDoctorId);
+    if (!doctor || !doctor._id) {
+      throw new errorRes.UnauthorizedError("Doctor not found!");
+    }
+
+    dataCreate.created_by = doctor._id;
+    const cleanedData = cleanObjectData(dataCreate);
+
+    if (!cleanedData.patient_id) {
+      throw new errorRes.BadRequestError("patient_id is required!");
+    }
+
+    const newData = await ServiceProcess.createTreatmentPlanService(cleanedData, accountDoctorId);
+
+    return new successRes.CreateSuccess(
+      newData,
+      "Treatment plan created successfully"
+    ).send(res);
+
+  } catch (error) {
+    logger.error("Error creating treatment plan", {
+      context: context,
+      message: error.message,
+    });
+    throw error;
+  }
+};
+
+/**
+ * Update a Treatment Plan
+ */
+const updateTreatmentPlanController = async (req, res) => {
+  const context = "DentalRecordController.updateTreatmentPlanController";
+  try {
+    const { id } = req.params;
+    const dataUpdate = req.body || {};
+
+    logger.debug("Update Treatment Plan request received", {
+      context: context,
+      planId: id,
+      body: dataUpdate
+    });
+
+    if (!id) {
+      throw new errorRes.BadRequestError("Treatment Plan ID is required");
+    }
+
+    const cleanedData = cleanObjectData(dataUpdate);
+
+    const updated = await ServiceProcess.updateTreatmentPlanService(id, cleanedData);
+
+    return new successRes.UpdateSuccess(
+      updated,
+      "Treatment plan updated successfully"
+    ).send(res);
+
+  } catch (error) {
+    logger.error("Error updating treatment plan", {
+      context: context,
+      message: error.message,
+    });
+    throw error;
+  }
+};
+
+/**
+ * Get List of Treatment Plans
+ */
+const getListTreatmentPlansController = async (req, res) => {
+  const context = "DentalRecordController.getListTreatmentPlansController";
+  try {
+    const queryParams = req.query;
+    logger.debug("Get list of treatment plans request received", {
+      context: context,
+      query: queryParams,
+    });
+
+    const { data, pagination } = await ServiceProcess.getListOfPatientService(queryParams, null);
+
+    // Format data specific for Treatment Plans
+    const formattedData = data.map(record => {
+      // Filter only PLAN treatments
+      const planPhases = (record.treatments || []).filter(t => t.phase === 'PLAN').map(t => ({
+        id: t._id,
+        name: t.tooth_position || t.note || 'Unnamed Phase',
+        startDate: t.planned_date,
+        endDate: t.end_date,
+        status: t.status === 'DONE' ? 'completed' : (t.status === 'IN_PROGRESS' ? 'in_progress' : 'pending')
+      }));
+
+      return {
+        id: record._id,
+        patient_id: record.patient_id,
+        patientName: record.full_name,
+        patientPhone: record.phone,
+        doctor_id: record.created_by,
+        doctorName: record.doctor_info?.profile?.full_name || 'N/A',
+        planName: record.record_name,
+        diagnosis: record.diagnosis || '',
+        startDate: record.start_date,
+        estimatedEndDate: record.end_date,
+        totalCost: record.total_amount,
+        progress: planPhases.length ? Math.round((planPhases.filter(p => p.status === 'completed').length / planPhases.length) * 100) : 0,
+        status: record.status === 'COMPLETED' ? 'completed' : (record.status === 'IN_PROGRESS' ? 'in_progress' : 'pending'),
+        phases: planPhases,
+        notes: record.description || record.note || ''
+      };
+    });
+
+    return new successRes.GetListSuccess(
+      formattedData,
+      pagination,
+      "Treatment plans retrieved successfully"
+    ).send(res);
+
+  } catch (error) {
+    logger.error("Error get list of treatment plans", {
+      context: context,
+      message: error.message,
+    });
+    throw error;
+  }
+};
+
 module.exports = {
   getListOfPatientController,
   getListOfStaffController,
@@ -501,4 +640,7 @@ module.exports = {
   createController,
   updateController,
   findUserByUserInfo,
+  createTreatmentPlanController,
+  updateTreatmentPlanController,
+  getListTreatmentPlansController
 };
