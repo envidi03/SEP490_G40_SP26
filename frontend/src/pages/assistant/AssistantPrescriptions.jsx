@@ -1,153 +1,266 @@
-import { useState } from 'react';
-import { Pill, Search, Plus, Eye, Edit, CheckCircle, Clock, Printer, Filter } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { Pill, Search, Eye, Edit, CheckCircle, Clock, AlertCircle, Filter, X, Plus, Trash2 } from 'lucide-react';
 import Card from '../../components/ui/Card';
 import Badge from '../../components/ui/Badge';
-import PrescriptionModal from './modals/PrescriptionModal';
+import treatmentService from '../../services/treatmentService';
 
-// Mock prescriptions data
-const mockPrescriptions = [
-    {
-        id: 'rx_001',
-        patientName: 'Nguyễn Văn A',
-        patientPhone: '0901234567',
-        doctorName: 'BS. Nguyễn Văn Anh',
-        date: '2026-01-17',
-        diagnosis: 'Sâu răng hàm số 6',
-        status: 'dispensed',
-        items: [
-            { name: 'Amoxicillin 500mg', quantity: 15, dosage: '1 viên x 3 lần/ngày x 5 ngày', unit: 'viên' },
-            { name: 'Paracetamol 500mg', quantity: 6, dosage: '1 viên x 2 lần/ngày khi đau', unit: 'viên' },
-            { name: 'Nước súc miệng Chlorhexidine', quantity: 1, dosage: 'Súc miệng 2 lần/ngày', unit: 'chai' }
-        ],
-        notes: 'Uống sau ăn. Tái khám sau 5 ngày.'
-    },
-    {
-        id: 'rx_002',
-        patientName: 'Trần Thị B',
-        patientPhone: '0912345678',
-        doctorName: 'BS. Trần Thị Bình',
-        date: '2026-01-17',
-        diagnosis: 'Nhổ răng khôn hàm dưới phải',
-        status: 'pending',
-        items: [
-            { name: 'Amoxicillin 500mg', quantity: 21, dosage: '1 viên x 3 lần/ngày x 7 ngày', unit: 'viên' },
-            { name: 'Ibuprofen 400mg', quantity: 10, dosage: '1 viên khi đau, tối đa 3 lần/ngày', unit: 'viên' },
-            { name: 'Metronidazole 250mg', quantity: 14, dosage: '1 viên x 2 lần/ngày x 7 ngày', unit: 'viên' }
-        ],
-        notes: 'Kiêng đồ cứng, nóng. Chườm đá 24h đầu.'
-    },
-    {
-        id: 'rx_003',
-        patientName: 'Lê Văn C',
-        patientPhone: '0923456789',
-        doctorName: 'BS. Nguyễn Văn Anh',
-        date: '2026-01-16',
-        diagnosis: 'Viêm nướu nhẹ',
-        status: 'dispensed',
-        items: [
-            { name: 'Nước súc miệng Listerine', quantity: 1, dosage: 'Súc miệng 2 lần/ngày sau bữa ăn', unit: 'chai' },
-            { name: 'Gel bôi nướu Metrogyl Denta', quantity: 1, dosage: 'Bôi vùng nướu viêm 2 lần/ngày', unit: 'tuýp' }
-        ],
-        notes: 'Hướng dẫn vệ sinh răng miệng đúng cách.'
-    },
-    {
-        id: 'rx_004',
-        patientName: 'Phạm Thị D',
-        patientPhone: '0934567890',
-        doctorName: 'BS. Lê Hoàng Cường',
-        date: '2026-01-17',
-        diagnosis: 'Tẩy trắng răng laser',
-        status: 'pending',
-        items: [
-            { name: 'Kem chống ê buốt Sensodyne', quantity: 1, dosage: 'Đánh răng 2 lần/ngày trong 2 tuần', unit: 'tuýp' },
-            { name: 'Gel fluoride dạng khay', quantity: 2, dosage: 'Đeo khay 15 phút/ngày trong 1 tuần', unit: 'tuýp' }
-        ],
-        notes: 'Tránh thực phẩm có màu trong 48h sau tẩy.'
-    },
-    {
-        id: 'rx_005',
-        patientName: 'Hoàng Văn E',
-        patientPhone: '0945678901',
-        doctorName: 'BS. Nguyễn Văn Anh',
-        date: '2026-01-15',
-        diagnosis: 'Trám răng composite',
-        status: 'dispensed',
-        items: [
-            { name: 'Paracetamol 500mg', quantity: 4, dosage: '1 viên khi đau, cách 6 tiếng', unit: 'viên' }
-        ],
-        notes: 'Không cắn đồ cứng trong 24h.'
-    }
-];
+// ─── STATUS HELPERS ──────────────────────────────────────────────────────────
+const getStatusInfo = (status) => {
+    const map = {
+        PLANNED: { label: 'Kế hoạch', variant: 'default', icon: Clock },
+        WAITING_APPROVAL: { label: 'Chờ duyệt', variant: 'warning', icon: Clock },
+        APPROVED: { label: 'Đã duyệt', variant: 'primary', icon: CheckCircle },
+        IN_PROGRESS: { label: 'Đang thực hiện', variant: 'warning', icon: AlertCircle },
+        DONE: { label: 'Hoàn thành', variant: 'success', icon: CheckCircle },
+        CANCELLED: { label: 'Đã hủy', variant: 'danger', icon: X },
+        REJECTED: { label: 'Bị từ chối', variant: 'danger', icon: X },
+    };
+    return map[status] || { label: status, variant: 'default', icon: Clock };
+};
 
-const AssistantPrescriptions = () => {
-    const [searchTerm, setSearchTerm] = useState('');
-    const [filterStatus, setFilterStatus] = useState('all');
-    const [filterDoctor, setFilterDoctor] = useState('all');
-    const [filterDate, setFilterDate] = useState('');
+// ─── VIEW MEDICINE MODAL ──────────────────────────────────────────────────────
+const ViewMedicineModal = ({ treatment, isOpen, onClose }) => {
+    if (!isOpen || !treatment) return null;
+    const meds = treatment.medicine_usage || [];
+    return (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl shadow-xl w-full max-w-xl flex flex-col max-h-[90vh]">
+                <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 shrink-0">
+                    <div>
+                        <h2 className="text-base font-semibold text-gray-800">Chi tiết đơn thuốc</h2>
+                        <p className="text-xs text-gray-400 mt-0.5">{treatment.tooth_position || treatment.note || ''}</p>
+                    </div>
+                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600 p-1"><X size={20} /></button>
+                </div>
+                <div className="overflow-y-auto flex-1 px-6 py-5">
+                    {meds.length === 0 ? (
+                        <p className="text-sm text-gray-400 italic text-center py-8">Phiếu này chưa có thuốc nào.</p>
+                    ) : (
+                        <div className="space-y-3">
+                            {meds.map((m, idx) => (
+                                <div key={idx} className="flex items-start gap-3 p-3 bg-gray-50 rounded-xl border border-gray-100">
+                                    <div className="p-2 bg-teal-100 rounded-lg shrink-0">
+                                        <Pill size={16} className="text-teal-600" />
+                                    </div>
+                                    <div className="flex-1">
+                                        <p className="text-sm font-semibold text-gray-800">
+                                            {m.medicine_id?.name || m.medicine_id?.medicine_name || 'Không rõ thuốc'}
+                                        </p>
+                                        <p className="text-xs text-gray-500 mt-0.5">Số lượng: <span className="font-medium">{m.quantity}</span></p>
+                                        {m.usage_instruction && <p className="text-xs text-gray-500">Cách dùng: {m.usage_instruction}</p>}
+                                        {m.note && <p className="text-xs text-gray-400 italic">{m.note}</p>}
+                                        {m.dispensed && (
+                                            <span className="inline-flex items-center gap-1 text-xs text-green-600 bg-green-50 px-2 py-0.5 rounded-full mt-1">
+                                                <CheckCircle size={11} /> Đã cấp phát
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+                <div className="px-6 py-4 border-t border-gray-100 flex justify-end shrink-0">
+                    <button onClick={onClose} className="px-4 py-2 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition">Đóng</button>
+                </div>
+            </div>
+        </div>
+    );
+};
 
-    const [selectedPrescription, setSelectedPrescription] = useState(null);
-    const [showModal, setShowModal] = useState(false);
-    const [modalMode, setModalMode] = useState('view'); // 'view', 'create', 'edit'
+// ─── EDIT MEDICINE MODAL ──────────────────────────────────────────────────────
+const EditMedicineModal = ({ treatment, isOpen, onClose, onSave }) => {
+    const [medicines, setMedicines] = useState([]);
+    const [isSaving, setIsSaving] = useState(false);
+    const [error, setError] = useState(null);
 
-    const filteredPrescriptions = mockPrescriptions.filter(rx => {
-        const matchesSearch = rx.patientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            rx.patientPhone.includes(searchTerm) ||
-            rx.diagnosis.toLowerCase().includes(searchTerm.toLowerCase());
-        const matchesStatus = filterStatus === 'all' || rx.status === filterStatus;
-        const matchesDoctor = filterDoctor === 'all' || rx.doctorName === filterDoctor;
-        const matchesDate = !filterDate || rx.date === filterDate;
-        return matchesSearch && matchesStatus && matchesDoctor && matchesDate;
-    });
+    useEffect(() => {
+        if (isOpen && treatment) {
+            setMedicines(
+                (treatment.medicine_usage || []).map((m) => ({
+                    medicine_id: m.medicine_id?._id || m.medicine_id || '',
+                    medicineName: m.medicine_id?.name || m.medicine_id?.medicine_name || '',
+                    quantity: m.quantity ?? 1,
+                    usage_instruction: m.usage_instruction || '',
+                    note: m.note || '',
+                    dispensed: m.dispensed || false,
+                }))
+            );
+            setError(null);
+        }
+    }, [isOpen, treatment]);
 
-    const getStatusInfo = (status) => {
-        switch (status) {
-            case 'dispensed':
-                return { label: 'Đã cấp thuốc', variant: 'success', icon: CheckCircle };
-            case 'pending':
-                return { label: 'Chưa cấp thuốc', variant: 'warning', icon: Clock };
-            default:
-                return { label: status, variant: 'default', icon: Clock };
+    if (!isOpen || !treatment) return null;
+
+    const handleChange = (idx, field, value) =>
+        setMedicines((prev) => prev.map((m, i) => (i === idx ? { ...m, [field]: field === 'quantity' ? Number(value) : value } : m)));
+
+    const handleAdd = () =>
+        setMedicines((prev) => [...prev, { medicine_id: '', medicineName: '', quantity: 1, usage_instruction: '', note: '', dispensed: false }]);
+
+    const handleRemove = (idx) => setMedicines((prev) => prev.filter((_, i) => i !== idx));
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setIsSaving(true);
+        setError(null);
+        try {
+            await treatmentService.updateTreatmentMedicine(treatment._id, {
+                medicine_usage: medicines.filter((m) => m.medicine_id).map((m) => ({
+                    medicine_id: m.medicine_id,
+                    quantity: m.quantity,
+                    usage_instruction: m.usage_instruction || undefined,
+                    note: m.note || undefined,
+                    dispensed: m.dispensed,
+                })),
+            });
+            onSave();
+            onClose();
+        } catch (err) {
+            setError(err?.response?.data?.message || 'Cập nhật thất bại. Vui lòng thử lại.');
+        } finally {
+            setIsSaving(false);
         }
     };
 
-    const handleCreateClick = () => {
-        setSelectedPrescription(null);
-        setModalMode('create');
-        setShowModal(true);
-    };
+    return (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl flex flex-col max-h-[90vh]">
+                <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 shrink-0">
+                    <div>
+                        <h2 className="text-base font-semibold text-gray-800">Kê đơn thuốc</h2>
+                        <p className="text-xs text-gray-400 mt-0.5">{treatment.tooth_position || treatment.note || 'Phiếu điều trị'}</p>
+                    </div>
+                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600 p-1"><X size={20} /></button>
+                </div>
+                <form id="medicine-form" onSubmit={handleSubmit} className="overflow-y-auto flex-1 px-6 py-5 space-y-4">
+                    {medicines.length === 0 && (
+                        <p className="text-sm text-gray-400 italic text-center py-4">Chưa có thuốc nào. Thêm thuốc bên dưới.</p>
+                    )}
+                    {medicines.map((m, idx) => (
+                        <div key={idx} className="p-4 bg-gray-50 rounded-xl border border-gray-200 space-y-3">
+                            <div className="flex justify-between items-center">
+                                <span className="text-xs font-semibold text-gray-500 uppercase">Thuốc #{idx + 1}</span>
+                                <button type="button" onClick={() => handleRemove(idx)} className="text-red-400 hover:text-red-600">
+                                    <Trash2 size={16} />
+                                </button>
+                            </div>
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label className="block text-xs font-medium text-gray-600 mb-1">Medicine ID <span className="text-red-400">*</span></label>
+                                    <input type="text" value={m.medicine_id} required
+                                        onChange={(e) => handleChange(idx, 'medicine_id', e.target.value)}
+                                        placeholder="ObjectId của thuốc"
+                                        className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-400 transition" />
+                                    {m.medicineName && <p className="text-xs text-teal-600 mt-1">✓ {m.medicineName}</p>}
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-medium text-gray-600 mb-1">Số lượng</label>
+                                    <input type="number" min={1} value={m.quantity}
+                                        onChange={(e) => handleChange(idx, 'quantity', e.target.value)}
+                                        className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-400 transition" />
+                                </div>
+                                <div className="col-span-2">
+                                    <label className="block text-xs font-medium text-gray-600 mb-1">Hướng dẫn dùng thuốc</label>
+                                    <input type="text" value={m.usage_instruction}
+                                        onChange={(e) => handleChange(idx, 'usage_instruction', e.target.value)}
+                                        placeholder="VD: Uống 2 viên / ngày sau ăn"
+                                        className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-400 transition" />
+                                </div>
+                                <div className="col-span-2">
+                                    <label className="block text-xs font-medium text-gray-600 mb-1">Ghi chú</label>
+                                    <input type="text" value={m.note}
+                                        onChange={(e) => handleChange(idx, 'note', e.target.value)}
+                                        placeholder="Ghi chú thêm..."
+                                        className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-400 transition" />
+                                </div>
+                                <div className="col-span-2 flex items-center gap-2">
+                                    <input type="checkbox" id={`dispensed-${idx}`} checked={m.dispensed}
+                                        onChange={(e) => handleChange(idx, 'dispensed', e.target.checked)}
+                                        className="w-4 h-4 rounded accent-teal-500" />
+                                    <label htmlFor={`dispensed-${idx}`} className="text-sm text-gray-600">Đã cấp phát thuốc</label>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                    <button type="button" onClick={handleAdd}
+                        className="w-full py-2.5 border-2 border-dashed border-gray-300 rounded-xl text-sm text-gray-500 hover:border-teal-400 hover:text-teal-500 transition-colors flex items-center justify-center gap-2">
+                        <Plus size={16} /> Thêm thuốc
+                    </button>
+                    {error && <p className="text-xs text-red-500 bg-red-50 border border-red-100 rounded-xl px-3 py-2">{error}</p>}
+                </form>
+                <div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-2 shrink-0">
+                    <button type="button" onClick={onClose} className="px-4 py-2 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition">Hủy</button>
+                    <button type="submit" form="medicine-form" disabled={isSaving}
+                        className="px-6 py-2 rounded-xl bg-teal-500 text-white text-sm font-medium hover:bg-teal-600 disabled:opacity-50 transition">
+                        {isSaving ? 'Đang lưu...' : 'Lưu đơn thuốc'}
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
 
-    const handleViewClick = (rx) => {
-        setSelectedPrescription(rx);
-        setModalMode('view');
-        setShowModal(true);
-    };
+// ─── MAIN COMPONENT ───────────────────────────────────────────────────────────
+const AssistantPrescriptions = () => {
+    const [dentalRecords, setDentalRecords] = useState([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState(null);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [filterDate, setFilterDate] = useState('');
 
-    const handleEditClick = (rx) => {
-        setSelectedPrescription(rx);
-        setModalMode('edit');
-        setShowModal(true);
-    };
+    const [viewTreatment, setViewTreatment] = useState(null);
+    const [editTreatment, setEditTreatment] = useState(null);
 
-    const closeModal = () => {
-        setShowModal(false);
-        setSelectedPrescription(null);
-    };
+    const fetchRecords = useCallback(async () => {
+        setIsLoading(true);
+        setError(null);
+        try {
+            const res = await treatmentService.getAllDentalRecordsWithTreatments({
+                limit: 100,
+                filter_dental_record: 'IN_PROGRESS',
+            });
+            const raw = res?.data;
+            const records = Array.isArray(raw) ? raw : (raw?.data || []);
+            setDentalRecords(records);
+        } catch (err) {
+            console.error('Fetch dental records:', err);
+            setError('Không thể tải dữ liệu. Vui lòng thử lại sau.');
+        } finally {
+            setIsLoading(false);
+        }
+    }, []);
 
-    const handleSave = (data) => {
-        // TODO: Call API to create/update prescription
-        console.log('Save prescription:', data);
-        closeModal();
-    };
+    useEffect(() => { fetchRecords(); }, [fetchRecords]);
 
-    // Get unique doctors for filter
-    const doctors = ['all', ...new Set(mockPrescriptions.map(rx => rx.doctorName))];
+    // Flatten to rows: only IN_PROGRESS treatments from IN_PROGRESS records
+    const rows = dentalRecords.flatMap((record) =>
+        (record.treatments || [])
+            .filter((t) => t.status === 'IN_PROGRESS')
+            .map((t) => ({ ...t, _record: record }))
+    );
+
+    // Apply search / date filter
+    const filtered = rows.filter((row) => {
+        const q = searchTerm.toLowerCase();
+        const matchSearch = !q ||
+            row._record?.full_name?.toLowerCase().includes(q) ||
+            row._record?.phone?.includes(q) ||
+            row._record?.record_name?.toLowerCase().includes(q) ||
+            row.tooth_position?.toLowerCase().includes(q) ||
+            row.note?.toLowerCase().includes(q);
+
+        const matchDate = !filterDate ||
+            (row.performed_date && new Date(row.performed_date).toISOString().startsWith(filterDate)) ||
+            (row.planned_date && new Date(row.planned_date).toISOString().startsWith(filterDate));
+
+        return matchSearch && matchDate;
+    });
 
     // Stats
-    const stats = {
-        total: mockPrescriptions.length,
-        dispensed: mockPrescriptions.filter(rx => rx.status === 'dispensed').length,
-        pending: mockPrescriptions.filter(rx => rx.status === 'pending').length,
-    };
+    const totalMeds = filtered.reduce((acc, t) => acc + (t.medicine_usage || []).length, 0);
+    const dispensedMeds = filtered.reduce((acc, t) => acc + (t.medicine_usage || []).filter((m) => m.dispensed).length, 0);
+    const pendingMeds = totalMeds - dispensedMeds;
 
     return (
         <div>
@@ -155,15 +268,8 @@ const AssistantPrescriptions = () => {
             <div className="mb-8 flex items-center justify-between">
                 <div>
                     <h1 className="text-3xl font-bold text-gray-900">Quản Lý Đơn Thuốc</h1>
-                    <p className="text-gray-600 mt-1">Kê đơn và cấp phát thuốc cho bệnh nhân</p>
+                    <p className="text-gray-600 mt-1">Kê đơn và cấp phát thuốc cho bệnh nhân đang điều trị</p>
                 </div>
-                <button
-                    onClick={handleCreateClick}
-                    className="flex items-center gap-2 px-5 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors shadow-lg shadow-blue-600/25 font-medium"
-                >
-                    <Plus size={20} />
-                    Kê đơn mới
-                </button>
             </div>
 
             {/* Stats */}
@@ -171,59 +277,50 @@ const AssistantPrescriptions = () => {
                 <Card>
                     <div className="flex items-center justify-between">
                         <div>
-                            <p className="text-sm text-gray-600">Tổng đơn thuốc</p>
-                            <p className="text-3xl font-bold text-blue-600 mt-1">{stats.total}</p>
+                            <p className="text-sm text-gray-600">Phiếu đang điều trị</p>
+                            <p className="text-3xl font-bold text-blue-600 mt-1">{filtered.length}</p>
                         </div>
-                        <div className="p-3 bg-blue-100 rounded-full">
-                            <Pill size={24} className="text-blue-600" />
-                        </div>
+                        <div className="p-3 bg-blue-100 rounded-full"><Pill size={24} className="text-blue-600" /></div>
                     </div>
                 </Card>
                 <Card>
                     <div className="flex items-center justify-between">
                         <div>
-                            <p className="text-sm text-gray-600">Đã cấp thuốc</p>
-                            <p className="text-3xl font-bold text-green-600 mt-1">{stats.dispensed}</p>
+                            <p className="text-sm text-gray-600">Thuốc đã cấp phát</p>
+                            <p className="text-3xl font-bold text-green-600 mt-1">{dispensedMeds}</p>
                         </div>
-                        <div className="p-3 bg-green-100 rounded-full">
-                            <CheckCircle size={24} className="text-green-600" />
-                        </div>
+                        <div className="p-3 bg-green-100 rounded-full"><CheckCircle size={24} className="text-green-600" /></div>
                     </div>
                 </Card>
                 <Card>
                     <div className="flex items-center justify-between">
                         <div>
-                            <p className="text-sm text-gray-600">Chưa cấp thuốc</p>
-                            <p className="text-3xl font-bold text-amber-600 mt-1">{stats.pending}</p>
+                            <p className="text-sm text-gray-600">Thuốc chưa cấp phát</p>
+                            <p className="text-3xl font-bold text-amber-600 mt-1">{pendingMeds}</p>
                         </div>
-                        <div className="p-3 bg-amber-100 rounded-full">
-                            <Clock size={24} className="text-amber-600" />
-                        </div>
+                        <div className="p-3 bg-amber-100 rounded-full"><Clock size={24} className="text-amber-600" /></div>
                     </div>
                 </Card>
             </div>
 
             {/* Filters */}
             <Card className="mb-6">
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    {/* Search */}
-                    <div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="md:col-span-2">
                         <label className="block text-sm font-medium text-gray-700 mb-2">Tìm kiếm</label>
                         <div className="relative">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
                             <input
                                 type="text"
-                                placeholder="Tên, SĐT, chẩn đoán..."
+                                placeholder="Tên bệnh nhân, SĐT, tên hồ sơ, vị trí răng..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                             />
                         </div>
                     </div>
-
-                    {/* Date Filter */}
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Ngày kê đơn</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Ngày thực hiện</label>
                         <input
                             type="date"
                             value={filterDate}
@@ -231,80 +328,70 @@ const AssistantPrescriptions = () => {
                             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
                         />
                     </div>
-
-                    {/* Status Filter */}
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Trạng thái</label>
-                        <select
-                            value={filterStatus}
-                            onChange={(e) => setFilterStatus(e.target.value)}
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                        >
-                            <option value="all">Tất cả</option>
-                            <option value="dispensed">Đã cấp thuốc</option>
-                            <option value="pending">Chưa cấp thuốc</option>
-                        </select>
-                    </div>
-
-                    {/* Doctor Filter */}
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Bác sĩ</label>
-                        <select
-                            value={filterDoctor}
-                            onChange={(e) => setFilterDoctor(e.target.value)}
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                        >
-                            <option value="all">Tất cả</option>
-                            {doctors.filter(d => d !== 'all').map(doctor => (
-                                <option key={doctor} value={doctor}>{doctor}</option>
-                            ))}
-                        </select>
-                    </div>
                 </div>
             </Card>
 
-            {/* Prescriptions Table */}
+            {/* Error */}
+            {error && (
+                <div className="bg-red-50 text-red-600 p-4 rounded-xl border border-red-100 text-[13px] mb-4">{error}</div>
+            )}
+
+            {/* Table */}
             <Card>
-                {filteredPrescriptions.length > 0 ? (
+                {isLoading ? (
+                    <div className="space-y-3 p-5 animate-pulse">
+                        <div className="h-10 bg-gray-100 rounded-xl" />
+                        <div className="h-16 bg-gray-50 rounded-xl" />
+                        <div className="h-16 bg-gray-50 rounded-xl" />
+                    </div>
+                ) : filtered.length > 0 ? (
                     <div className="overflow-x-auto">
                         <table className="w-full">
                             <thead>
                                 <tr className="border-b border-gray-100">
                                     <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Bệnh nhân</th>
-                                    <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Chẩn đoán</th>
-                                    <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Bác sĩ</th>
-                                    <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Ngày</th>
+                                    <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Hồ sơ / Phiếu</th>
+                                    <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Ngày thực hiện</th>
                                     <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Số thuốc</th>
                                     <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Trạng thái</th>
                                     <th className="text-center py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Thao tác</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-50">
-                                {filteredPrescriptions.map((rx) => {
-                                    const statusInfo = getStatusInfo(rx.status);
+                                {filtered.map((row) => {
+                                    const statusInfo = getStatusInfo(row.status);
                                     const StatusIcon = statusInfo.icon;
+                                    const meds = row.medicine_usage || [];
+                                    const dispensed = meds.filter((m) => m.dispensed).length;
 
                                     return (
-                                        <tr key={rx.id} className="hover:bg-gray-50/50 transition-colors">
+                                        <tr key={row._id} className="hover:bg-gray-50/50 transition-colors">
                                             <td className="py-3.5 px-4">
-                                                <div>
-                                                    <p className="font-semibold text-gray-900 text-sm">{rx.patientName}</p>
-                                                    <p className="text-xs text-gray-500">{rx.patientPhone}</p>
-                                                </div>
+                                                <p className="font-semibold text-gray-900 text-sm">{row._record?.full_name || '—'}</p>
+                                                <p className="text-xs text-gray-500">{row._record?.phone || ''}</p>
                                             </td>
                                             <td className="py-3.5 px-4">
-                                                <p className="text-sm text-gray-700 max-w-[200px] truncate">{rx.diagnosis}</p>
+                                                <p className="text-sm font-medium text-gray-700 max-w-[200px] truncate">{row._record?.record_name || '—'}</p>
+                                                <p className="text-xs text-gray-400 truncate max-w-[200px]">{row.tooth_position || row.note || 'Phiếu điều trị'}</p>
                                             </td>
                                             <td className="py-3.5 px-4">
-                                                <p className="text-sm text-gray-600">{rx.doctorName}</p>
+                                                <p className="text-sm text-gray-600">
+                                                    {row.performed_date
+                                                        ? new Date(row.performed_date).toLocaleDateString('vi-VN')
+                                                        : row.planned_date
+                                                            ? new Date(row.planned_date).toLocaleDateString('vi-VN')
+                                                            : '—'}
+                                                </p>
                                             </td>
                                             <td className="py-3.5 px-4">
-                                                <p className="text-sm text-gray-600">{rx.date}</p>
-                                            </td>
-                                            <td className="py-3.5 px-4">
-                                                <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-blue-50 text-blue-600 font-bold text-sm">
-                                                    {rx.items.length}
-                                                </span>
+                                                {meds.length > 0 ? (
+                                                    <span className="inline-flex items-center justify-center gap-1.5">
+                                                        <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-blue-50 text-blue-600 font-bold text-sm">{meds.length}</span>
+                                                        <span className="text-xs text-gray-400">{dispensed}/{meds.length} cấp</span>
+                                                    </span>
+                                                ) : (
+                                                    <span className="text-xs text-amber-500 italic">Chưa kê</span>
+                                                )}
                                             </td>
                                             <td className="py-3.5 px-4">
                                                 <Badge variant={statusInfo.variant}>
@@ -314,25 +401,21 @@ const AssistantPrescriptions = () => {
                                             </td>
                                             <td className="py-3.5 px-4">
                                                 <div className="flex justify-center gap-1">
+                                                    {meds.length > 0 && (
+                                                        <button
+                                                            onClick={() => setViewTreatment(row)}
+                                                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                                            title="Xem chi tiết đơn thuốc"
+                                                        >
+                                                            <Eye size={18} />
+                                                        </button>
+                                                    )}
                                                     <button
-                                                        onClick={() => handleViewClick(rx)}
-                                                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                                                        title="Xem chi tiết"
-                                                    >
-                                                        <Eye size={18} />
-                                                    </button>
-                                                    <button
-                                                        onClick={() => handleEditClick(rx)}
+                                                        onClick={() => setEditTreatment(row)}
                                                         className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                                                        title="Chỉnh sửa"
+                                                        title="Kê / Chỉnh sửa đơn thuốc"
                                                     >
                                                         <Edit size={18} />
-                                                    </button>
-                                                    <button
-                                                        className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors"
-                                                        title="In đơn thuốc"
-                                                    >
-                                                        <Printer size={18} />
                                                     </button>
                                                 </div>
                                             </td>
@@ -345,18 +428,22 @@ const AssistantPrescriptions = () => {
                 ) : (
                     <div className="text-center py-12 text-gray-500">
                         <Pill size={48} className="mx-auto text-gray-300 mb-4" />
-                        <p>Không tìm thấy đơn thuốc nào</p>
+                        <p>Không có phiếu điều trị nào đang thực hiện</p>
                     </div>
                 )}
             </Card>
 
-            {/* Modal */}
-            <PrescriptionModal
-                prescription={selectedPrescription}
-                isOpen={showModal}
-                mode={modalMode}
-                onClose={closeModal}
-                onSave={handleSave}
+            {/* Modals */}
+            <ViewMedicineModal
+                treatment={viewTreatment}
+                isOpen={!!viewTreatment}
+                onClose={() => setViewTreatment(null)}
+            />
+            <EditMedicineModal
+                treatment={editTreatment}
+                isOpen={!!editTreatment}
+                onClose={() => setEditTreatment(null)}
+                onSave={fetchRecords}
             />
         </div>
     );
