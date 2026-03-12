@@ -14,13 +14,13 @@ const serviceSchema = new Schema(
         },
         price: {
             type: Number,
-            required: [true, "Service fees are mandatory."],
-            min: [0, "Price must be a positive number"]
+            min: [0, "Price must be a positive number"],
+            default: 0
         },
         duration: {
-            type: Number, // Thường tính bằng phút
-            required: [true, "Duration of service is required."],
-            min: [0, "Duration must be a positive number"]
+            type: Number, 
+            min: [0, "Duration must be a positive number"],
+            default: 0
         },
         icon: {
             type: String, // Lưu URL hoặc tên class icon
@@ -43,6 +43,36 @@ const serviceSchema = new Schema(
                     type: Number,
                     default: 1,
                     min: [1, "Minimum quantity is 1"]
+                },
+                note: {
+                    type: String,
+                    trim: true
+                }
+            }
+        ],
+
+        // dịch vụ con
+        sub_services: [
+            {
+                sub_service_name: {
+                    type: String,
+                    trim: true
+                },
+                description: {
+                    type: String,
+                    trim: true
+                },
+                price: {
+                    type: Number,
+                    min: [0, "Price must be a positive number"]
+                },
+                duration: {
+                    type: Number, // Thường tính bằng phút
+                    min: [0, "Duration must be a positive number"]
+                },
+                icon: {
+                    type: String, 
+                    default: ""
                 },
                 note: {
                     type: String,
