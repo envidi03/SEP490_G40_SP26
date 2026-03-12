@@ -1,15 +1,50 @@
 import { StyleSheet, View, TouchableOpacity } from 'react-native';
-import { Image } from 'expo-image';
 import { ThemedText } from '@/src/components/ui/themed-text';
+import { format, parseISO } from 'date-fns';
+import { vi } from 'date-fns/locale';
 
-export function UpcomingAppointmentCard({ appointments, isLoading }: { appointments: any[], isLoading: boolean }) {
+type Appointment = {
+    _id: string;
+    full_name: string;
+    appointment_date: string;
+    appointment_time: string;
+    status: string;
+    book_service?: { service_name?: string; service_id?: any }[];
+    phone?: string;
+    doctor_name?: string;
+    doctor_avatar?: string;
+};
+
+type Props = {
+    appointments: Appointment[];
+    isLoading: boolean;
+};
+
+// Map status code to Vietnamese label and color
+const getStatusInfo = (status: string) => {
+    switch (status?.toUpperCase()) {
+        case 'CONFIRMED':
+            return { label: 'Đã xác nhận', color: '#059669', bg: '#ECFDF5' };
+        case 'PENDING':
+            return { label: 'Chờ xác nhận', color: '#D97706', bg: '#FFFBEB' };
+        case 'COMPLETED':
+            return { label: 'Hoàn thành', color: '#3B82F6', bg: '#EFF6FF' };
+        case 'CANCELLED':
+            return { label: 'Đã hủy', color: '#EF4444', bg: '#FEF2F2' };
+        default:
+            return { label: status || 'Không rõ', color: '#6B7280', bg: '#F9FAFB' };
+    }
+};
+
+export function UpcomingAppointmentCard({ appointments, isLoading }: Props) {
     if (isLoading) {
         return (
             <View style={styles.container}>
                 <View style={styles.header}>
                     <ThemedText style={styles.sectionTitle}>Lịch hẹn sắp tới</ThemedText>
                 </View>
-                <View style={[styles.card, { height: 160, backgroundColor: '#F9FAFB' }]} />
+                {/* Skeleton loader */}
+                <View style={[styles.card, styles.skeletonCard]} />
             </View>
         );
     }
@@ -20,20 +55,35 @@ export function UpcomingAppointmentCard({ appointments, isLoading }: { appointme
                 <View style={styles.header}>
                     <ThemedText style={styles.sectionTitle}>Lịch hẹn sắp tới</ThemedText>
                 </View>
-                <View style={[styles.card, { alignItems: 'center', justifyContent: 'center', paddingVertical: 40 }]}>
-                    <ThemedText style={{ color: '#6B7280' }}>Bạn chưa có lịch hẹn nào sắp tới. Hãy đăng nhập để xem lịch hẹn của bạn.</ThemedText>
+                <View style={styles.emptyCard}>
+                    <ThemedText style={styles.emptyTitle}>Chưa có lịch hẹn</ThemedText>
+                    <ThemedText style={styles.emptySubtitle}>Đặt lịch ngay để chăm sóc sức khỏe của bạn</ThemedText>
                 </View>
             </View>
         );
     }
 
-    // Lấy cuộc hẹn gần nhất
+    // Take the first (nearest) appointment
     const appointment = appointments[0];
-    // Tuỳ vào backend trả dữ liệu gì, đây là giả lập parsing cơ bản
-    const doctorName = appointment.doctor?.full_name || 'BS. Trần Văn Bình';
-    const statusText = appointment.status === 'CONFIRMED' ? 'Đã xác nhận' : 'Chờ xác nhận';
-    const appointmentDate = appointment.appointment_date || 'Thứ 2, 10 Thg 11';
-    const appointmentTime = appointment.appointment_time || '09:00 - 10:00';
+    const statusInfo = getStatusInfo(appointment.status);
+
+    // Format date
+    let displayDate = appointment.appointment_date;
+    try {
+        const parsedDate = typeof appointment.appointment_date === 'string'
+            ? parseISO(appointment.appointment_date)
+            : new Date(appointment.appointment_date);
+        displayDate = format(parsedDate, 'EEEE, dd/MM/yyyy', { locale: vi });
+    } catch (e) {
+        console.log(e);
+    }
+
+    // Get services list
+    const serviceNames = appointment.book_service
+        ?.map(s => s.service_name)
+        .filter(Boolean);
+
+    const doctorName = appointment.doctor_name || 'Chờ phân công';
 
     return (
         <View style={styles.container}>
@@ -41,39 +91,49 @@ export function UpcomingAppointmentCard({ appointments, isLoading }: { appointme
                 <ThemedText style={styles.sectionTitle}>Lịch hẹn sắp tới</ThemedText>
             </View>
 
-            <TouchableOpacity style={styles.card} activeOpacity={0.8}>
-                {/* Top: Doctor Info */}
-                <View style={styles.doctorSection}>
-                    <Image
-                        source={{ uri: 'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?auto=format&fit=crop&w=200&q=80' }}
-                        style={styles.avatar}
-                    />
-                    <View style={styles.doctorInfo}>
-                        <ThemedText style={styles.doctorName}>{doctorName}</ThemedText>
-                        <ThemedText style={styles.specialty}>Chuyên khoa Răng Hàm Mặt</ThemedText>
+            <TouchableOpacity style={styles.card} activeOpacity={0.85}>
+
+                {/* Top Row: Patient name + Status Badge */}
+                <View style={styles.topRow}>
+                    <View style={styles.nameBlock}>
+                        <ThemedText style={styles.nameLabel}>Bác sĩ</ThemedText>
+                        <ThemedText style={styles.nameValue} numberOfLines={1}>
+                            {doctorName}
+                        </ThemedText>
                     </View>
-                    <View style={styles.statusBadge}>
-                        <ThemedText style={styles.statusText}>{statusText}</ThemedText>
+                    <View style={[styles.statusBadge, { backgroundColor: statusInfo.bg }]}>
+                        <ThemedText style={[styles.statusText, { color: statusInfo.color }]}>
+                            {statusInfo.label}
+                        </ThemedText>
                     </View>
+                </View>
+
+                {/* Service */}
+                <View style={styles.serviceRow}>
+                    <ThemedText style={styles.serviceLabel}>Dịch vụ:</ThemedText>
+                    <ThemedText style={styles.serviceValue} numberOfLines={2}>{serviceNames}</ThemedText>
                 </View>
 
                 {/* Divider */}
                 <View style={styles.divider} />
 
-                {/* Bottom: Date & Time */}
+                {/* Date & Time */}
                 <View style={styles.timeSection}>
                     <View style={styles.timeBlock}>
-                        <ThemedText style={styles.timeLabel}>NGÀY</ThemedText>
-                        <ThemedText style={styles.timeValue}>{appointmentDate}</ThemedText>
+                        <ThemedText style={styles.timeLabel}>NGÀY KHÁM</ThemedText>
+                        <ThemedText style={[styles.timeValue, styles.dateValue]}>
+                            {displayDate}
+                        </ThemedText>
                     </View>
 
                     <View style={styles.verticalDivider} />
 
-                    <View style={styles.timeBlock}>
-                        <ThemedText style={styles.timeLabel}>GIỜ</ThemedText>
-                        <ThemedText style={styles.timeValue}>{appointmentTime}</ThemedText>
+                    <View style={[styles.timeBlock, { alignItems: 'flex-end' }]}>
+                        <ThemedText style={styles.timeLabel}>GIỜ KHÁM</ThemedText>
+                        <ThemedText style={styles.timeValue}>{appointment.appointment_time}</ThemedText>
                     </View>
                 </View>
+
             </TouchableOpacity>
         </View>
     );
@@ -98,64 +158,103 @@ const styles = StyleSheet.create({
         padding: 24,
         borderWidth: 1,
         borderColor: '#F3F4F6',
-        // Subtle shadow for depth
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.03,
+        shadowOpacity: 0.05,
         shadowRadius: 12,
-        elevation: 2,
+        elevation: 3,
     },
-    doctorSection: {
-        flexDirection: 'row',
+    skeletonCard: {
+        height: 190,
+        backgroundColor: '#F9FAFB',
+    },
+    emptyCard: {
+        backgroundColor: '#F9FAFB',
+        borderRadius: 24,
+        padding: 32,
         alignItems: 'center',
+        borderWidth: 1,
+        borderColor: '#E5E7EB',
+        borderStyle: 'dashed',
     },
-    avatar: {
-        width: 56,
-        height: 56,
-        borderRadius: 28,
-        backgroundColor: '#F3F4F6',
+    emptyTitle: {
+        fontSize: 16,
+        fontWeight: '700',
+        color: '#111827',
+        marginBottom: 6,
     },
-    doctorInfo: {
+    emptySubtitle: {
+        fontSize: 14,
+        color: '#9CA3AF',
+        textAlign: 'center',
+    },
+    topRow: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        justifyContent: 'space-between',
+        marginBottom: 12,
+    },
+    nameBlock: {
         flex: 1,
-        marginLeft: 16,
+        marginRight: 12,
     },
-    doctorName: {
+    nameLabel: {
+        fontSize: 11,
+        fontWeight: '600',
+        color: '#9CA3AF',
+        letterSpacing: 1,
+        textTransform: 'uppercase',
+        marginBottom: 4,
+    },
+    nameValue: {
         fontSize: 18,
         fontWeight: '700',
         color: '#111827',
-        marginBottom: 4,
-    },
-    specialty: {
-        fontSize: 14,
-        color: '#6B7280',
-        fontWeight: '500',
     },
     statusBadge: {
-        backgroundColor: '#ECFDF5',
         paddingHorizontal: 10,
         paddingVertical: 6,
         borderRadius: 8,
     },
     statusText: {
-        color: '#059669',
         fontSize: 12,
         fontWeight: '600',
+    },
+    serviceRow: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        marginBottom: 20,
+    },
+    serviceLabel: {
+        fontSize: 14,
+        color: '#6B7280',
+        marginRight: 6,
+        paddingTop: 1,
+    },
+    serviceValue: {
+        flex: 1,
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#374151',
+    },
+    pendingText: {
+        color: '#9CA3AF',
+        fontStyle: 'italic',
     },
     divider: {
         height: 1,
         backgroundColor: '#F3F4F6',
-        marginVertical: 20,
+        marginBottom: 20,
     },
     timeSection: {
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'space-between',
     },
     timeBlock: {
         flex: 1,
     },
     timeLabel: {
-        fontSize: 12,
+        fontSize: 11,
         fontWeight: '600',
         color: '#9CA3AF',
         letterSpacing: 1,
@@ -165,6 +264,10 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: '700',
         color: '#111827',
+    },
+    dateValue: {
+        fontSize: 14,
+        textTransform: 'capitalize',
     },
     verticalDivider: {
         width: 1,

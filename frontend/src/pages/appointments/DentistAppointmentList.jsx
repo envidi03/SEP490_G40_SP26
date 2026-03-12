@@ -228,7 +228,7 @@ const DentistAppointmentList = () => {
         isOpen={isCreateRecordModalOpen}
         onClose={() => setIsCreateRecordModalOpen(false)}
         onSuccess={handleCreateRecordSuccess}
-        patientId={patientData._id || patientData.id}
+        patientId={appointmentForRecord?.patient_id}
         patientName={patientData.full_name || appointmentForRecord?.full_name || ''}
         patientPhone={patientData.phone || appointmentForRecord?.phone || ''}
         patientEmail={patientData.email || appointmentForRecord?.email || ''}

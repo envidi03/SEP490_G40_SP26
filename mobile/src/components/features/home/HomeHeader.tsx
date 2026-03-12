@@ -1,16 +1,9 @@
-import { useState } from 'react';
-import { StyleSheet, View, TouchableOpacity, Modal, TouchableWithoutFeedback } from 'react-native';
+import { StyleSheet, View, TouchableOpacity } from 'react-native';
 import { router } from 'expo-router';
 import { Image } from 'expo-image';
 import { ThemedText } from '@/src/components/ui/themed-text';
-import * as SecureStore from 'expo-secure-store';
-import { useQueryClient } from '@tanstack/react-query';
-import { useLogout } from '@/src/hooks/useAuth';
 
 export function HomeHeader({ profile, isLoading }: { profile: any, isLoading: boolean }) {
-    const [isDropdownVisible, setIsDropdownVisible] = useState(false);
-    const queryClient = useQueryClient();
-    const logoutMutation = useLogout();
 
     if (isLoading) {
         return (
@@ -33,32 +26,9 @@ export function HomeHeader({ profile, isLoading }: { profile: any, isLoading: bo
 
     const handleAvatarPress = () => {
         if (isLoggedIn) {
-            setIsDropdownVisible(true);
+            router.push('/profile' as any);
         } else {
             router.push('/(auth)/login');
-        }
-    };
-
-    const handleLogout = async () => {
-        setIsDropdownVisible(false);
-        try {
-            const refreshToken = await SecureStore.getItemAsync('refresh_token');
-            if (refreshToken) {
-                await logoutMutation.mutateAsync(refreshToken);
-            }
-        } catch (error) {
-            console.error('Logout API Error:', error);
-            // Vẫn tiếp tục xoá dữ liệu local cho dù gọi API lỗi để đảm bảo người dùng được đăng xuất
-        } finally {
-            await SecureStore.deleteItemAsync('access_token');
-            await SecureStore.deleteItemAsync('refresh_token');
-
-            // Đè dữ liệu hiện tại bằng null để UI cập nhật trở về trạng thái chưa đăng nhập ngay lập tức
-            queryClient.setQueryData(['profile'], null);
-            queryClient.setQueryData(['appointments', 'patient'], null);
-
-            // Xoá sạch bộ đệm toàn bộ ứng dụng
-            queryClient.clear();
         }
     };
 
@@ -92,42 +62,6 @@ export function HomeHeader({ profile, isLoading }: { profile: any, isLoading: bo
                 )}
                 {isLoggedIn && <View style={styles.notificationBadge} />}
             </TouchableOpacity>
-
-            {/* Dropdown Menu Modal */}
-            <Modal
-                visible={isDropdownVisible}
-                transparent={true}
-                animationType="fade"
-                onRequestClose={() => setIsDropdownVisible(false)}
-            >
-                <TouchableWithoutFeedback onPress={() => setIsDropdownVisible(false)}>
-                    <View style={styles.modalOverlay}>
-                        <TouchableWithoutFeedback>
-                            <View style={styles.dropdownMenu}>
-                                <TouchableOpacity
-                                    style={styles.dropdownItem}
-                                    onPress={() => {
-                                        setIsDropdownVisible(false);
-                                        // TODO: Add route to profile tab once created
-                                        // router.push('/(tabs)/profile'); 
-                                    }}
-                                >
-                                    <ThemedText style={styles.dropdownItemText}>Hồ sơ cá nhân</ThemedText>
-                                </TouchableOpacity>
-
-                                <View style={styles.divider} />
-
-                                <TouchableOpacity
-                                    style={styles.dropdownItem}
-                                    onPress={handleLogout}
-                                >
-                                    <ThemedText style={[styles.dropdownItemText, { color: '#EF4444' }]}>Đăng xuất</ThemedText>
-                                </TouchableOpacity>
-                            </View>
-                        </TouchableWithoutFeedback>
-                    </View>
-                </TouchableWithoutFeedback>
-            </Modal>
         </View>
     );
 }
@@ -200,36 +134,4 @@ const styles = StyleSheet.create({
         borderRadius: 26,
         backgroundColor: '#E5E7EB',
     },
-    modalOverlay: {
-        flex: 1,
-        backgroundColor: 'rgba(0, 0, 0, 0.1)',
-        justifyContent: 'flex-start',
-        alignItems: 'flex-end',
-        paddingTop: 80, // Adjust based on header height
-        paddingRight: 24,
-    },
-    dropdownMenu: {
-        backgroundColor: '#FFFFFF',
-        borderRadius: 16,
-        width: 180,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 10 },
-        shadowOpacity: 0.1,
-        shadowRadius: 15,
-        elevation: 5,
-        overflow: 'hidden',
-    },
-    dropdownItem: {
-        paddingVertical: 14,
-        paddingHorizontal: 20,
-    },
-    dropdownItemText: {
-        fontSize: 15,
-        fontWeight: '600',
-        color: '#111827',
-    },
-    divider: {
-        height: 1,
-        backgroundColor: '#F3F4F6',
-    }
 });
