@@ -29,8 +29,8 @@ export function BookingStep3_Confirm({ bookingData, profile }: Props) {
             // Mapping the payload to match what the backend expects
             const payload = {
                 full_name: profile.full_name || 'Khách hàng',
-                phone: profile.phone_number || '',
-                email: profile.email || '',
+                phone: profile?.account_id?.phone_number || '',
+                email: profile?.account_id?.email || '',
                 appointment_date: bookingData.selectedDate,
                 appointment_time: bookingData.selectedTime,
                 book_service: bookingData.selectedServices.map(s => ({
@@ -70,7 +70,7 @@ export function BookingStep3_Confirm({ bookingData, profile }: Props) {
 
                 <View style={styles.row}>
                     <ThemedText style={styles.label}>Số điện thoại:</ThemedText>
-                    <ThemedText style={styles.value}>{profile?.phone_number || 'Chưa cập nhật'}</ThemedText>
+                    <ThemedText style={styles.value}>{profile?.account_id?.phone_number || 'Chưa cập nhật'}</ThemedText>
                 </View>
             </View>
 

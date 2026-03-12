@@ -1,8 +1,8 @@
-import { useState, useMemo } from 'react';
+import { useMemo, useEffect } from 'react';
 import { StyleSheet, View, TouchableOpacity, ScrollView } from 'react-native';
 import { ThemedText } from '@/src/components/ui/themed-text';
 import { BookingState } from '@/src/screens/booking/BookingScreen';
-import { addDays, format, isSameDay } from 'date-fns';
+import { addDays, format } from 'date-fns';
 import { vi } from 'date-fns/locale';
 
 type Props = {
@@ -44,13 +44,16 @@ export function BookingStep2_DateTime({ bookingData, setBookingData }: Props) {
     const dates = useMemo(() => generateDays(), []);
     const timeSlots = useMemo(() => generateTimeSlots(), []);
 
-    // If no date is selected, auto-select the first one
-    if (!bookingData.selectedDate && dates.length > 0) {
-        setBookingData(prev => ({
-            ...prev,
-            selectedDate: format(dates[0], 'yyyy-MM-dd')
-        }));
-    }
+    // Auto-select today as the default date when the component mounts (if no date selected yet)
+    useEffect(() => {
+        if (!bookingData.selectedDate && dates.length > 0) {
+            setBookingData(prev => ({
+                ...prev,
+                selectedDate: format(dates[0], 'yyyy-MM-dd')
+            }));
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []); // Empty deps: run once on mount
 
     const handleSelectDate = (date: Date) => {
         setBookingData(prev => ({
