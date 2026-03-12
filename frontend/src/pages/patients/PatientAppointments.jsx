@@ -305,6 +305,11 @@ const PatientAppointments = () => {
                                 onStatusChange={setStatusFilter}
                             />
 
+                            {/* Stats Component */}
+                            {filteredAppointments.length > 0 && (
+                                <AppointmentStats appointments={appointments} />
+                            )}
+
                             {/* Appointments List */}
                             <div className="space-y-4">
                                 {filteredAppointments.length === 0 ? (
@@ -336,10 +341,6 @@ const PatientAppointments = () => {
                                 )}
                             </div>
 
-                            {/* Stats Component */}
-                            {filteredAppointments.length > 0 && (
-                                <AppointmentStats appointments={appointments} />
-                            )}
                         </>
                     )}
                 </div>

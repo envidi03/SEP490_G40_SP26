@@ -16,7 +16,7 @@ const AppointmentStats = ({ appointments }) => {
     };
 
     return (
-        <div className="mt-6 bg-white rounded-2xl shadow-lg p-6">
+        <div className="mt-6 bg-white rounded-2xl shadow-lg p-6 mb-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
                 {/* Total */}
                 <div>

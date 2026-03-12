@@ -63,9 +63,6 @@ const AppointmentDetailModal = ({
                     <span className={`px-4 py-2 rounded-full text-sm font-medium border ${getStatusColor(appointment.status)}`}>
                         {getStatusText(appointment.status)}
                     </span>
-                    <span className="text-sm text-gray-500">
-                        Mã: {appointment.code}
-                    </span>
                 </div>
 
                 {/* Main Info */}
