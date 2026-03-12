@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import PublicLayout from '../../components/layout/PublicLayout';
 import Toast from '../../components/ui/Toast';
@@ -24,6 +24,7 @@ import BookingConfirmation from './components/BookingConfirmation';
 const BookAppointment = () => {
     const { user } = useAuth();
     const navigate = useNavigate();
+    const location = useLocation();
 
     // Form state
     const [currentStep, setCurrentStep] = useState(1);
@@ -35,6 +36,20 @@ const BookAppointment = () => {
         time: '',
         reason: ''
     });
+
+    // Effect: Kiểm tra nếu có service truyền qua từ trang ServiceDetail
+    useEffect(() => {
+        if (location.state?.service) {
+            const { service } = location.state;
+            setBookingData(prev => ({
+                ...prev,
+                service_id: service._id,
+                service_name: service.service_name,
+                service_price: service.price
+            }));
+            setCurrentStep(2);
+        }
+    }, [location.state]);
 
     // Toast and UI states
     const [toast, setToast] = useState({ show: false, type: 'success', message: '' });
