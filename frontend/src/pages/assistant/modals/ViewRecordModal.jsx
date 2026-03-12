@@ -18,7 +18,17 @@ const ViewRecordModal = ({ record, isOpen, onClose }) => {
         record.treatments.forEach(t => {
             if (t.medicine_usage && t.medicine_usage.length > 0) {
                 t.medicine_usage.forEach(m => {
-                    meds.push(m.note ? m.note : JSON.stringify(m)); // Fallback if schema varies
+                    // Format readable: ưu tiên note, sau đó tên thuốc + liều
+                    if (m.note) {
+                        meds.push(m.note);
+                    } else {
+                        const name = m.medicine_id?.medicine_name || m.medicine_name || '';
+                        const dosage = m.medicine_id?.dosage || m.dosage || '';
+                        const qty = m.quantity ? `x${m.quantity}` : '';
+                        const usage = m.usage || m.dosage_form || '';
+                        const parts = [name, dosage, qty, usage].filter(Boolean);
+                        if (parts.length > 0) meds.push(`- ${parts.join(' ')}`);
+                    }
                 });
             }
         });
