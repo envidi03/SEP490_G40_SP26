@@ -33,7 +33,7 @@ const SkeletonRow = () => (
         <td className="px-4 py-3"><div className="h-4 bg-gray-200 rounded w-3/4" /></td>
         <td className="px-4 py-3"><div className="h-4 bg-gray-200 rounded w-1/2" /></td>
         <td className="px-4 py-3"><div className="h-4 bg-gray-200 rounded w-1/4" /></td>
-        <td className="px-4 py-3"><div className="h-4 bg-gray-200 rounded w-12 mx-auto" /></td>
+        <td className="px-4 py-3"><div className="h-4 bg-gray-200 rounded w-20 mx-auto" /></td>
     </tr>
 );
 
@@ -42,7 +42,6 @@ const ServicesPricing = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [search, setSearch] = useState('');
-    const [statusFilter, setStatusFilter] = useState('AVAILABLE');
 
     // Fetch toàn bộ services từ API (không phân trang, lấy limit lớn)
     useEffect(() => {
@@ -53,12 +52,13 @@ const ServicesPricing = () => {
                 const response = await serviceService.getAllServices({
                     limit: 100,
                     page: 1,
-                    status: statusFilter || undefined,
+                    filter: 'AVAILABLE',
                     search: search || undefined,
                 });
                 // response từ apiClient đã unwrap .data (interceptor trả response.data)
                 // shape: { status, data: [...], pagination: {...} }
-                setServices(response?.data || []);
+                const availableServices = (response?.data || []).filter(s => s.status === 'AVAILABLE');
+                setServices(availableServices);
             } catch (err) {
                 setError('Không thể tải danh sách dịch vụ. Vui lòng thử lại sau.');
                 console.error('Fetch services error:', err);
@@ -68,7 +68,7 @@ const ServicesPricing = () => {
         };
 
         fetchServices();
-    }, [search, statusFilter]);
+    }, [search]);
 
     // Lọc trên client theo search nếu cần
     const filteredServices = services.filter((s) =>
@@ -104,22 +104,6 @@ const ServicesPricing = () => {
                                 className="w-full px-4 py-2.5 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white text-gray-900"
                             />
                         </div>
-
-                        {/* Status Filter */}
-                        <div className="flex items-center gap-2">
-                            <label className="text-sm font-medium text-gray-700 whitespace-nowrap">
-                                Trạng thái:
-                            </label>
-                            <select
-                                value={statusFilter}
-                                onChange={(e) => setStatusFilter(e.target.value)}
-                                className="px-3 py-2.5 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 bg-white text-gray-900 text-sm"
-                            >
-                                <option value="">Tất cả</option>
-                                <option value="AVAILABLE">Đang cung cấp</option>
-                                <option value="UNAVAILABLE">Tạm ngưng</option>
-                            </select>
-                        </div>
                     </div>
 
                     {/* Content Grid */}
@@ -144,7 +128,6 @@ const ServicesPricing = () => {
                                                 <th className="px-4 py-2 text-left font-medium">Tên dịch vụ</th>
                                                 <th className="px-4 py-2 text-left font-medium">Giá</th>
                                                 <th className="px-4 py-2 text-left font-medium w-24">Thời gian</th>
-                                                <th className="px-4 py-2 text-left font-medium w-28">Trạng thái</th>
                                                 <th className="px-4 py-2 text-center font-medium w-20"></th>
                                             </tr>
                                         </thead>
@@ -161,11 +144,11 @@ const ServicesPricing = () => {
                                             {/* Error State */}
                                             {!loading && error && (
                                                 <tr>
-                                                    <td colSpan={5} className="px-4 py-12 text-center">
+                                                    <td colSpan={4} className="px-4 py-12 text-center">
                                                         <div className="text-red-500 mb-2 text-2xl">⚠️</div>
                                                         <p className="text-red-600 font-medium">{error}</p>
                                                         <button
-                                                            onClick={() => setStatusFilter(statusFilter)} // trigger re-fetch
+                                                            onClick={() => setSearch(search)} // trigger re-fetch
                                                             className="mt-3 text-sm text-primary-600 hover:underline"
                                                         >
                                                             Thử lại
@@ -177,7 +160,7 @@ const ServicesPricing = () => {
                                             {/* Empty State */}
                                             {!loading && !error && filteredServices.length === 0 && (
                                                 <tr>
-                                                    <td colSpan={5} className="px-4 py-12 text-center">
+                                                    <td colSpan={4} className="px-4 py-12 text-center">
                                                         <div className="text-gray-400 text-3xl mb-2">🦷</div>
                                                         <p className="text-gray-500">
                                                             {search
@@ -214,18 +197,6 @@ const ServicesPricing = () => {
                                                             {service.duration
                                                                 ? `${service.duration} phút`
                                                                 : '—'}
-                                                        </td>
-                                                        <td className="px-4 py-3">
-                                                            <span
-                                                                className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${service.status === 'AVAILABLE'
-                                                                        ? 'bg-green-100 text-green-700'
-                                                                        : 'bg-red-100 text-red-600'
-                                                                    }`}
-                                                            >
-                                                                {service.status === 'AVAILABLE'
-                                                                    ? 'Đang cung cấp'
-                                                                    : 'Tạm ngưng'}
-                                                            </span>
                                                         </td>
                                                         <td className="px-4 py-3 text-center">
                                                             <Link
@@ -269,9 +240,12 @@ const ServicesPricing = () => {
                                                 <p className="font-semibold">1900 8059</p>
                                             </div>
                                         </a>
-                                        <button className="w-full mt-4 px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-semibold">
+                                        <Link 
+                                            to="/book-appointment"
+                                            className="block w-full text-center mt-4 px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-semibold"
+                                        >
                                             Đặt lịch ngay
-                                        </button>
+                                        </Link>
                                         <button className="w-full px-6 py-3 border-2 border-primary-600 text-primary-600 rounded-lg hover:bg-primary-50 transition-colors font-semibold">
                                             Chat tư vấn
                                         </button>

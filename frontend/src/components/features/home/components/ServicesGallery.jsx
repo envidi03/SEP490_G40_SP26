@@ -16,11 +16,16 @@ const ServicesGallery = () => {
             try {
                 setLoading(true);
                 // Fetch active services without limit
-                const response = await serviceService.getAllServices({ status: 'AVAILABLE' });
+                const response = await serviceService.getAllServices({
+                    filter: 'AVAILABLE',
+                    limit: 100
+                });
                 if (!isMounted) return;
 
-                const allServices = response?.data?.data || response?.data || [];
-                setServices(allServices);
+                // response from apiClient has unwrapped .data
+                const data = response?.data || [];
+                const availableServices = data.filter(s => s.status === 'AVAILABLE');
+                setServices(availableServices);
             } catch (err) {
                 console.error("Failed to fetch services layout:", err);
                 if (isMounted) setError("Không thể tải danh sách dịch vụ. Vui lòng thử lại sau.");
