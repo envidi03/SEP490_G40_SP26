@@ -37,6 +37,7 @@ const ServiceList = () => {
     });
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
+    const [saving, setSaving] = useState(false);
     const [toast, setToast] = useState({ show: false, type: 'success', message: '' });
 
     // Modals
@@ -215,6 +216,7 @@ const ServiceList = () => {
         }
 
         try {
+            setSaving(true);
             const serviceData = {
                 ...serviceForm,
                 price: Number(serviceForm.price),
@@ -249,6 +251,8 @@ const ServiceList = () => {
                 type: 'error',
                 message: error.response?.data?.message || '❌ Có lỗi xảy ra khi lưu dịch vụ.'
             });
+        } finally {
+            setSaving(false);
         }
     };
 
@@ -334,7 +338,7 @@ const ServiceList = () => {
     // Calculate statistics
     const activeServices = services.filter(s => s.status === 'AVAILABLE').length;
     const avgPrice = services.length > 0
-        ? services.reduce((sum, s) => sum + Number(s.price || 0), 0) / services.length
+        ? services.reduce((sum, s) => sum + Number(s.calculated_min_price || s.price || 0), 0) / services.length
         : 0;
 
     return (
@@ -420,6 +424,7 @@ const ServiceList = () => {
                 categories={[]} // No categories
                 onSave={handleSaveService}
                 onClose={() => setShowServiceModal(false)}
+                loading={saving}
             />
 
             {/* Service Detail Modal */}

@@ -21,10 +21,16 @@ const subServiceSchema = new Schema(
             trim: true
         },
 
-        price: {
+        min_price: {
             type: Number,
-            min: [0, "Price must be a positive number"],
+            min: [0, "Min price must be a positive number"],
             default: 0
+        },
+
+        max_price: {
+            type: Number,
+            min: [0, "Max price must be a positive number"],
+            default: null
         },
 
         duration: {

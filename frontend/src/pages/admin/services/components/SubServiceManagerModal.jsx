@@ -61,9 +61,11 @@ const SubServiceManagerModal = ({ show, parentService, onClose }) => {
         setFormData({
             sub_service_name: sub.sub_service_name || '',
             description: sub.description || '',
-            price: sub.price || '',
+            min_price: sub.min_price || '',
+            max_price: sub.max_price || '',
             duration: sub.duration || '',
             note: sub.note || '',
+            images: sub.images || [],
             status: sub.status || 'AVAILABLE'
         });
         setShowForm(true);
@@ -75,8 +77,8 @@ const SubServiceManagerModal = ({ show, parentService, onClose }) => {
             setError('Vui lòng nhập tên dịch vụ con!');
             return;
         }
-        if (!formData.price || Number(formData.price) < 0) {
-            setError('Vui lòng nhập giá hợp lệ!');
+        if (!formData.min_price || Number(formData.min_price) < 0) {
+            setError('Vui lòng nhập giá thấp nhất hợp lệ!');
             return;
         }
 
@@ -85,7 +87,8 @@ const SubServiceManagerModal = ({ show, parentService, onClose }) => {
             setError('');
             const payload = {
                 ...formData,
-                price: Number(formData.price),
+                min_price: Number(formData.min_price),
+                max_price: formData.max_price ? Number(formData.max_price) : null,
                 duration: Number(formData.duration) || 0
             };
 
@@ -215,7 +218,9 @@ const SubServiceManagerModal = ({ show, parentService, onClose }) => {
                                                 <div className="flex items-center gap-4 mt-2">
                                                     <span className="inline-flex items-center gap-1 text-xs text-green-700 font-semibold">
                                                         <DollarSign size={12} />
-                                                        {formatCurrency(sub.price)}
+                                                        {sub.max_price && sub.max_price !== sub.min_price 
+                                                            ? `${formatCurrency(sub.min_price)} - ${formatCurrency(sub.max_price)}`
+                                                            : formatCurrency(sub.min_price)}
                                                     </span>
                                                     <span className="inline-flex items-center gap-1 text-xs text-orange-600">
                                                         <Clock size={12} />

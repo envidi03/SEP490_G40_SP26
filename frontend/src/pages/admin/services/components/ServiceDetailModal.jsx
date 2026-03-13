@@ -51,22 +51,22 @@ const ServiceDetailModal = ({ show, service, onClose, formatCurrency, getCategor
                     {/* Body */}
                     <div className="p-6 space-y-6">
                         {/* Key Info */}
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
-                                <p className="text-sm text-gray-500 mb-1 flex items-center gap-2">
+                        <div className="grid grid-cols-1 gap-4">
+                            <div className="bg-gray-50 p-4 rounded-xl border border-gray-100 text-center">
+                                <p className="text-sm text-gray-500 mb-1 flex items-center justify-center gap-2">
                                     <DollarSign size={14} /> Giá dịch vụ
                                 </p>
-                                <p className="text-xl font-bold text-green-600">
-                                    {formatCurrency(service.price)}
+                                <p className="text-base font-bold text-green-600">
+                                    {service.calculated_min_price === service.calculated_max_price
+                                        ? formatCurrency(service.calculated_min_price)
+                                        : `${formatCurrency(service.calculated_min_price)} - ${formatCurrency(service.calculated_max_price)}`
+                                    }
                                 </p>
-                            </div>
-                            <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
-                                <p className="text-sm text-gray-500 mb-1 flex items-center gap-2">
-                                    <Clock size={14} /> Thời gian
-                                </p>
-                                <p className="text-xl font-bold text-gray-800">
-                                    {service.duration} phút
-                                </p>
+                                {service.sub_service_count > 0 && service.calculated_min_price !== service.calculated_max_price && (
+                                    <p className="text-[10px] text-gray-400 font-medium uppercase mt-1">
+                                        (Chỉ từ {formatCurrency(service.calculated_min_price)})
+                                    </p>
+                                )}
                             </div>
                         </div>
 
@@ -76,81 +76,6 @@ const ServiceDetailModal = ({ show, service, onClose, formatCurrency, getCategor
                             <div className="bg-gray-50 p-4 rounded-xl border border-gray-200 text-gray-700 leading-relaxed min-h-[100px]">
                                 {service.description || 'Chưa có mô tả cho dịch vụ này.'}
                             </div>
-                        </div>
-
-
-                        {/* Equipment Service List */}
-                        {(() => {
-                            // Backend getById trả về equipment_service = { items: [], pagination: {...} }
-                            // Fallback: equipment_service là array thẳng
-                            const rawEq = service.equipment_service;
-                            const equipmentList = Array.isArray(rawEq)
-                                ? rawEq
-                                : rawEq?.items || [];
-
-                            if (equipmentList.length === 0) return null;
-
-                            return (
-                                <div>
-                                    <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                                        <svg className="w-4 h-4 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
-                                        </svg>
-                                        Thiết bị cần thiết ({equipmentList.length})
-                                    </h3>
-                                    <div className="space-y-2">
-                                        {equipmentList.map((item, index) => {
-                                            // equipment_id có thể là object (populated) hoặc string ID
-                                            const eq = typeof item.equipment_id === 'object' && item.equipment_id !== null
-                                                ? item.equipment_id
-                                                : null;
-                                            return (
-                                                <div key={index} className="bg-purple-50 border border-purple-100 rounded-lg p-3">
-                                                    <div className="flex justify-between items-start">
-                                                        <div className="flex-1">
-                                                            <p className="font-medium text-gray-800">
-                                                                {eq?.equipment_name || 'Thiết bị không xác định'}
-                                                            </p>
-                                                            {eq?.equipment_type && (
-                                                                <p className="text-xs text-gray-500 mt-0.5">
-                                                                    Loại: {eq.equipment_type}
-                                                                </p>
-                                                            )}
-                                                            {item.note && (
-                                                                <p className="text-sm text-gray-600 mt-1">
-                                                                    💡 {item.note}
-                                                                </p>
-                                                            )}
-                                                        </div>
-                                                        <div className="ml-3">
-                                                            <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-purple-600 text-white">
-                                                                x{item.required_qty}
-                                                            </span>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                                </div>
-                            );
-                        })()}
-
-
-                        {/* Status */}
-                        <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-                            <span className="text-gray-600 font-medium">Trạng thái</span>
-                            {service.status === 'AVAILABLE' ? (
-                                <div className="flex items-center gap-2 text-green-600 bg-green-50 px-3 py-1.5 rounded-full">
-                                    <CheckCircle size={16} />
-                                    <span className="text-sm font-semibold">Đang hoạt động</span>
-                                </div>
-                            ) : (
-                                <div className="flex items-center gap-2 text-red-600 bg-red-50 px-3 py-1.5 rounded-full">
-                                    <XCircle size={16} />
-                                    <span className="text-sm font-semibold">Ngừng hoạt động</span>
-                                </div>
-                            )}
                         </div>
                     </div>
                 </div>

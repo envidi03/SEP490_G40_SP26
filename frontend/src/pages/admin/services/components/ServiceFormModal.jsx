@@ -10,7 +10,8 @@ const ServiceFormModal = ({
     setServiceForm,
     categories,
     onSave,
-    onClose
+    onClose,
+    loading
 }) => {
     if (!show) return null;
 
@@ -90,7 +91,7 @@ const ServiceFormModal = ({
                             {/* Price */}
                             <div>
                                 <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                    Giá dịch vụ (VNĐ) <span className="text-red-500">*</span>
+                                    Giá mặc định (VNĐ) <span className="text-red-500">*</span>
                                 </label>
                                 <input
                                     type="number"
@@ -100,12 +101,15 @@ const ServiceFormModal = ({
                                     placeholder="100000"
                                     min="0"
                                 />
+                                <p className="text-[10px] text-gray-500 mt-1 italic">
+                                    *Giá hiển thị thực tế sẽ tự động tính từ các dịch vụ con (nếu có).
+                                </p>
                             </div>
 
                             {/* Duration */}
                             <div>
                                 <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                    Thời gian (phút) <span className="text-red-500">*</span>
+                                    Thời gian mặc định (phút) <span className="text-red-500">*</span>
                                 </label>
                                 <input
                                     type="number"
@@ -134,7 +138,7 @@ const ServiceFormModal = ({
                         </button>
                         <button
                             onClick={onSave}
-                            disabled={uploading}
+                            disabled={loading}
                             className="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-medium rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             {isEditMode ? 'Cập nhật' : 'Thêm dịch vụ'}

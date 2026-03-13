@@ -45,31 +45,27 @@ const ServiceCard = ({
 
             {/* Body */}
             <div className="p-6">
-                {/* Price */}
+                {/* Price Range */}
                 <div className="mb-4">
                     <div className="flex items-center justify-between mb-2">
                         <span className="text-sm font-medium text-gray-600 flex items-center gap-1">
                             <DollarSign size={16} className="text-green-600" />
                             Giá dịch vụ
                         </span>
-                        <button
-                            onClick={() => onUpdatePrice(service)}
-                            className="text-blue-600 hover:text-blue-700 text-xs font-medium"
-                        >
-                            Cập nhật
-                        </button>
                     </div>
-                    <p className="text-2xl font-bold text-green-600">
-                        {formatCurrency(service.price)}
-                    </p>
-                </div>
-
-                {/* Duration */}
-                <div className="flex items-center gap-2 text-gray-600 mb-4">
-                    <Clock size={16} className="text-orange-600" />
-                    <span className="text-sm">
-                        Thời gian: <span className="font-semibold">{service.duration} phút</span>
-                    </span>
+                    <div className="flex flex-col">
+                        <p className="text-base font-bold text-green-600">
+                            {service.calculated_min_price === service.calculated_max_price
+                                ? formatCurrency(service.calculated_min_price)
+                                : `${formatCurrency(service.calculated_min_price)} - ${formatCurrency(service.calculated_max_price)}`
+                            }
+                        </p>
+                        {service.sub_service_count > 0 && service.calculated_min_price !== service.calculated_max_price && (
+                            <span className="text-[11px] text-gray-400 font-medium uppercase tracking-wider">
+                                (Chỉ từ {formatCurrency(service.calculated_min_price)})
+                            </span>
+                        )}
+                    </div>
                 </div>
 
                 {/* Equipment Count */}
@@ -83,21 +79,6 @@ const ServiceCard = ({
                         </span>
                     </div>
                 )}
-
-                {/* Status */}
-                <div className="flex items-center gap-2 mb-4">
-                    {service.status === 'AVAILABLE' ? (
-                        <>
-                            <CheckCircle size={16} className="text-green-600" />
-                            <span className="text-sm text-green-600 font-medium">Đang hoạt động</span>
-                        </>
-                    ) : (
-                        <>
-                            <XCircle size={16} className="text-red-600" />
-                            <span className="text-sm text-red-600 font-medium">Ngừng hoạt động</span>
-                        </>
-                    )}
-                </div>
 
                 {/* Actions */}
                 <div className="flex gap-2 pt-4 border-t border-gray-200">
