@@ -37,6 +37,10 @@ const subServiceSchema = new Schema(
             type: String,
             default: ""
         },
+        images: {
+            type: [String], // Mảng URL ảnh bổ sung
+            default: []
+        },
 
         status: {
             type: String,

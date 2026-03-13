@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Toast from '../../../components/ui/Toast';
 import { Plus, ClipboardList } from 'lucide-react';
 import serviceService from '../../../services/serviceService';
+import SubServiceManagerModal from './components/SubServiceManagerModal';
 
 // Components
 import ServiceStatistics from './components/ServiceStatistics';
@@ -46,6 +47,10 @@ const ServiceList = () => {
     const [selectedDetailService, setSelectedDetailService] = useState(null);
     const [isEditMode, setIsEditMode] = useState(false);
 
+    // Sub-service manager modal
+    const [showSubServiceModal, setShowSubServiceModal] = useState(false);
+    const [selectedParentService, setSelectedParentService] = useState(null);
+
     // Form data
     const [serviceForm, setServiceForm] = useState({
         service_name: '',
@@ -53,6 +58,7 @@ const ServiceList = () => {
         price: '',
         duration: '',
         icon: '',
+        images: [],
         equipment_service: [],
         status: 'AVAILABLE'
     });
@@ -130,6 +136,14 @@ const ServiceList = () => {
     // ========== HANDLERS ==========
 
     /**
+     * Handler: Mở modal quản lý dịch vụ con
+     */
+    const handleManageSubServices = (service) => {
+        setSelectedParentService(service);
+        setShowSubServiceModal(true);
+    };
+
+    /**
      * Handler: Open add service modal
      */
     const handleAddService = () => {
@@ -140,6 +154,7 @@ const ServiceList = () => {
             price: '',
             duration: '',
             icon: '',
+            images: [],
             equipment_service: [],
             status: 'AVAILABLE'
         });
@@ -169,6 +184,7 @@ const ServiceList = () => {
             price: fullService.price,
             duration: fullService.duration,
             icon: fullService.icon || '',
+            images: fullService.images || [],
             equipment_service: fullService.equipment_service || [],
             status: fullService.status
         });
@@ -375,6 +391,7 @@ const ServiceList = () => {
                             pagination={pagination}
                             onPageChange={handlePageChange}
                             searchTerm={searchTerm}
+                            onManageSubServices={handleManageSubServices}
                             onViewDetails={async (service) => {
                                 try {
                                     const detail = await serviceService.getServiceById(service._id, { limit: 100 });
@@ -423,6 +440,16 @@ const ServiceList = () => {
                 formatCurrency={formatCurrency}
                 onSave={handleSavePrice}
                 onClose={() => setShowPriceModal(false)}
+            />
+
+            {/* Sub-Service Manager Modal */}
+            <SubServiceManagerModal
+                show={showSubServiceModal}
+                parentService={selectedParentService}
+                onClose={() => {
+                    setShowSubServiceModal(false);
+                    setSelectedParentService(null);
+                }}
             />
 
             {/* Toast Notification */}

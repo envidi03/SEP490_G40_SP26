@@ -1,11 +1,12 @@
 import React from 'react';
-import { DollarSign, Clock, CheckCircle, XCircle, Eye, Edit2 } from 'lucide-react';
+import { DollarSign, Clock, CheckCircle, XCircle, Eye, Edit2, LayoutList } from 'lucide-react';
 
 const ServiceCard = ({
     service,
     onViewDetails,
     onEdit,
     onUpdatePrice,
+    onManageSubServices,
     formatCurrency,
     getCategoryColor
 }) => {
@@ -20,7 +21,6 @@ const ServiceCard = ({
                             alt={service.service_name}
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                         />
-                        {/* Overlay gradient để text đọc được */}
                         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
                         <div className="absolute bottom-0 left-0 right-0 p-4">
                             <h3 className="text-xl font-bold mb-1 drop-shadow">
@@ -103,19 +103,26 @@ const ServiceCard = ({
                 <div className="flex gap-2 pt-4 border-t border-gray-200">
                     <button
                         onClick={() => onViewDetails(service)}
-                        className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-50 text-blue-600 font-medium rounded-xl hover:bg-blue-100 transition-all duration-200"
+                        className="inline-flex items-center justify-center gap-2 px-3 py-2.5 bg-blue-50 text-blue-600 font-medium rounded-xl hover:bg-blue-100 transition-all duration-200"
                         title="Xem chi tiết"
                     >
                         <Eye size={16} />
                     </button>
                     <button
                         onClick={() => onEdit(service)}
-                        className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-green-50 text-green-600 font-medium rounded-xl hover:bg-green-100 transition-all duration-200"
+                        className="inline-flex items-center justify-center gap-2 px-3 py-2.5 bg-green-50 text-green-600 font-medium rounded-xl hover:bg-green-100 transition-all duration-200"
+                        title="Sửa dịch vụ cha"
                     >
                         <Edit2 size={16} />
-                        <span>Sửa</span>
                     </button>
-
+                    <button
+                        onClick={() => onManageSubServices(service)}
+                        className="flex-1 inline-flex items-center justify-center gap-2 px-3 py-2.5 bg-indigo-50 text-indigo-700 font-medium rounded-xl hover:bg-indigo-100 transition-all duration-200 text-sm"
+                        title="Quản lý dịch vụ con"
+                    >
+                        <LayoutList size={15} />
+                        <span>Dịch vụ con</span>
+                    </button>
                 </div>
             </div>
         </div>

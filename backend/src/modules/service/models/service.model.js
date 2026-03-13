@@ -23,8 +23,12 @@ const serviceSchema = new Schema(
             default: 0
         },
         icon: {
-            type: String, // Lưu URL hoặc tên class icon
+            type: String, // Lưu URL hoặc tên class icon (ảnh đại diện chính)
             default: ""
+        },
+        images: {
+            type: [String], // Mảng URL ảnh bổ sung
+            default: []
         },
         status: {
             type: String,

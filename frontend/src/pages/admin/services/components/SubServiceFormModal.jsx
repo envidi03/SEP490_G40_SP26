@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { X } from 'lucide-react';
+import MultiImageUploader from './MultiImageUploader';
 
 const EMPTY_FORM = {
     sub_service_name: '',
@@ -7,7 +8,8 @@ const EMPTY_FORM = {
     price: '',
     duration: '',
     note: '',
-    status: 'AVAILABLE'
+    status: 'AVAILABLE',
+    images: []
 };
 
 const SubServiceFormModal = ({ show, isEditMode, formData, setFormData, onSave, onClose, loading }) => {
@@ -34,7 +36,7 @@ const SubServiceFormModal = ({ show, isEditMode, formData, setFormData, onSave, 
                     </div>
 
                     {/* Body */}
-                    <div className="p-6 space-y-4">
+                    <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
                         {/* Tên dịch vụ con */}
                         <div>
                             <label className="block text-sm font-semibold text-gray-700 mb-1">
@@ -60,6 +62,18 @@ const SubServiceFormModal = ({ show, isEditMode, formData, setFormData, onSave, 
                                 placeholder="Mô tả ngắn về dịch vụ"
                             />
                         </div>
+
+                        {/* Multi Image Uploader */}
+                        <MultiImageUploader
+                            images={formData.images || []}
+                            onChange={(newImages) => setFormData({
+                                ...formData,
+                                images: newImages,
+                                icon: newImages.length > 0 ? newImages[0] : (formData.icon || '')
+                            })}
+                            maxImages={5}
+                            label="Hình ảnh dịch vụ con"
+                        />
 
                         {/* Giá + Thời gian */}
                         <div className="grid grid-cols-2 gap-4">
