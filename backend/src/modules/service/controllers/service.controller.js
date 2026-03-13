@@ -99,8 +99,7 @@ const createController = async (req, res) => {
         const cleanedData = cleanObjectData(dataCreate);
 
         // check required fields
-        // check required fields
-        const requiredFields = ['service_name', 'price', 'duration'];
+        const requiredFields = ['service_name'];
         for (const field of requiredFields) {
             const value = cleanedData[field];
 

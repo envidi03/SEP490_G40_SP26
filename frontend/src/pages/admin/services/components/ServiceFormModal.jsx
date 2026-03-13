@@ -87,41 +87,6 @@ const ServiceFormModal = ({
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-4">
-                            {/* Price */}
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                    Giá mặc định (VNĐ) <span className="text-red-500">*</span>
-                                </label>
-                                <input
-                                    type="number"
-                                    value={serviceForm.price}
-                                    onChange={(e) => setServiceForm({ ...serviceForm, price: e.target.value })}
-                                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
-                                    placeholder="100000"
-                                    min="0"
-                                />
-                                <p className="text-[10px] text-gray-500 mt-1 italic">
-                                    *Giá hiển thị thực tế sẽ tự động tính từ các gói dịch vụ (nếu có).
-                                </p>
-                            </div>
-
-                            {/* Duration */}
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                    Thời gian mặc định (phút) <span className="text-red-500">*</span>
-                                </label>
-                                <input
-                                    type="number"
-                                    value={serviceForm.duration}
-                                    onChange={(e) => setServiceForm({ ...serviceForm, duration: e.target.value })}
-                                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
-                                    placeholder="30"
-                                    min="0"
-                                />
-                            </div>
-                        </div>
-
                         {/* Equipment Service Selector */}
                         <EquipmentServiceSelector
                             equipmentServices={serviceForm.equipment_service || []}

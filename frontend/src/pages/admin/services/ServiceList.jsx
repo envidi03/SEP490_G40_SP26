@@ -228,21 +228,12 @@ const ServiceList = () => {
             return;
         }
 
-        if (!serviceForm.price || serviceForm.price <= 0) {
-            setToast({
-                show: true,
-                type: 'error',
-                message: '❌ Vui lòng nhập giá dịch vụ hợp lệ!'
-            });
-            return;
-        }
-
         try {
             setSaving(true);
             const serviceData = {
                 ...serviceForm,
-                price: Number(serviceForm.price),
-                duration: Number(serviceForm.duration)
+                price: serviceForm.price ? Number(serviceForm.price) : undefined,
+                duration: serviceForm.duration ? Number(serviceForm.duration) : undefined
             };
 
             if (isEditMode) {
