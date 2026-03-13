@@ -84,7 +84,7 @@ const equipmentSchema = new Schema(
             {
                 doctor_id: {
                     type: Schema.Types.ObjectId,
-                    ref: "User" // LƯU Ý: Thay 'User' hoặc 'Doctor' tùy theo tên model Bác sĩ của bạn
+                    ref: "Staff" 
                 },
                 usage_date: {
                     type: Date,

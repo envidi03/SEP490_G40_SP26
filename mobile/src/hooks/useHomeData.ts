@@ -53,19 +53,19 @@ export function useServiceDetail(id: string) {
         queryKey: ['service', id],
         queryFn: async () => {
             const { data } = await apiClient.get(`/api/service/${id}`);
-            return data?.data || data; // Handle data wrapping if any
+            return data?.data || data;
         },
-        enabled: !!id, // Only run the query if we have an ID
+        enabled: !!id,
     });
 }
 
-// 3. Fetch Upcoming Appointments
+// 3. Fetch Upcoming Appointments (nearest 1)
 export function useAppointmentsData() {
     return useQuery({
         queryKey: ['appointments', 'patient'],
         queryFn: async () => {
             const { data } = await apiClient.get('/api/appointment/patient', {
-                params: { limit: 5 }, // just get a few for the home screen
+                params: { limit: 1, sort: 'asc' },
             });
             return data;
         },
@@ -86,15 +86,64 @@ export function useCreateAppointment() {
             email?: string;
             appointment_date: string;
             appointment_time: string;
-            book_service: Array<{ service_id: string; unit_price: number }>;
+            book_service: { service_id: string; unit_price: number }[];
         }) => {
             const { data } = await apiClient.post('/api/appointment', payload);
             return data;
         },
         onSuccess: () => {
-            // Invalidate appointments to trigger a re-fetch of the upcoming appointments on the Home screen
             queryClient.invalidateQueries({ queryKey: ['appointments', 'patient'] });
         }
     });
 }
 
+// ==========================================
+// PROFILE UPDATE API
+// ==========================================
+
+export function useUpdateProfile() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: async (payload: {
+            full_name?: string;
+            dob?: string;
+            gender?: string;
+            address?: string;
+        }) => {
+            const { data } = await apiClient.patch('/api/profile/update', payload);
+            return data;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['profile'] });
+        },
+    });
+}
+
+// ==========================================
+// CHANGE PASSWORD API
+// ==========================================
+
+export function useChangePassword() {
+    return useMutation({
+        mutationFn: async (payload: { currentPassword: string; newPassword: string }) => {
+            const { data } = await apiClient.post('/api/auth/change-password', payload);
+            return data;
+        },
+    });
+}
+
+// ==========================================
+// DENTAL RECORD - Full appointment history
+// ==========================================
+
+export function useDentalRecordData() {
+    return useQuery({
+        queryKey: ['dental-record'],
+        queryFn: async () => {
+            const { data } = await apiClient.get('/api/dentist/patient/dental-record', {
+                params: { limit: 50, sort: 'desc' },
+            });
+            return data;
+        },
+    });
+}

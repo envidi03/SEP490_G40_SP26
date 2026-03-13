@@ -23,6 +23,18 @@ const staffSchema = new Schema(
             type: String,
             enum: ["ACTIVE", "INACTIVE"], // Trạng thái hoạt động
             default: "ACTIVE"
+        },
+        degree: {
+            type: String,
+            trim: true
+        },
+        education: {
+            type: String,
+            trim: true
+        },
+        note: {
+            type: String,
+            trim: true
         }
     },
     { 

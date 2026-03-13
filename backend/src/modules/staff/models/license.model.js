@@ -24,7 +24,7 @@ const licenseSchema = new Schema(
             type: Schema.Types.ObjectId,
             ref: "Staff", // Tham chiếu đến bác sĩ sở hữu giấy phép
             required: true
-        }
+        }, 
     },
     { 
         timestamps: true, 

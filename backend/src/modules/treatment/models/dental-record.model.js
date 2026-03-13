@@ -14,6 +14,10 @@ const dentalRecordSchema = new Schema(
             ref: "Staff",
             required: true
         },
+        appointment_id: {
+            type: Schema.Types.ObjectId,
+            ref: "Appointment",
+        },
 
         // --- THÔNG TIN CÁ NHÂN (Snapshot tại thời điểm tạo) ---
         full_name: {

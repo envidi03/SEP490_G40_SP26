@@ -1,10 +1,6 @@
 import { StyleSheet, ScrollView, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
-
-import { useColorScheme } from '@/src/hooks/use-color-scheme';
-import { Colors } from '@/src/constants/theme';
-
 import { HomeHeader } from '@/src/components/features/home/HomeHeader';
 import { HomeSearchBar } from '@/src/components/features/home/HomeSearchBar';
 import { PromoBanner } from '@/src/components/features/home/PromoBanner';
@@ -14,8 +10,6 @@ import { UpcomingAppointmentCard } from '@/src/components/features/home/Upcoming
 import { useProfileData, useServicesData, useAppointmentsData } from '@/src/hooks/useHomeData';
 
 export function HomeScreenWrapper() {
-    const colorScheme = useColorScheme();
-    const theme = Colors[colorScheme ?? 'light'];
     const insets = useSafeAreaInsets();
 
     const { data: profileData, isLoading: isLoadingProfile } = useProfileData();
