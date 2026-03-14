@@ -113,7 +113,7 @@ const ReceptionistSubServices = () => {
                                         Giá
                                     </span>
                                     <span className="text-lg font-bold text-primary-600">
-                                        {sub.min_price === sub.max_price 
+                                        {sub.min_price === sub.max_price
                                             ? `${(sub.min_price || 0).toLocaleString('vi-VN')}đ`
                                             : `${(sub.min_price || 0).toLocaleString('vi-VN')}đ - ${(sub.max_price || 0).toLocaleString('vi-VN')}đ`
                                         }

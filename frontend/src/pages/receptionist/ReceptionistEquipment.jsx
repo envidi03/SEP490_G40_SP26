@@ -223,11 +223,8 @@ const ReceptionistEquipment = () => {
 
                                         return (
                                             <tr key={equipment._id} className="hover:bg-gray-50">
-                                                <td className="px-6 py-4">
+                                                <td className="px-6 py-4 whitespace-nowrap">
                                                     <div className="flex items-center">
-                                                        <div className="p-2 bg-gray-100 rounded-lg mr-3">
-                                                            <Wrench size={20} className="text-gray-600" />
-                                                        </div>
                                                         <span className="text-sm font-medium text-gray-900">{equipment.equipment_name}</span>
                                                     </div>
                                                 </td>

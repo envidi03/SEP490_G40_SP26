@@ -158,7 +158,7 @@ const CreateInvoiceModal = ({ isOpen, onClose, onSuccess, initialPatient }) => {
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={!submitting ? onClose : undefined}></div>
+            <div className="absolute inset-0 bg-white/40 backdrop-blur-sm" onClick={!submitting ? onClose : undefined}></div>
             <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-3xl max-h-[95vh] overflow-hidden flex flex-col">
                 {/* Header */}
                 <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">

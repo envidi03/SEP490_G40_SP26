@@ -17,7 +17,7 @@ const UpdateMaintenanceModal = ({ equipment, isOpen, onClose, onUpdate }) => {
     };
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-white/40 bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white rounded-xl shadow-2xl p-6 max-w-lg w-full mx-4">
                 <div className="flex justify-between items-start mb-4">
                     <div className="flex items-center gap-2">
