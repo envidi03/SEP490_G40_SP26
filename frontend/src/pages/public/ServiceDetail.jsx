@@ -232,7 +232,10 @@ const ServiceDetail = () => {
 
                             <Link
                                 to="/book-appointment"
-                                state={{ service }}
+                                state={{ 
+                                    service: type === 'package' ? service.parent_id : service,
+                                    subService: type === 'package' ? service : null
+                                }}
                                 className="flex items-center justify-center gap-2 bg-blue-50 hover:bg-blue-100 text-primary-700 font-semibold py-4 px-6 rounded-xl transition-colors border border-blue-200 text-base"
                             >
                                 <Calendar size={18} />

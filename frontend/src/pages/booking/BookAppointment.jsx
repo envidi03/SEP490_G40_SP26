@@ -48,9 +48,8 @@ const BookAppointment = () => {
                 service_name: service.service_name,
                 sub_service_id: subService?._id || null,
                 sub_service_name: subService?.sub_service_name || '',
-                service_price: subService ? (subService.min_price === subService.max_price ? subService.min_price : subService.min_price) : service.price
+                service_price: subService ? subService.min_price : (service.price || 0)
             }));
-            setCurrentStep(2);
         }
     }, [location.state, currentStep]);
 
@@ -217,8 +216,8 @@ const BookAppointment = () => {
                     {/* Step Content */}
                     <div className="bg-white rounded-2xl shadow-xl p-8">
                         {currentStep === 1 && (
-                            <ServiceDateTimeStep 
-                                onSelect={handleCombinedSelect} 
+                            <ServiceDateTimeStep
+                                onSelect={handleCombinedSelect}
                                 initialData={bookingData}
                             />
                         )}

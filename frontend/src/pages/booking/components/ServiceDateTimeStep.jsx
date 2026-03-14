@@ -86,22 +86,50 @@ const ServiceDateTimeStep = ({ onSelect, initialData }) => {
     }, []);
 
     useEffect(() => {
+        if (subServices.length > 0) {
+            // Trường hợp 1: Có sub_service_id từ initialData (đi từ trang detail)
+            if (initialData?.sub_service_id) {
+                const matchedSub = subServices.find(s => s._id === initialData.sub_service_id);
+                if (matchedSub) {
+                    setSelectedSubService(matchedSub);
+                    // Tìm parent corresponding
+                    const parentId = matchedSub.parent_id?._id || matchedSub.parent_id;
+                    const matchedParent = services.find(p => p._id === parentId);
+                    if (matchedParent) {
+                        setSelectedService(matchedParent);
+                        setActiveParent(matchedParent._id);
+                    }
+                }
+            } 
+            // Trường hợp 2: Chỉ có service_id (chưa chọn package cụ thể)
+            else if (initialData?.service_id) {
+                const matchedParent = services.find(p => p._id === initialData.service_id);
+                if (matchedParent) {
+                    setSelectedService(matchedParent);
+                    setActiveParent(matchedParent._id);
+                }
+            }
+        }
+    }, [initialData?.sub_service_id, initialData?.service_id, subServices, services]);
+
+    useEffect(() => {
         let filtered = subServices;
         
-        // Lọc theo search term
         if (searchTerm) {
             filtered = filtered.filter(s => 
                 s.sub_service_name.toLowerCase().includes(searchTerm.toLowerCase())
             );
         } else if (activeParent) {
-            // Nếu không search thì lọc theo danh mục đang chọn
             filtered = filtered.filter(s => s.parent_id === activeParent);
         }
         
         setFilteredSubServices(filtered);
     }, [searchTerm, subServices, activeParent]);
 
-    const formatCurrency = (amount) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
+    const formatCurrency = (amount) => {
+        const val = Number(amount) || 0;
+        return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val);
+    };
 
     const handleContinue = () => {
         if (selectedService && selectedSubService && selectedDate && selectedTime) {
@@ -228,7 +256,7 @@ const ServiceDateTimeStep = ({ onSelect, initialData }) => {
 
             <button
                 onClick={handleContinue}
-                disabled={!selectedSubService || !selectedDate || !selectedTime}
+                disabled={!selectedService || !selectedSubService || !selectedDate || !selectedTime}
                 className="w-full py-4 bg-primary-600 text-white rounded-xl font-bold text-lg hover:bg-primary-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-xl active:scale-[0.98]"
             >
                 Tiếp tục xác nhận
