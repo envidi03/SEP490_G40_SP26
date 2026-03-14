@@ -1,4 +1,7 @@
-import React, { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import serviceService from '../../../services/serviceService';
 import {
     Phone,
     Mail,
@@ -13,12 +16,28 @@ import {
     Shield,
     Stethoscope,
     Sparkles,
-    Users
+    ChevronRight,
+    ArrowUpRight,
+    CheckCircle2
 } from 'lucide-react';
 
 const HomeFooter = () => {
     const [email, setEmail] = useState('');
     const [subscribed, setSubscribed] = useState(false);
+    const [realServices, setRealServices] = useState([]);
+
+    useEffect(() => {
+        const fetchServices = async () => {
+            try {
+                const response = await serviceService.getAllServices({ status: 'ACTIVE', limit: 5 });
+                const servicesData = response.data?.data || response.data || [];
+                setRealServices(servicesData);
+            } catch (error) {
+                console.error("Failed to fetch services for footer:", error);
+            }
+        };
+        fetchServices();
+    }, []);
 
     const handleSubscribe = (e) => {
         e.preventDefault();
@@ -29,257 +48,204 @@ const HomeFooter = () => {
         }
     };
 
-    const services = [
-        { icon: Stethoscope, name: 'Khám tổng quát' },
-        { icon: Sparkles, name: 'Tẩy trắng răng' },
-        { icon: Shield, name: 'Niềng răng' },
-        { icon: Heart, name: 'Chăm sóc nha chu' }
-    ];
-
-    const stats = [
-        { number: '10+', label: 'Năm kinh nghiệm' },
-        { number: '50K+', label: 'Khách hàng' },
-        { number: '15+', label: 'Bác sĩ chuyên môn' },
-        { number: '98%', label: 'Hài lòng' }
-    ];
+    const footerLinks = {
+        navigation: [
+            { name: 'Trang chủ', path: '/' },
+            { name: 'Giới thiệu', path: '/about' },
+            { name: 'Dịch vụ', path: '/services' },
+            { name: 'Đội ngũ bác sĩ', path: '/doctors' },
+            { name: 'Tin tức', path: '/news' },
+            { name: 'Liên hệ', path: '/contact' }
+        ],
+        support: [
+            { name: 'Chính sách bảo mật', path: '/privacy-policy' },
+            { name: 'Điều khoản sử dụng', path: '/terms' },
+            { name: 'Câu hỏi thường gặp', path: '/faq' },
+            { name: 'Hướng dẫn đặt lịch', path: '/guide' }
+        ]
+    };
 
     return (
-        <footer className="bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white relative overflow-hidden">
-            {/* Decorative background elements */}
-            <div className="absolute inset-0 opacity-5">
-                <div className="absolute top-0 left-1/4 w-96 h-96 bg-primary-500 rounded-full blur-3xl"></div>
-                <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-blue-500 rounded-full blur-3xl"></div>
-            </div>
+        <footer className="relative bg-[#f8fbff] text-gray-900 pt-24 pb-12 overflow-hidden border-t border-blue-100">
+            {/* Background Decor Effects */}
+            <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-primary-600/5 rounded-full blur-[120px] -translate-y-1/2 translate-x-1/2"></div>
+            <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-blue-600/5 rounded-full blur-[100px] translate-y-1/2 -translate-x-1/2"></div>
 
             <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                {/* Stats Section */}
-                <div className="py-12 border-b border-gray-700/50">
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-                        {stats.map((stat, index) => (
-                            <div key={index} className="text-center">
-                                <div className="text-3xl md:text-4xl font-bold text-primary-400 mb-2">
-                                    {stat.number}
-                                </div>
-                                <div className="text-sm text-gray-400">{stat.label}</div>
+                {/* ─── TOP SECTION: BRAND & NEWSLETTER ─── */}
+                <div className="grid lg:grid-cols-2 gap-16 pb-16 border-b border-gray-200/60 items-center">
+                    <div>
+                        <div className="flex items-center gap-3 mb-6 font-primary">
+                            <div className="w-12 h-12 bg-primary-600 rounded-2xl flex items-center justify-center shadow-lg shadow-primary-200">
+                                <Award className="text-white" size={28} />
                             </div>
-                        ))}
-                    </div>
-                </div>
-
-                {/* Main Footer Content */}
-                <div className="py-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-8">
-                    {/* About Section - 4 columns */}
-                    <div className="lg:col-span-4">
-                        <div className="flex items-center mb-4">
-                            <div className="w-10 h-10 bg-gradient-to-br from-primary-400 to-primary-600 rounded-lg flex items-center justify-center mr-3">
-                                <Award className="text-white" size={24} />
+                            <div>
+                                <h3 className="text-2xl font-black tracking-tight text-primary-700">DCMS</h3>
+                                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Premium Dental Care</p>
                             </div>
-                            <h3 className="text-2xl font-bold bg-gradient-to-r from-primary-400 to-blue-400 bg-clip-text text-transparent">
-                                DCMS
-                            </h3>
                         </div>
-                        <p className="text-gray-400 text-sm mb-6 leading-relaxed">
-                            Hệ thống quản lý phòng khám nha khoa hàng đầu Việt Nam.
-                            Chúng tôi cam kết mang đến dịch vụ chăm sóc răng miệng chất lượng cao
-                            với đội ngũ bác sĩ giàu kinh nghiệm và trang thiết bị hiện đại.
-                        </p>
-
-                        {/* Newsletter */}
-                        <div className="bg-gray-800/50 rounded-lg p-4 backdrop-blur-sm border border-gray-700/50">
-                            <h5 className="text-sm font-semibold mb-3 flex items-center">
-                                <Send size={16} className="mr-2 text-primary-400" />
-                                Đăng ký nhận tin
-                            </h5>
-                            <form onSubmit={handleSubscribe} className="flex gap-2">
-                                <input
-                                    type="email"
-                                    value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
-                                    placeholder="Email của bạn"
-                                    className="flex-1 px-3 py-2 bg-gray-900/50 border border-gray-600 rounded-lg text-sm focus:outline-none focus:border-primary-400 transition-colors"
-                                    disabled={subscribed}
-                                />
-                                <button
-                                    type="submit"
-                                    disabled={subscribed}
-                                    className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${subscribed
-                                        ? 'bg-green-500 text-white'
-                                        : 'bg-primary-500 hover:bg-primary-600 text-white'
-                                        }`}
-                                >
-                                    {subscribed ? '✓' : 'Gửi'}
-                                </button>
-                            </form>
-                            {subscribed && (
-                                <p className="text-xs text-green-400 mt-2">Đăng ký thành công!</p>
-                            )}
-                        </div>
-                    </div>
-
-                    {/* Services - 3 columns */}
-                    <div className="lg:col-span-3">
-                        <h4 className="text-lg font-semibold mb-4 flex items-center">
-                            <Stethoscope size={20} className="mr-2 text-primary-400" />
-                            Dịch vụ nổi bật
+                        <h4 className="text-3xl md:text-4xl font-bold mb-4 leading-tight">
+                            Kiến tạo nụ cười <span className="text-primary-600">hoàn mỹ</span> cho bạn
                         </h4>
-                        <ul className="space-y-3">
-                            {services.map((service, index) => {
-                                const Icon = service.icon;
-                                return (
-                                    <li key={index}>
-                                        <a
-                                            href="#services"
-                                            className="flex items-center text-gray-400 hover:text-white transition-colors group"
-                                        >
-                                            <div className="w-8 h-8 bg-gray-800/50 rounded-lg flex items-center justify-center mr-3 group-hover:bg-primary-500/20 transition-colors">
-                                                <Icon size={16} className="text-primary-400" />
-                                            </div>
-                                            <span className="text-sm">{service.name}</span>
-                                        </a>
-                                    </li>
-                                );
-                            })}
-                        </ul>
-                        <div className="mt-6">
-                            <a
-                                href="#services"
-                                className="text-sm text-primary-400 hover:text-primary-300 transition-colors inline-flex items-center group"
-                            >
-                                Xem tất cả dịch vụ
-                                <span className="ml-1 group-hover:ml-2 transition-all">→</span>
-                            </a>
+                        <p className="text-gray-600 max-w-lg leading-relaxed">
+                            Hệ thống quản lý và chăm sóc nha khoa chuẩn quốc tế. Chúng tôi kết hợp giữa công nghệ AI hiện đại và đội ngũ y bác sĩ hàng đầu.
+                        </p>
+                    </div>
+
+                    <div className="relative">
+                        <div className="p-8 rounded-[2.5rem] bg-white shadow-xl shadow-blue-900/5 border border-blue-50 relative overflow-hidden group">
+                            <div className="relative z-10">
+                                <h5 className="text-xl font-bold mb-2 flex items-center gap-2 text-gray-800">
+                                    <Sparkles size={20} className="text-primary-500" />
+                                    Ưu đãi đặc quyền
+                                </h5>
+                                <p className="text-gray-500 text-sm mb-6 font-medium">Đăng ký để nhận kiến thức chăm sóc răng miệng sớm nhất.</p>
+
+                                <form onSubmit={handleSubscribe} className="relative group/form">
+                                    <input
+                                        type="email"
+                                        required
+                                        value={email}
+                                        onChange={(e) => setEmail(e.target.value)}
+                                        placeholder="Địa chỉ email của bạn..."
+                                        className="w-full px-6 py-4 bg-gray-50 border border-gray-200 rounded-2xl focus:outline-none focus:border-primary-500 focus:bg-white transition-all text-gray-800 placeholder-gray-400 pr-16"
+                                    />
+                                    <button
+                                        type="submit"
+                                        className="absolute right-2 top-2 bottom-2 px-6 bg-primary-600 hover:bg-primary-700 text-white rounded-xl transition-all shadow-md active:scale-95 flex items-center justify-center"
+                                    >
+                                        {subscribed ? <CheckCircle2 size={20} /> : <span className="font-bold text-sm">Gửi ngay</span>}
+                                    </button>
+                                </form>
+                                {subscribed && (
+                                    <motion.p
+                                        initial={{ opacity: 0, y: 10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        className="text-xs text-green-600 mt-3 font-semibold"
+                                    >
+                                        Đăng ký thành công! Cảm ơn bạn.
+                                    </motion.p>
+                                )}
+                            </div>
                         </div>
-                    </div>
-
-                    {/* Quick Links - 2 columns */}
-                    <div className="lg:col-span-2">
-                        <h4 className="text-lg font-semibold mb-4">Điều hướng</h4>
-                        <ul className="space-y-3 text-sm">
-                            <li>
-                                <a href="#about" className="text-gray-400 hover:text-white transition-colors hover:translate-x-1 inline-block">
-                                    Về chúng tôi
-                                </a>
-                            </li>
-                            <li>
-                                <a href="#services" className="text-gray-400 hover:text-white transition-colors hover:translate-x-1 inline-block">
-                                    Dịch vụ
-                                </a>
-                            </li>
-                            <li>
-                                <a href="#team" className="text-gray-400 hover:text-white transition-colors hover:translate-x-1 inline-block">
-                                    Đội ngũ bác sĩ
-                                </a>
-                            </li>
-                            <li>
-                                <a href="#booking" className="text-gray-400 hover:text-white transition-colors hover:translate-x-1 inline-block">
-                                    Đặt lịch khám
-                                </a>
-                            </li>
-                            <li>
-                                <a href="#contact" className="text-gray-400 hover:text-white transition-colors hover:translate-x-1 inline-block">
-                                    Liên hệ
-                                </a>
-                            </li>
-                            <li>
-                                <a href="#" className="text-gray-400 hover:text-white transition-colors hover:translate-x-1 inline-block">
-                                    Chính sách bảo mật
-                                </a>
-                            </li>
-                        </ul>
-                    </div>
-
-                    {/* Contact Info - 3 columns */}
-                    <div className="lg:col-span-3">
-                        <h4 className="text-lg font-semibold mb-4">Thông tin liên hệ</h4>
-                        <ul className="space-y-4 text-sm">
-                            <li>
-                                <div className="flex items-start group">
-                                    <div className="w-9 h-9 bg-gray-800/50 rounded-lg flex items-center justify-center mr-3 group-hover:bg-primary-500/20 transition-colors flex-shrink-0">
-                                        <MapPin size={16} className="text-primary-400" />
-                                    </div>
-                                    <div>
-                                        <p className="text-gray-500 text-xs mb-1">Địa chỉ</p>
-                                        <p className="text-gray-300">123 Hoàn Kiếm, Hà Nội</p>
-                                    </div>
-                                </div>
-                            </li>
-                            <li>
-                                <div className="flex items-start group">
-                                    <div className="w-9 h-9 bg-gray-800/50 rounded-lg flex items-center justify-center mr-3 group-hover:bg-primary-500/20 transition-colors flex-shrink-0">
-                                        <Phone size={16} className="text-primary-400" />
-                                    </div>
-                                    <div>
-                                        <p className="text-gray-500 text-xs mb-1">Hotline</p>
-                                        <a href="tel:0901234567" className="text-gray-300 hover:text-white transition-colors">
-                                            0901 234 567
-                                        </a>
-                                    </div>
-                                </div>
-                            </li>
-                            <li>
-                                <div className="flex items-start group">
-                                    <div className="w-9 h-9 bg-gray-800/50 rounded-lg flex items-center justify-center mr-3 group-hover:bg-primary-500/20 transition-colors flex-shrink-0">
-                                        <Mail size={16} className="text-primary-400" />
-                                    </div>
-                                    <div>
-                                        <p className="text-gray-500 text-xs mb-1">Email</p>
-                                        <a href="mailto:contact@dcms.com" className="text-gray-300 hover:text-white transition-colors">
-                                            contact@dcms.com
-                                        </a>
-                                    </div>
-                                </div>
-                            </li>
-                            <li>
-                                <div className="flex items-start group">
-                                    <div className="w-9 h-9 bg-gray-800/50 rounded-lg flex items-center justify-center mr-3 group-hover:bg-primary-500/20 transition-colors flex-shrink-0">
-                                        <Clock size={16} className="text-primary-400" />
-                                    </div>
-                                    <div>
-                                        <p className="text-gray-500 text-xs mb-1">Giờ làm việc</p>
-                                        <p className="text-gray-300">T2-T6: 8:00 - 20:00</p>
-                                        <p className="text-gray-300">T7-CN: 8:00 - 17:00</p>
-                                    </div>
-                                </div>
-                            </li>
-                        </ul>
                     </div>
                 </div>
 
-                {/* Bottom Section */}
-                <div className="border-t border-gray-700/50 py-6">
-                    <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-                        {/* Copyright */}
-                        <div className="text-sm text-gray-400 text-center md:text-left">
-                            <p>© 2026 DCMS - Dental Clinic Management System.</p>
-                            <p className="text-xs text-gray-500 mt-1">Thiết kế bởi Team SEP490_G40</p>
-                        </div>
+                {/* ─── MAIN GRID ─── */}
+                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-12 gap-12 py-20">
+                    {/* Column 1: Services */}
+                    <div className="lg:col-span-3">
+                        <h5 className="font-bold text-lg mb-8 text-gray-900 relative inline-block">
+                            Dịch vụ tiêu biểu
+                            <span className="absolute -bottom-2 left-0 w-8 h-1 bg-primary-600 rounded-full"></span>
+                        </h5>
+                        <ul className="space-y-4 font-medium">
+                            {realServices.length > 0 ? (
+                                realServices.map((service, i) => (
+                                    <li key={service._id || i}>
+                                        <Link to={`/services?parentId=${service._id}`} className="text-gray-500 hover:text-primary-600 transition-all flex items-center gap-2 group">
+                                            <ChevronRight size={14} className="text-primary-400 opacity-0 -ml-4 group-hover:opacity-100 group-hover:ml-0 transition-all" />
+                                            {service.service_name}
+                                        </Link>
+                                    </li>
+                                ))
+                            ) : (
+                                <li className="text-gray-400 text-sm">Đang tải dịch vụ...</li>
+                            )}
+                        </ul>
+                    </div>
 
-                        {/* Social Media */}
-                        <div className="flex items-center gap-4">
-                            <span className="text-sm text-gray-500 hidden md:block">Kết nối với chúng tôi:</span>
-                            <div className="flex gap-3">
-                                <a
-                                    href="#"
-                                    className="w-10 h-10 bg-gray-800/50 hover:bg-blue-600 rounded-lg flex items-center justify-center transition-all hover:scale-110 hover:-translate-y-1 group"
-                                    aria-label="Facebook"
-                                >
-                                    <Facebook size={20} className="text-gray-400 group-hover:text-white transition-colors" />
-                                </a>
-                                <a
-                                    href="#"
-                                    className="w-10 h-10 bg-gray-800/50 hover:bg-gradient-to-br hover:from-purple-600 hover:to-pink-600 rounded-lg flex items-center justify-center transition-all hover:scale-110 hover:-translate-y-1 group"
-                                    aria-label="Instagram"
-                                >
-                                    <Instagram size={20} className="text-gray-400 group-hover:text-white transition-colors" />
-                                </a>
-                                <a
-                                    href="#"
-                                    className="w-10 h-10 bg-gray-800/50 hover:bg-red-600 rounded-lg flex items-center justify-center transition-all hover:scale-110 hover:-translate-y-1 group"
-                                    aria-label="Youtube"
-                                >
-                                    <Youtube size={20} className="text-gray-400 group-hover:text-white transition-colors" />
-                                </a>
+                    {/* Column 2: Navigation */}
+                    <div className="lg:col-span-2">
+                        <h5 className="font-bold text-lg mb-8 text-gray-900">Khám phá</h5>
+                        <ul className="space-y-4 font-medium">
+                            {footerLinks.navigation.map((link, i) => (
+                                <li key={i}>
+                                    <Link to={link.path} className="text-gray-500 hover:text-primary-600 transition-all">
+                                        {link.name}
+                                    </Link>
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+
+                    {/* Column 3: Support */}
+                    <div className="lg:col-span-3">
+                        <h5 className="font-bold text-lg mb-8 text-gray-900">Hỗ trợ</h5>
+                        <ul className="space-y-4 font-medium">
+                            {footerLinks.support.map((link, i) => (
+                                <li key={i}>
+                                    <Link to={link.path} className="text-gray-500 hover:text-primary-600 transition-all">
+                                        {link.name}
+                                    </Link>
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+
+                    {/* Column 4: Contact Cards */}
+                    <div className="lg:col-span-4">
+                        <h5 className="font-bold text-lg mb-8 text-gray-900">Thông tin liên hệ</h5>
+                        <div className="space-y-4">
+                            <div className="flex gap-4 p-4 rounded-2xl bg-white border border-blue-50 shadow-sm hover:shadow-md hover:border-primary-100 transition-all group cursor-pointer">
+                                <div className="w-12 h-12 bg-primary-50 rounded-xl flex items-center justify-center text-primary-600 flex-shrink-0 group-hover:bg-primary-600 group-hover:text-white transition-all">
+                                    <Phone size={20} />
+                                </div>
+                                <div>
+                                    <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest mb-1">Hotline tư vấn</p>
+                                    <p className="text-lg font-bold text-gray-800">1900 6789</p>
+                                </div>
                             </div>
+
+                            <div className="flex gap-4 p-4 rounded-2xl bg-white border border-blue-50 shadow-sm hover:shadow-md hover:border-primary-100 transition-all group cursor-pointer">
+                                <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600 flex-shrink-0 group-hover:bg-blue-600 group-hover:text-white transition-all">
+                                    <MapPin size={20} />
+                                </div>
+                                <div>
+                                    <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest mb-1">Địa chỉ</p>
+                                    <p className="text-sm font-bold text-gray-800 leading-tight">123 Hoàn Kiếm, TP. Hà Nội</p>
+                                </div>
+                            </div>
+
+                            <div className="flex gap-4 p-4 rounded-2xl bg-white border border-blue-50 shadow-sm hover:shadow-md hover:border-primary-100 transition-all group cursor-pointer">
+                                <div className="w-12 h-12 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-600 flex-shrink-0 group-hover:bg-indigo-600 group-hover:text-white transition-all">
+                                    <Clock size={20} />
+                                </div>
+                                <div>
+                                    <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest mb-1">Giờ làm việc</p>
+                                    <p className="text-sm font-bold text-gray-800">T2-CN: 08:00 - 20:00</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* ─── BOTTOM SECTION ─── */}
+                <div className="pt-10 border-t border-gray-200 flex flex-col md:flex-row justify-between items-center gap-8">
+                    <div className="text-gray-400 text-sm flex flex-col md:flex-row items-center gap-4 md:gap-8 font-medium">
+                        <p>© 2026 <span className="text-primary-700 font-black">DCMS</span>. Bảo lưu mọi quyền.</p>
+                        <div className="flex gap-4">
+                            <span className="w-1 h-1 bg-gray-300 rounded-full hidden md:block mt-2"></span>
+                            <p>Phát triển bởi Team SEP490_G40</p>
+                        </div>
+                    </div>
+
+                    <div className="flex items-center gap-4">
+                        <span className="text-xs font-bold text-gray-400 uppercase tracking-widest hidden lg:block">Kết nối với chúng tôi</span>
+                        <div className="flex gap-3">
+                            {[
+                                { icon: Facebook, color: 'hover:bg-[#1877F2]', text: 'text-gray-400' },
+                                { icon: Instagram, color: 'hover:bg-gradient-to-tr hover:from-[#f9ce34] hover:to-[#ee2a7b]', text: 'text-gray-400' },
+                                { icon: Youtube, color: 'hover:bg-[#FF0000]', text: 'text-gray-400' }
+                            ].map((social, i) => (
+                                <a
+                                    key={i}
+                                    href="#"
+                                    className={`w-11 h-11 bg-white border border-gray-200 rounded-xl flex items-center justify-center transition-all hover:-translate-y-2 hover:shadow-lg hover:border-transparent ${social.color} group`}
+                                >
+                                    <social.icon size={18} className={`${social.text} group-hover:text-white transition-colors`} />
+                                </a>
+                            ))}
                         </div>
                     </div>
                 </div>
