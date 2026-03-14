@@ -19,6 +19,24 @@ const serviceService = {
         }
     },
 
+    getSubServiceById: async (id) => {
+        try {
+            const response = await apiClient.get(`/api/service/sub-service/${id}`);
+            return response;
+        } catch (error) {
+            throw error;
+        }
+    },
+
+    getSubServicesByParent: async (parentId) => {
+        try {
+            const response = await apiClient.get(`/api/service/${parentId}/sub-services`);
+            return response;
+        } catch (error) {
+            throw error;
+        }
+    },
+
     createService: async (serviceData) => {
         try {
             const response = await apiClient.post('/api/service', serviceData);

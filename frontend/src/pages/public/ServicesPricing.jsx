@@ -318,7 +318,7 @@ const ServicesPricing = () => {
                                                                 </td>
                                                                 <td className="px-4 py-3 text-center">
                                                                     <Link
-                                                                        to={`/service/${service._id || toUrlFriendly(service.service_name)}`}
+                                                                        to={`/service/${row._id}?type=${service.sub_services_data?.length > 0 ? 'package' : 'service'}`}
                                                                         className="text-primary-600 hover:text-primary-700 font-medium text-sm hover:underline"
                                                                     >
                                                                         Chi tiết
