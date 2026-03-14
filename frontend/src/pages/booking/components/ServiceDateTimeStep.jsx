@@ -4,15 +4,18 @@ import serviceService from '../../../services/serviceService';
 
 const ServiceDateTimeStep = ({ onSelect, initialData }) => {
     // --- Service Selection Logic ---
-    const [services, setServices] = useState([]);
-    const [filteredServices, setFilteredServices] = useState([]);
+    const [services, setServices] = useState([]); // Danh sách dịch vụ cha
+    const [subServices, setSubServices] = useState([]); // Tất cả các gói dịch vụ
+    const [filteredSubServices, setFilteredSubServices] = useState([]);
+    const [activeParent, setActiveParent] = useState(null); // ID dịch vụ cha đang chọn để lọc
     const [searchTerm, setSearchTerm] = useState('');
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    const [selectedService, setSelectedService] = useState(initialData?.service_id ? {
-        _id: initialData.service_id,
-        service_name: initialData.service_name,
-        price: initialData.service_price
+    const [selectedService, setSelectedService] = useState(initialData?.service_id ? { _id: initialData.service_id, service_name: initialData.service_name } : null);
+    const [selectedSubService, setSelectedSubService] = useState(initialData?.sub_service_id ? {
+        _id: initialData.sub_service_id,
+        sub_service_name: initialData.sub_service_name,
+        min_price: initialData.service_price
     } : null);
 
     // --- Date Time Picker Logic ---
@@ -48,34 +51,61 @@ const ServiceDateTimeStep = ({ onSelect, initialData }) => {
 
     useEffect(() => {
         let isMounted = true;
-        const fetchServices = async () => {
+        const fetchData = async () => {
             try {
                 setLoading(true);
-                const response = await serviceService.getAllServices({ filter: 'AVAILABLE', limit: 100 });
+                // 1. Lấy tất cả dịch vụ cha đang công tác
+                const parentRes = await serviceService.getAllServices({ filter: 'AVAILABLE', limit: 100 });
                 if (!isMounted) return;
-                const data = response?.data || [];
-                setServices(data.filter(s => s.status === 'AVAILABLE'));
+                const parents = (parentRes?.data || []).filter(s => s.status === 'AVAILABLE');
+                setServices(parents);
+
+                // 2. Lấy tất cả gói dịch vụ của các dịch vụ cha này
+                const subPromises = parents.map(p => serviceService.getSubServicesByParent(p._id));
+                const subResponses = await Promise.all(subPromises);
+                
+                const allSubs = subResponses.flatMap(res => res?.data || []);
+                setSubServices(allSubs);
+                
+                // Nếu có data ban đầu, set activeParent
+                if (initialData?.service_id) {
+                    setActiveParent(initialData.service_id);
+                } else if (parents.length > 0) {
+                    setActiveParent(parents[0]._id);
+                }
+
             } catch (err) {
                 if (isMounted) setError("Không thể tải danh sách dịch vụ.");
+                console.error("Fetch booking items error:", err);
             } finally {
                 if (isMounted) setLoading(false);
             }
         };
-        fetchServices();
+        fetchData();
         return () => { isMounted = false; };
     }, []);
 
     useEffect(() => {
-        setFilteredServices(services.filter(s =>
-            s.service_name.toLowerCase().includes(searchTerm.toLowerCase())
-        ));
-    }, [searchTerm, services]);
+        let filtered = subServices;
+        
+        // Lọc theo search term
+        if (searchTerm) {
+            filtered = filtered.filter(s => 
+                s.sub_service_name.toLowerCase().includes(searchTerm.toLowerCase())
+            );
+        } else if (activeParent) {
+            // Nếu không search thì lọc theo danh mục đang chọn
+            filtered = filtered.filter(s => s.parent_id === activeParent);
+        }
+        
+        setFilteredSubServices(filtered);
+    }, [searchTerm, subServices, activeParent]);
 
     const formatCurrency = (amount) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
 
     const handleContinue = () => {
-        if (selectedService && selectedDate && selectedTime) {
-            onSelect(selectedService, selectedDate, selectedTime);
+        if (selectedService && selectedSubService && selectedDate && selectedTime) {
+            onSelect(selectedService, selectedSubService, selectedDate, selectedTime);
         }
     };
 
@@ -100,21 +130,45 @@ const ServiceDateTimeStep = ({ onSelect, initialData }) => {
                         />
                     </div>
 
+                    {/* Parent Service Categories (Tabs) */}
+                    {!searchTerm && (
+                        <div className="flex gap-2 overflow-x-auto pb-2 mb-4 scrollbar-hide no-scrollbar">
+                            {services.map(p => (
+                                <button
+                                    key={p._id}
+                                    onClick={() => setActiveParent(p._id)}
+                                    className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all ${
+                                        activeParent === p._id ? 'bg-primary-600 text-white shadow-md' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                    }`}
+                                >
+                                    {p.service_name}
+                                </button>
+                            ))}
+                        </div>
+                    )}
+
                     <div className="grid gap-3 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
                         {loading ? (
                             <div className="flex flex-col items-center py-8"><Loader2 className="animate-spin text-primary-600 mb-2" /></div>
-                        ) : filteredServices.map(s => (
+                        ) : filteredSubServices.length === 0 ? (
+                            <div className="text-center py-8 text-gray-500 text-sm">Không tìm thấy gói dịch vụ nào</div>
+                        ) : filteredSubServices.map(s => (
                             <div
                                 key={s._id}
-                                onClick={() => setSelectedService(s)}
+                                onClick={() => {
+                                    setSelectedSubService(s);
+                                    const parent = services.find(p => p._id === s.parent_id);
+                                    if (parent) setSelectedService(parent);
+                                }}
                                 className={`p-4 rounded-xl border-2 transition-all cursor-pointer ${
-                                    selectedService?._id === s._id ? 'border-primary-500 bg-primary-50 ring-1 ring-primary-500' : 'border-gray-100 hover:border-gray-300 bg-white'
+                                    selectedSubService?._id === s._id ? 'border-primary-500 bg-primary-50 ring-1 ring-primary-500' : 'border-gray-100 hover:border-gray-300 bg-white'
                                 }`}
                             >
-                                <div className="font-semibold text-gray-900 mb-1">{s.service_name}</div>
-                                <div className="flex justify-between text-xs font-medium">
-                                    <span className="text-gray-500 flex items-center gap-1"><Clock size={14} /> {s.duration} phút</span>
-                                    <span className="text-primary-600">{formatCurrency(s.price)}</span>
+                                <div className="font-semibold text-gray-900 mb-1">{s.sub_service_name}</div>
+                                <div className="text-xs text-gray-500 mb-2 line-clamp-1">{s.description || 'Gói dịch vụ cao cấp'}</div>
+                                <div className="flex justify-between text-xs font-bold">
+                                    <span className="text-gray-400 font-medium flex items-center gap-1"><Clock size={14} /> {s.duration} phút</span>
+                                    <span className="text-primary-600">{formatCurrency(s.min_price)}</span>
                                 </div>
                             </div>
                         ))}
@@ -161,11 +215,11 @@ const ServiceDateTimeStep = ({ onSelect, initialData }) => {
                         </div>
                     </div>
 
-                    {selectedService && selectedDate && selectedTime && (
+                    {selectedSubService && selectedDate && selectedTime && (
                         <div className="p-4 bg-green-50 border border-green-100 rounded-xl">
                             <h4 className="text-sm font-bold text-green-800 mb-1">Tóm tắt lựa chọn:</h4>
-                            <p className="text-xs text-green-700 leading-tight">
-                                {selectedService.service_name} • {selectedDate} lúc {selectedTime}
+                            <p className="text-xs text-green-700 leading-tight font-medium">
+                                {selectedService?.service_name} - {selectedSubService.sub_service_name} • {selectedDate} lúc {selectedTime}
                             </p>
                         </div>
                     )}
@@ -174,7 +228,7 @@ const ServiceDateTimeStep = ({ onSelect, initialData }) => {
 
             <button
                 onClick={handleContinue}
-                disabled={!selectedService || !selectedDate || !selectedTime}
+                disabled={!selectedSubService || !selectedDate || !selectedTime}
                 className="w-full py-4 bg-primary-600 text-white rounded-xl font-bold text-lg hover:bg-primary-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-xl active:scale-[0.98]"
             >
                 Tiếp tục xác nhận

@@ -62,8 +62,10 @@ const BookingFormStep = ({ bookingData, onSubmit, user }) => {
                     <div className="flex items-start gap-3">
                         <FileText size={20} className="text-primary-600 mt-0.5" />
                         <div>
-                            <div className="text-sm text-gray-600">Dịch vụ</div>
-                            <div className="font-medium text-gray-900">{bookingData.service_name}</div>
+                            <div className="text-sm text-gray-600">Dịch vụ & Gói khám</div>
+                            <div className="font-medium text-gray-900">
+                                {bookingData.service_name} - <span className="text-primary-600 font-bold">{bookingData.sub_service_name}</span>
+                            </div>
                         </div>
                     </div>
 

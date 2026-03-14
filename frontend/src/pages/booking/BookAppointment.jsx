@@ -30,6 +30,8 @@ const BookAppointment = () => {
     const [bookingData, setBookingData] = useState({
         service_id: null,
         service_name: '',
+        sub_service_id: null,
+        sub_service_name: '',
         service_price: 0,
         date: '',
         time: '',
@@ -39,12 +41,14 @@ const BookAppointment = () => {
     // Effect: Kiểm tra nếu có service truyền qua từ trang ServiceDetail
     useEffect(() => {
         if (location.state?.service && currentStep === 1) {
-            const { service } = location.state;
+            const { service, subService } = location.state;
             setBookingData(prev => ({
                 ...prev,
                 service_id: service._id,
                 service_name: service.service_name,
-                service_price: service.price
+                sub_service_id: subService?._id || null,
+                sub_service_name: subService?.sub_service_name || '',
+                service_price: subService ? (subService.min_price === subService.max_price ? subService.min_price : subService.min_price) : service.price
             }));
             setCurrentStep(2);
         }
@@ -59,12 +63,14 @@ const BookAppointment = () => {
     const prevStep = () => setCurrentStep(prev => Math.max(prev - 1, 1));
 
     // Handle combined service + date/time selection
-    const handleCombinedSelect = (service, date, time) => {
+    const handleCombinedSelect = (service, subService, date, time) => {
         setBookingData({
             ...bookingData,
             service_id: service._id,
             service_name: service.service_name,
-            service_price: service.price,
+            sub_service_id: subService._id,
+            sub_service_name: subService.sub_service_name,
+            service_price: subService.min_price, // Ưu tiên giá tối thiểu của gói
             date,
             time
         });
@@ -102,6 +108,7 @@ const BookAppointment = () => {
                 book_service: [
                     {
                         service_id: bookingData.service_id,
+                        sub_service_id: bookingData.sub_service_id,
                         unit_price: bookingData.service_price
                     }
                 ]
