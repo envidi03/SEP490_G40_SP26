@@ -1,12 +1,40 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { LogIn, Calendar, ChevronDown, LogOut, User as UserIcon, FileText } from 'lucide-react';
 import { useAuth } from '../../../../contexts/AuthContext';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { getProfile } from '../../../../services/profileService';
+import serviceService from '../../../../services/serviceService';
 
 const MainNavigation = () => {
     const { isAuthenticated, user, logout } = useAuth();
     const [showProfileMenu, setShowProfileMenu] = useState(false);
+    const [showServicesMenu, setShowServicesMenu] = useState(false);
+    const [services, setServices] = useState([]);
     const navigate = useNavigate();
+    const [avatarUrl, setAvatarUrl] = useState('');
+
+    // Fetch avatar khi user đã đăng nhập
+    useEffect(() => {
+        if (isAuthenticated) {
+            getProfile()
+                .then((res) => {
+                    setAvatarUrl(res.data?.avatar_url || '');
+                })
+        }
+    }, [isAuthenticated]);
+
+    // Fetch services cho dropdown
+    useEffect(() => {
+        const fetchServices = async () => {
+            try {
+                const res = await serviceService.getAllServices({ limit: 100, filter: 'AVAILABLE' });
+                setServices(res?.data || []);
+            } catch (err) {
+                console.error('Fetch services navbar error:', err);
+            }
+        };
+        fetchServices();
+    }, []);
 
     const handleLogout = async () => {
         await logout();
@@ -49,25 +77,54 @@ const MainNavigation = () => {
                         Bảng giá
                     </Link>
 
-                    <div className="relative group">
-                        <Link
-                            to="/pricing"
-                            className="px-3 py-2 text-sm font-medium text-gray-700 hover:text-primary-600 hover:bg-gray-50 rounded-md transition-all flex items-center gap-1"
+                    {/* Services Dropdown */}
+                    <div 
+                        className="relative group"
+                        onMouseEnter={() => setShowServicesMenu(true)}
+                        onMouseLeave={() => setShowServicesMenu(false)}
+                    >
+                        <button
+                            className={`flex items-center gap-1 px-3 py-2 text-sm font-medium rounded-md transition-all ${
+                                showServicesMenu ? 'text-primary-600 bg-gray-50' : 'text-gray-700 hover:text-primary-600 hover:bg-gray-50'
+                            }`}
                         >
                             Dịch vụ
-                            <ChevronDown size={14} className="group-hover:rotate-180 transition-transform" />
-                        </Link>
-                        {/* Dropdown */}
-                        <div className="absolute left-0 top-full mt-1 w-56 bg-white rounded-lg shadow-lg border border-gray-100 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
-                            <div className="py-1">
-                                <Link to="/pricing" className="block px-4 py-2.5 text-sm text-gray-700 hover:bg-primary-50 hover:text-primary-600 transition-colors">Nha Khoa Tổng Quát</Link>
-                                <Link to="/service/rang-su-emax" className="block px-4 py-2.5 text-sm text-gray-700 hover:bg-primary-50 hover:text-primary-600 transition-colors">Nha Khoa Thẩm Mỹ</Link>
-                                <Link to="/service/nieng-rang-mac-cai-kim-loai" className="block px-4 py-2.5 text-sm text-gray-700 hover:bg-primary-50 hover:text-primary-600 transition-colors">Niềng Răng</Link>
-                                <Link to="/service/implant-straumann-slactive" className="block px-4 py-2.5 text-sm text-gray-700 hover:bg-primary-50 hover:text-primary-600 transition-colors">Cấy Ghép Implant</Link>
-                                <Link to="/pricing" className="block px-4 py-2.5 text-sm text-gray-700 hover:bg-primary-50 hover:text-primary-600 transition-colors">Nha Khoa Trẻ Em</Link>
-                                <Link to="/pricing" className="block px-4 py-2.5 text-sm text-gray-700 hover:bg-primary-50 hover:text-primary-600 transition-colors">Điều Trị Tủy</Link>
+                            <ChevronDown size={14} className={`transition-transform duration-200 ${showServicesMenu ? 'rotate-180' : ''}`} />
+                        </button>
+
+                        {/* Dropdown Menu */}
+                        {showServicesMenu && (
+                            <div className="absolute left-0 top-full w-64 bg-white rounded-lg shadow-xl border border-gray-100 py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                                <div className="px-4 py-2 border-b border-gray-50 mb-1">
+                                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Danh mục dịch vụ</p>
+                                </div>
+                                <div className="max-h-80 overflow-y-auto custom-scrollbar">
+                                    {services.length > 0 ? (
+                                        services.map((svc) => (
+                                            <Link
+                                                key={svc._id}
+                                                to={`/services?parentId=${svc._id}`}
+                                                className="block px-4 py-2.5 text-sm text-gray-700 hover:bg-primary-50 hover:text-primary-700 transition-colors"
+                                                onClick={() => setShowServicesMenu(false)}
+                                            >
+                                                {svc.service_name}
+                                            </Link>
+                                        ))
+                                    ) : (
+                                        <div className="px-4 py-3 text-sm text-gray-400 italic">Đang tải...</div>
+                                    )}
+                                </div>
+                                <div className="border-t border-gray-50 mt-1 pt-1">
+                                    <Link
+                                        to="/services"
+                                        className="block px-4 py-2 text-sm font-semibold text-primary-600 hover:bg-primary-50 transition-colors"
+                                        onClick={() => setShowServicesMenu(false)}
+                                    >
+                                        Tất cả dịch vụ →
+                                    </Link>
+                                </div>
                             </div>
-                        </div>
+                        )}
                     </div>
 
                     <Link
@@ -103,8 +160,20 @@ const MainNavigation = () => {
                                     onClick={() => setShowProfileMenu(!showProfileMenu)}
                                     className="flex items-center gap-2 p-1 rounded-full hover:bg-gray-100 transition-all"
                                 >
-                                    <div className="w-10 h-10 bg-gradient-to-br from-primary-500 to-primary-600 rounded-full flex items-center justify-center text-white font-semibold shadow-md">
-                                        {user?.name?.charAt(0) || 'U'}
+                                    <div className="w-10 h-10 rounded-full overflow-hidden shadow-md">
+                                        {avatarUrl ? (
+                                            <img
+                                                src={avatarUrl}
+                                                alt="Avatar"
+                                                className="w-full h-full object-cover"
+                                            />
+                                        ) : (
+                                            <div className="w-full h-full bg-primary-50 border border-primary-200 flex items-center justify-center">
+                                                <span className="text-primary-700 font-bold text-lg">
+                                                    {user?.name?.charAt(0)?.toUpperCase() || 'A'}
+                                                </span>
+                                            </div>
+                                        )}
                                     </div>
                                 </button>
 

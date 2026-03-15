@@ -7,7 +7,8 @@ import {
     ClipboardList,
     LogOut,
     User,
-    Store
+    Store,
+    Calendar
 } from 'lucide-react';
 import clsx from 'clsx';
 import { useAuth } from '../../contexts/AuthContext';
@@ -22,6 +23,7 @@ const PharmacyTopNav = () => {
         { path: '/pharmacy/inventory', icon: Package, label: 'Nhập/Xuất' },
         { path: '/pharmacy/prescriptions', icon: FileText, label: 'Đơn Thuốc' },
         { path: '/pharmacy/requests', icon: ClipboardList, label: 'Yêu Cầu' },
+        { path: '/pharmacy/leave-requests', icon: Calendar, label: 'Nghỉ Phép' },
     ];
 
     return (

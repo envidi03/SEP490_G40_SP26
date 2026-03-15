@@ -6,13 +6,17 @@ const dentalRecordSchema = new Schema(
         // --- KHÓA NGOẠI (FOREIGN KEYS) ---
         patient_id: {
             type: Schema.Types.ObjectId,
-            ref: "Patient", 
+            ref: "Patient",
             required: true
         },
         created_by: {
             type: Schema.Types.ObjectId,
-            ref: "Staff", 
+            ref: "Staff",
             required: true
+        },
+        appointment_id: {
+            type: Schema.Types.ObjectId,
+            ref: "Appointment",
         },
 
         // --- THÔNG TIN CÁ NHÂN (Snapshot tại thời điểm tạo) ---
@@ -22,7 +26,7 @@ const dentalRecordSchema = new Schema(
             trim: true,
             set: (value) => {
                 if (value) {
-                    return value.replace(/\s+/g, ' '); 
+                    return value.replace(/\s+/g, ' ');
                 }
                 return value;
             }
@@ -38,7 +42,7 @@ const dentalRecordSchema = new Schema(
             lowercase: true
         },
         gender: {
-            type: Boolean 
+            type: Boolean
         },
         dob: {
             type: Date
@@ -51,7 +55,7 @@ const dentalRecordSchema = new Schema(
             trim: true,
             set: (value) => {
                 if (value) {
-                    return value.replace(/\s+/g, ' '); 
+                    return value.replace(/\s+/g, ' ');
                 }
                 return value;
             }
@@ -66,7 +70,7 @@ const dentalRecordSchema = new Schema(
         },
         start_date: {
             type: Date,
-            default: Date.now 
+            default: Date.now
         },
         end_date: {
             type: Date
@@ -82,9 +86,9 @@ const dentalRecordSchema = new Schema(
             default: 'IN_PROGRESS'
         }
     },
-    { 
-        timestamps: true, 
-        collection: "dental_records" 
+    {
+        timestamps: true,
+        collection: "dental_records"
     }
 );
 

@@ -1,14 +1,35 @@
-import React, { useState } from 'react';
-import { ClipboardList, Calendar, Clock, FileText, DollarSign } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { ClipboardList, Calendar, Clock, FileText, DollarSign, User, Phone, Mail } from 'lucide-react';
 
-const BookingFormStep = ({ bookingData, onSubmit }) => {
+const BookingFormStep = ({ bookingData, onSubmit, user }) => {
+    // Determine initial values safely
+    const initialName = user?.profile?.full_name || user?.username || user?.full_name || '';
+    const initialPhone = user?.profile?.phone_number || user?.phone_number || user?.phone || '';
+    const initialEmail = user?.email || '';
+
+    const [fullName, setFullName] = useState(initialName);
+    const [phone, setPhone] = useState(initialPhone);
+    const [email, setEmail] = useState(initialEmail);
     const [reason, setReason] = useState('');
-    const [notes, setNotes] = useState('');
+
+    // Pre-fill if user object loads asynchronously later
+    useEffect(() => {
+        if (user) {
+            setFullName(user?.profile?.full_name || user?.username || user?.full_name || '');
+            setPhone(user?.profile?.phone_number || user?.phone_number || user?.phone || '');
+            setEmail(user?.email || '');
+        }
+    }, [user]);
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        if (reason.trim()) {
-            onSubmit(reason, notes);
+        if (reason.trim() && fullName.trim() && phone.trim() && email.trim()) {
+            onSubmit({
+                reason: reason.trim(),
+                full_name: fullName.trim(),
+                phone: phone.trim(),
+                email: email.trim()
+            });
         }
     };
 
@@ -41,8 +62,10 @@ const BookingFormStep = ({ bookingData, onSubmit }) => {
                     <div className="flex items-start gap-3">
                         <FileText size={20} className="text-primary-600 mt-0.5" />
                         <div>
-                            <div className="text-sm text-gray-600">Dịch vụ</div>
-                            <div className="font-medium text-gray-900">{bookingData.service_name}</div>
+                            <div className="text-sm text-gray-600">Dịch vụ & Gói khám</div>
+                            <div className="font-medium text-gray-900">
+                                {bookingData.service_name} - <span className="text-primary-600 font-bold">{bookingData.sub_service_name}</span>
+                            </div>
                         </div>
                     </div>
 
@@ -76,6 +99,60 @@ const BookingFormStep = ({ bookingData, onSubmit }) => {
 
             {/* Form */}
             <form onSubmit={handleSubmit} className="space-y-6">
+
+                {/* User Info Fields */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-b border-gray-100 pb-6 mb-6">
+                    <div className="md:col-span-2">
+                        <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                            <User size={18} className="text-primary-600" />
+                            Họ và Tên (Người khám) <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                            type="text"
+                            value={fullName}
+                            onChange={(e) => setFullName(e.target.value)}
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                            placeholder="Nhập họ tên người khám bệnh"
+                            required
+                        />
+                    </div>
+
+                    <div>
+                        <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                            <Phone size={18} className="text-primary-600" />
+                            Số điện thoại <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                            type="tel"
+                            value={phone}
+                            onChange={(e) => setPhone(e.target.value)}
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                            placeholder="Số điện thoại liên hệ"
+                            required
+                        />
+                    </div>
+
+                    <div>
+                        <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                            <Mail size={18} className="text-primary-600" />
+                            Email <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                            type="email"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                            placeholder="Email nhận thông báo"
+                            required
+                        />
+                    </div>
+                    <div className="md:col-span-2 mt-1">
+                        <p className="text-sm text-gray-500 italic">
+                            * Gợi ý: Thông tin trên đã được tự động điền sẵn từ tài khoản của bạn. Tuy nhiên, bạn hoàn toàn có thể thay đổi các thông tin này nếu đang **đặt lịch khám hộ** cho người thân (Con cái, Cha mẹ, Bạn bè).
+                        </p>
+                    </div>
+                </div>
+
                 {/* Reason */}
                 <div>
                     <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
@@ -95,25 +172,11 @@ const BookingFormStep = ({ bookingData, onSubmit }) => {
                     </p>
                 </div>
 
-                {/* Notes (Optional) */}
-                <div>
-                    <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                        <ClipboardList size={18} className="text-gray-400" />
-                        Ghi chú thêm (không bắt buộc)
-                    </label>
-                    <textarea
-                        value={notes}
-                        onChange={(e) => setNotes(e.target.value)}
-                        placeholder="Thông tin bổ sung (tiền sử bệnh, dị ứng thuốc, ...)"
-                        rows={3}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 resize-none"
-                    />
-                </div>
 
                 {/* Submit Button */}
                 <button
                     type="submit"
-                    disabled={!reason.trim()}
+                    disabled={!reason.trim() || !fullName.trim() || !phone.trim() || !email.trim()}
                     className="w-full px-6 py-4 bg-gradient-to-r from-primary-600 to-primary-700 text-white rounded-lg font-semibold hover:shadow-lg disabled:bg-gray-300 disabled:cursor-not-allowed transition-all text-lg"
                 >
                     Xác nhận đặt lịch

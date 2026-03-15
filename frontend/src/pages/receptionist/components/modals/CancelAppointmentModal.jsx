@@ -7,10 +7,9 @@ const CancelAppointmentModal = ({ appointment, isOpen, onClose, onConfirm }) => 
         e.preventDefault();
         const formData = new FormData(e.target);
         const reason = formData.get('reason');
-        // TODO: Call API to cancel appointment
-        console.log('Cancelling appointment:', appointment.id, reason);
+        // Call API to cancel appointment
         if (onConfirm) {
-            onConfirm(appointment.id, reason);
+            onConfirm(appointment._id, reason);
         }
         onClose();
     };
@@ -34,11 +33,11 @@ const CancelAppointmentModal = ({ appointment, isOpen, onClose, onConfirm }) => 
                 </div>
 
                 <div className="mb-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
-                    <p className="text-sm font-medium text-gray-900">{appointment.patientName}</p>
+                    <p className="text-sm font-medium text-gray-900">{appointment.full_name}</p>
                     <p className="text-sm text-gray-600 mt-1">
-                        {appointment.date} - {appointment.time}
+                        {new Date(appointment.appointment_date).toLocaleDateString('vi-VN')} - {appointment.appointment_time}
                     </p>
-                    <p className="text-sm text-gray-600">Bác sĩ: {appointment.doctorName}</p>
+                    <p className="text-sm text-gray-600">Bác sĩ: Tùy chọn bác sĩ</p>
                 </div>
 
                 <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">

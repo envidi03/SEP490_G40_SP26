@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import PublicLayout from '../../components/layout/PublicLayout';
 import Breadcrumb from '../../components/ui/Breadcrumb';
@@ -33,7 +33,7 @@ const SkeletonRow = () => (
         <td className="px-4 py-3"><div className="h-4 bg-gray-200 rounded w-3/4" /></td>
         <td className="px-4 py-3"><div className="h-4 bg-gray-200 rounded w-1/2" /></td>
         <td className="px-4 py-3"><div className="h-4 bg-gray-200 rounded w-1/4" /></td>
-        <td className="px-4 py-3"><div className="h-4 bg-gray-200 rounded w-12 mx-auto" /></td>
+        <td className="px-4 py-3"><div className="h-4 bg-gray-200 rounded w-20 mx-auto" /></td>
     </tr>
 );
 
@@ -42,7 +42,21 @@ const ServicesPricing = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [search, setSearch] = useState('');
-    const [statusFilter, setStatusFilter] = useState('AVAILABLE');
+    const [isOpen, setIsOpen] = useState(false);
+    const [selectedServiceId, setSelectedServiceId] = useState('all');
+    const [dropdownSearch, setDropdownSearch] = useState('');
+    const dropdownRef = useRef(null);
+
+    // Handle click outside to close dropdown
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+                setIsOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
 
     // Fetch toàn bộ services từ API (không phân trang, lấy limit lớn)
     useEffect(() => {
@@ -53,12 +67,13 @@ const ServicesPricing = () => {
                 const response = await serviceService.getAllServices({
                     limit: 100,
                     page: 1,
-                    status: statusFilter || undefined,
+                    filter: 'AVAILABLE',
                     search: search || undefined,
                 });
                 // response từ apiClient đã unwrap .data (interceptor trả response.data)
                 // shape: { status, data: [...], pagination: {...} }
-                setServices(response?.data || []);
+                const availableServices = (response?.data || []).filter(s => s.status === 'AVAILABLE');
+                setServices(availableServices);
             } catch (err) {
                 setError('Không thể tải danh sách dịch vụ. Vui lòng thử lại sau.');
                 console.error('Fetch services error:', err);
@@ -68,12 +83,23 @@ const ServicesPricing = () => {
         };
 
         fetchServices();
-    }, [search, statusFilter]);
+    }, [search]);
 
-    // Lọc trên client theo search nếu cần
-    const filteredServices = services.filter((s) =>
-        s.service_name?.toLowerCase().includes(search.toLowerCase())
+    // Lọc trên client theo search nếu cần (cho bảng)
+    const filteredServices = services.filter((s) => {
+        const matchesSearch = s.service_name?.toLowerCase().includes(search.toLowerCase());
+        const matchesSelected = selectedServiceId === 'all' || s._id === selectedServiceId;
+        return matchesSearch && matchesSelected;
+    });
+
+    // Lọc danh sách dịch vụ cha trong dropdown
+    const dropdownFilteredServices = services.filter(s => 
+        s.service_name?.toLowerCase().includes(dropdownSearch.toLowerCase())
     );
+
+    const selectedServiceName = selectedServiceId === 'all' 
+        ? 'Tất cả dịch vụ' 
+        : services.find(s => s._id === selectedServiceId)?.service_name || 'Tất cả dịch vụ';
 
     return (
         <PublicLayout>
@@ -93,154 +119,219 @@ const ServicesPricing = () => {
                     </h1>
 
                     {/* Filters */}
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-6">
-                        {/* Search */}
-                        <div className="flex-1 w-full sm:max-w-sm">
-                            <input
-                                type="text"
-                                placeholder="Tìm kiếm dịch vụ..."
-                                value={search}
-                                onChange={(e) => setSearch(e.target.value)}
-                                className="w-full px-4 py-2.5 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white text-gray-900"
-                            />
-                        </div>
-
-                        {/* Status Filter */}
-                        <div className="flex items-center gap-2">
-                            <label className="text-sm font-medium text-gray-700 whitespace-nowrap">
-                                Trạng thái:
-                            </label>
-                            <select
-                                value={statusFilter}
-                                onChange={(e) => setStatusFilter(e.target.value)}
-                                className="px-3 py-2.5 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 bg-white text-gray-900 text-sm"
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-8">
+                        <span className="text-gray-700 font-medium min-w-[120px]">Chọn dịch vụ</span>
+                        
+                        <div className="relative flex-1 w-full sm:max-w-md" ref={dropdownRef}>
+                            {/* Dropdown Trigger */}
+                            <button
+                                onClick={() => setIsOpen(!isOpen)}
+                                className="w-full flex items-center justify-between px-6 py-3 bg-white border border-gray-200 rounded-full shadow-sm hover:border-primary-400 transition-all text-left"
                             >
-                                <option value="">Tất cả</option>
-                                <option value="AVAILABLE">Đang cung cấp</option>
-                                <option value="UNAVAILABLE">Tạm ngưng</option>
-                            </select>
+                                <span className="text-gray-800 font-medium">{selectedServiceName}</span>
+                                <svg 
+                                    className={`w-5 h-5 text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} 
+                                    fill="none" 
+                                    stroke="currentColor" 
+                                    viewBox="0 0 24 24"
+                                >
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </button>
+
+                            {/* Dropdown Menu */}
+                            {isOpen && (
+                                <div className="absolute z-50 w-full mt-2 bg-white border border-gray-100 rounded-xl shadow-xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                                    <div className="p-3 border-b border-gray-50">
+                                        <div className="relative">
+                                            <input
+                                                type="text"
+                                                placeholder="Tìm kiếm dịch vụ..."
+                                                value={dropdownSearch}
+                                                onChange={(e) => setDropdownSearch(e.target.value)}
+                                                autoFocus
+                                                className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm outline-none"
+                                            />
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="max-h-72 overflow-y-auto py-2 px-2 custom-scrollbar">
+                                        <button
+                                            onClick={() => {
+                                                setSelectedServiceId('all');
+                                                setIsOpen(false);
+                                                setDropdownSearch('');
+                                            }}
+                                            className={`w-full text-left px-4 py-2.5 rounded-lg text-sm transition-colors mb-1 ${
+                                                selectedServiceId === 'all' 
+                                                    ? 'bg-primary-600 text-white font-medium' 
+                                                    : 'text-gray-700 hover:bg-gray-50'
+                                            }`}
+                                        >
+                                            Tất cả dịch vụ
+                                        </button>
+                                        
+                                        {dropdownFilteredServices.map((s) => (
+                                            <button
+                                                key={s._id}
+                                                onClick={() => {
+                                                    setSelectedServiceId(s._id);
+                                                    setIsOpen(false);
+                                                    setDropdownSearch('');
+                                                }}
+                                                className={`w-full text-left px-4 py-2.5 rounded-lg text-sm transition-colors mb-1 ${
+                                                    selectedServiceId === s._id 
+                                                        ? 'bg-primary-600 text-white font-medium' 
+                                                        : 'text-gray-700 hover:bg-gray-50'
+                                                }`}
+                                            >
+                                                {s.service_name}
+                                            </button>
+                                        ))}
+
+                                        {dropdownFilteredServices.length === 0 && (
+                                            <div className="px-4 py-6 text-center text-gray-500 text-sm italic">
+                                                Không tìm thấy dịch vụ nào
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
 
                     {/* Content Grid */}
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                        {/* Table Section */}
-                        <div className="lg:col-span-2">
-                            <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-                                {/* Table Header */}
-                                <div className="bg-[#3b4a7a] text-white px-4 py-3 flex items-center justify-between">
-                                    <h2 className="font-semibold">Danh sách dịch vụ</h2>
-                                    {!loading && (
-                                        <span className="text-sm text-blue-200">
-                                            {filteredServices.length} dịch vụ
-                                        </span>
-                                    )}
-                                </div>
-
-                                <div className="overflow-x-auto">
-                                    <table className="w-full">
-                                        <thead className="bg-[#5a6a94] text-white text-sm">
-                                            <tr>
-                                                <th className="px-4 py-2 text-left font-medium">Tên dịch vụ</th>
-                                                <th className="px-4 py-2 text-left font-medium">Giá</th>
-                                                <th className="px-4 py-2 text-left font-medium w-24">Thời gian</th>
-                                                <th className="px-4 py-2 text-left font-medium w-28">Trạng thái</th>
-                                                <th className="px-4 py-2 text-center font-medium w-20"></th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {/* Loading State */}
-                                            {loading && (
-                                                <>
-                                                    {[...Array(6)].map((_, i) => (
-                                                        <SkeletonRow key={i} />
-                                                    ))}
-                                                </>
-                                            )}
-
-                                            {/* Error State */}
-                                            {!loading && error && (
+                        {/* Tables Section */}
+                        <div className="lg:col-span-2 space-y-8">
+                            {/* Loading State */}
+                            {loading && (
+                                <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+                                    <div className="bg-[#3b4a7a] text-white px-4 py-3">
+                                        <div className="h-5 bg-blue-400 rounded w-1/4 animate-pulse" />
+                                    </div>
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full">
+                                            <thead className="bg-[#5a6a94] text-white text-sm">
                                                 <tr>
-                                                    <td colSpan={5} className="px-4 py-12 text-center">
-                                                        <div className="text-red-500 mb-2 text-2xl">⚠️</div>
-                                                        <p className="text-red-600 font-medium">{error}</p>
-                                                        <button
-                                                            onClick={() => setStatusFilter(statusFilter)} // trigger re-fetch
-                                                            className="mt-3 text-sm text-primary-600 hover:underline"
-                                                        >
-                                                            Thử lại
-                                                        </button>
-                                                    </td>
+                                                    <th className="px-4 py-2 text-left font-medium">Tên dịch vụ</th>
+                                                    <th className="px-4 py-2 text-left font-medium">Giá</th>
+                                                    <th className="px-4 py-2 text-left font-medium w-24">Thời gian</th>
+                                                    <th className="px-4 py-2 text-center font-medium w-20"></th>
                                                 </tr>
-                                            )}
-
-                                            {/* Empty State */}
-                                            {!loading && !error && filteredServices.length === 0 && (
-                                                <tr>
-                                                    <td colSpan={5} className="px-4 py-12 text-center">
-                                                        <div className="text-gray-400 text-3xl mb-2">🦷</div>
-                                                        <p className="text-gray-500">
-                                                            {search
-                                                                ? `Không tìm thấy dịch vụ nào với từ khóa "${search}"`
-                                                                : 'Chưa có dịch vụ nào được đăng ký'}
-                                                        </p>
-                                                    </td>
-                                                </tr>
-                                            )}
-
-                                            {/* Data Rows */}
-                                            {!loading && !error &&
-                                                filteredServices.map((service, idx) => (
-                                                    <tr
-                                                        key={service._id || idx}
-                                                        className="border-b border-gray-200 hover:bg-gray-50 transition-colors"
-                                                    >
-                                                        <td className="px-4 py-3 text-sm text-gray-900">
-                                                            <div className="flex items-center gap-2">
-                                                                {service.icon && (
-                                                                    <img
-                                                                        src={service.icon}
-                                                                        alt=""
-                                                                        className="w-8 h-8 rounded object-cover flex-shrink-0"
-                                                                    />
-                                                                )}
-                                                                <span>{service.service_name}</span>
-                                                            </div>
-                                                        </td>
-                                                        <td className="px-4 py-3 text-sm font-semibold text-primary-700">
-                                                            {formatPrice(service.price)}
-                                                        </td>
-                                                        <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">
-                                                            {service.duration
-                                                                ? `${service.duration} phút`
-                                                                : '—'}
-                                                        </td>
-                                                        <td className="px-4 py-3">
-                                                            <span
-                                                                className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${service.status === 'AVAILABLE'
-                                                                        ? 'bg-green-100 text-green-700'
-                                                                        : 'bg-red-100 text-red-600'
-                                                                    }`}
-                                                            >
-                                                                {service.status === 'AVAILABLE'
-                                                                    ? 'Đang cung cấp'
-                                                                    : 'Tạm ngưng'}
-                                                            </span>
-                                                        </td>
-                                                        <td className="px-4 py-3 text-center">
-                                                            <Link
-                                                                to={`/service/${service._id || toUrlFriendly(service.service_name)}`}
-                                                                className="text-primary-600 hover:text-primary-700 font-medium text-sm hover:underline"
-                                                            >
-                                                                Chi tiết
-                                                            </Link>
-                                                        </td>
-                                                    </tr>
+                                            </thead>
+                                            <tbody>
+                                                {[...Array(6)].map((_, i) => (
+                                                    <SkeletonRow key={i} />
                                                 ))}
-                                        </tbody>
-                                    </table>
+                                            </tbody>
+                                        </table>
+                                    </div>
                                 </div>
-                            </div>
+                            )}
+
+                            {/* Error State */}
+                            {!loading && error && (
+                                <div className="bg-white rounded-lg shadow-sm overflow-hidden p-12 text-center">
+                                    <div className="text-red-500 mb-2 text-2xl">⚠️</div>
+                                    <p className="text-red-600 font-medium">{error}</p>
+                                    <button
+                                        onClick={() => setSearch(search)}
+                                        className="mt-3 text-sm text-primary-600 hover:underline"
+                                    >
+                                        Thử lại
+                                    </button>
+                                </div>
+                            )}
+
+                            {/* Empty State */}
+                            {!loading && !error && filteredServices.length === 0 && (
+                                <div className="bg-white rounded-lg shadow-sm overflow-hidden p-12 text-center">
+                                    <div className="text-gray-400 text-3xl mb-2">🦷</div>
+                                    <p className="text-gray-500">
+                                        {search
+                                            ? `Không tìm thấy dịch vụ nào với từ khóa "${search}"`
+                                            : 'Chưa có dịch vụ nào được đăng ký'}
+                                    </p>
+                                </div>
+                            )}
+
+                            {/* Data Tables */}
+                            {!loading && !error &&
+                                filteredServices.map((service, serviceIdx) => {
+                                    // Use sub_services_data if available, otherwise use the service itself as a single row
+                                    const rows = service.sub_services_data && service.sub_services_data.length > 0 
+                                        ? service.sub_services_data 
+                                        : [service];
+
+                                    return (
+                                        <div key={service._id || serviceIdx} className="bg-white rounded-lg shadow-sm overflow-hidden">
+                                            {/* Table Header: Display Parent Service Name */}
+                                            <div className="bg-[#3b4a7a] text-white px-4 py-3 flex items-center justify-between">
+                                                <h2 className="font-semibold">{service.service_name}</h2>
+                                                <span className="text-sm text-blue-200">
+                                                    {rows.length} dịch vụ
+                                                </span>
+                                            </div>
+
+                                            <div className="overflow-x-auto">
+                                                <table className="w-full">
+                                                    <thead className="bg-[#5a6a94] text-white text-sm">
+                                                        <tr>
+                                                            <th className="px-4 py-2 text-left font-medium">Tên dịch vụ</th>
+                                                            <th className="px-4 py-2 text-left font-medium">Giá</th>
+                                                            <th className="px-4 py-2 text-left font-medium w-24">Thời gian</th>
+                                                            <th className="px-4 py-2 text-center font-medium w-20"></th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {rows.map((row, rowIdx) => (
+                                                            <tr
+                                                                key={row._id || `${serviceIdx}-${rowIdx}`}
+                                                                className="border-b border-gray-200 hover:bg-gray-50 transition-colors"
+                                                            >
+                                                                <td className="px-4 py-3 text-sm text-gray-900">
+                                                                    <div className="flex items-center gap-2">
+                                                                        {(row.icon || service.icon) && (
+                                                                            <img
+                                                                                src={row.icon || service.icon}
+                                                                                alt=""
+                                                                                className="w-8 h-8 rounded object-cover flex-shrink-0"
+                                                                            />
+                                                                        )}
+                                                                        <span>{row.sub_service_name || row.service_name}</span>
+                                                                    </div>
+                                                                </td>
+                                                                <td className="px-4 py-3 text-sm font-semibold text-primary-700">
+                                                                    {row.min_price !== undefined 
+                                                                        ? (row.max_price 
+                                                                            ? `${formatPrice(row.min_price)} - ${formatPrice(row.max_price)}`
+                                                                            : formatPrice(row.min_price)
+                                                                          )
+                                                                        : formatPrice(row.price)
+                                                                    }
+                                                                </td>
+                                                                <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">
+                                                                    {row.duration
+                                                                        ? `${row.duration} phút`
+                                                                        : '—'}
+                                                                </td>
+                                                                <td className="px-4 py-3 text-center">
+                                                                    <Link
+                                                                        to={`/service/${row._id}?type=${service.sub_services_data?.length > 0 ? 'package' : 'service'}`}
+                                                                        className="text-primary-600 hover:text-primary-700 font-medium text-sm hover:underline"
+                                                                    >
+                                                                        Chi tiết
+                                                                    </Link>
+                                                                </td>
+                                                            </tr>
+                                                        ))}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
                         </div>
 
                         {/* Sidebar */}
@@ -249,7 +340,6 @@ const ServicesPricing = () => {
                                 {/* Clinic banner */}
                                 <div className="aspect-video bg-gradient-to-br from-primary-100 to-primary-200 flex items-center justify-center">
                                     <div className="text-center p-6">
-                                        <div className="text-4xl mb-2">🦷</div>
                                         <p className="text-gray-600 text-sm">Phòng khám nha khoa</p>
                                         <p className="text-gray-800 font-semibold">DCMS Dental Clinic</p>
                                     </div>
@@ -269,9 +359,12 @@ const ServicesPricing = () => {
                                                 <p className="font-semibold">1900 8059</p>
                                             </div>
                                         </a>
-                                        <button className="w-full mt-4 px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-semibold">
+                                        <Link
+                                            to="/book-appointment"
+                                            className="block w-full text-center mt-4 px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-semibold"
+                                        >
                                             Đặt lịch ngay
-                                        </button>
+                                        </Link>
                                         <button className="w-full px-6 py-3 border-2 border-primary-600 text-primary-600 rounded-lg hover:bg-primary-50 transition-colors font-semibold">
                                             Chat tư vấn
                                         </button>

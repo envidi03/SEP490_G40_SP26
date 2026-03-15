@@ -1,22 +1,45 @@
-import React, { useState } from 'react';
-import { User, Mail, Phone, Calendar, MapPin, Edit2, Save, X, Camera, ArrowLeft } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { User, Mail, Phone, Calendar, MapPin, Edit2, Save, X, Camera, ArrowLeft, Loader2 } from 'lucide-react';
 import Card from '../../components/ui/Card';
 import Badge from '../../components/ui/Badge';
+import Toast from '../../components/ui/Toast';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import * as profileService from '../../services/profileService';
+import { formatDate, formatDateForInput } from '../../utils/dateUtils';
 
 const ProfilePage = () => {
-    const { user } = useAuth();
+    const { user, updateUser } = useAuth();
     const navigate = useNavigate();
     const [isEditing, setIsEditing] = useState(false);
-    const [avatarPreview, setAvatarPreview] = useState(null);
+    const [isLoading, setIsLoading] = useState(false);
+    const [avatarFile, setAvatarFile] = useState(null);
+    const [avatarPreview, setAvatarPreview] = useState(user?.avatar_url || null);
+    const [toast, setToast] = useState({ show: false, type: 'success', message: '' });
+
     const [formData, setFormData] = useState({
         full_name: user?.full_name || '',
         email: user?.email || '',
-        phone: user?.phone || '0901234567',
-        dob: user?.dob || '1990-01-01',
-        address: user?.address || 'TP. Hồ Chí Minh',
+        phone: user?.phone || '',
+        dob: formatDateForInput(user?.dob),
+        address: user?.address || '',
     });
+
+    useEffect(() => {
+        // Cập nhật formData nếu user data thay đổi từ context
+        if (user && !isEditing) {
+            setFormData({
+                full_name: user.full_name || '',
+                email: user.email || '',
+                phone: user.phone || '',
+                dob: formatDateForInput(user.dob),
+                address: user.address || '',
+            });
+            if (user.avatar_url && !avatarFile) {
+                setAvatarPreview(user.avatar_url);
+            }
+        }
+    }, [user, isEditing, avatarFile]);
 
     const handleInputChange = (e) => {
         const { name, value } = e.target;
@@ -43,29 +66,82 @@ const ProfilePage = () => {
             const reader = new FileReader();
             reader.onloadend = () => {
                 setAvatarPreview(reader.result);
+                setAvatarFile(file);
             };
             reader.readAsDataURL(file);
         }
     };
 
-    const handleSave = () => {
-        // TODO: Implement save to backend
-        console.log('Saving profile:', formData);
-        if (avatarPreview) {
-            console.log('New avatar:', avatarPreview);
+    const handleSave = async () => {
+        try {
+            setIsLoading(true);
+
+            // 1. Upload Avatar if requested
+            let newAvatarUrl = avatarPreview;
+            if (avatarFile) {
+                const uploadRes = await profileService.uploadAvatar(avatarFile);
+                // The custom backend route returns { status: "success", data: { avatar_url: "..." } }
+                if ((uploadRes.status === "success" || uploadRes.success) && (uploadRes.data?.avatar_url || uploadRes.data?.data?.avatar_url)) {
+                    newAvatarUrl = uploadRes.data.avatar_url || uploadRes.data.data.avatar_url;
+                } else {
+                    throw new Error(uploadRes.message || "Tải ảnh lên thất bại");
+                }
+            }
+
+            // 2. Update form data
+            const payload = { ...formData };
+            if (!payload.dob) delete payload.dob; // Prevent sending empty dates
+
+            const response = await profileService.updateProfile(payload);
+            console.log("Update API response:", response);
+
+            // 3. Hiển thị Toast thành công TRƯỚC - tránh re-render reset state
+            setToast({
+                show: true,
+                type: 'success',
+                message: 'Cập nhật hồ sơ thành công!'
+            });
+
+            // 4. Update context và UI sau khi Toast đã được set
+            if (response && (response.success || response.status === 'success')) {
+                if (typeof updateUser === 'function') {
+                    updateUser({
+                        ...user,
+                        full_name: payload.full_name,
+                        email: payload.email,
+                        phone: payload.phone,
+                        dob: payload.dob,
+                        address: payload.address,
+                        avatar_url: newAvatarUrl
+                    });
+                }
+            }
+
+            setIsEditing(false);
+            setAvatarFile(null);
+
+        } catch (error) {
+            console.error("Lỗi cập nhật hồ sơ:", error);
+            setToast({
+                show: true,
+                type: 'error',
+                message: error?.response?.data?.message || error?.message || 'Có lỗi xảy ra khi lưu hồ sơ.'
+            });
+        } finally {
+            setIsLoading(false);
         }
-        setIsEditing(false);
     };
 
     const handleCancel = () => {
         setFormData({
             full_name: user?.full_name || '',
             email: user?.email || '',
-            phone: user?.phone || '0901234567',
-            dob: user?.dob || '1990-01-01',
-            address: user?.address || 'TP. Hồ Chí Minh',
+            phone: user?.phone || '',
+            dob: formatDateForInput(user?.dob),
+            address: user?.address || '',
         });
-        setAvatarPreview(null);
+        setAvatarPreview(user?.avatar_url || null);
+        setAvatarFile(null);
         setIsEditing(false);
     };
 
@@ -90,7 +166,16 @@ const ProfilePage = () => {
     };
 
     return (
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-4xl mx-auto relative">
+            {/* Toast System */}
+            <Toast
+                show={toast.show}
+                type={toast.type}
+                message={toast.message}
+                onClose={() => setToast({ ...toast, show: false })}
+                duration={3000}
+            />
+
             {/* Back Button */}
             <button
                 onClick={() => navigate(-1)}
@@ -198,9 +283,10 @@ const ProfilePage = () => {
                                     </button>
                                     <button
                                         onClick={handleSave}
-                                        className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 flex items-center gap-2 transition-colors"
+                                        disabled={isLoading}
+                                        className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 flex items-center gap-2 transition-colors disabled:opacity-50"
                                     >
-                                        <Save size={18} />
+                                        {isLoading ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
                                         Lưu
                                     </button>
                                 </div>
@@ -280,7 +366,7 @@ const ProfilePage = () => {
                                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                                     />
                                 ) : (
-                                    <p className="text-gray-900 px-4 py-2 bg-gray-50 rounded-lg">{formData.dob}</p>
+                                    <p className="text-gray-900 px-4 py-2 bg-gray-50 rounded-lg">{formatDate(formData.dob)}</p>
                                 )}
                             </div>
 
@@ -321,6 +407,15 @@ const ProfilePage = () => {
                     </Card>
                 </div>
             </div>
+
+            {toast.show && (
+                <Toast
+                    type={toast.type}
+                    message={toast.message}
+                    onClose={() => setToast({ ...toast, show: false })}
+                    duration={3000}
+                />
+            )}
         </div>
     );
 };

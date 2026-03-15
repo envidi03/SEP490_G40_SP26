@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { GoogleLogin } from '@react-oauth/google';
 import { useAuth } from '../../contexts/AuthContext';
 import authService from '../../services/authService';
@@ -20,6 +20,7 @@ const Login = () => {
     const [showToast, setShowToast] = React.useState(false);
     const { login } = useAuth();
     const navigate = useNavigate();
+    const location = useLocation();
 
     useEffect(() => {
         const savedUsername = localStorage.getItem('remembered_username');
@@ -41,6 +42,7 @@ const Login = () => {
                 account_id: account.id,
                 username: account.username,
                 email: account.email,
+                phone: account.phone || '',
                 status: account.status,
                 email_verified: account.email_verified,
                 role: role.name,
@@ -72,8 +74,18 @@ const Login = () => {
                 } else {
                     localStorage.removeItem('remembered_username');
                 }
-                const dashboardRoute = getDashboardRoute(role.name);
-                navigate(dashboardRoute);
+                
+                const from = location.state?.from;
+                const bookingData = location.state?.bookingData;
+
+                if (from) {
+                    // Nếu đi từ trang đặt lịch, quay lại đó kèm data đã chọn
+                    navigate(from, { state: { recoveredBookingData: bookingData } });
+                } else {
+                    // Mặc định về dashboard
+                    const dashboardRoute = getDashboardRoute(role.name);
+                    navigate(dashboardRoute);
+                }
             }, 1500);
         } else {
             setError('Không thể lấy thông tin người dùng');

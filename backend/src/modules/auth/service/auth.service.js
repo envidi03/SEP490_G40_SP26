@@ -307,6 +307,7 @@ exports.login = async (data, ip_address = 'unknown', user_agent = 'unknown') => 
             id: account._id,
             username: account.username,
             email: account.email,
+            phone: account.phone_number || '',
             status: account.status,
             email_verified: account.email_verified
         },
@@ -315,6 +316,8 @@ exports.login = async (data, ip_address = 'unknown', user_agent = 'unknown') => 
             full_name: user.full_name,
             dob: user.dob,
             gender: user.gender,
+            address: user.address || '',
+            avatar_url: user.avatar_url || '',
             is_doctor: user.is_doctor,
             is_patient: user.is_patient
         },
@@ -651,13 +654,19 @@ exports.googleAuth = async (googleToken, ip_address = 'unknown', user_agent = 'u
             id: account._id,
             username: account.username,
             email: account.email,
+            phone: account.phone_number || '',
             status: account.status,
             email_verified: account.email_verified
         },
         user: {
             id: user._id,
             full_name: user.full_name,
-            avatar_url: user.avatar_url
+            dob: user.dob || null,
+            gender: user.gender || '',
+            address: user.address || '',
+            avatar_url: user.avatar_url || '',
+            is_doctor: user.is_doctor,
+            is_patient: user.is_patient
         },
         role: {
             id: account.role_id._id,

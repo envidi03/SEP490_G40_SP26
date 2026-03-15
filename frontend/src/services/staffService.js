@@ -85,6 +85,80 @@ const staffService = {
         } catch (error) {
             throw error;
         }
+    },
+
+    /**
+     * Lấy danh sách yêu cầu nghỉ phép
+     */
+    getLeaveRequests: async (params = {}) => {
+        try {
+            const response = await apiClient.get('/api/staff/leave', { params });
+            return response;
+        } catch (error) {
+            throw error;
+        }
+    },
+
+    /**
+     * Tạo yêu cầu nghỉ phép mới
+     */
+    createLeaveRequest: async (data) => {
+        try {
+            const response = await apiClient.post('/api/staff/leave', data);
+            return response;
+        } catch (error) {
+            throw error;
+        }
+    },
+
+    /**
+     * Chỉnh sửa yêu cầu nghỉ phép
+     */
+    updateLeaveRequest: async (leaveId, data) => {
+        try {
+            const response = await apiClient.patch(`/api/staff/leave/${leaveId}`, data);
+            return response;
+        } catch (error) {
+            throw error;
+        }
+    },
+
+    /**
+     * Hủy yêu cầu nghỉ phép
+     */
+    cancelLeaveRequest: async (leaveId) => {
+        try {
+            const response = await apiClient.patch(`/api/staff/leave/cancel/${leaveId}`);
+            return response;
+        } catch (error) {
+            throw error;
+        }
+    },
+
+    /**
+     * Admin: Lấy tất cả yêu cầu nghỉ phép của tất cả nhân viên
+     */
+    getAllLeaveRequestsAdmin: async () => {
+        try {
+            const response = await apiClient.get('/api/staff/admin/leave');
+            return response;
+        } catch (error) {
+            throw error;
+        }
+    },
+
+    /**
+     * Admin: Phê duyệt hoặc từ chối yêu cầu nghỉ phép
+     * @param {string} leaveId - ID của leave request
+     * @param {string} status - 'APPROVED' | 'REJECTED'
+     */
+    approveLeaveRequest: async (leaveId, status) => {
+        try {
+            const response = await apiClient.patch(`/api/staff/admin/leave/${leaveId}`, { status });
+            return response;
+        } catch (error) {
+            throw error;
+        }
     }
 };
 

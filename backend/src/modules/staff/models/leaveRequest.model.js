@@ -11,11 +11,11 @@ const leaveRequestSchema = new Schema(
         type: {
             type: String,
             enum: [
-                "ANNUAL", 
-                "SICK", 
-                "MATERNITY", 
-                "UNPAID", 
-                "BEREAVEMENT", 
+                "ANNUAL",
+                "SICK",
+                "MATERNITY",
+                "UNPAID",
+                "BEREAVEMENT",
                 "EMERGENCY"
             ], // Các loại hình nghỉ phép
             required: [true, "Leave type is required"]
@@ -38,9 +38,9 @@ const leaveRequestSchema = new Schema(
             default: "PENDING"
         }
     },
-    { 
+    {
         timestamps: true, // Tự động tạo createdAt và updatedAt
-        collection: "leave_requests" 
+        collection: "leave_requests"
     }
 );
 

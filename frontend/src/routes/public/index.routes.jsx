@@ -10,6 +10,7 @@ import About from '../../pages/public/About';
 import DoctorsList from '../../pages/public/DoctorsList';
 import DoctorDetail from '../../pages/public/DoctorDetail';
 import ServiceDetail from '../../pages/public/ServiceDetail';
+import ServicesList from '../../pages/public/ServicesList';
 import BookAppointment from '../../pages/booking/BookAppointment';
 import PatientProfile from '../../pages/patients/PatientProfile';
 import PatientAppointments from '../../pages/patients/PatientAppointments';
@@ -76,6 +77,14 @@ const publicRoutes = [
         element: (
             <PublicRoute allowPatient={true}>
                 <ServicesPricing />
+            </PublicRoute>
+        )
+    },
+    {
+        path: '/services',
+        element: (
+            <PublicRoute allowPatient={true}>
+                <ServicesList />
             </PublicRoute>
         )
     },

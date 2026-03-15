@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
 import PublicLayout from '../../components/layout/PublicLayout';
 import Breadcrumb from '../../components/ui/Breadcrumb';
 import serviceService from '../../services/serviceService';
@@ -7,8 +7,14 @@ import { Phone, Calendar, ChevronLeft, Tag } from 'lucide-react';
 
 // Format giá VND
 const formatPrice = (price) => {
-    if (!price && price !== 0) return 'Liên hệ';
+    if (price === null || price === undefined) return 'Liên hệ';
     return new Intl.NumberFormat('vi-VN').format(price) + 'đ';
+};
+
+const formatPriceRange = (min, max) => {
+    if (min === null || min === undefined) return 'Liên hệ';
+    if (!max || min === max) return formatPrice(min);
+    return `${new Intl.NumberFormat('vi-VN').format(min)}đ - ${new Intl.NumberFormat('vi-VN').format(max)}đ`;
 };
 
 // Placeholder image khi không có ảnh
@@ -17,6 +23,9 @@ const PLACEHOLDER_IMG = 'https://placehold.co/600x450/e0e7ff/3b4a7a?text=D%E1%BB
 const ServiceDetail = () => {
     const { id } = useParams();
     const navigate = useNavigate();
+    const location = useLocation();
+    const queryParams = new URLSearchParams(location.search);
+    const type = queryParams.get('type'); // 'service' or 'package'
 
     const [service, setService] = useState(null);
     const [relatedServices, setRelatedServices] = useState([]);
@@ -38,14 +47,33 @@ const ServiceDetail = () => {
             try {
                 setLoading(true);
                 setError(null);
-                const [detailRes, listRes] = await Promise.all([
-                    serviceService.getServiceById(id),
-                    serviceService.getAllServices({ limit: 6, page: 1, status: 'AVAILABLE' }),
-                ]);
-                setService(detailRes?.data || null);
-                // Lọc bỏ chính dịch vụ này ra khỏi related
-                const all = listRes?.data || [];
-                setRelatedServices(all.filter((s) => s._id !== id).slice(0, 6));
+
+                let detailRes;
+                if (type === 'package') {
+                    detailRes = await serviceService.getSubServiceById(id);
+                }
+
+                const detailData = detailRes?.data || null;
+                if (detailData && type === 'package') {
+                    // Map sub-service fields to match UI expectations
+                    detailData.service_name = detailData.sub_service_name;
+
+                    // Fetch related sub-services (same parent)
+                    if (detailData.parent_id) {
+                        const pId = detailData.parent_id._id || detailData.parent_id;
+                        const relatedRes = await serviceService.getSubServicesByParent(pId.toString());
+                        const allRelated = relatedRes?.data || [];
+                        // Filter out current sub-service
+                        setRelatedServices(allRelated.filter(s => s._id !== id).slice(0, 6));
+                    }
+                } else {
+                    // Fallback or if type is not package (though user says always package now)
+                    const listRes = await serviceService.getAllServices({ limit: 20, page: 1, filter: 'AVAILABLE' });
+                    const all = listRes?.data || [];
+                    setRelatedServices(all.filter((s) => s.status === 'AVAILABLE' && s._id !== id).slice(0, 6));
+                }
+
+                setService(detailData);
             } catch (err) {
                 setError('Không tìm thấy dịch vụ.');
                 console.error(err);
@@ -54,7 +82,7 @@ const ServiceDetail = () => {
             }
         };
         if (id) fetchData();
-    }, [id]);
+    }, [id, type]);
 
     const images = getImages(service);
 
@@ -132,8 +160,8 @@ const ServiceDetail = () => {
                                             key={idx}
                                             onClick={() => setSelectedImg(idx)}
                                             className={`flex-1 rounded-lg overflow-hidden border-2 transition-all ${idx === selectedImg
-                                                    ? 'border-orange-400'
-                                                    : 'border-gray-200 hover:border-gray-400'
+                                                ? 'border-orange-400'
+                                                : 'border-gray-200 hover:border-gray-400'
                                                 }`}
                                         >
                                             <img
@@ -161,7 +189,10 @@ const ServiceDetail = () => {
 
                                 {/* Price */}
                                 <div className="text-2xl md:text-3xl font-bold text-gray-900 mb-1">
-                                    {formatPrice(service.price)}
+                                    {type === 'package'
+                                        ? formatPriceRange(service.min_price, service.max_price)
+                                        : formatPrice(service.price)
+                                    }
                                 </div>
 
                                 {/* Note */}
@@ -201,6 +232,10 @@ const ServiceDetail = () => {
 
                             <Link
                                 to="/book-appointment"
+                                state={{ 
+                                    service: type === 'package' ? service.parent_id : service,
+                                    subService: type === 'package' ? service : null
+                                }}
                                 className="flex items-center justify-center gap-2 bg-blue-50 hover:bg-blue-100 text-primary-700 font-semibold py-4 px-6 rounded-xl transition-colors border border-blue-200 text-base"
                             >
                                 <Calendar size={18} />
@@ -246,14 +281,14 @@ const ServiceDetail = () => {
                                 {relatedServices.map((svc) => (
                                     <Link
                                         key={svc._id}
-                                        to={`/service/${svc._id}`}
+                                        to={`/service/${svc._id}?type=package`}
                                         className="group border border-gray-200 rounded-xl overflow-hidden hover:shadow-md transition-all"
                                     >
                                         {/* Image */}
                                         <div className="aspect-[4/3] bg-gray-100 overflow-hidden">
                                             <img
-                                                src={svc.icon || PLACEHOLDER_IMG}
-                                                alt={svc.service_name}
+                                                src={svc.icon || svc.image || PLACEHOLDER_IMG}
+                                                alt={svc.sub_service_name || svc.service_name}
                                                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                                                 onError={(e) => { e.target.src = PLACEHOLDER_IMG; }}
                                             />
@@ -261,10 +296,7 @@ const ServiceDetail = () => {
                                         {/* Info */}
                                         <div className="p-3">
                                             <p className="text-sm font-semibold text-gray-900 line-clamp-2 mb-1 group-hover:text-primary-600 transition-colors">
-                                                {svc.service_name}
-                                            </p>
-                                            <p className="text-primary-600 font-bold text-sm">
-                                                {formatPrice(svc.price)}
+                                                {svc.sub_service_name || svc.service_name}
                                             </p>
                                             <span className="text-primary-600 text-xs font-medium mt-1 inline-block hover:underline">
                                                 Xem chi tiết →

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { findPatientByInfo, getDentalRecordsByPatient } from '../../services/dentalRecordService';
 import PatientSearchBar from './components/PatientSearchBar';
 import PatientCard from './components/PatientCard';
@@ -8,6 +8,7 @@ import CreateDentalRecordModal from './components/CreateDentalRecordModal';
 
 const PatientRecordSearch = () => {
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
 
     // ── Patient search state ──────────────────────────────────────
     const [inputValue, setInputValue] = useState('');
@@ -24,6 +25,23 @@ const PatientRecordSearch = () => {
 
     // ── Create modal state ────────────────────────────────────────
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+
+    // Initial query params loading
+    useEffect(() => {
+        const phone = searchParams.get('phone');
+        const name = searchParams.get('name');
+
+        // Ưu tiên số điện thoại tìm cho chính xác hơn, nếu ko có thì dùng tên
+        let initialSearch = '';
+        if (phone) initialSearch = phone;
+        else if (name) initialSearch = name;
+
+        if (initialSearch) {
+            setInputValue(initialSearch);
+            // Cập nhật searchTerm ngay để hook gọi API được kích hoạt sớm nhất
+            setSearchTerm(initialSearch);
+        }
+    }, [searchParams]);
 
     // Chỉ cho tạo hồ sơ mới khi không còn hồ sơ IN_PROGRESS nào
     const canCreate = !records.some(r => r.status === 'IN_PROGRESS');
@@ -48,9 +66,16 @@ const PatientRecordSearch = () => {
                 const res = await findPatientByInfo(searchTerm);
                 const list = Array.isArray(res.data) ? res.data : (Array.isArray(res) ? res : []);
                 setPatients(list);
-                setSelectedPatient(prev =>
-                    prev && list.find(p => p.patient_id === prev.patient_id) ? prev : null
-                );
+
+                // Cải tiến: Nếu truyền phone từ màn Lịch hẹn sang sang và trả ra ĐÚNG 1 bệnh nhân, tự động chọn bệnh nhân đó để bác sĩ không phải mất công bấm
+                if (list.length === 1 && !selectedPatient) {
+                    setSelectedPatient(list[0]);
+                    fetchRecords(list[0]);
+                } else {
+                    setSelectedPatient(prev =>
+                        prev && list.find(p => p.patient_id === prev.patient_id) ? prev : null
+                    );
+                }
             } catch (err) {
                 console.error('Patient search error:', err);
                 setPatients([]);
@@ -90,6 +115,8 @@ const PatientRecordSearch = () => {
         setPatients([]);
         setSelectedPatient(null);
         setRecords([]);
+        // Clear params in URL if needed
+        navigate('/dentist/dental-records/search', { replace: true });
     };
 
     // Sau khi tạo hồ sơ thành công: reload danh sách và navigate đến chi tiết

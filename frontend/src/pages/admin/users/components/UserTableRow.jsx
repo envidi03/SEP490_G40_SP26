@@ -2,18 +2,16 @@ import React from 'react';
 import Badge from '../../../../components/ui/Badge';
 import { formatDateTime } from '../../../../utils/dateUtils';
 import {
-    Edit,
     Eye,
     Lock,
     Unlock,
-    UserCheck,
     Mail,
     Phone,
     Calendar,
     Users
 } from 'lucide-react';
 
-const UserTableRow = ({ user, roleConfig, statusConfig, onView, onEdit, onLockUnlock }) => {
+const UserTableRow = ({ user, roleConfig, statusConfig, onView, onLockUnlock }) => {
     const RoleIcon = roleConfig[user.role]?.icon;
 
     return (
@@ -65,13 +63,6 @@ const UserTableRow = ({ user, roleConfig, statusConfig, onView, onEdit, onLockUn
                         title="Xem chi tiết"
                     >
                         <Eye size={18} />
-                    </button>
-                    <button
-                        onClick={() => onEdit(user)}
-                        className="text-green-600 hover:text-green-900"
-                        title="Chỉnh sửa"
-                    >
-                        <Edit size={18} />
                     </button>
                     {user.status === 'ACTIVE' ? (
                         <button

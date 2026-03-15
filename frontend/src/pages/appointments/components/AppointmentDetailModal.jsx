@@ -1,126 +1,114 @@
-"use client"
-import { Phone, Calendar, Clock, FileText, AlertCircle } from "lucide-react"
+import React from "react"
 import Modal from "../../../components/ui/Modal"
-import Badge from "../../../components/ui/Badge"
-import Button from "../../../components/ui/Button"
+
+const getStatusStyle = (status) => {
+  const colorMap = {
+    Confirmed: "bg-teal-50 text-teal-700 border-teal-200",
+    Pending: "bg-amber-50 text-amber-700 border-amber-200",
+    Completed: "bg-blue-50 text-blue-700 border-blue-200",
+    Cancelled: "bg-red-50 text-red-600 border-red-200",
+    CHECKED_IN: "bg-purple-50 text-purple-700 border-purple-200"
+  }
+  return colorMap[status] || "bg-gray-50 text-gray-600 border-gray-200"
+}
 
 const AppointmentDetailModal = ({ isOpen, onClose, appointment }) => {
   if (!appointment) return null
 
-  const getStatusColor = (status) => {
-    const colorMap = {
-      Confirmed: "success",
-      Pending: "warning",
-      Completed: "info",
-      Cancelled: "danger",
-    }
-    return colorMap[status] || "default"
-  }
+  // Đảm bảo lấy đúng thông tin bệnh nhân từ cấp ngoài cùng hoặc qua populate
+  const patientName = appointment.patient_id?.full_name || appointment.full_name || appointment.patientName || "Bệnh nhân không rõ"
+  const patientPhone = appointment.patient_id?.phone || appointment.phone || appointment.patientPhone || "Không có SĐT"
+  const dateStr = appointment.appointment_date
+    ? new Date(appointment.appointment_date).toLocaleDateString("vi-VN", { day: '2-digit', month: '2-digit', year: 'numeric' })
+    : appointment.date || "Chưa xác định"
+  const timeStr = appointment.appointment_time || appointment.start_time || appointment.time || "Theo giờ hẹn"
 
-  //   const calculateAge = (dob) => {
-  //     const today = new Date()
-  //     const birthDate = new Date(dob)
-  //     let age = today.getFullYear() - birthDate.getFullYear()
-  //     const monthDiff = today.getMonth() - birthDate.getMonth()
-  //     if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-  //       age--
-  //     }
-  //     return age
-  //   }
+  // Xử lý hiển thị thông tin dịch vụ
+  let service = appointment.appointment_type || appointment.reason || "Khám định kỳ"
+  if (appointment.book_service && appointment.book_service.length > 0 && appointment.book_service[0]?.service_id?.name) {
+    service = appointment.book_service.map(s => s.service_id.name).join(', ')
+  }
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Chi tiết lịch hẹn" size="lg">
       <div className="space-y-6">
-        {/* Appointment Status */}
-        <div className="flex items-center justify-between pb-4 border-b border-gray-200">
+        {/* Header */}
+        <div className="flex items-center justify-between pb-4 border-b border-gray-100">
           <div>
-            <p className="text-sm text-gray-600">Mã lịch hẹn</p>
-            <p className="text-lg font-bold text-gray-900">{appointment.code}</p>
+            <p className="text-xs text-gray-500 font-medium">MÃ LỊCH HẸN</p>
+            <p className="text-lg font-bold text-gray-800 mt-1 uppercase">
+              {appointment._id?.slice(-6) || appointment.appointment_id || appointment.code || "---"}
+            </p>
           </div>
-          <Badge variant={getStatusColor(appointment.status)} className="text-base px-3 py-1">
+          <span className={`px-3 py-1 text-[13px] font-medium rounded-full border ${getStatusStyle(appointment.status)}`}>
             {appointment.status}
-          </Badge>
+          </span>
         </div>
 
-        {/* Appointment Details */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Thông tin lịch hẹn</h3>
+          <div className="space-y-5">
+            <h3 className="text-[13px] font-bold text-gray-800 uppercase tracking-wider">Thông tin lịch khám</h3>
 
-            <div className="flex items-start space-x-3">
-              <Calendar size={20} className="text-blue-600 mt-1" />
+            <div className="space-y-4 text-[13px]">
               <div>
-                <p className="text-sm text-gray-600">Ngày khám</p>
-                <p className="text-gray-900 font-medium">{appointment.date}</p>
+                <p className="text-gray-500 mb-1">Thời gian</p>
+                <p className="font-semibold text-gray-800">{timeStr} — {dateStr}</p>
               </div>
-            </div>
 
-            <div className="flex items-start space-x-3">
-              <Clock size={20} className="text-green-600 mt-1" />
               <div>
-                <p className="text-sm text-gray-600">Giờ khám</p>
-                <p className="text-gray-900 font-medium">{appointment.time}</p>
+                <p className="text-gray-500 mb-1">Dịch vụ / Loại khám</p>
+                <p className="font-medium text-gray-800 bg-gray-50 p-2 rounded-lg border border-gray-100">
+                  {service}
+                </p>
               </div>
-            </div>
 
-            <div className="flex items-start space-x-3">
-              <FileText size={20} className="text-purple-600 mt-1" />
-              <div>
-                <p className="text-sm text-gray-600">Lý do khám</p>
-                <p className="text-gray-900 font-medium">{appointment.reason}</p>
-              </div>
-            </div>
-
-            {appointment.notes && (
-              <div className="flex items-start space-x-3">
-                <AlertCircle size={20} className="text-orange-600 mt-1" />
+              {appointment.reason && appointment.reason !== service && (
                 <div>
-                  <p className="text-sm text-gray-600">Ghi chú</p>
-                  <p className="text-gray-900 font-medium">{appointment.notes}</p>
+                  <p className="text-gray-500 mb-1">Lý do khám / Ghi chú</p>
+                  <p className="font-medium text-amber-700 bg-amber-50 p-2 rounded-lg border border-amber-100 break-words">
+                    {appointment.reason}
+                  </p>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
 
-          {/* Patient Information */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Thông tin bệnh nhân</h3>
+          <div className="space-y-5">
+            <h3 className="text-[13px] font-bold text-gray-800 uppercase tracking-wider">Thông tin bệnh nhân</h3>
 
-            <div className="bg-gray-50 p-4 rounded-lg space-y-3">
+            <div className="bg-slate-50 border border-slate-100 p-4 rounded-xl space-y-4">
               <div>
-                <p className="text-sm text-gray-600">Tên bệnh nhân</p>
-                <p className="text-gray-900 font-medium">{appointment.patientName}</p>
+                <p className="text-xs text-gray-500 mb-1">Họ và tên</p>
+                <p className="font-bold text-gray-800 text-sm">{patientName}</p>
               </div>
 
-              <div className="flex items-start space-x-3">
-                <Phone size={16} className="text-gray-400 mt-1" />
-                <div className="flex-1">
-                  <p className="text-sm text-gray-600">Số điện thoại</p>
-                  <a href={`tel:${appointment.patientPhone}`} className="text-blue-600 hover:text-blue-700 font-medium">
-                    {appointment.patientPhone}
-                  </a>
+              <div>
+                <p className="text-xs text-gray-500 mb-1">Số điện thoại liên lạc</p>
+                <a href={`tel:${patientPhone}`} className="font-semibold text-teal-600 hover:text-teal-700 inline-block">
+                  {patientPhone}
+                </a>
+              </div>
+
+              {appointment.createdAt && (
+                <div>
+                  <p className="text-xs text-gray-500 mb-1">Ngày đặt lịch</p>
+                  <p className="font-medium text-gray-700 text-[13px]">
+                    {new Date(appointment.createdAt).toLocaleDateString("vi-VN", { hour: '2-digit', minute: '2-digit' })}
+                  </p>
                 </div>
-              </div>
-
-              <div>
-                <p className="text-sm text-gray-600">Ngày tạo lịch</p>
-                <p className="text-gray-900 font-medium">{appointment.createdAt}</p>
-              </div>
+              )}
             </div>
           </div>
         </div>
 
-        {/* Action Buttons */}
-        <div className="flex gap-3 pt-4 border-t border-gray-200">
-          <Button variant="primary" className="flex-1">
-            Tạo hồ sơ nha khoa
-          </Button>
-          <Button variant="outline" className="flex-1 bg-transparent">
-            Xác nhận
-          </Button>
-          <Button variant="ghost" onClick={onClose}>
-            Đóng
-          </Button>
+        {/* Actions */}
+        <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
+          <button
+            onClick={onClose}
+            className="px-5 py-2 text-[13px] font-medium text-gray-600 bg-gray-50 rounded-xl hover:bg-gray-100 border border-gray-200 transition-colors"
+          >
+            Đóng bảng
+          </button>
         </div>
       </div>
     </Modal>

@@ -1,28 +1,35 @@
-import { X, Plus, Edit, Save, FileText } from 'lucide-react';
+import { X, Plus, Edit, Save } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
 const LeaveRequestModal = ({ request, mode, isOpen, onClose, onSave }) => {
     const [formData, setFormData] = useState({
-        startDate: '',
+        startedDate: '',
         endDate: '',
-        leaveType: 'annual',
+        type: 'ANNUAL',
         reason: ''
     });
+
+    // Handle string to valid date string format YYYY-MM-DD
+    const formatDateForInput = (dateString) => {
+        if (!dateString) return '';
+        const d = new Date(dateString);
+        return d.toISOString().split('T')[0];
+    };
 
     useEffect(() => {
         if (mode === 'edit' && request) {
             setFormData({
-                startDate: request.startDate || '',
-                endDate: request.endDate || '',
-                leaveType: request.leaveType || 'annual',
+                startedDate: formatDateForInput(request.startedDate),
+                endDate: formatDateForInput(request.endDate),
+                type: request.type || 'ANNUAL',
                 reason: request.reason || ''
             });
         } else if (mode === 'create') {
             // Reset form for create mode
             setFormData({
-                startDate: '',
+                startedDate: '',
                 endDate: '',
-                leaveType: 'annual',
+                type: 'ANNUAL',
                 reason: ''
             });
         }
@@ -38,24 +45,23 @@ const LeaveRequestModal = ({ request, mode, isOpen, onClose, onSave }) => {
         }));
     };
 
-    const handleSaveDraft = () => {
-        if (onSave) {
-            onSave(formData, true); // true = save as draft
-        }
-        onClose();
-    };
-
     const handleSubmit = (e) => {
         e.preventDefault();
         if (onSave) {
-            onSave(formData, false); // false = submit
+            // Chuẩn bị payload chuẩn theo backend schema
+            const payload = {
+                startedDate: formData.startedDate,
+                endDate: formData.endDate,
+                type: formData.type,
+                reason: formData.reason
+            };
+            onSave(payload);
         }
-        onClose();
     };
 
     const calculateDays = () => {
-        if (formData.startDate && formData.endDate) {
-            const start = new Date(formData.startDate);
+        if (formData.startedDate && formData.endDate) {
+            const start = new Date(formData.startedDate);
             const end = new Date(formData.endDate);
             const diffTime = Math.abs(end - start);
             const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
@@ -68,48 +74,44 @@ const LeaveRequestModal = ({ request, mode, isOpen, onClose, onSave }) => {
     const isCreate = mode === 'create';
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-xl shadow-2xl p-6 max-w-2xl w-full mx-4">
-                <div className="flex justify-between items-start mb-4">
-                    <div className="flex items-center gap-2">
-                        <div className={`p-2 rounded-lg ${isCreate ? 'bg-blue-100' : 'bg-green-100'}`}>
-                            {isCreate ? (
-                                <Plus className="text-blue-600" size={24} />
-                            ) : (
-                                <Edit className="text-green-600" size={24} />
-                            )}
+        <div className="fixed inset-0 bg-white/60 backdrop-blur-[2px] flex items-center justify-center z-50">
+            <div className="bg-white rounded-2xl shadow-xl p-6 max-w-2xl w-full mx-4 border border-gray-200">
+                <div className="flex justify-between items-start mb-6 pb-4 border-b border-gray-100">
+                    <div className="flex items-center gap-3">
+                        <div className={`p-2.5 rounded-xl ${isCreate ? 'bg-blue-100 text-blue-600' : 'bg-amber-100 text-amber-600'}`}>
+                            {isCreate ? <Plus size={24} /> : <Edit size={24} />}
                         </div>
                         <div>
                             <h2 className="text-xl font-bold text-gray-900">
-                                {isCreate ? 'Tạo Yêu Cầu Nghỉ Phép' : 'Chỉnh Sửa Yêu Cầu'}
+                                {isCreate ? 'Tạo Yêu Cầu Nghỉ Phép' : 'Chỉnh Sửa Đơn Nghỉ Phép'}
                             </h2>
-                            <p className="text-sm text-gray-500">Điền thông tin nghỉ phép</p>
+                            <p className="text-sm text-gray-500">Điền thông tin và thời gian nghỉ</p>
                         </div>
                     </div>
-                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+                    <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-600 bg-gray-50 hover:bg-gray-100 flex rounded-lg transition-colors">
                         <X size={20} />
                     </button>
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-5">
                     {/* Date Range */}
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-2 gap-5 mb-2">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                            <label className="block text-sm font-semibold text-gray-700 mb-2">
                                 Từ ngày <span className="text-red-500">*</span>
                             </label>
                             <input
                                 type="date"
-                                name="startDate"
-                                value={formData.startDate}
+                                name="startedDate"
+                                value={formData.startedDate}
                                 onChange={handleChange}
                                 required
-                                min={new Date().toISOString().split('T')[0]}
-                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                                min={new Date().toISOString().split('T')[0]} // Cannot be past
+                                className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                            <label className="block text-sm font-semibold text-gray-700 mb-2">
                                 Đến ngày <span className="text-red-500">*</span>
                             </label>
                             <input
@@ -118,91 +120,71 @@ const LeaveRequestModal = ({ request, mode, isOpen, onClose, onSave }) => {
                                 value={formData.endDate}
                                 onChange={handleChange}
                                 required
-                                min={formData.startDate || new Date().toISOString().split('T')[0]}
-                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                                min={formData.startedDate || new Date().toISOString().split('T')[0]}
+                                className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
                             />
                         </div>
                     </div>
 
-                    {/* Days Calculation */}
+                    {/* Days Calculation Banner */}
                     {days > 0 && (
-                        <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                            <p className="text-sm text-blue-800">
-                                <strong>Tổng số ngày nghỉ:</strong> {days} ngày
-                            </p>
+                        <div className="p-3 bg-blue-50 text-blue-700 border border-blue-100 rounded-xl flex items-center justify-center gap-2">
+                            <span className="text-sm">Hệ thống ghi nhận tổng cộng: </span>
+                            <strong className="text-lg">{days} ngày nghỉ</strong>
                         </div>
                     )}
 
                     {/* Leave Type */}
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Loại nghỉ phép <span className="text-red-500">*</span>
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">
+                            Lý do xin nghỉ <span className="text-red-500">*</span>
                         </label>
                         <select
-                            name="leaveType"
-                            value={formData.leaveType}
+                            name="type"
+                            value={formData.type}
                             onChange={handleChange}
                             required
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                            className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
                         >
-                            <option value="annual">Phép năm</option>
-                            <option value="sick">Nghỉ ốm</option>
-                            <option value="personal">Việc riêng</option>
-                            <option value="other">Khác</option>
+                            <option value="ANNUAL">Phép năm định kỳ</option>
+                            <option value="SICK">Nghỉ ốm / Khám bệnh</option>
+                            <option value="MATERNITY">Nghỉ thai sản</option>
+                            <option value="BEREAVEMENT">Nhà có tang</option>
+                            <option value="EMERGENCY">Nghỉ khẩn cấp</option>
+                            <option value="UNPAID">Nghỉ không lương</option>
                         </select>
                     </div>
 
-                    {/* Reason */}
+                    {/* Reason Details */}
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Lý do <span className="text-red-500">*</span>
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">
+                            Chi tiết (Không bắt buộc)
                         </label>
                         <textarea
                             name="reason"
                             value={formData.reason}
                             onChange={handleChange}
-                            required
-                            rows={4}
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                            placeholder="Nhập lý do nghỉ phép..."
+                            rows={3}
+                            className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all resize-none"
+                            placeholder="Mô tả cụ thể nếu cần thiết..."
                         />
                     </div>
 
-                    {/* Info */}
-                    <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                        <p className="text-sm text-yellow-800">
-                            <strong>Lưu ý:</strong>
-                        </p>
-                        <ul className="text-sm text-yellow-700 mt-1 ml-4 list-disc">
-                            <li>Lưu bản nháp để tiếp tục chỉnh sửa sau</li>
-                            <li>Gửi yêu cầu để chờ quản lý phê duyệt</li>
-                            <li>Yêu cầu đã gửi không thể chỉnh sửa</li>
-                        </ul>
-                    </div>
-
                     {/* Actions */}
-                    <div className="flex justify-end gap-3 pt-4 border-t">
+                    <div className="flex justify-end gap-3 pt-6 border-t border-gray-100 mt-2">
                         <button
                             type="button"
                             onClick={onClose}
-                            className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                            className="px-6 py-2.5 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 font-medium transition-colors"
                         >
-                            Hủy
-                        </button>
-                        <button
-                            type="button"
-                            onClick={handleSaveDraft}
-                            className="px-6 py-2 border border-blue-500 text-blue-600 rounded-lg hover:bg-blue-50 flex items-center gap-2"
-                        >
-                            <FileText size={18} />
-                            Lưu bản nháp
+                            Đóng
                         </button>
                         <button
                             type="submit"
-                            className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2"
+                            className="px-6 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 flex items-center gap-2 font-medium transition-all shadow-md shadow-blue-600/20 active:scale-[0.98]"
                         >
                             <Save size={18} />
-                            Gửi yêu cầu
+                            Đệ trình lên Quản lý
                         </button>
                     </div>
                 </form>

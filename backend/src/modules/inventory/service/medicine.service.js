@@ -295,6 +295,16 @@ exports.getRestockRequests = async ({ status, page = 1, limit = 10 }) => {
         }
     });
 
+    // Lookup profile info
+    pipeline.push({
+        $lookup: {
+            from: "profiles",
+            localField: "staff_info.profile_id",
+            foreignField: "_id",
+            as: "profile_info"
+        }
+    });
+
     // Project kết quả
     pipeline.push({
         $project: {
@@ -308,7 +318,7 @@ exports.getRestockRequests = async ({ status, page = 1, limit = 10 }) => {
             reason: "$medicine_restock_requests.reason",
             note: "$medicine_restock_requests.note",
             created_at: "$medicine_restock_requests.created_at",
-            request_by_name: { $arrayElemAt: ["$staff_info.name", 0] }
+            request_by_name: { $arrayElemAt: ["$profile_info.full_name", 0] }
         }
     });
 

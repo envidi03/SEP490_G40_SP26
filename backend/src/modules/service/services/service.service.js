@@ -46,7 +46,7 @@ const getListService = async (query) => {
         const result = await ServiceModel.aggregate([
             { $match: matchCondition },
 
-            // Sắp xếp theo giá (Price) theo yêu cầu
+            // Sắp xếp theo giá (Price) theo yêu cầu (giá mặc định)
             { $sort: { price: sortPrice } },
 
             {
@@ -55,9 +55,50 @@ const getListService = async (query) => {
                         { $skip: skip },
                         { $limit: limit },
                         {
+                            // Lookup để lấy sub-services nhằm tính toán giá
+                            $lookup: {
+                                from: "sub_services",
+                                localField: "_id",
+                                foreignField: "parent_id",
+                                as: "sub_services_data"
+                            }
+                        },
+                        {
+                            $addFields: {
+                                // Tính min_price tổng hợp: Min của tất cả sub_services.min_price
+                                // Hoặc fallback về price của chính nó nếu không có sub-service
+                                calculated_min_price: {
+                                    $cond: {
+                                        if: { $gt: [{ $size: "$sub_services_data" }, 0] },
+                                        then: { $min: "$sub_services_data.min_price" },
+                                        else: "$price"
+                                    }
+                                },
+                                // Tính max_price tổng hợp: Max của (max_price || min_price)
+                                calculated_max_price: {
+                                    $cond: {
+                                        if: { $gt: [{ $size: "$sub_services_data" }, 0] },
+                                        then: { 
+                                            $max: {
+                                                $map: {
+                                                    input: "$sub_services_data",
+                                                    as: "sub",
+                                                    in: { $ifNull: ["$$sub.max_price", "$$sub.min_price"] }
+                                                }
+                                            }
+                                        },
+                                        else: "$price"
+                                    }
+                                },
+                                // Đếm số lượng dịch vụ con
+                                sub_service_count: { $size: "$sub_services_data" }
+                            }
+                        },
+                        {
                             $project: {
                                 __v: 0,
                                 equipment_service: 0,
+                                // sub_services_data: 0 // Ẩn data thô đi cho nhẹ response
                             }
                         }
                     ],
@@ -112,6 +153,20 @@ const getByIdService = async (id) => {
         if (!service) {
             logger.warn("Service not found", { context: "ServiceService.getById", id });
             return null;
+        }
+
+        // Tính toán khoảng giá từ sub-services (nếu có)
+        const SubService = mongoose.model("SubService");
+        const subServices = await SubService.find({ parent_id: id, status: 'AVAILABLE' });
+
+        if (subServices.length > 0) {
+            service.calculated_min_price = Math.min(...subServices.map(s => s.min_price));
+            service.calculated_max_price = Math.max(...subServices.map(s => s.max_price || s.min_price));
+            service.sub_service_count = subServices.length;
+        } else {
+            service.calculated_min_price = service.price;
+            service.calculated_max_price = service.price;
+            service.sub_service_count = 0;
         }
 
         logger.debug("Service fetched successfully", {

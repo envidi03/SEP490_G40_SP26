@@ -3,9 +3,41 @@ import { X, FileText, User, Phone, Calendar, Stethoscope, Pill, ClipboardList } 
 const ViewRecordModal = ({ record, isOpen, onClose }) => {
     if (!isOpen || !record) return null;
 
+    const formattedDate = record.start_date || record.createdAt || record.date
+        ? new Date(record.start_date || record.createdAt || record.date).toLocaleDateString('vi-VN')
+        : 'Chưa xác định';
+
+    // Extract treatment and prescription info from nested arrays if they exist
+    const treatmentInfo = record.treatment || (record.treatments?.length > 0
+        ? record.treatments.map(t => t.note).filter(Boolean).join('\n')
+        : null);
+
+    let prescriptionInfo = record.prescription;
+    if (!prescriptionInfo && record.treatments) {
+        const meds = [];
+        record.treatments.forEach(t => {
+            if (t.medicine_usage && t.medicine_usage.length > 0) {
+                t.medicine_usage.forEach(m => {
+                    // Format readable: ưu tiên note, sau đó tên thuốc + liều
+                    if (m.note) {
+                        meds.push(m.note);
+                    } else {
+                        const name = m.medicine_id?.medicine_name || m.medicine_name || '';
+                        const dosage = m.medicine_id?.dosage || m.dosage || '';
+                        const qty = m.quantity ? `x${m.quantity}` : '';
+                        const usage = m.usage || m.dosage_form || '';
+                        const parts = [name, dosage, qty, usage].filter(Boolean);
+                        if (parts.length > 0) meds.push(`- ${parts.join(' ')}`);
+                    }
+                });
+            }
+        });
+        if (meds.length > 0) prescriptionInfo = meds.join('\n');
+    }
+
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-xl shadow-2xl p-6 max-w-3xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-white/60 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-in fade-in duration-300">
+            <div className="bg-white rounded-[24px] shadow-2xl p-8 max-w-3xl w-full mx-4 max-h-[90vh] overflow-y-auto animate-in zoom-in-95 duration-200 border border-gray-100">
                 <div className="flex justify-between items-start mb-4">
                     <div className="flex items-center gap-2">
                         <div className="p-2 bg-blue-100 rounded-lg">
@@ -13,7 +45,7 @@ const ViewRecordModal = ({ record, isOpen, onClose }) => {
                         </div>
                         <div>
                             <h2 className="text-xl font-bold text-gray-900">Hồ Sơ Bệnh Án</h2>
-                            <p className="text-sm text-gray-500">Chi tiết khám bệnh</p>
+                            <p className="text-sm text-gray-500">Chi tiết khám bệnh: {record.record_name}</p>
                         </div>
                     </div>
                     <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
@@ -33,28 +65,28 @@ const ViewRecordModal = ({ record, isOpen, onClose }) => {
                                 <User size={16} />
                                 <span className="text-sm font-medium">Họ và tên</span>
                             </div>
-                            <p className="text-blue-900 font-semibold">{record.patientName}</p>
+                            <p className="text-blue-900 font-semibold">{record.full_name || record.patientName}</p>
                         </div>
                         <div>
                             <div className="flex items-center gap-2 text-blue-700 mb-1">
                                 <Phone size={16} />
                                 <span className="text-sm font-medium">Số điện thoại</span>
                             </div>
-                            <p className="text-blue-900 font-semibold">{record.patientPhone}</p>
+                            <p className="text-blue-900 font-semibold">{record.phone || record.patientPhone}</p>
                         </div>
                         <div>
                             <div className="flex items-center gap-2 text-blue-700 mb-1">
                                 <Calendar size={16} />
                                 <span className="text-sm font-medium">Ngày khám</span>
                             </div>
-                            <p className="text-blue-900 font-semibold">{record.date}</p>
+                            <p className="text-blue-900 font-semibold">{formattedDate}</p>
                         </div>
                         <div>
                             <div className="flex items-center gap-2 text-blue-700 mb-1">
                                 <Stethoscope size={16} />
                                 <span className="text-sm font-medium">Bác sĩ điều trị</span>
                             </div>
-                            <p className="text-blue-900 font-semibold">{record.doctorName}</p>
+                            <p className="text-blue-900 font-semibold">{record.doctor_info?.profile?.full_name || record.doctorName || 'Chưa có'}</p>
                         </div>
                     </div>
                 </div>
@@ -80,7 +112,7 @@ const ViewRecordModal = ({ record, isOpen, onClose }) => {
                     </h3>
                     <div className="bg-gray-50 p-4 rounded-lg">
                         <p className="text-gray-900 whitespace-pre-wrap">
-                            {record.treatment || 'Chưa có thông tin điều trị'}
+                            {treatmentInfo || 'Chưa có thông tin điều trị'}
                         </p>
                     </div>
                 </div>
@@ -94,7 +126,7 @@ const ViewRecordModal = ({ record, isOpen, onClose }) => {
                     </h3>
                     <div className="bg-orange-50 p-4 rounded-lg border border-orange-200">
                         <p className="text-gray-900 whitespace-pre-wrap">
-                            {record.prescription || 'Không có đơn thuốc'}
+                            {prescriptionInfo || 'Không có đơn thuốc'}
                         </p>
                     </div>
                 </div>
@@ -117,7 +149,7 @@ const ViewRecordModal = ({ record, isOpen, onClose }) => {
                 <div className="flex justify-end gap-3 pt-4 border-t">
                     <button
                         onClick={onClose}
-                        className="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+                        className="px-8 py-2.5 bg-teal-500 text-white rounded-xl font-bold hover:bg-teal-600 transition-all active:scale-95 shadow-lg shadow-teal-100"
                     >
                         Đóng
                     </button>

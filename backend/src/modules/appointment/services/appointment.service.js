@@ -23,9 +23,10 @@ const emailService = require("../../../common/service/email.service");
     )
 */
 const getListService = async (query, doctor_id) => {
+    const context = "AppointmentService.getListService";
     try {
         logger.debug("Fetching list of appointments with query", {
-            context: "AppointmentService.getListService",
+            context: context,
             query: query,
             doctor_id: doctor_id
         });
@@ -33,6 +34,8 @@ const getListService = async (query, doctor_id) => {
         // 1. Lấy và chuẩn hóa các tham số từ query
         const search = query.search?.trim();
         const statusFilter = query.status ? query.status.toUpperCase() : null;
+        const appointmentDate = query.appointment_date;
+        const filterDoctorId = query.doctor_id || doctor_id; // Check both Places
         const sortOrder = query.sort === "desc" ? -1 : 1;
         const page = Math.max(1, parseInt(query.page || 1));
         const limit = Math.max(1, parseInt(query.limit || 5));
@@ -46,9 +49,23 @@ const getListService = async (query, doctor_id) => {
             matchCondition.status = statusFilter;
         }
 
-        // Lọc theo doctor_id
-        if (doctor_id) {
-            matchCondition.doctor_id = doctor_id;
+        // Lọc theo ngày (appointment_date)
+        if (appointmentDate) {
+            const startOfDay = new Date(appointmentDate);
+            startOfDay.setUTCHours(0, 0, 0, 0);
+
+            const endOfDay = new Date(appointmentDate);
+            endOfDay.setUTCHours(23, 59, 59, 999);
+
+            matchCondition.appointment_date = {
+                $gte: startOfDay,
+                $lte: endOfDay
+            };
+        }
+
+        // Lọc theo doctor_id (Phải ép kiểu về ObjectId trong Aggregation)
+        if (filterDoctorId) {
+            matchCondition.doctor_id = new mongoose.Types.ObjectId(filterDoctorId);
         }
 
         // Tìm kiếm (Search) theo tên, số điện thoại, email
@@ -63,16 +80,129 @@ const getListService = async (query, doctor_id) => {
 
         // 3. Xây dựng Aggregation Pipeline
         const aggregatePipeline = [
+            // BƯỚC 1 & 2: Lọc và Sắp xếp toàn bộ dữ liệu (rất nhanh vì có index)
             { $match: matchCondition },
             { $sort: { appointment_date: sortOrder } },
+
+            // BƯỚC 3: Phân luồng (1 luồng đếm tổng, 1 luồng lấy data)
             {
                 $facet: {
                     data: [
+                        // Cắt lấy đúng số lượng của trang hiện tại trước (Ví dụ: 5 record)
                         { $skip: skip },
                         { $limit: limit },
+
+                        // HIỆU NĂNG CAO: Chỉ Lookup thông tin bác sĩ cho 5 record này
+                        {
+                            $lookup: {
+                                from: "staffs", // Tên collection chứa Staff
+                                localField: "doctor_id",
+                                foreignField: "_id",
+                                as: "doctor_info"
+                            }
+                        },
+                        // Flatten mảng doctor_info thành object
+                        {
+                            $addFields: {
+                                doctor_info: { $arrayElemAt: ["$doctor_info", 0] }
+                            }
+                        },
+
+                        // Tùy chọn: Nếu bạn muốn lấy luôn Tên và Avatar Bác sĩ từ bảng Profile
+                        {
+                            $lookup: {
+                                from: "profiles",
+                                localField: "doctor_info.profile_id",
+                                foreignField: "_id",
+                                as: "doctor_info.profile"
+                            }
+                        },
+                        {
+                            $addFields: {
+                                "doctor_info.profile": { $arrayElemAt: ["$doctor_info.profile", 0] }
+                            }
+                        },
+
+                        // Lookup thông tin các dịch vụ đã đặt và map thẳng tên dịch vụ vào book_service
+                        {
+                            $lookup: {
+                                from: "services",
+                                localField: "book_service.service_id",
+                                foreignField: "_id",
+                                as: "services_data"
+                            }
+                        },
+                        {
+                            $lookup: {
+                                from: "sub_services",
+                                localField: "book_service.sub_service_id",
+                                foreignField: "_id",
+                                as: "sub_services_data"
+                            }
+                        },
+                        {
+                            $addFields: {
+                                book_service: {
+                                    $map: {
+                                        input: "$book_service",
+                                        as: "bs",
+                                        in: {
+                                            $mergeObjects: [
+                                                "$$bs",
+                                                {
+                                                    service_name: {
+                                                        $let: {
+                                                            vars: {
+                                                                matchedService: {
+                                                                    $arrayElemAt: [
+                                                                        {
+                                                                            $filter: {
+                                                                                input: "$services_data",
+                                                                                cond: { $eq: ["$$this._id", "$$bs.service_id"] }
+                                                                            }
+                                                                        },
+                                                                        0
+                                                                    ]
+                                                                }
+                                                            },
+                                                            in: "$$matchedService.service_name"
+                                                        }
+                                                    },
+                                                    sub_service_name: {
+                                                        $let: {
+                                                            vars: {
+                                                                matchedSub: {
+                                                                    $arrayElemAt: [
+                                                                        {
+                                                                            $filter: {
+                                                                                input: "$sub_services_data",
+                                                                                cond: { $eq: ["$$this._id", "$$bs.sub_service_id"] }
+                                                                            }
+                                                                        },
+                                                                        0
+                                                                    ]
+                                                                }
+                                                            },
+                                                            in: "$$matchedSub.sub_service_name"
+                                                        }
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            }
+                        },
+
+                        // BƯỚC CUỐI: Dọn dẹp các field rác và bảo mật
                         {
                             $project: {
-                                __v: 0
+                                __v: 0,
+                                "doctor_info.__v": 0,
+                                "doctor_info.password": 0, // Che password nếu có
+                                "doctor_info.profile.__v": 0,
+                                services_data: 0,
+                                sub_services_data: 0
                             }
                         }
                     ],
@@ -84,6 +214,7 @@ const getListService = async (query, doctor_id) => {
         ];
 
         // 4. Thực thi truy vấn
+        // (Đảm bảo gọi đúng Model Lịch hẹn của bạn)
         const result = await AppointmentModel.aggregate(aggregatePipeline);
 
         const appointments = result[0]?.data || [];
@@ -100,7 +231,7 @@ const getListService = async (query, doctor_id) => {
 
     } catch (error) {
         logger.error("Error getting list of appointments", {
-            context: "AppointmentService.getListService",
+            context: context,
             message: error.message,
             stack: error.stack
         });
@@ -183,8 +314,8 @@ const getListOfPatientService = async (query, account_id) => {
         const aggregatePipeline = [
             { $match: matchCondition },
 
-            // Sắp xếp theo ngày hẹn (appointment_date)
-            { $sort: { appointment_date: sortOrder } },
+            // Sắp xếp theo thời gian tạo (createdAt) giảm dần để hiện cái mới nhất lên đầu
+            { $sort: { createdAt: sortOrder } },
 
             // Phân trang
             {
@@ -192,9 +323,124 @@ const getListOfPatientService = async (query, account_id) => {
                     data: [
                         { $skip: skip },
                         { $limit: limit },
+
+                        // Lookup thông tin bác sĩ
+                        {
+                            $lookup: {
+                                from: "staffs",
+                                localField: "doctor_id",
+                                foreignField: "_id",
+                                as: "doctor_info"
+                            }
+                        },
+                        {
+                            $addFields: {
+                                doctor_info: { $arrayElemAt: ["$doctor_info", 0] }
+                            }
+                        },
+
+                        // Lookup Profile của bác sĩ
+                        {
+                            $lookup: {
+                                from: "profiles",
+                                localField: "doctor_info.profile_id",
+                                foreignField: "_id",
+                                as: "doctor_profile"
+                            }
+                        },
+                        {
+                            $addFields: {
+                                "doctor_info.profile_id": { $arrayElemAt: ["$doctor_profile", 0] },
+                                doctor_name: { 
+                                    $arrayElemAt: ["$doctor_profile.full_name", 0]
+                                }
+                            }
+                        },
+                        // Overwrite doctor_id với object thông tin bác sĩ (giống populate)
+                        {
+                            $addFields: {
+                                doctor_id: "$doctor_info"
+                            }
+                        },
+
+                        // Lookup thông tin các dịch vụ
+                        {
+                            $lookup: {
+                                from: "services",
+                                localField: "book_service.service_id",
+                                foreignField: "_id",
+                                as: "services_data"
+                            }
+                        },
+                        {
+                            $lookup: {
+                                from: "sub_services",
+                                localField: "book_service.sub_service_id",
+                                foreignField: "_id",
+                                as: "sub_services_data"
+                            }
+                        },
+                        {
+                            $addFields: {
+                                book_service: {
+                                    $map: {
+                                        input: "$book_service",
+                                        as: "bs",
+                                        in: {
+                                            $mergeObjects: [
+                                                "$$bs",
+                                                {
+                                                    service_name: {
+                                                        $let: {
+                                                            vars: {
+                                                                matchedService: {
+                                                                    $arrayElemAt: [
+                                                                        {
+                                                                            $filter: {
+                                                                                input: "$services_data",
+                                                                                cond: { $eq: ["$$this._id", "$$bs.service_id"] }
+                                                                            }
+                                                                        },
+                                                                        0
+                                                                    ]
+                                                                }
+                                                            },
+                                                            in: "$$matchedService.service_name"
+                                                        }
+                                                    },
+                                                    sub_service_name: {
+                                                        $let: {
+                                                            vars: {
+                                                                matchedSub: {
+                                                                    $arrayElemAt: [
+                                                                        {
+                                                                            $filter: {
+                                                                                input: "$sub_services_data",
+                                                                                cond: { $eq: ["$$this._id", "$$bs.sub_service_id"] }
+                                                                            }
+                                                                        },
+                                                                        0
+                                                                    ]
+                                                                }
+                                                            },
+                                                            in: "$$matchedSub.sub_service_name"
+                                                        }
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            }
+                        },
+
                         {
                             $project: {
-                                __v: 0 // Loại bỏ trường __v dư thừa
+                                __v: 0,
+                                services_data: 0,
+                                sub_services_data: 0,
+                                doctor_info: 0,
+                                doctor_profile: 0
                             }
                         }
                     ],
@@ -236,9 +482,10 @@ const getListOfPatientService = async (query, account_id) => {
     get appointment by appointmentId
 */
 const getByIdService = async (id) => {
+    const context = "AppointmentService.getByIdService";
     try {
         logger.debug("Fetching appointment by id", {
-            context: "AppointmentService.getByIdService",
+            context: context,
             appointmentId: id,
         });
 
@@ -251,29 +498,37 @@ const getByIdService = async (id) => {
         const appointment = await AppointmentModel.findById(id)
             .populate("patient_id")
             .populate("book_service.service_id")
+            .populate("book_service.sub_service_id")
+            // 💡 POPULATE LỒNG NHAU (Lấy Bác sĩ -> Lấy tiếp Profile của Bác sĩ)
+            .populate({
+                path: "doctor_id", // Lấy thông tin Staff
+                populate: {
+                    path: "profile_id", // Từ Staff lấy tiếp sang Profile để có full_name, avatar...
+                    select: "-__v" // Tùy chọn: ẩn các trường không cần thiết
+                },
+                select: "-password -__v" // Ẩn mật khẩu của Staff (nếu có)
+            })
             .lean();
 
         // --- 3. KIỂM TRA TỒN TẠI ---
         if (!appointment) {
             logger.warn("Appointment not found", {
-                context: "AppointmentService.getByIdService",
+                context: context,
                 appointmentId: id,
             });
             throw new errorRes.NotFoundError("Appointment not found");
         }
 
         logger.debug("Appointment fetched successfully", {
-            context: "AppointmentService.getByIdService",
+            context: context,
             appointmentId: id,
         });
 
-        // Đã sửa lỗi: Trả về đúng biến appointment thay vì staffInfo
         return appointment;
 
     } catch (error) {
-        // Đã sửa lỗi: Cập nhật lại log lỗi cho đúng ngữ cảnh Appointment
         logger.error("Error getting appointment by id", {
-            context: "AppointmentService.getByIdService",
+            context: context,
             message: error.message,
             stack: error.stack,
         });
@@ -320,7 +575,10 @@ const createService = async (dataCreate, account_id) => {
         // check id service
         if (dataCreate.book_service && Array.isArray(dataCreate.book_service)) {
             for (const service of dataCreate.book_service) {
-                const serviceExist = await ServiceModel.findById(service.service_id);
+                const [serviceExist, subServiceExist] = await Promise.all([
+                    ServiceModel.findById(service.service_id),
+                    service.sub_service_id ? mongoose.model("SubService").findById(service.sub_service_id) : Promise.resolve(true)
+                ]);
 
                 if (!serviceExist) {
                     logger.warn(`ID service not found: ${service.service_id}`, {
@@ -329,6 +587,14 @@ const createService = async (dataCreate, account_id) => {
                         service_id: service.service_id
                     });
                     throw new errorRes.NotFoundError(`Service not found! ID: ${service.service_id}`);
+                }
+                
+                if (!subServiceExist) {
+                    logger.warn(`ID sub-service not found: ${service.sub_service_id}`, {
+                        context: "AppointmentService.createService",
+                        sub_service_id: service.sub_service_id
+                    });
+                    throw new errorRes.NotFoundError(`Sub-service not found! ID: ${service.sub_service_id}`);
                 }
             }
         }
@@ -377,15 +643,25 @@ const staffCreateService = async (dataCreate) => {
         // 2. Check valid services
         if (dataCreate.book_service && Array.isArray(dataCreate.book_service)) {
             for (const service of dataCreate.book_service) {
-                const serviceExist = await ServiceModel.findById(service.service_id);
+                const [serviceExist, subServiceExist] = await Promise.all([
+                    ServiceModel.findById(service.service_id),
+                    service.sub_service_id ? mongoose.model("SubService").findById(service.sub_service_id) : Promise.resolve(true)
+                ]);
 
                 if (!serviceExist) {
                     logger.warn(`ID service not found: ${service.service_id}`, {
                         context: "AppointmentService.staffCreateService",
                         service_id: service.service_id
-                        // ĐÃ SỬA BUG CỦA BẠN: Xóa biến account_id gây crash app ở đây
                     });
                     throw new errorRes.NotFoundError(`Service not found! ID: ${service.service_id}`);
+                }
+
+                if (!subServiceExist) {
+                    logger.warn(`ID sub-service not found: ${service.sub_service_id}`, {
+                        context: "AppointmentService.staffCreateService",
+                        sub_service_id: service.sub_service_id
+                    });
+                    throw new errorRes.NotFoundError(`Sub-service not found! ID: ${service.sub_service_id}`);
                 }
             }
         }
@@ -413,137 +689,43 @@ const staffCreateService = async (dataCreate) => {
     }
 };
 
-/**
- * Update an existing service
- * 
- * @param {ObjectId} id service id to update
- * @param {*} updateData data to update
- * @returns updated service object
- */
-const updateService = async (accountId, data) => {
-    // 1. Khởi tạo Session
-    const session = await mongoose.startSession();
-    session.startTransaction();
-
+const updateService = async (id, data) => {
     try {
-        // --- BƯỚC 1: TÁCH DỮ LIỆU (Giữ nguyên) ---
-        const accountUpdate = {};
-        const profileUpdate = {};
-        const staffUpdate = {};
-        const licenseUpdate = {};
+        // Chỉ cho phép update các trường liên quan đến lịch khám
+        const allowedUpdates = {};
+        if (data.appointment_date) allowedUpdates.appointment_date = data.appointment_date;
+        if (data.appointment_time) allowedUpdates.appointment_time = data.appointment_time;
+        if (data.reason !== undefined) allowedUpdates.reason = data.reason;
 
-        // Mapping Account
-        if (data.username) accountUpdate.username = data.username;
-        if (data.email) accountUpdate.email = data.email;
-        if (data.phone_number) accountUpdate.phone_number = data.phone_number;
-        if (data.password) {
-            const salt = parseInt(process.env.BCRYPT_SALT, 10) || 10;
-            accountUpdate.password = await bcrypt.hash(data.password, salt);
+        // Tìm lịch hẹn hiện tại
+        const existingAppt = await AppointmentModel.findById(id);
+        if (!existingAppt) {
+            throw new errorRes.NotFoundError("Appointment not found");
         }
 
-        // Mapping Profile
-        if (data.full_name) profileUpdate.full_name = data.full_name;
-        if (data.dob) profileUpdate.dob = data.dob;
-        if (data.gender) profileUpdate.gender = data.gender;
-        if (data.address) profileUpdate.address = data.address;
-        if (data.avatar_url) profileUpdate.avatar_url = data.avatar_url;
-
-        // Mapping Staff
-        if (data.work_start) staffUpdate.work_start = data.work_start;
-        if (data.work_end) staffUpdate.work_end = data.work_end;
-
-        // Mapping License
-        if (data.license_number) licenseUpdate.license_number = data.license_number;
-        if (data.issued_by) licenseUpdate.issued_by = data.issued_by;
-        if (data.issued_date) licenseUpdate.issued_date = data.issued_date;
-        if (data.document_url) licenseUpdate.document_url = data.document_url;
-
-        // --- BƯỚC 2: THỰC HIỆN UPDATE ---
-
-        // 2.1 Update Account
-        if (Object.keys(accountUpdate).length > 0) {
-            const updatedAccount = await AuthModel.Account.findByIdAndUpdate(
-                accountId,
-                { $set: accountUpdate },
-                { new: true, session }
-            );
-            if (!updatedAccount) throw new errorRes.NotFoundError("Account not found");
+        // Tùy chọn: Thêm kiểm tra trạng thái, chỉ lịch SCHEDULED mới được sửa
+        if (existingAppt.status !== "SCHEDULED") {
+            throw new errorRes.BadRequestError("Only SCHEDULED appointments can be updated");
         }
 
-        // 2.2 Update Profile
-        if (Object.keys(profileUpdate).length > 0) {
-            await AuthModel.Profile.findOneAndUpdate(
-                { account_id: accountId },
-                { $set: profileUpdate },
-                { new: true, session }
-            );
-        }
+        // Cập nhật
+        const updatedAppt = await AppointmentModel.findByIdAndUpdate(
+            id,
+            { $set: allowedUpdates },
+            { new: true } // trả về document sau khi update
+        ).lean();
 
-        // 2.3 Update Staff & License
-        // Tìm Staff hiện tại (Quan trọng: phải dùng session để đảm bảo tính nhất quán đọc/ghi)
-        const currentStaff = await StaffModel.Staff.findOne({ account_id: accountId }).session(session);
-
-        if (!currentStaff) {
-            // Nếu không tìm thấy Staff, throw lỗi để rollback tất cả (kể cả Account/Profile vừa update)
-            throw new errorRes.NotFoundError("Staff profile not found for this account!");
-        }
-
-        // Update Staff info
-        if (Object.keys(staffUpdate).length > 0) {
-            await StaffModel.Staff.findByIdAndUpdate(
-                currentStaff._id,
-                { $set: staffUpdate },
-                { session }
-            );
-        }
-
-        // Update License (Upsert: Tạo mới nếu chưa có)
-        if (Object.keys(licenseUpdate).length > 0) {
-            await StaffModel.License.findOneAndUpdate(
-                { doctor_id: currentStaff._id },
-                { $set: licenseUpdate },
-                { new: true, session, upsert: true }
-            );
-        }
-
-        // --- BƯỚC 3: COMMIT TRANSACTION ---
-        await session.commitTransaction();
-
-        // --- BƯỚC 4: LẤY DỮ LIỆU TRẢ VỀ (Tối ưu Performance) ---
-        // Session đã kết thúc (commit), ta có thể query song song bằng Promise.all
-        // Lưu ý: Lúc này không cần truyền 'session' vào query nữa
-
-        const [accountResult, profileResult, staffResult, licenseResult] = await Promise.all([
-            AuthModel.Account.findById(accountId).select('-password').lean(),
-            AuthModel.Profile.findOne({ account_id: accountId }).lean(),
-            StaffModel.Staff.findById(currentStaff._id).lean(),
-            StaffModel.License.findOne({ doctor_id: currentStaff._id }).lean()
-        ]);
-
-        return {
-            account: accountResult,
-            profile: profileResult,
-            staff: staffResult,
-            license: licenseResult
-        };
+        return updatedAppt;
 
     } catch (error) {
-        // Rollback nếu transaction đang chạy
-        if (session.inTransaction()) {
-            await session.abortTransaction();
-        }
-
-        // Log lỗi
-        logger.error("Error updating service", {
-            context: "ServiceService.updateService",
+        logger.error("Error updating appointment service", {
+            context: "AppointmentService.updateService",
             message: error.message,
             stack: error.stack,
         });
 
-        // QUAN TRỌNG: Ném lại đúng lỗi gốc để Controller xử lý (400, 404, 409...)
-        throw error;
-    } finally {
-        session.endSession();
+        if (error.statusCode) throw error;
+        throw new errorRes.InternalServerError(`Update fails: ${error.message}`);
     }
 };
 
@@ -581,7 +763,7 @@ const updateStatusOnly = async (id, status, doctorId = null) => {
                 },
                 { new: true } // Trả về object sau khi đã update xong
             );
-        } 
+        }
 
         // --- KỊCH BẢN 2: CÁC TRẠNG THÁI KHÁC (SCHEDULED, IN_CONSULTATION, COMPLETED, CANCELLED...) ---
         else {
@@ -591,7 +773,7 @@ const updateStatusOnly = async (id, status, doctorId = null) => {
             }
             newData = await AppointmentModel.findByIdAndUpdate(
                 id,
-                updateData, 
+                updateData,
                 { new: true }
             );
         }

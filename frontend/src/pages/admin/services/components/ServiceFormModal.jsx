@@ -1,7 +1,7 @@
 import React, { useRef, useState } from 'react';
-import { ImagePlus, X, Loader2 } from 'lucide-react';
+import { X, Loader2 } from 'lucide-react';
 import EquipmentServiceSelector from './EquipmentServiceSelector';
-import apiClient from '../../../../services/api';
+import MultiImageUploader from './MultiImageUploader';
 
 const ServiceFormModal = ({
     show,
@@ -10,51 +10,10 @@ const ServiceFormModal = ({
     setServiceForm,
     categories,
     onSave,
-    onClose
+    onClose,
+    loading
 }) => {
-    const fileInputRef = useRef(null);
-    const [uploading, setUploading] = useState(false);
-    const [uploadError, setUploadError] = useState('');
-
     if (!show) return null;
-
-    const handleImageChange = async (e) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-        await uploadImage(file);
-    };
-
-    const handleDrop = async (e) => {
-        e.preventDefault();
-        const file = e.dataTransfer.files?.[0];
-        if (!file) return;
-        await uploadImage(file);
-    };
-
-    const uploadImage = async (file) => {
-        setUploadError('');
-        setUploading(true);
-        try {
-            const formData = new FormData();
-            formData.append('image', file);
-            const response = await apiClient.post('/api/service/upload-image', formData, {
-                headers: { 'Content-Type': undefined },
-                timeout: 30000
-            });
-            const url = response?.data?.url || response?.url;
-            setServiceForm({ ...serviceForm, icon: url });
-        } catch (err) {
-            setUploadError(err?.data?.message || err?.message || 'Upload ảnh thất bại!');
-        } finally {
-            setUploading(false);
-        }
-    };
-
-    const handleRemoveImage = () => {
-        setServiceForm({ ...serviceForm, icon: '' });
-        setUploadError('');
-        if (fileInputRef.current) fileInputRef.current.value = '';
-    };
 
     return (
         <div className="fixed inset-0 z-50 overflow-y-auto">
@@ -70,7 +29,7 @@ const ServiceFormModal = ({
                         </p>
                     </div>
 
-                    <div className="p-6 space-y-4">
+                    <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
                         {/* Service Name */}
                         <div>
                             <label className="block text-sm font-semibold text-gray-700 mb-2">
@@ -99,73 +58,17 @@ const ServiceFormModal = ({
                             />
                         </div>
 
-                        {/* Image Upload */}
-                        <div>
-                            <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                Ảnh dịch vụ
-                            </label>
-
-                            {serviceForm.icon ? (
-                                /* Preview */
-                                <div className="relative inline-block">
-                                    <img
-                                        src={serviceForm.icon}
-                                        alt="Ảnh dịch vụ"
-                                        className="w-full max-h-48 object-cover rounded-xl border border-gray-200 shadow"
-                                    />
-                                    <button
-                                        type="button"
-                                        onClick={handleRemoveImage}
-                                        className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white rounded-full p-1 shadow transition-colors"
-                                        title="Xóa ảnh"
-                                    >
-                                        <X size={16} />
-                                    </button>
-                                </div>
-                            ) : (
-                                /* Drop zone */
-                                <div
-                                    onClick={() => !uploading && fileInputRef.current?.click()}
-                                    onDragOver={(e) => e.preventDefault()}
-                                    onDrop={handleDrop}
-                                    className={`w-full border-2 border-dashed rounded-xl p-8 flex flex-col items-center justify-center gap-3 cursor-pointer transition-all
-                                        ${uploading
-                                            ? 'border-blue-300 bg-blue-50 cursor-wait'
-                                            : 'border-gray-300 hover:border-blue-400 hover:bg-blue-50'
-                                        }`}
-                                >
-                                    {uploading ? (
-                                        <>
-                                            <Loader2 size={36} className="text-blue-500 animate-spin" />
-                                            <p className="text-sm text-blue-600 font-medium">Đang tải ảnh lên...</p>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <ImagePlus size={36} className="text-gray-400" />
-                                            <div className="text-center">
-                                                <p className="text-sm font-medium text-gray-700">
-                                                    Kéo thả ảnh vào đây hoặc{' '}
-                                                    <span className="text-blue-600 underline">chọn file</span>
-                                                </p>
-                                                <p className="text-xs text-gray-500 mt-1">PNG, JPG, WebP tối đa 10MB</p>
-                                            </div>
-                                        </>
-                                    )}
-                                </div>
-                            )}
-
-                            <input
-                                ref={fileInputRef}
-                                type="file"
-                                accept="image/jpeg,image/png,image/webp,image/gif"
-                                onChange={handleImageChange}
-                                className="hidden"
-                            />
-
-                            {uploadError && (
-                                <p className="text-xs text-red-500 mt-2">⚠️ {uploadError}</p>
-                            )}
-                        </div>
+                        {/* Multi Image Upload */}
+                        <MultiImageUploader
+                            images={serviceForm.images || []}
+                            onChange={(newImages) => setServiceForm({
+                                ...serviceForm,
+                                images: newImages,
+                                icon: newImages.length > 0 ? newImages[0] : (serviceForm.icon || '')
+                            })}
+                            maxImages={8}
+                            label="Hình ảnh dịch vụ"
+                        />
 
                         <div className="grid grid-cols-1 gap-4">
                             {/* Status */}
@@ -181,38 +84,6 @@ const ServiceFormModal = ({
                                     <option value="AVAILABLE">Hoạt động (AVAILABLE)</option>
                                     <option value="UNAVAILABLE">Ngừng hoạt động (UNAVAILABLE)</option>
                                 </select>
-                            </div>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-4">
-                            {/* Price */}
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                    Giá dịch vụ (VNĐ) <span className="text-red-500">*</span>
-                                </label>
-                                <input
-                                    type="number"
-                                    value={serviceForm.price}
-                                    onChange={(e) => setServiceForm({ ...serviceForm, price: e.target.value })}
-                                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
-                                    placeholder="100000"
-                                    min="0"
-                                />
-                            </div>
-
-                            {/* Duration */}
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                    Thời gian (phút) <span className="text-red-500">*</span>
-                                </label>
-                                <input
-                                    type="number"
-                                    value={serviceForm.duration}
-                                    onChange={(e) => setServiceForm({ ...serviceForm, duration: e.target.value })}
-                                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
-                                    placeholder="30"
-                                    min="0"
-                                />
                             </div>
                         </div>
 
@@ -232,7 +103,7 @@ const ServiceFormModal = ({
                         </button>
                         <button
                             onClick={onSave}
-                            disabled={uploading}
+                            disabled={loading}
                             className="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-medium rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             {isEditMode ? 'Cập nhật' : 'Thêm dịch vụ'}

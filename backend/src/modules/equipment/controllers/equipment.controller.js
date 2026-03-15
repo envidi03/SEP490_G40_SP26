@@ -38,7 +38,7 @@ const getEquipments = async (req, res) => {
             totalItems: pagination.totalItems,
         });
         const statistics = await EquipmentService.getStatistics();
-        
+
         return new successRes.GetListSuccess(data, page, 'Equipments retrieved successfully', statistics).send(res);
     } catch (error) {
         logger.error('Error get equipment', {
@@ -161,8 +161,8 @@ const updateEquipment = async (req, res) => {
     try {
         const { equipmentId } = req.params;
         const equipmentData = req.body || {};
-        // remove purchase_date, status, maintenance_history and equipments_log from the data to be updated
-        const { purchase_date, status, maintenance_history, equipments_log, ...dataUpdate } = cleanObjectData(equipmentData, Equipment.createFields);
+        // remove purchase_date, maintenance_history and equipments_log from the data to be updated (allow status)
+        const { purchase_date, maintenance_history, equipments_log, ...dataUpdate } = cleanObjectData(equipmentData, Equipment.createFields);
         // check field is empty
         if (Object.keys(dataUpdate).length === 0) {
             logger.warn('No equipment data provided in request body', {
@@ -172,8 +172,8 @@ const updateEquipment = async (req, res) => {
         }
         // check unique serial_number and not belong to this equipment
         if (dataUpdate.equipment_serial_number) {
-            const existingEquipment = await EquipmentService.checkExitSerialNumberNotId(dataUpdate.equipment_serial_number);
-            if (existingEquipment && existingEquipment.id !== equipmentId) {
+            const existingEquipment = await EquipmentService.checkExitSerialNumberNotId(dataUpdate.equipment_serial_number, equipmentId);
+            if (existingEquipment) {
                 logger.warn('Serial number already exists', {
                     context: 'EquipmentController.updateEquipment',
                     serial_number: dataUpdate.equipment_serial_number
@@ -251,10 +251,56 @@ const updateEquipmentStatus = async (req, res) => {
 };
 
 
+// report equipment incident
+const reportIncident = async (req, res) => {
+    try {
+        const { equipmentId } = req.params;
+        const incidentData = req.body || {};
+
+        logger.debug('Report equipment incident request received', {
+            context: 'EquipmentController.reportIncident',
+            equipmentId: equipmentId,
+            incidentData: incidentData
+        });
+
+        // 1. Basic validation
+        if (!incidentData.issue_type || !incidentData.severity || !incidentData.description) {
+            throw new errorRes.BadRequestError('Missing required incident reporting fields');
+        }
+
+        // 2. Map frontend types to backend enums if necessary
+        // Frontend uses: malfunction, maintenance, broken, missing, other
+        // Backend uses: MALFUNCTION, MAINTENANCE, BROKEN, MISSING, OTHER
+        const mappedData = {
+            ...incidentData,
+            issue_type: incidentData.issue_type.toUpperCase(),
+            severity: incidentData.severity.toUpperCase(),
+            reported_by: req.user?._id // Assuming auth middleware provides req.user
+        };
+
+        const updatedEquipment = await EquipmentService.reportIncident(equipmentId, mappedData);
+
+        logger.info('Equipment incident reported successfully', {
+            context: 'EquipmentController.reportIncident',
+            equipmentId: updatedEquipment.id
+        });
+
+        return new successRes.UpdateSuccess(updatedEquipment, 'Equipment incident reported successfully').send(res);
+    } catch (error) {
+        logger.error('Error report equipment incident', {
+            context: 'EquipmentController.reportIncident',
+            message: error.message,
+            stack: error.stack
+        });
+        throw error;
+    }
+};
+
 module.exports = {
     createEquipment,
     getEquipments,
     getEquipmentById,
     updateEquipment,
-    updateEquipmentStatus
+    updateEquipmentStatus,
+    reportIncident
 };

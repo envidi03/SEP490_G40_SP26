@@ -1,65 +1,125 @@
-import { useState, useMemo } from "react"
+import React, { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import { useAuth } from "../../contexts/AuthContext"
-import { getAppointmentsByDoctor, mockDentalRecords } from "../../utils/mockData"
-import Card from "../../components/ui/Card"
-import Badge from "../../components/ui/Badge"
-import Button from "../../components/ui/Button"
-import Table from "../../components/ui/Table"
-import { Calendar, FilePlus, FolderOpen } from "lucide-react"
-import AppointmentSearchBar from "./components/AppointmentSearchBar"
-import AppointmentStatsSection from "./components/AppointmentStatsSection"
+import appointmentService from "../../services/appointmentService"
+import { getDentalRecordsByPatient } from "../../services/dentalRecordService"
+
 import AppointmentDetailModal from "./components/AppointmentDetailModal"
-import AppointmentStatusFilter from "./components/AppointmentStatusFilter"
 import PatientInfoModal from "./components/PatientInfoModal"
+import CreateDentalRecordModal from "../medical_records/components/CreateDentalRecordModal"
+import AppointmentFilters from "./components/AppointmentFilters"
+import AppointmentTable from "./components/AppointmentTable"
+import AppointmentPagination from "./components/AppointmentPagination"
 
 const DentistAppointmentList = () => {
   const { user } = useAuth()
   const navigate = useNavigate()
+
+  const [appointments, setAppointments] = useState([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState(null)
+
+  // Backend Filters, Sort & Pagination
   const [searchTerm, setSearchTerm] = useState("")
-  const [statusFilter, setStatusFilter] = useState("All")
-  const [dateFilter, setDateFilter] = useState("")
+  const [debouncedSearch, setDebouncedSearch] = useState("")
+
+  const [sortOrder, setSortOrder] = useState("")
+  const [page, setPage] = useState(1)
+  const [totalItems, setTotalItems] = useState(0)
+  const limit = 5
+
   const [selectedAppointment, setSelectedAppointment] = useState(null)
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false)
   const [isPatientInfoModalOpen, setIsPatientInfoModalOpen] = useState(false)
+  const [isCreateRecordModalOpen, setIsCreateRecordModalOpen] = useState(false)
   const [appointmentForRecord, setAppointmentForRecord] = useState(null)
 
-  const doctorAppointments = getAppointmentsByDoctor(user?.id)
+  // Debounce search term
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(searchTerm), 500);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
 
-  const filteredAppointments = useMemo(() => {
-    return doctorAppointments.filter((apt) => {
-      const matchesSearch =
-        apt.patientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        apt.patientPhone.includes(searchTerm) ||
-        apt.code.toLowerCase().includes(searchTerm.toLowerCase())
-      const matchesStatus = statusFilter === "All" || apt.status === statusFilter
-      const matchesDate = !dateFilter || apt.date === dateFilter
+  const fetchAppointments = async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const params = {
+        page,
+        limit,
+        status: "IN_CONSULTATION",
+      };
 
-      return matchesSearch && matchesStatus && matchesDate
-    })
-  }, [doctorAppointments, searchTerm, statusFilter, dateFilter])
+      if (debouncedSearch) {
+        params.search = debouncedSearch;
+      }
+      if (sortOrder) {
+        params.sort = sortOrder;
+      }
 
+      const res = await appointmentService.getDoctorAppointments(params);
+
+      if (res?.data) {
+        const responseData = res.data;
+        setAppointments(responseData);
+
+        if (responseData.pagination) {
+          setTotalItems(responseData.pagination.totalItems || 0);
+        } else {
+          setTotalItems(responseData.length); // fallback
+        }
+      }
+    } catch (err) {
+      console.error('Fetch Doctor Appointments Error:', err);
+      setError('Không thể lấy danh sách lịch hẹn. Vui lòng thử lại sau.');
+      setAppointments([]);
+      setTotalItems(0);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Reset trang về 1 khi đổi bộ lọc
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedSearch, sortOrder]);
+
+  // Fetch call
+  useEffect(() => {
+    if (user) {
+      fetchAppointments();
+    }
+  }, [user, page, debouncedSearch, sortOrder])
+
+  // Actions
   const handleViewDetail = (appointment) => {
     setSelectedAppointment(appointment)
     setIsDetailModalOpen(true)
   }
 
-  /** Kiểm tra xem bệnh nhân có hồ sơ nha khoa đang điều trị (IN_PROGRESS) không */
-  const hasInProgressRecord = (patientName) => {
-    return mockDentalRecords.some(
-      (r) => r.patient_name.toLowerCase() === patientName.toLowerCase() &&
-        r.status === 'IN_PROGRESS'
-    )
-  }
-
-  /** Điều hướng thẳng đến trang danh sách hồ sơ theo tên bệnh nhân */
-  const handleViewRecords = (row) => {
-    const params = new URLSearchParams({ name: row.patientName })
-    navigate(`/dentist/dental-records?${params.toString()}`)
-  }
-
-  const handleCreateRecord = (appointment) => {
+  const handleCreateRecord = async (appointment) => {
     setAppointmentForRecord(appointment)
+
+    if (appointment.status === 'IN_CONSULTATION') {
+      try {
+        const patientObj = appointment.patient_id || {};
+        const patientId = patientObj._id || patientObj.id || patientObj;
+
+        if (patientId && typeof patientId === 'string') {
+          const res = await getDentalRecordsByPatient(patientId);
+          const records = res.data || [];
+          if (records.length === 0) {
+            // No existing records -> open Create Modal directly
+            setIsCreateRecordModalOpen(true);
+            return;
+          }
+        }
+      } catch (err) {
+        console.error("Failed to check patient records:", err);
+      }
+    }
+
+    // Default flow if condition not met, or fallback
     setIsPatientInfoModalOpen(true)
   }
 
@@ -70,176 +130,110 @@ const DentistAppointmentList = () => {
       dob: patientInfo.dob,
       gender: patientInfo.gender,
       phone: patientInfo.phone,
-      appointmentId: appointmentForRecord?.id || '',
     })
-    navigate(`/dentist/dental-records?${params.toString()}`)
+    navigate(`/dentist/dental-records/search?${params.toString()}`)
   }
 
-  const tableColumns = [
-    {
-      header: "Mã LH",
-      accessor: "code",
-    },
-    {
-      header: "Bệnh nhân",
-      accessor: "patientName",
-      render: (row) => (
-        <div>
-          <p className="font-medium text-gray-900">{row.patientName}</p>
-          <p className="text-sm text-gray-600">{row.patientPhone}</p>
-        </div>
-      ),
-    },
-    {
-      header: "Ngày giờ",
-      accessor: "date",
-      render: (row) => (
-        <div className="flex items-center">
-          <Calendar size={16} className="text-gray-400 mr-2" />
-          <div>
-            <p className="font-medium text-gray-900">{row.date}</p>
-            <p className="text-sm text-gray-600">{row.time}</p>
-          </div>
-        </div>
-      ),
-    },
-    {
-      header: "Lý do khám",
-      accessor: "reason",
-    },
-    {
-      header: "Trạng thái",
-      accessor: "status",
-      render: (row) => {
-        const variantMap = {
-          Confirmed: "success",
-          Pending: "warning",
-          Completed: "info",
-          Cancelled: "danger",
-        }
-        return <Badge variant={variantMap[row.status]}>{row.status}</Badge>
-      },
-    },
-    {
-      header: "Thao tác",
-      render: (row) => {
-        const isActionable = row.status === 'Confirmed' || row.status === 'Completed'
-        const inProgress = hasInProgressRecord(row.patientName)
+  const handleCreateRecordSuccess = (newRecord) => {
+    setIsCreateRecordModalOpen(false);
+    if (newRecord?._id) {
+      navigate(`/dentist/dental-records/${newRecord._id}`);
+    } else {
+      // Fallback
+      handlePatientInfoConfirm({
+        name: appointmentForRecord?.patient_id?.full_name || '',
+        dob: appointmentForRecord?.patient_id?.dob ? new Date(appointmentForRecord.patient_id.dob).toISOString().split('T')[0] : '',
+        gender: appointmentForRecord?.patient_id?.gender ? "MALE" : "FEMALE",
+        phone: appointmentForRecord?.patient_id?.phone || '',
+      });
+    }
+  }
 
-        return (
-          <div className="flex items-center gap-2 flex-wrap">
-            {/* Chi tiết lịch hẹn */}
-            <button
-              onClick={(e) => { e.stopPropagation(); handleViewDetail(row) }}
-              className="text-blue-600 hover:text-blue-700 font-medium text-sm"
-            >
-              Chi tiết
-            </button>
+  const handleClearFilters = () => {
+    setSearchTerm("");
+    setSortOrder("");
+    setPage(1);
+  }
 
-            {/* Xem hồ sơ – luôn hiển thị với lịch có thể thao tác */}
-            {isActionable && (
-              <button
-                onClick={(e) => { e.stopPropagation(); handleViewRecords(row) }}
-                className="flex items-center gap-1 px-2 py-1 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-md font-medium text-sm transition-colors"
-              >
-                <FolderOpen size={14} />
-                Xem Hồ Sơ
-              </button>
-            )}
-
-            {/* Tạo hồ sơ – chỉ hiển thị khi không còn hồ sơ IN_PROGRESS */}
-            {isActionable && !inProgress && (
-              <button
-                onClick={(e) => { e.stopPropagation(); handleCreateRecord(row) }}
-                className="flex items-center gap-1 px-2 py-1 bg-green-50 text-green-700 hover:bg-green-100 rounded-md font-medium text-sm transition-colors"
-              >
-                <FilePlus size={14} />
-                Tạo Hồ Sơ
-              </button>
-            )}
-
-            {/* Thông báo đang có hồ sơ điều trị – khi không được tạo */}
-            {isActionable && inProgress && (
-              <span
-                title="Bệnh nhân đang có hồ sơ điều trị, hoàn thành trước khi tạo mới"
-                className="text-xs text-orange-500 italic flex items-center gap-1 cursor-default"
-              >
-                🔒 Đang điều trị
-              </span>
-            )}
-          </div>
-        )
-      },
-    },
-  ]
+  // Helpers for exact bindings
+  const patientData = appointmentForRecord?.patient_id || {};
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Lịch Hẹn Của Tôi</h1>
-        <p className="text-gray-600 mt-1">Quản lý và theo dõi lịch khám của bệnh nhân</p>
+        <h1 className="text-2xl font-bold text-gray-800 tracking-tight">Lịch Hẹn Của Tôi</h1>
+        <p className="text-xs text-gray-400 mt-1">Lịch khám và dịch vụ trong ngày được chỉ định cho bạn</p>
       </div>
 
-      {/* Stats Section */}
-      <AppointmentStatsSection appointments={filteredAppointments} />
-
-      {/* Search and Filter */}
-      <Card>
-        <div className="space-y-4">
-          <AppointmentSearchBar searchTerm={searchTerm} onSearchChange={setSearchTerm} />
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t border-gray-200">
-            <AppointmentStatusFilter statusFilter={statusFilter} onStatusChange={setStatusFilter} />
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Lọc theo ngày</label>
-              <input
-                type="date"
-                value={dateFilter}
-                onChange={(e) => setDateFilter(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-            </div>
-
-            <div className="flex items-end">
-              <Button
-                variant="outline"
-                className="w-full bg-transparent"
-                onClick={() => {
-                  setSearchTerm("")
-                  setStatusFilter("All")
-                  setDateFilter("")
-                }}
-              >
-                Xóa bộ lọc
-              </Button>
-            </div>
-          </div>
+      {/* Error state */}
+      {error && (
+        <div className="bg-red-50 text-red-600 p-4 rounded-xl border border-red-100 text-[13px] mb-4">
+          {error}
         </div>
-      </Card>
+      )}
 
-      {/* Appointments Table */}
-      <Card
-        title={`Danh sách lịch hẹn (${filteredAppointments.length})`}
-        actions={<Badge variant="info">{filteredAppointments.length} lịch hẹn</Badge>}
-      >
-        <Table columns={tableColumns} data={filteredAppointments} onRowClick={handleViewDetail} />
-      </Card>
+      {/* Filters */}
+      <AppointmentFilters
+        searchTerm={searchTerm}
+        onSearchChange={setSearchTerm}
+        sortOrder={sortOrder}
+        onSortChange={setSortOrder}
+        onClearFilters={handleClearFilters}
+      />
 
-      {/* Detail Modal */}
+      {/* Table wrapper */}
+      <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
+        <div className="px-5 py-4 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
+          <h2 className="text-sm font-semibold text-gray-700">Tổng quan lịch khám</h2>
+          <span className="text-teal-600 bg-teal-50 border border-teal-100 px-3 py-1 rounded-lg text-xs font-bold">
+            {totalItems > 0
+              ? `Hiển thị ${(page - 1) * limit + 1} - ${Math.min(page * limit, totalItems)} / Tổng ${totalItems}`
+              : 'Không có kết quả'}
+          </span>
+        </div>
+
+        <AppointmentTable
+          appointments={appointments}
+          isLoading={isLoading}
+          onViewDetail={handleViewDetail}
+          onCreateRecord={handleCreateRecord}
+        />
+
+        {!isLoading && totalItems > limit && (
+          <AppointmentPagination
+            page={page}
+            setPage={setPage}
+            limit={limit}
+            totalItems={totalItems}
+          />
+        )}
+      </div>
+
+      {/* Modals */}
       <AppointmentDetailModal
         isOpen={isDetailModalOpen}
         onClose={() => setIsDetailModalOpen(false)}
         appointment={selectedAppointment}
       />
 
-      {/* Patient Info Modal */}
       <PatientInfoModal
         isOpen={isPatientInfoModalOpen}
         onClose={() => setIsPatientInfoModalOpen(false)}
         appointment={appointmentForRecord}
         onConfirm={handlePatientInfoConfirm}
+      />
+
+      <CreateDentalRecordModal
+        isOpen={isCreateRecordModalOpen}
+        onClose={() => setIsCreateRecordModalOpen(false)}
+        onSuccess={handleCreateRecordSuccess}
+        patientId={appointmentForRecord?.patient_id}
+        patientName={patientData.full_name || appointmentForRecord?.full_name || ''}
+        patientPhone={patientData.phone || appointmentForRecord?.phone || ''}
+        patientEmail={patientData.email || appointmentForRecord?.email || ''}
+        patientGender={patientData.gender === true ? 'MALE' : patientData.gender === false ? 'FEMALE' : ''}
+        patientDateOfBirth={patientData.dob || ''}
       />
     </div>
   )

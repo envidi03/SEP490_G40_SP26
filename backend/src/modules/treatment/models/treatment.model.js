@@ -12,7 +12,7 @@ const treatmentSchema = new Schema(
         appointment_id: {
             type: Schema.Types.ObjectId,
             ref: "Appointment",
-            required: true
+            required: function () { return this.phase !== 'PLAN'; }
         },
         patient_id: {
             type: Schema.Types.ObjectId,
@@ -49,6 +49,9 @@ const treatmentSchema = new Schema(
         performed_date: {
             type: Date
         },
+        end_date: { // NEW FIELD ADDED PER REQUEST
+            type: Date
+        },
         result: {
             type: String,
             trim: true
@@ -63,7 +66,7 @@ const treatmentSchema = new Schema(
             {
                 medicine_id: {
                     type: Schema.Types.ObjectId,
-                    ref: "Medicine", 
+                    ref: "Medicine",
                     required: true
                 },
                 quantity: {
@@ -108,9 +111,9 @@ const treatmentSchema = new Schema(
 // =========================================================================
 
 // Hàm Helper dùng chung để hệ thống quét và chốt Bệnh án nếu tất cả các Treatment của Bệnh án đó đã hoàn thành (status = DONE/CANCELLED)
-const checkAndCompleteDentalRecord = async function(recordId) {
+const checkAndCompleteDentalRecord = async function (recordId) {
     if (!recordId) return;
-    
+
     try {
         const mongoose = require("mongoose");
         // Gọi model theo cách này để tránh lỗi "Circular Dependency" (2 model gọi chéo nhau)
@@ -129,19 +132,37 @@ const checkAndCompleteDentalRecord = async function(recordId) {
             // 3. Nếu tất cả đã xong, tiến hành tự động ĐÓNG Bệnh án
             if (isAllFinished) {
                 const updatedRecord = await DentalRecord.findOneAndUpdate(
-                    { 
-                        _id: recordId, 
-                        status: 'IN_PROGRESS' 
+                    {
+                        _id: recordId,
+                        status: 'IN_PROGRESS'
                     },
-                    { 
-                        status: 'COMPLETED', 
-                        end_date: new Date() 
+                    {
+                        status: 'COMPLETED',
+                        end_date: new Date()
                     },
                     { new: true }
                 );
 
                 if (updatedRecord) {
                     console.log(`[System Background] Auto-completed DentalRecord: ${recordId}`);
+
+                    // Lấy tất cả appointment ids duy nhất từ các treatments của đợt khám này
+                    const appointmentIds = [...new Set(allTreatments.map(t => t.appointment_id).filter(Boolean))];
+                    if (appointmentIds.length > 0) {
+                        const Appointment = mongoose.model("Appointment");
+                        try {
+                            for (const aptId of appointmentIds) {
+                                // Chỉ chuyển những appointment đang mở sang COMPLETED
+                                await Appointment.updateOne(
+                                    { _id: aptId, status: { $in: ['SCHEDULED', 'CHECKED_IN', 'IN_CONSULTATION'] } },
+                                    { $set: { status: 'COMPLETED' } }
+                                );
+                            }
+                            console.log(`[System Background] Auto-completed Appointments for record: ${recordId}`);
+                        } catch (err) {
+                            console.error("[Treatment Hook] Error auto-completing Appointments:", err);
+                        }
+                    }
                 }
             }
         }
@@ -151,7 +172,7 @@ const checkAndCompleteDentalRecord = async function(recordId) {
 };
 
 // Kích hoạt khi Bác sĩ/Nhân viên cập nhật Treatment (Dùng updateController)
-treatmentSchema.post('findOneAndUpdate', async function(doc) {
+treatmentSchema.post('findOneAndUpdate', async function (doc) {
     if (doc) {
         await checkAndCompleteDentalRecord(doc.record_id);
     }
@@ -159,5 +180,7 @@ treatmentSchema.post('findOneAndUpdate', async function(doc) {
 
 // Đánh Index để tăng tốc độ truy vấn sau này
 treatmentSchema.index({ patient_id: 1, appointment_id: 1 });
+
+treatmentSchema.statics.checkAndCompleteDentalRecord = checkAndCompleteDentalRecord;
 
 module.exports = mongoose.model("Treatment", treatmentSchema);

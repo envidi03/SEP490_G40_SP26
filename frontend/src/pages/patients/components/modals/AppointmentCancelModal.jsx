@@ -30,17 +30,21 @@ const AppointmentCancelModal = ({ isOpen, onClose, onConfirm, appointment }) => 
                 <div className="bg-gray-50 rounded-lg p-4 space-y-2">
                     <div className="flex items-center gap-2 text-sm">
                         <span className="font-medium text-gray-700">Lý do:</span>
-                        <span className="text-gray-600">{appointment.reason}</span>
+                        <span className="text-gray-600">{appointment.reason || appointment.note}</span>
                     </div>
                     <div className="flex items-center gap-2 text-sm">
                         <span className="font-medium text-gray-700">Ngày:</span>
                         <span className="text-gray-600">
-                            {new Date(appointment.date).toLocaleDateString('vi-VN')}
+                            {appointment.appointment_date
+                                ? new Date(appointment.appointment_date).toLocaleDateString('vi-VN')
+                                : appointment.date
+                                    ? new Date(appointment.date).toLocaleDateString('vi-VN')
+                                    : 'Không xác định'}
                         </span>
                     </div>
                     <div className="flex items-center gap-2 text-sm">
                         <span className="font-medium text-gray-700">Giờ:</span>
-                        <span className="text-gray-600">{appointment.time}</span>
+                        <span className="text-gray-600">{appointment.appointment_time || appointment.time}</span>
                     </div>
                 </div>
 

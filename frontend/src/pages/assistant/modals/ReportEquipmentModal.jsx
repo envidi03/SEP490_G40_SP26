@@ -1,9 +1,9 @@
 import { X, Wrench, AlertTriangle } from 'lucide-react';
 import { useState } from 'react';
 
-const ReportEquipmentModal = ({ appointment, isOpen, onClose, onSubmit }) => {
+const ReportEquipmentModal = ({ appointment, isOpen, onClose, onSubmit, equipments }) => {
     const [formData, setFormData] = useState({
-        equipmentName: '',
+        equipmentId: '',
         issueType: 'malfunction',
         severity: 'medium',
         description: ''
@@ -22,17 +22,17 @@ const ReportEquipmentModal = ({ appointment, isOpen, onClose, onSubmit }) => {
     const handleSubmit = (e) => {
         e.preventDefault();
         const data = {
-            ...formData,
-            appointmentId: appointment.id,
-            reportedAt: new Date().toISOString(),
-            reportedBy: 'Current User' // TODO: Get from auth context
+            equipmentId: formData.equipmentId,
+            issue_type: formData.issueType,
+            severity: formData.severity,
+            description: formData.description
         };
         if (onSubmit) {
-            onSubmit(appointment.id, data);
+            onSubmit(appointment._id || appointment.id, data);
         }
         // Reset form
         setFormData({
-            equipmentName: '',
+            equipmentId: '',
             issueType: 'malfunction',
             severity: 'medium',
             description: ''
@@ -41,8 +41,8 @@ const ReportEquipmentModal = ({ appointment, isOpen, onClose, onSubmit }) => {
     };
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-xl shadow-2xl p-6 max-w-2xl w-full mx-4">
+        <div className="fixed inset-0 bg-white/60 backdrop-blur-[2px] flex items-center justify-center z-50">
+            <div className="bg-white rounded-2xl shadow-xl p-6 max-w-2xl w-full mx-4 border border-gray-200">
                 <div className="flex justify-between items-start mb-4">
                     <div className="flex items-center gap-2">
                         <div className="p-2 bg-orange-100 rounded-lg">
@@ -61,7 +61,7 @@ const ReportEquipmentModal = ({ appointment, isOpen, onClose, onSubmit }) => {
                 {/* Appointment Context */}
                 <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
                     <p className="text-sm text-gray-700">
-                        <span className="font-medium">Liên quan đến lịch hẹn:</span> {appointment.patientName} - {appointment.date} {appointment.time}
+                        <span className="font-medium">Liên quan đến lịch hẹn:</span> {appointment.full_name || appointment.patientName}
                     </p>
                 </div>
 
@@ -72,21 +72,18 @@ const ReportEquipmentModal = ({ appointment, isOpen, onClose, onSubmit }) => {
                             Tên thiết bị <span className="text-red-500">*</span>
                         </label>
                         <select
-                            name="equipmentName"
-                            value={formData.equipmentName}
+                            name="equipmentId"
+                            value={formData.equipmentId}
                             onChange={handleChange}
                             required
                             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
                         >
                             <option value="">-- Chọn thiết bị --</option>
-                            <option value="Ghế nha khoa">Ghế nha khoa</option>
-                            <option value="Máy X-quang">Máy X-quang</option>
-                            <option value="Máy khoan">Máy khoan</option>
-                            <option value="Máy hút">Máy hút</option>
-                            <option value="Máy cạo vôi siêu âm">Máy cạo vôi siêu âm</option>
-                            <option value="Đèn chiếu sáng">Đèn chiếu sáng</option>
-                            <option value="Tủ tiệt trùng">Tủ tiệt trùng</option>
-                            <option value="Thiết bị khác">Thiết bị khác</option>
+                            {equipments?.map(eq => (
+                                <option key={eq._id} value={eq._id}>
+                                    {eq.equipment_name} ({eq.equipment_serial_number}) - [{eq.status}]
+                                </option>
+                            ))}
                         </select>
                     </div>
 
@@ -117,8 +114,8 @@ const ReportEquipmentModal = ({ appointment, isOpen, onClose, onSubmit }) => {
                         </label>
                         <div className="grid grid-cols-3 gap-3">
                             <label className={`flex items-center justify-center p-3 border-2 rounded-lg cursor-pointer transition-all ${formData.severity === 'low'
-                                    ? 'border-yellow-500 bg-yellow-50'
-                                    : 'border-gray-200 hover:border-gray-300'
+                                ? 'border-yellow-500 bg-yellow-50'
+                                : 'border-gray-200 hover:border-gray-300'
                                 }`}>
                                 <input
                                     type="radio"
@@ -134,8 +131,8 @@ const ReportEquipmentModal = ({ appointment, isOpen, onClose, onSubmit }) => {
                                 </span>
                             </label>
                             <label className={`flex items-center justify-center p-3 border-2 rounded-lg cursor-pointer transition-all ${formData.severity === 'medium'
-                                    ? 'border-orange-500 bg-orange-50'
-                                    : 'border-gray-200 hover:border-gray-300'
+                                ? 'border-orange-500 bg-orange-50'
+                                : 'border-gray-200 hover:border-gray-300'
                                 }`}>
                                 <input
                                     type="radio"
@@ -151,8 +148,8 @@ const ReportEquipmentModal = ({ appointment, isOpen, onClose, onSubmit }) => {
                                 </span>
                             </label>
                             <label className={`flex items-center justify-center p-3 border-2 rounded-lg cursor-pointer transition-all ${formData.severity === 'high'
-                                    ? 'border-red-500 bg-red-50'
-                                    : 'border-gray-200 hover:border-gray-300'
+                                ? 'border-red-500 bg-red-50'
+                                : 'border-gray-200 hover:border-gray-300'
                                 }`}>
                                 <input
                                     type="radio"

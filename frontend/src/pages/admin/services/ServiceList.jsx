@@ -1,7 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import Toast from '../../../components/ui/Toast';
 import { Plus, ClipboardList } from 'lucide-react';
 import serviceService from '../../../services/serviceService';
+
 
 // Components
 import ServiceStatistics from './components/ServiceStatistics';
@@ -26,6 +28,8 @@ import ServiceDetailModal from './components/ServiceDetailModal';
  * @component
  */
 const ServiceList = () => {
+    const navigate = useNavigate();
+    const [searchParams, setSearchParams] = useSearchParams();
     // ========== STATE MANAGEMENT ==========
     const [services, setServices] = useState([]);
     const [pagination, setPagination] = useState({
@@ -36,6 +40,7 @@ const ServiceList = () => {
     });
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
+    const [saving, setSaving] = useState(false);
     const [toast, setToast] = useState({ show: false, type: 'success', message: '' });
 
     // Modals
@@ -46,6 +51,7 @@ const ServiceList = () => {
     const [selectedDetailService, setSelectedDetailService] = useState(null);
     const [isEditMode, setIsEditMode] = useState(false);
 
+
     // Form data
     const [serviceForm, setServiceForm] = useState({
         service_name: '',
@@ -53,6 +59,7 @@ const ServiceList = () => {
         price: '',
         duration: '',
         icon: '',
+        images: [],
         equipment_service: [],
         status: 'AVAILABLE'
     });
@@ -74,6 +81,29 @@ const ServiceList = () => {
 
         return () => clearTimeout(delayDebounceFn);
     }, [searchTerm]);
+
+    // Auto open form if ?add=true from sidebar
+    useEffect(() => {
+        if (searchParams.get('add') === 'true') {
+            setIsEditMode(false);
+            setServiceForm({
+                service_name: '',
+                description: '',
+                price: '',
+                duration: '',
+                icon: '',
+                images: [],
+                equipment_service: [],
+                status: 'AVAILABLE'
+            });
+            setShowServiceModal(true);
+            
+            // Clean up param
+            const newParams = new URLSearchParams(searchParams);
+            newParams.delete('add');
+            setSearchParams(newParams, { replace: true });
+        }
+    }, [searchParams, setSearchParams]);
 
     // ========== API CALLS ==========
     const fetchServices = async (page = 1) => {
@@ -130,6 +160,13 @@ const ServiceList = () => {
     // ========== HANDLERS ==========
 
     /**
+     * Handler: Mở trang quản lý gói dịch vụ
+     */
+    const handleManageSubServices = (service) => {
+        navigate(`/admin/services/${service._id}/sub-services`);
+    };
+
+    /**
      * Handler: Open add service modal
      */
     const handleAddService = () => {
@@ -140,6 +177,7 @@ const ServiceList = () => {
             price: '',
             duration: '',
             icon: '',
+            images: [],
             equipment_service: [],
             status: 'AVAILABLE'
         });
@@ -169,6 +207,7 @@ const ServiceList = () => {
             price: fullService.price,
             duration: fullService.duration,
             icon: fullService.icon || '',
+            images: fullService.images || [],
             equipment_service: fullService.equipment_service || [],
             status: fullService.status
         });
@@ -189,20 +228,12 @@ const ServiceList = () => {
             return;
         }
 
-        if (!serviceForm.price || serviceForm.price <= 0) {
-            setToast({
-                show: true,
-                type: 'error',
-                message: '❌ Vui lòng nhập giá dịch vụ hợp lệ!'
-            });
-            return;
-        }
-
         try {
+            setSaving(true);
             const serviceData = {
                 ...serviceForm,
-                price: Number(serviceForm.price),
-                duration: Number(serviceForm.duration)
+                price: serviceForm.price ? Number(serviceForm.price) : undefined,
+                duration: serviceForm.duration ? Number(serviceForm.duration) : undefined
             };
 
             if (isEditMode) {
@@ -233,6 +264,8 @@ const ServiceList = () => {
                 type: 'error',
                 message: error.response?.data?.message || '❌ Có lỗi xảy ra khi lưu dịch vụ.'
             });
+        } finally {
+            setSaving(false);
         }
     };
 
@@ -318,7 +351,7 @@ const ServiceList = () => {
     // Calculate statistics
     const activeServices = services.filter(s => s.status === 'AVAILABLE').length;
     const avgPrice = services.length > 0
-        ? services.reduce((sum, s) => sum + Number(s.price || 0), 0) / services.length
+        ? services.reduce((sum, s) => sum + Number(s.calculated_min_price || s.price || 0), 0) / services.length
         : 0;
 
     return (
@@ -375,6 +408,7 @@ const ServiceList = () => {
                             pagination={pagination}
                             onPageChange={handlePageChange}
                             searchTerm={searchTerm}
+                            onManageSubServices={handleManageSubServices}
                             onViewDetails={async (service) => {
                                 try {
                                     const detail = await serviceService.getServiceById(service._id, { limit: 100 });
@@ -403,6 +437,7 @@ const ServiceList = () => {
                 categories={[]} // No categories
                 onSave={handleSaveService}
                 onClose={() => setShowServiceModal(false)}
+                loading={saving}
             />
 
             {/* Service Detail Modal */}
@@ -424,6 +459,8 @@ const ServiceList = () => {
                 onSave={handleSavePrice}
                 onClose={() => setShowPriceModal(false)}
             />
+
+
 
             {/* Toast Notification */}
             <Toast

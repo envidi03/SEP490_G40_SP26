@@ -6,3 +6,5 @@ export { default as clinicRoutes } from './clinic.routes';
 export { default as serviceRoutes } from './services.routes';
 export { default as userRoutes } from './users.routes';
 export { default as medicineRoutes } from './medicines.routes';
+export { default as leaveRoutes } from './leave.routes';
+export { default as restockRoutes } from './restockRequests.routes';

@@ -36,10 +36,12 @@ const AppointmentFilters = ({ searchTerm, onSearchChange, statusFilter, onStatus
                         className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                     >
                         <option value="all">Tất cả trạng thái</option>
-                        <option value="Pending">Chờ xác nhận</option>
-                        <option value="Confirmed">Đã xác nhận</option>
-                        <option value="Completed">Hoàn thành</option>
-                        <option value="Cancelled">Đã hủy</option>
+                        <option value="SCHEDULED">Đã lên lịch</option>
+                        <option value="CHECKED_IN">Đã check-in</option>
+                        <option value="IN_CONSULTATION">Đang khám</option>
+                        <option value="COMPLETED">Hoàn thành</option>
+                        <option value="CANCELLED">Đã hủy</option>
+                        <option value="NO_SHOW">Không đến</option>
                     </select>
                 </div>
             </div>

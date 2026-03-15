@@ -1,123 +1,140 @@
-import { useState } from 'react';
-import { X, User, Phone, Calendar, Users } from 'lucide-react';
-import Button from '../../../components/ui/Button';
+import React, { useState, useEffect } from "react"
 
 const PatientInfoModal = ({ isOpen, onClose, appointment, onConfirm }) => {
     const [form, setForm] = useState({
-        name: appointment?.patientName || '',
-        dob: '',
-        gender: 'Nam',
-        phone: appointment?.patientPhone || '',
-    });
+        name: "",
+        dob: "",
+        gender: "Nam",
+        phone: "",
+    })
 
-    if (!isOpen || !appointment) return null;
+    useEffect(() => {
+        if (appointment) {
+            setForm({
+                name: appointment.patient_id?.full_name || appointment.patientName || "",
+                dob: appointment.patient_id?.dob ? new Date(appointment.patient_id.dob).toISOString().split('T')[0] : "",
+                gender: appointment.patient_id?.gender ? "Nam" : "Nữ",
+                phone: appointment.patient_id?.phone || appointment.patientPhone || "",
+            });
+        }
+    }, [appointment]);
+
+    if (!isOpen || !appointment) return null
 
     const handleChange = (e) => {
-        setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
-    };
+        setForm(prev => ({ ...prev, [e.target.name]: e.target.value }))
+    }
 
     const handleSubmit = (e) => {
-        e.preventDefault();
-        onConfirm(form);
-    };
+        e.preventDefault()
+        onConfirm(form)
+    }
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-xl shadow-2xl w-full max-w-md">
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
+            <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
                 {/* Header */}
-                <div className="flex justify-between items-center p-5 border-b border-gray-200">
+                <div className="flex justify-between items-center p-5 border-b border-slate-100 bg-slate-50/50">
                     <div>
-                        <h2 className="text-xl font-bold text-gray-900">Thông tin Bệnh nhân</h2>
-                        <p className="text-sm text-gray-500 mt-0.5">Xác nhận thông tin trước khi tạo hồ sơ</p>
+                        <h2 className="text-[15px] font-bold text-slate-800">Tạo Hồ Sơ Nha Khoa</h2>
+                        <p className="text-[12px] text-slate-500 mt-0.5">Xác nhận nhân thân bệnh nhân trước khi mở hồ sơ</p>
                     </div>
-                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors">
-                        <X size={22} />
+                    <button onClick={onClose} className="text-slate-400 hover:text-slate-600 transition-colors p-1">
+                        ✕
                     </button>
                 </div>
 
-                {/* Appointment info badge */}
-                <div className="mx-5 mt-4 p-3 bg-blue-50 rounded-lg border border-blue-100 text-sm text-blue-800">
-                    <strong>Lịch hẹn:</strong> {appointment.code} — {appointment.date} {appointment.time}<br />
-                    <strong>Lý do:</strong> {appointment.reason}
-                </div>
-
                 {/* Form */}
-                <form onSubmit={handleSubmit} className="p-5 space-y-4">
-                    {/* Name */}
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
-                            <User size={14} /> Họ và tên <span className="text-red-500">*</span>
-                        </label>
-                        <input
-                            type="text"
-                            name="name"
-                            required
-                            value={form.name}
-                            onChange={handleChange}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm"
-                            placeholder="Nhập họ và tên bệnh nhân"
-                        />
+                <form onSubmit={handleSubmit} className="p-6 space-y-5">
+
+                    {/* Focus Info */}
+                    <div className="bg-teal-50 border border-teal-100 rounded-xl p-3">
+                        <p className="text-[11px] font-semibold text-teal-800 uppercase tracking-widest mb-1.5">Liên kết lịch hẹn</p>
+                        <p className="text-[13px] text-teal-900">
+                            <span className="font-bold">{appointment.code || appointment.appointment_id || "LH"}</span> — {appointment.appointment_type || appointment.reason || "Khám bệnh"}
+                        </p>
                     </div>
 
-                    {/* DOB & Gender */}
-                    <div className="grid grid-cols-2 gap-3">
+                    {/* Form Fields */}
+                    <div className="space-y-4">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
-                                <Calendar size={14} /> Ngày sinh
+                            <label className="block text-[12px] font-semibold text-slate-700 mb-1.5">
+                                HỌ VÀ TÊN <span className="text-red-500">*</span>
                             </label>
                             <input
-                                type="date"
-                                name="dob"
-                                value={form.dob}
+                                type="text"
+                                name="name"
+                                required
+                                value={form.name}
                                 onChange={handleChange}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm"
+                                className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 outline-none text-[13px] font-medium text-slate-800 transition-colors"
                             />
                         </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
-                                <Users size={14} /> Giới tính
-                            </label>
-                            <select
-                                name="gender"
-                                value={form.gender}
-                                onChange={handleChange}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm"
-                            >
-                                <option value="Nam">Nam</option>
-                                <option value="Nữ">Nữ</option>
-                                <option value="Khác">Khác</option>
-                            </select>
-                        </div>
-                    </div>
 
-                    {/* Phone */}
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
-                            <Phone size={14} /> Số điện thoại
-                        </label>
-                        <input
-                            type="text"
-                            name="phone"
-                            value={form.phone}
-                            onChange={handleChange}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm"
-                            placeholder="0xxxxxxxxx"
-                        />
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-[12px] font-semibold text-slate-700 mb-1.5">
+                                    NGÀY SINH
+                                </label>
+                                <input
+                                    type="date"
+                                    name="dob"
+                                    value={form.dob}
+                                    onChange={handleChange}
+                                    className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 outline-none text-[13px] text-slate-800 transition-colors"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-[12px] font-semibold text-slate-700 mb-1.5">
+                                    GIỚI TÍNH
+                                </label>
+                                <select
+                                    name="gender"
+                                    value={form.gender}
+                                    onChange={handleChange}
+                                    className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 outline-none text-[13px] text-slate-800 transition-colors bg-white"
+                                >
+                                    <option value="Nam">Nam</option>
+                                    <option value="Nữ">Nữ</option>
+                                    <option value="Khác">Khác</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label className="block text-[12px] font-semibold text-slate-700 mb-1.5">
+                                SỐ ĐIỆN THOẠI
+                            </label>
+                            <input
+                                type="text"
+                                name="phone"
+                                value={form.phone}
+                                onChange={handleChange}
+                                className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 outline-none text-[13px] font-medium text-slate-800 transition-colors"
+                            />
+                        </div>
                     </div>
 
                     {/* Actions */}
-                    <div className="flex justify-end gap-3 pt-2 border-t border-gray-100">
-                        <Button type="button" variant="outline" onClick={onClose} className="bg-transparent">
-                            Hủy
-                        </Button>
-                        <Button type="submit">
-                            Xem hồ sơ bệnh nhân →
-                        </Button>
+                    <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            className="px-4 py-2 text-[13px] font-medium text-slate-600 bg-slate-50 border border-slate-200 rounded-xl hover:bg-slate-100 transition-colors"
+                        >
+                            Hủy lệnh
+                        </button>
+                        <button
+                            type="submit"
+                            className="px-4 py-2 text-[13px] font-medium text-white bg-teal-500 rounded-xl hover:bg-teal-600 shadow-sm shadow-teal-500/20 transition-all"
+                        >
+                            Đến trang Hồ Sơ ➔
+                        </button>
                     </div>
                 </form>
             </div>
         </div>
-    );
-};
+    )
+}
 
-export default PatientInfoModal;
+export default PatientInfoModal

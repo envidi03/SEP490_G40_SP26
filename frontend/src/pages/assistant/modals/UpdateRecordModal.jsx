@@ -11,10 +11,37 @@ const UpdateRecordModal = ({ record, isOpen, onClose, onSave }) => {
 
     useEffect(() => {
         if (record) {
+            const treatmentInfo = record.treatment || (record.treatments?.length > 0
+                ? record.treatments.map(t => t.note).filter(Boolean).join('\n')
+                : '');
+
+            let prescriptionInfo = record.prescription || '';
+            if (!prescriptionInfo && record.treatments) {
+                const meds = [];
+                record.treatments.forEach(t => {
+                    if (t.medicine_usage && t.medicine_usage.length > 0) {
+                        t.medicine_usage.forEach(m => {
+                            // Format readable: ưu tiên note, sau đó tên thuốc + liều
+                            if (m.note) {
+                                meds.push(m.note);
+                            } else {
+                                const name = m.medicine_id?.medicine_name || m.medicine_name || '';
+                                const dosage = m.medicine_id?.dosage || m.dosage || '';
+                                const qty = m.quantity ? `x${m.quantity}` : '';
+                                const usage = m.usage || m.dosage_form || '';
+                                const parts = [name, dosage, qty, usage].filter(Boolean);
+                                if (parts.length > 0) meds.push(`- ${parts.join(' ')}`);
+                            }
+                        });
+                    }
+                });
+                if (meds.length > 0) prescriptionInfo = meds.join('\n');
+            }
+
             setFormData({
                 diagnosis: record.diagnosis || '',
-                treatment: record.treatment || '',
-                prescription: record.prescription || '',
+                treatment: treatmentInfo,
+                prescription: prescriptionInfo,
                 notes: record.notes || ''
             });
         }
@@ -48,8 +75,8 @@ const UpdateRecordModal = ({ record, isOpen, onClose, onSave }) => {
     const isDraft = record.isDraft || record.status === 'draft';
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-xl shadow-2xl p-6 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-white/60 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-in fade-in duration-300">
+            <div className="bg-white rounded-[24px] shadow-2xl p-8 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto animate-in zoom-in-95 duration-200 border border-gray-100">
                 <div className="flex justify-between items-start mb-4">
                     <div className="flex items-center gap-2">
                         <div className="p-2 bg-green-100 rounded-lg">
@@ -71,16 +98,16 @@ const UpdateRecordModal = ({ record, isOpen, onClose, onSave }) => {
                 <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
                     <div className="grid grid-cols-3 gap-4 text-sm">
                         <div>
-                            <span className="text-blue-600 font-medium">Bệnh nhân:</span>
-                            <span className="ml-2 text-blue-900">{record.patientName}</span>
+                            <span className="text-blue-600 font-medium">Hồ sơ:</span>
+                            <span className="ml-2 text-blue-900">{record.record_name || 'Không xác định'}</span>
                         </div>
                         <div>
-                            <span className="text-blue-600 font-medium">Ngày khám:</span>
-                            <span className="ml-2 text-blue-900">{record.date}</span>
+                            <span className="text-blue-600 font-medium">Bệnh nhân:</span>
+                            <span className="ml-2 text-blue-900">{record.full_name || record.patientName}</span>
                         </div>
                         <div>
                             <span className="text-blue-600 font-medium">Bác sĩ:</span>
-                            <span className="ml-2 text-blue-900">{record.doctorName}</span>
+                            <span className="ml-2 text-blue-900">{record.doctor_info?.profile?.full_name || record.doctorName || 'Chưa có'}</span>
                         </div>
                     </div>
                 </div>
@@ -160,25 +187,25 @@ const UpdateRecordModal = ({ record, isOpen, onClose, onSave }) => {
                     </div>
 
                     {/* Actions */}
-                    <div className="flex justify-end gap-3 pt-4 border-t">
+                    <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
                         <button
                             type="button"
                             onClick={onClose}
-                            className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                            className="px-8 py-2.5 rounded-xl border border-gray-200 text-sm font-extrabold text-gray-500 hover:bg-gray-50 hover:text-gray-700 active:scale-95 transition-all"
                         >
                             Hủy
                         </button>
                         <button
                             type="button"
                             onClick={handleSaveDraft}
-                            className="px-6 py-2 border border-blue-500 text-blue-600 rounded-lg hover:bg-blue-50 flex items-center gap-2"
+                            className="px-8 py-2.5 rounded-xl border border-teal-500 text-teal-600 text-sm font-bold hover:bg-teal-50 active:scale-95 transition-all flex items-center gap-2"
                         >
                             <FileText size={18} />
                             Lưu bản nháp
                         </button>
                         <button
                             type="submit"
-                            className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2"
+                            className="px-8 py-2.5 bg-teal-500 text-white rounded-xl text-sm font-[900] hover:bg-teal-600 active:scale-95 transition-all shadow-lg shadow-teal-500/25 flex items-center gap-2"
                         >
                             <Save size={18} />
                             Lưu chính thức

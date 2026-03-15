@@ -63,7 +63,7 @@ const updateProfileService = async (accountId, payload = {}) => {
     }
 
     if (payload.phone !== undefined) {
-      account.phone = payload.phone;
+      account.phone_number = payload.phone;
     }
 
     await profile.save({ session });

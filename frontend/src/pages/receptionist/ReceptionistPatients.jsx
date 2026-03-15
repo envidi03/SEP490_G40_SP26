@@ -1,29 +1,57 @@
-import React, { useState } from 'react';
-import { Search, UserPlus, Phone, Mail, Calendar, Edit, Eye } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Search, UserPlus, Phone, Mail, Calendar, Edit, Eye, CheckCircle, FileText, Loader2, RefreshCw } from 'lucide-react';
 import Card from '../../components/ui/Card';
 import Badge from '../../components/ui/Badge';
-import { mockPatients } from '../../utils/mockData';
+import Toast from '../../components/ui/Toast';
 import ViewPatientModal from './components/modals/ViewPatientModal';
 import EditPatientModal from './components/modals/EditPatientModal';
 import ScheduleAppointmentModal from './components/modals/ScheduleAppointmentModal';
+import AddPatientModal from './components/modals/AddPatientModal';
+import CreateInvoiceModal from './components/modals/CreateInvoiceModal';
+
+import patientService from '../../services/patientService';
+import appointmentService from '../../services/appointmentService';
+import { formatDate } from '../../utils/dateUtils';
 
 const ReceptionistPatients = () => {
+    const [patients, setPatients] = useState([]);
+    const [loading, setLoading] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
     const [filterStatus, setFilterStatus] = useState('all');
+    const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
+
     const [selectedPatient, setSelectedPatient] = useState(null);
     const [showViewModal, setShowViewModal] = useState(false);
     const [showEditModal, setShowEditModal] = useState(false);
     const [showScheduleModal, setShowScheduleModal] = useState(false);
+    const [showAddModal, setShowAddModal] = useState(false);
+    const [showInvoiceModal, setShowInvoiceModal] = useState(false);
 
-    const filteredPatients = mockPatients.filter(patient => {
-        const matchesSearch = patient.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            patient.phone.includes(searchTerm) ||
-            patient.email.toLowerCase().includes(searchTerm.toLowerCase());
+    const fetchPatients = async () => {
+        setLoading(true);
+        try {
+            const params = {};
+            if (searchTerm) params.search = searchTerm;
+            if (filterStatus !== 'all') params.status = filterStatus;
 
-        const matchesStatus = filterStatus === 'all' || patient.status.toLowerCase() === filterStatus;
+            const response = await patientService.getAllPatients(params);
+            const data = response.data?.data || response.data || [];
+            setPatients(Array.isArray(data) ? data : data.data || []);
+        } catch (error) {
+            console.error('Error fetching patients:', error);
+            setToast({ show: true, message: 'Lỗi khi tải danh sách bệnh nhân', type: 'error' });
+        } finally {
+            setLoading(false);
+        }
+    };
 
-        return matchesSearch && matchesStatus;
-    });
+    useEffect(() => {
+        const delayDebounceFn = setTimeout(() => {
+            fetchPatients();
+        }, 500);
+
+        return () => clearTimeout(delayDebounceFn);
+    }, [searchTerm, filterStatus]);
 
     const handleViewPatient = (patient) => {
         setSelectedPatient(patient);
@@ -40,21 +68,66 @@ const ReceptionistPatients = () => {
         setShowScheduleModal(true);
     };
 
+    const handleIssueInvoice = (patient) => {
+        setSelectedPatient(patient);
+        setShowInvoiceModal(true);
+    };
+
+    const handleCheckIn = async (patient) => {
+        try {
+            const today = new Date().toISOString().split('T')[0];
+            // Fetch today's appointments for this patient
+            const id = patient._id || patient.id;
+            const aptResponse = await appointmentService.getStaffAppointments({
+                page: 1,
+                limit: 100
+            });
+            const allApts = aptResponse.data?.data || aptResponse.data || [];
+            const aptList = Array.isArray(allApts) ? allApts : allApts.data || [];
+
+            const todayApt = aptList.find(apt => {
+                const aptDate = new Date(apt.appointment_date).toISOString().split('T')[0];
+                const aptPatientId = apt.patient_id?._id || apt.patient_id;
+                return aptDate === today && aptPatientId === id && apt.status === 'SCHEDULED';
+            });
+
+            if (todayApt) {
+                await appointmentService.updateAppointmentStatus(todayApt._id, 'CHECKED_IN');
+                setToast({ show: true, message: 'Check-in thành công cho bệnh nhân!', type: 'success' });
+            } else {
+                setToast({
+                    show: true,
+                    message: 'Không tìm thấy lịch hẹn SCHEDULED của bệnh nhân trong hôm nay.',
+                    type: 'error'
+                });
+            }
+        } catch (error) {
+            console.error('Error during check-in:', error);
+            setToast({ show: true, message: 'Lỗi trong quá trình check-in.', type: 'error' });
+        }
+    };
+
     const closeModal = () => {
         setShowViewModal(false);
         setShowEditModal(false);
         setShowScheduleModal(false);
+        setShowAddModal(false);
+        setShowInvoiceModal(false);
         setSelectedPatient(null);
     };
 
-    const handleSavePatient = (updatedData) => {
-        // TODO: Call API to update patient
-        console.log('Updating patient:', updatedData);
+    const handleAddPatientSuccess = (newPatient) => {
+        fetchPatients();
+        // Toast is handled inside modal for better UX
+    };
+
+    const handleSavePatientSuccess = (updatedPatient) => {
+        fetchPatients();
     };
 
     const handleScheduleSubmit = (appointmentData) => {
-        // TODO: Call API to create appointment
-        console.log('Creating appointment:', appointmentData);
+        // This is handled in ScheduleAppointmentModal
+        fetchPatients();
     };
 
     return (
@@ -92,9 +165,19 @@ const ReceptionistPatients = () => {
                     </select>
 
                     {/* Add Patient Button */}
-                    <button className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors flex items-center gap-2">
+                    <button
+                        onClick={() => setShowAddModal(true)}
+                        className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors flex items-center gap-2"
+                    >
                         <UserPlus size={20} />
                         Thêm Bệnh Nhân
+                    </button>
+                    <button
+                        onClick={fetchPatients}
+                        className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-600 transition-colors"
+                        title="Tải lại"
+                    >
+                        <RefreshCw size={20} className={loading ? 'animate-spin' : ''} />
                     </button>
                 </div>
             </Card>
@@ -123,78 +206,110 @@ const ReceptionistPatients = () => {
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
-                            {filteredPatients.length > 0 ? (
-                                filteredPatients.map((patient) => (
-                                    <tr key={patient.id} className="hover:bg-gray-50">
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="flex items-center">
-                                                <div className="h-10 w-10 flex-shrink-0">
-                                                    <div className="h-10 w-10 rounded-full bg-primary-100 flex items-center justify-center">
-                                                        <span className="text-primary-600 font-medium">
-                                                            {patient.name.charAt(0)}
-                                                        </span>
+                            {loading ? (
+                                <tr>
+                                    <td colSpan="5" className="px-6 py-12 text-center text-gray-500">
+                                        <div className="flex flex-col items-center gap-2">
+                                            <Loader2 size={30} className="animate-spin text-primary-500" />
+                                            <span>Đang tải danh sách bệnh nhân...</span>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ) : patients.length > 0 ? (
+                                patients.map((patient) => {
+                                    const profile = patient.profile || {};
+                                    const pName = profile.full_name || patient.name || 'N/A';
+                                    const pPhone = profile.phone || patient.phone || 'N/A';
+                                    const pEmail = profile.email || patient.email || 'N/A';
+                                    const pDob = formatDate(profile.dob || patient.dob);
+                                    const isActive = patient.status?.toUpperCase() === 'ACTIVE';
+
+                                    return (
+                                        <tr key={patient._id || patient.id} className="hover:bg-gray-50">
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <div className="flex items-center">
+                                                    <div className="h-10 w-10 flex-shrink-0">
+                                                        <div className="h-10 w-10 rounded-full bg-primary-100 flex items-center justify-center">
+                                                            <span className="text-primary-600 font-medium">
+                                                                {pName.charAt(0)}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                    <div className="ml-4">
+                                                        <div className="text-sm font-medium text-gray-900">
+                                                            {pName}
+                                                        </div>
+                                                        <div className="text-sm text-gray-500">
+                                                            ID: {(patient._id || patient.id).slice(-8)}
+                                                        </div>
                                                     </div>
                                                 </div>
-                                                <div className="ml-4">
-                                                    <div className="text-sm font-medium text-gray-900">
-                                                        {patient.name}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <div className="flex flex-col gap-1">
+                                                    <div className="flex items-center text-sm text-gray-900">
+                                                        <Phone size={14} className="mr-2 text-gray-400" />
+                                                        {pPhone}
                                                     </div>
-                                                    <div className="text-sm text-gray-500">
-                                                        ID: {patient.id.slice(-8)}
+                                                    <div className="flex items-center text-sm text-gray-500">
+                                                        <Mail size={14} className="mr-2 text-gray-400" />
+                                                        {pEmail}
                                                     </div>
                                                 </div>
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="flex flex-col gap-1">
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
                                                 <div className="flex items-center text-sm text-gray-900">
-                                                    <Phone size={14} className="mr-2 text-gray-400" />
-                                                    {patient.phone}
+                                                    <Calendar size={14} className="mr-2 text-gray-400" />
+                                                    {pDob}
                                                 </div>
-                                                <div className="flex items-center text-sm text-gray-500">
-                                                    <Mail size={14} className="mr-2 text-gray-400" />
-                                                    {patient.email}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <Badge variant={isActive ? 'success' : 'danger'}>
+                                                    {isActive ? 'Hoạt động' : 'Ngưng'}
+                                                </Badge>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                                <div className="flex justify-end gap-2">
+                                                    <button
+                                                        onClick={() => handleCheckIn(patient)}
+                                                        className="text-orange-600 hover:text-orange-900 p-2 hover:bg-orange-50 rounded transition-colors"
+                                                        title="Check in (Xác nhận đến)"
+                                                    >
+                                                        <CheckCircle size={18} />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleIssueInvoice(patient)}
+                                                        className="text-blue-600 hover:text-blue-900 p-2 hover:bg-blue-50 rounded transition-colors"
+                                                        title="Xuất hóa đơn"
+                                                    >
+                                                        <FileText size={18} />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleViewPatient(patient)}
+                                                        className="text-primary-600 hover:text-primary-900 p-2 hover:bg-primary-50 rounded transition-colors"
+                                                        title="Xem chi tiết"
+                                                    >
+                                                        <Eye size={18} />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleEditPatient(patient)}
+                                                        className="text-gray-600 hover:text-gray-900 p-2 hover:bg-gray-100 rounded transition-colors"
+                                                        title="Chỉnh sửa"
+                                                    >
+                                                        <Edit size={18} />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleScheduleAppointment(patient)}
+                                                        className="text-green-600 hover:text-green-900 p-2 hover:bg-green-50 rounded transition-colors"
+                                                        title="Đặt lịch hẹn"
+                                                    >
+                                                        <Calendar size={18} />
+                                                    </button>
                                                 </div>
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="flex items-center text-sm text-gray-900">
-                                                <Calendar size={14} className="mr-2 text-gray-400" />
-                                                {patient.dob}
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <Badge variant={patient.status === 'ACTIVE' ? 'success' : 'danger'}>
-                                                {patient.status === 'ACTIVE' ? 'Hoạt động' : 'Ngưng'}
-                                            </Badge>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                            <div className="flex justify-end gap-2">
-                                                <button
-                                                    onClick={() => handleViewPatient(patient)}
-                                                    className="text-primary-600 hover:text-primary-900 p-2 hover:bg-primary-50 rounded transition-colors"
-                                                    title="Xem chi tiết"
-                                                >
-                                                    <Eye size={18} />
-                                                </button>
-                                                <button
-                                                    onClick={() => handleEditPatient(patient)}
-                                                    className="text-gray-600 hover:text-gray-900 p-2 hover:bg-gray-100 rounded transition-colors"
-                                                    title="Chỉnh sửa"
-                                                >
-                                                    <Edit size={18} />
-                                                </button>
-                                                <button
-                                                    onClick={() => handleScheduleAppointment(patient)}
-                                                    className="text-green-600 hover:text-green-900 p-2 hover:bg-green-50 rounded transition-colors"
-                                                    title="Đặt lịch hẹn"
-                                                >
-                                                    <Calendar size={18} />
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))
+                                            </td>
+                                        </tr>
+                                    );
+                                })
                             ) : (
                                 <tr>
                                     <td colSpan="5" className="px-6 py-12 text-center text-gray-500">
@@ -207,10 +322,10 @@ const ReceptionistPatients = () => {
                 </div>
 
                 {/* Pagination */}
-                {filteredPatients.length > 0 && (
+                {patients.length > 0 && (
                     <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
                         <div className="text-sm text-gray-700">
-                            Hiển thị <span className="font-medium">{filteredPatients.length}</span> bệnh nhân
+                            Hiển thị <span className="font-medium">{patients.length}</span> bệnh nhân
                         </div>
                         <div className="flex gap-2">
                             <button className="px-3 py-1 border border-gray-300 rounded hover:bg-gray-50 text-sm">
@@ -230,14 +345,14 @@ const ReceptionistPatients = () => {
             {/* View Patient Modal */}
             {selectedPatient && (
                 <ViewPatientModal
-                    patientId={selectedPatient.id}
-                    patientName={selectedPatient.name}
-                    patientPhone={selectedPatient.phone}
-                    patientEmail={selectedPatient.email}
-                    patientDob={selectedPatient.dob}
-                    patientGender={selectedPatient.gender}
-                    patientAddress={selectedPatient.address}
-                    patientStatus={selectedPatient.status}
+                    patientId={selectedPatient._id || selectedPatient.id}
+                    patientName={selectedPatient.profile?.full_name || selectedPatient.name}
+                    patientPhone={selectedPatient.profile?.phone || selectedPatient.phone}
+                    patientEmail={selectedPatient.profile?.email || selectedPatient.email}
+                    patientDob={formatDate(selectedPatient.profile?.dob || selectedPatient.dob)}
+                    patientGender={selectedPatient.profile?.gender || selectedPatient.gender}
+                    patientAddress={selectedPatient.profile?.address || selectedPatient.address}
+                    patientStatus={selectedPatient.status?.toUpperCase()}
                     isOpen={showViewModal}
                     onClose={closeModal}
                 />
@@ -248,7 +363,7 @@ const ReceptionistPatients = () => {
                 patient={selectedPatient}
                 isOpen={showEditModal}
                 onClose={closeModal}
-                onSave={handleSavePatient}
+                onSave={handleSavePatientSuccess}
             />
 
             {/* Schedule Appointment Modal */}
@@ -257,6 +372,30 @@ const ReceptionistPatients = () => {
                 isOpen={showScheduleModal}
                 onClose={closeModal}
                 onSchedule={handleScheduleSubmit}
+            />
+
+            <AddPatientModal
+                isOpen={showAddModal}
+                onClose={closeModal}
+                onSave={handleAddPatientSuccess}
+            />
+
+            {/* Create Invoice Modal */}
+            <CreateInvoiceModal
+                isOpen={showInvoiceModal}
+                onClose={closeModal}
+                initialPatient={selectedPatient}
+                onSuccess={() => {
+                    setToast({ show: true, message: 'Tạo hóa đơn thành công!', type: 'success' });
+                    fetchPatients();
+                }}
+            />
+
+            <Toast
+                show={toast.show}
+                message={toast.message}
+                type={toast.type}
+                onClose={() => setToast({ ...toast, show: false })}
             />
         </div>
     );

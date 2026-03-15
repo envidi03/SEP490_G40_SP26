@@ -21,6 +21,32 @@ const AppointmentCard = ({
     getStatusColor,
     getStatusText
 }) => {
+    const appointmentDate = appointment.appointment_date || appointment.date;
+    const appointmentTime = appointment.appointment_time || appointment.time;
+
+    let isPast = false;
+    if (appointmentDate && appointmentTime) {
+        try {
+            const aptDate = new Date(appointmentDate);
+            let hours = 0, minutes = 0;
+            if (typeof appointmentTime === 'string' && appointmentTime.includes(':')) {
+                const parts = appointmentTime.split(':');
+                hours = parseInt(parts[0], 10);
+                minutes = parseInt(parts[1], 10);
+            }
+            const aptDateTime = new Date(aptDate.getFullYear(), aptDate.getMonth(), aptDate.getDate(), hours, minutes);
+            isPast = aptDateTime < new Date();
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    const isUpdatable = appointment.status === 'SCHEDULED' && !isPast;
+    const isCancelable = appointment.status === 'SCHEDULED' && !isPast;
+
+    // Lấy tên dịch vụ đầu tiên để hiển thị làm tiêu đề (nếu có)
+    const displayTitle = appointment.book_service?.[0]?.service_name || appointment.reason;
+
     return (
         <div className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-shadow p-6">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -37,7 +63,7 @@ const AppointmentCard = ({
                             {/* Title & Status */}
                             <div className="flex items-center gap-3 mb-2">
                                 <h3 className="text-lg font-semibold text-gray-900">
-                                    {appointment.reason}
+                                    {displayTitle}
                                 </h3>
                                 <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(appointment.status)}`}>
                                     {getStatusText(appointment.status)}
@@ -50,29 +76,33 @@ const AppointmentCard = ({
                                 <div className="flex items-center gap-2">
                                     <User size={16} />
                                     <span className="font-medium">Bác sĩ:</span>
-                                    <span>{appointment.doctorName}</span>
+                                    <span>{appointment.doctor_id?.profile_id?.full_name || appointment.doctor_name || appointment.doctorName || 'Đang chờ phân công'}</span>
                                 </div>
 
                                 {/* Date */}
                                 <div className="flex items-center gap-2">
                                     <Calendar size={16} />
                                     <span className="font-medium">Ngày:</span>
-                                    <span>{new Date(appointment.date).toLocaleDateString('vi-VN')}</span>
+                                    <span>
+                                        {appointment.appointment_date
+                                            ? new Date(appointment.appointment_date).toLocaleDateString('vi-VN')
+                                            : new Date(appointment.date).toLocaleDateString('vi-VN')}
+                                    </span>
                                 </div>
 
                                 {/* Time */}
                                 <div className="flex items-center gap-2">
                                     <Clock size={16} />
                                     <span className="font-medium">Giờ:</span>
-                                    <span>{appointment.time}</span>
+                                    <span>{appointment.appointment_time || appointment.time}</span>
                                 </div>
 
                                 {/* Notes */}
-                                {appointment.notes && (
+                                {(appointment.note || appointment.notes) && (
                                     <div className="flex items-start gap-2 mt-2">
                                         <FileText size={16} className="mt-0.5" />
                                         <span className="font-medium">Ghi chú:</span>
-                                        <span className="italic">{appointment.notes}</span>
+                                        <span className="italic">{appointment.note || appointment.notes}</span>
                                     </div>
                                 )}
                             </div>
@@ -90,8 +120,8 @@ const AppointmentCard = ({
                         Chi tiết
                     </button>
 
-                    {/* Update Button - Only for Pending/Confirmed */}
-                    {(appointment.status === 'Pending' || appointment.status === 'Confirmed') && (
+                    {/* Update Button - Only for SCHEDULED and future appointments */}
+                    {isUpdatable && (
                         <button
                             onClick={() => onUpdate(appointment)}
                             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium flex items-center gap-1"
@@ -101,8 +131,8 @@ const AppointmentCard = ({
                         </button>
                     )}
 
-                    {/* Cancel Button - Only for Pending */}
-                    {appointment.status === 'Pending' && (
+                    {/* Cancel Button - Only for SCHEDULED and future appointments */}
+                    {isCancelable && (
                         <button
                             onClick={() => onCancel(appointment)}
                             className="px-4 py-2 border-2 border-red-300 text-red-600 rounded-lg hover:bg-red-50 transition-colors text-sm font-medium flex items-center gap-1"
@@ -119,12 +149,17 @@ const AppointmentCard = ({
 
 AppointmentCard.propTypes = {
     appointment: PropTypes.shape({
-        id: PropTypes.number.isRequired,
+        _id: PropTypes.string,
+        id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
         reason: PropTypes.string.isRequired,
         status: PropTypes.string.isRequired,
-        doctorName: PropTypes.string.isRequired,
-        date: PropTypes.string.isRequired,
-        time: PropTypes.string.isRequired,
+        doctor_name: PropTypes.string,
+        doctorName: PropTypes.string,
+        appointment_date: PropTypes.string,
+        date: PropTypes.string,
+        appointment_time: PropTypes.string,
+        time: PropTypes.string,
+        note: PropTypes.string,
         notes: PropTypes.string,
     }).isRequired,
     onViewDetail: PropTypes.func.isRequired,

@@ -7,6 +7,7 @@ const viewListRoute = require('./service.list.route');
 const updateRoute = require('./service.update.route');
 const updateStatusRoute = require('./service.update.status.route');
 const uploadRoute = require('./service.upload.route');
+const subServiceRoute = require('./sub_service.route');
 
 router.use(viewListRoute);
 router.use(viewDetailRoute);
@@ -14,5 +15,6 @@ router.use(createRoute);
 router.use(updateRoute);
 router.use(updateStatusRoute);
 router.use(uploadRoute);
+router.use(subServiceRoute);
 
 module.exports = router;

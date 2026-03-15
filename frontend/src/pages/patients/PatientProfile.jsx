@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import Button from "../../components/ui/Button";
@@ -9,8 +9,9 @@ import { Save, X, ArrowLeft } from "lucide-react";
 // Import các components con
 import ProfileHeader from "./components/ProfileHeader";
 import ProfileForm from "./components/ProfileForm";
+import { getProfile, updateProfile, uploadAvatar } from "../../services/profileService";
+import authService from "../../services/authService";
 import PasswordChangeSection from "./components/PasswordChangeSection";
-import { getProfile, updateProfile } from "../../services/profileService";
 
 /**
  * PatientProfile - Trang quản lý thông tin cá nhân của bệnh nhân
@@ -31,6 +32,13 @@ const PatientProfile = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [showPasswordSection, setShowPasswordSection] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  // Avatar state
+  const [avatarUrl, setAvatarUrl] = useState("");
+  const [avatarLoading, setAvatarLoading] = useState(false);
+
+  // Lưu dữ liệu gốc từ API để reset khi hủy chỉnh sửa
+  const originalDataRef = useRef(null);
 
   // Toast notification state
   const [toast, setToast] = useState({
@@ -64,14 +72,20 @@ const PatientProfile = () => {
 
         const profile = res.data;
 
-        setFormData({
+        const profileData = {
           name: profile?.full_name || "",
           email: profile?.account_id?.email || "",
           phone: profile?.account_id?.phone_number || "",
           dateOfBirth: profile?.dob ? profile.dob.split("T")[0] : "",
           gender: profile?.gender || "",
           address: profile?.address || "",
-        });
+        };
+
+        setFormData(profileData);
+        originalDataRef.current = profileData;
+
+        // Set avatar URL from profile
+        setAvatarUrl(profile?.avatar_url || "");
       } catch (error) {
         console.error("Lỗi khi tải thông tin hồ sơ:", error);
         setToast({
@@ -115,17 +129,40 @@ const PatientProfile = () => {
   };
 
   /**
+   * Handler: Upload avatar mới
+   */
+  const handleAvatarChange = async (file) => {
+    setAvatarLoading(true);
+    try {
+      const res = await uploadAvatar(file);
+      const newUrl = res.data?.avatar_url;
+      if (newUrl) {
+        setAvatarUrl(newUrl);
+      }
+      setToast({
+        show: true,
+        type: "success",
+        message: "Cập nhật ảnh đại diện thành công!",
+      });
+    } catch (error) {
+      setToast({
+        show: true,
+        type: "error",
+        message: error.response?.data?.message || "Upload ảnh thất bại!",
+      });
+    } finally {
+      setAvatarLoading(false);
+    }
+  };
+
+  /**
    * Handler: Hủy chỉnh sửa và reset form
    */
   const handleCancel = () => {
-    setFormData({
-      name: user?.name || "",
-      email: user?.email || "",
-      phone: user?.phone || "",
-      dateOfBirth: user?.dateOfBirth || "",
-      gender: user?.gender || "",
-      address: user?.address || "",
-    });
+    // Reset về dữ liệu gốc từ API
+    if (originalDataRef.current) {
+      setFormData(originalDataRef.current);
+    }
     setIsEditing(false);
   };
 
@@ -180,32 +217,34 @@ const PatientProfile = () => {
       return;
     }
 
-    if (passwordData.newPassword.length < 6) {
-      setToast({
-        show: true,
-        type: "error",
-        message: "❌ Mật khẩu phải có ít nhất 6 ký tự!",
-      });
-      return;
-    }
-
     setLoading(true);
 
-    // Simulate API call
-    setTimeout(() => {
+    try {
+      await authService.changePassword(
+        passwordData.currentPassword,
+        passwordData.newPassword
+      );
+
       setPasswordData({
         currentPassword: "",
         newPassword: "",
         confirmPassword: "",
       });
       setShowPasswordSection(false);
-      setLoading(false);
       setToast({
         show: true,
         type: "success",
         message: "✅ Đổi mật khẩu thành công!",
       });
-    }, 800);
+    } catch (error) {
+      setToast({
+        show: true,
+        type: "error",
+        message: error.response?.data?.message || error.message || "❌ Đổi mật khẩu thất bại!",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   /**
@@ -230,6 +269,8 @@ const PatientProfile = () => {
       {/* Toast Notification */}
       {toast.show && (
         <Toast
+          key={toast.message + Date.now()}
+          show={toast.show}
           type={toast.type}
           message={toast.message}
           onClose={() => setToast({ ...toast, show: false })}
@@ -268,6 +309,9 @@ const PatientProfile = () => {
               user={user}
               isEditing={isEditing}
               onEdit={handleEdit}
+              avatarUrl={avatarUrl}
+              onAvatarChange={handleAvatarChange}
+              avatarLoading={avatarLoading}
             />
 
             {/* Profile Form */}

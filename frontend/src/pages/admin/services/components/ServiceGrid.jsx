@@ -12,6 +12,7 @@ const ServiceGrid = ({
     onEdit,
     onDelete,
     onUpdatePrice,
+    onManageSubServices,
     formatCurrency,
     getCategoryColor
 }) => {
@@ -42,6 +43,7 @@ const ServiceGrid = ({
                         onEdit={onEdit}
                         onDelete={onDelete}
                         onUpdatePrice={onUpdatePrice}
+                        onManageSubServices={onManageSubServices}
                         formatCurrency={formatCurrency}
                         getCategoryColor={getCategoryColor}
                     />
