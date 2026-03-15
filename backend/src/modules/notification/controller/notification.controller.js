@@ -41,4 +41,23 @@ const sendToRoleController = async (req, res, next) => {
     }
 };
 
-module.exports = { createController, sendToRoleController };
+/**
+ * POST /api/notification/send-to-user
+ * Gửi thông báo đến 1 user cụ thể theo recipientId.
+ */
+const sendToUserController = async (req, res, next) => {
+    try {
+        const { recipient_id, ...data } = req.body;
+
+        const notification = await notificationService.sendToUser(recipient_id, data);
+
+        res.status(201).json({
+            status: 'success',
+            data: notification,
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+module.exports = { createController, sendToRoleController, sendToUserController };
