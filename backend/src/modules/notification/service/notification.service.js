@@ -455,6 +455,50 @@ const markAllAsRead = async (userId, userRole) => {
     }
 };
 
+/**
+ * Xóa/ẩn toàn bộ thông báo ĐÃ ĐỌC của user.
+ * @param {string} userId
+ * @param {string} userRole
+ */
+const deleteAllRead = async (userId, userRole) => {
+    try {
+        // 1. Cập nhật thông báo cá nhân (INDIVIDUAL) đã đọc -> Xóa cứng
+        const deleteIndividual = Notification.deleteMany({ 
+            recipient_id: userId, 
+            status: 'READ', 
+            scope: 'INDIVIDUAL' 
+        });
+
+        // 2. Cập nhật thông báo chung (GROUP/GLOBAL) đã đọc -> Thêm vào deleted_by
+        // (Điều kiện đã đọc: userId nằm trong mảng read_by)
+        const hideGroupGlobal = Notification.updateMany(
+            {
+                scope: { $in: ['GROUP', 'GLOBAL'] },
+                $or: [
+                    { 'read_by.user_id': userId },
+                    { 'read_by._id': userId } // Fallback
+                ],
+                // Chưa bị xóa/ẩn
+                'deleted_by.user_id': { $ne: userId },
+                'deleted_by._id': { $ne: userId }
+            },
+            {
+                $push: { deleted_by: { user_id: userId } }
+            }
+        );
+
+        await Promise.all([deleteIndividual, hideGroupGlobal]);
+
+        return { message: 'All read notifications have been deleted/hidden' };
+    } catch (error) {
+        logger.error('Error in deleteAllRead', {
+            context: 'NotificationService.deleteAllRead',
+            message: error.message,
+        });
+        throw new errorRes.InternalServerError(error.message);
+    }
+};
+
 module.exports = {
     createNotification,
     sendToUser,
@@ -466,4 +510,5 @@ module.exports = {
     markAsRead,
     markAsSeen,
     markAllAsRead,
+    deleteAllRead,
 };

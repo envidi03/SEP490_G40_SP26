@@ -10,7 +10,8 @@ const {
     getUnreadCountController,
     markAsReadController,
     markAllAsReadController,
-    markAsSeenController
+    markAsSeenController,
+    deleteAllReadController
 } = require('../controller/notification.controller');
 const { authenticate } = require('../../../common/middlewares/auth.middleware');
 

@@ -185,6 +185,23 @@ const markAsSeenController = async (req, res, next) => {
     }
 };
 
+/**
+ * DELETE /api/notification/read-all
+ * Xóa/ẩn toàn bộ thông báo ĐÃ ĐỌC.
+ */
+const deleteAllReadController = async (req, res, next) => {
+    try {
+        const userId = req.user?.account_id;
+        const userRole = req.user?.role?.name;
+
+        const result = await notificationService.deleteAllRead(userId, userRole);
+
+        res.status(200).json({ status: 'success', data: result });
+    } catch (error) {
+        next(error);
+    }
+};
+
 module.exports = {
     createController,
     sendToRoleController,
@@ -195,5 +212,6 @@ module.exports = {
     getUnreadCountController,
     markAsReadController,
     markAllAsReadController,
-    markAsSeenController
+    markAsSeenController,
+    deleteAllReadController
 };
