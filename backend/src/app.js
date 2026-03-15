@@ -123,6 +123,9 @@ app.use('/api/inventory', inventoryRoute);
 const { route: receptionistRoute } = require('./modules/receptionist');
 app.use('/api/receptionist', receptionistRoute);
 
+const { route: routePayment} = require('./modules/payment/index');
+app.use('/api/payment', routePayment);
+
 
 // 404 Handler - Must be after all routes
 app.use((req, res, next) => {

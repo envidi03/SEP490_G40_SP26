@@ -27,6 +27,7 @@ const ReceptionistSidebar = () => {
         { path: '/receptionist/services', icon: ClipboardList, label: 'Dịch vụ' },
         { path: '/receptionist/equipment', icon: Wrench, label: 'Thiết bị' },
         { path: '/receptionist/leave', icon: Clock, label: 'Nghỉ phép' },
+        { path: '/receptionist/test/payment', icon: DollarSign, label: 'Test thanh toán' },
     ];
 
     return (
