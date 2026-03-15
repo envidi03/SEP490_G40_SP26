@@ -218,10 +218,61 @@ const sendGlobal = async (data) => {
     }
 };
 
+/**
+ * Lấy danh sách thông báo của user hiện tại (phân trang, sort mới nhất trước).
+ * @param {object} params
+ * @param {string} params.userId   - ObjectId user đang đăng nhập
+ * @param {string} params.userRole - Role của user (receptionist, doctor...)
+ * @param {number} [params.page=1]
+ * @param {number} [params.limit=20]
+ */
+const getNotifications = async ({ userId, userRole, page = 1, limit = 20 }) => {
+    try {
+        const pageNum  = Math.max(1, parseInt(page));
+        const limitNum = Math.max(1, parseInt(limit));
+        const skip     = (pageNum - 1) * limitNum;
+
+        // Lấy thông báo thuộc về user cụ thể, hoặc gửi theo role của họ, hoặc GLOBAL
+        const filter = {
+            $or: [
+                { recipient_id: userId },
+                { target_roles: userRole },
+                { scope: 'GLOBAL' },
+            ]
+        };
+
+        const [notifications, total] = await Promise.all([
+            Notification.find(filter)
+                .sort({ createdAt: -1 })
+                .skip(skip)
+                .limit(limitNum)
+                .lean(),
+            Notification.countDocuments(filter),
+        ]);
+
+        return {
+            data: notifications,
+            pagination: {
+                total,
+                page: pageNum,
+                limit: limitNum,
+                totalPages: Math.ceil(total / limitNum),
+            }
+        };
+    } catch (error) {
+        logger.error('Error in getNotifications', {
+            context: 'NotificationService.getNotifications',
+            message: error.message,
+        });
+        throw new errorRes.InternalServerError(error.message);
+    }
+};
+
 module.exports = {
     createNotification,
     sendToUser,
     sendToRole,
     sendToGroup,
     sendGlobal,
+    getNotifications,
 };

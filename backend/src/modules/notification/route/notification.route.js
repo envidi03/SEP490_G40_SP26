@@ -1,6 +1,11 @@
 const express = require('express');
 const router = express.Router();
-const { createController, sendToRoleController, sendToUserController, sendToGroupController, sendGlobalController } = require('../controller/notification.controller');
+const { createController, sendToRoleController, sendToUserController, sendToGroupController, sendGlobalController, getListController } = require('../controller/notification.controller');
+const { authenticate } = require('../../../common/middlewares/auth.middleware');
+
+// Tất cả notification routes đều yêu cầu đăng nhập
+router.use(authenticate);
+
 
 /**
  * @swagger
@@ -265,5 +270,53 @@ router.post('/send-to-group', sendToGroupController);
  *         $ref: '#/components/schemas/Error'
  */
 router.post('/send-global', sendGlobalController);
+
+/**
+ * @swagger
+ * /api/notification:
+ *   get:
+ *     summary: Lấy danh sách thông báo của user hiện tại
+ *     tags: [Notification]
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Số trang
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 20
+ *         description: Số thông báo mỗi trang
+ *     responses:
+ *       200:
+ *         description: Thành công
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 data:
+ *                   type: array
+ *                 pagination:
+ *                   type: object
+ *                   properties:
+ *                     total:
+ *                       type: integer
+ *                     page:
+ *                       type: integer
+ *                     limit:
+ *                       type: integer
+ *                     totalPages:
+ *                       type: integer
+ *       500:
+ *         $ref: '#/components/schemas/Error'
+ */
+router.get('/', getListController);
 
 module.exports = router;

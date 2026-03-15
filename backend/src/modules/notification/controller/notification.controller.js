@@ -6,7 +6,7 @@ const notificationService = require('../service/notification.service');
  */
 const createController = async (req, res, next) => {
     try {
-        const sender_id = req.user?.id || req.user?._id;
+        const sender_id = req.user?.account_id;
 
         const notification = await notificationService.createNotification({
             ...req.body,
@@ -96,5 +96,25 @@ const sendGlobalController = async (req, res, next) => {
     }
 };
 
-module.exports = { createController, sendToRoleController, sendToUserController, sendToGroupController, sendGlobalController };
+/**
+ * GET /api/notification
+ * Lấy danh sách thông báo của user hiện tại (phân trang).
+ */
+const getListController = async (req, res, next) => {
+    try {
+        const userId = req.user?.account_id;
+        const userRole = req.user?.role?.name;
+        const { page = 1, limit = 20 } = req.query;
 
+        const result = await notificationService.getNotifications({ userId, userRole, page, limit });
+
+        res.status(200).json({
+            status: 'success',
+            ...result,
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+module.exports = { createController, sendToRoleController, sendToUserController, sendToGroupController, sendGlobalController, getListController };
