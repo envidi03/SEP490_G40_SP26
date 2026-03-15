@@ -374,6 +374,16 @@ router.get('/unread-count', getUnreadCountController);
  *         description: Chưa đăng nhập
  *       500:
  *         $ref: '#/components/schemas/Error'
+ *   delete:
+ *     summary: Xóa (hoặc ẩn) TẤT CẢ thông báo ĐÃ ĐỌC của user
+ *     tags: [Notification]
+ *     responses:
+ *       200:
+ *         description: Thành công
+ *       401:
+ *         description: Chưa đăng nhập
+ *       500:
+ *         $ref: '#/components/schemas/Error'
  */
 router.put('/read-all', markAllAsReadController);
 
@@ -427,20 +437,6 @@ router.put('/:id/seen', markAsSeenController);
 
 router.put('/:id/read', markAsReadController);
 
-/**
- * @swagger
- * /api/notification/read-all:
- *   delete:
- *     summary: Xóa (hoặc ẩn) TẤT CẢ thông báo ĐÃ ĐỌC của user
- *     tags: [Notification]
- *     responses:
- *       200:
- *         description: Thành công
- *       401:
- *         description: Chưa đăng nhập
- *       500:
- *         $ref: '#/components/schemas/Error'
- */
 router.delete('/read-all', deleteAllReadController);
 
 /**

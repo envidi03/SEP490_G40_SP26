@@ -2,6 +2,7 @@ const Notification = require('../model/notification.model');
 const { emitToUser, emitToRole, getIO } = require('../../../socket');
 const logger = require('../../../common/utils/logger');
 const errorRes = require('../../../common/errors');
+const { dispatchEmail, dispatchZalo } = require('./notification.dispatcher');
 
 const _dispatchInApp = async (notification) => {
     const payload = {
@@ -86,13 +87,13 @@ const createNotification = async (payload) => {
         }
 
         if (channelsConfig.email.enabled) {
-            // TODO: await _dispatchEmail(notification);
-            logger.info('[Notification] email channel: _dispatchEmail not implemented yet.');
+            // Gửi ngầm background, không block API
+            dispatchEmail(notification);
         }
 
         if (channelsConfig.zalo.enabled) {
-            // TODO: await _dispatchZalo(notification);
-            logger.info('[Notification] zalo channel: _dispatchZalo not implemented yet.');
+            // Gửi ngầm background Zalo ZNS
+            dispatchZalo(notification);
         }
 
         await notification.save();
@@ -107,7 +108,6 @@ const createNotification = async (payload) => {
         throw new errorRes.InternalServerError(error.message);
     }
 };
-
 
 /**
  * Gửi nhanh cho 1 user cụ thể (scope INDIVIDUAL).
@@ -395,7 +395,7 @@ const markAsSeen = async (notificationId, userId) => {
                 const checkedId = entry.user_id || entry._id;
                 return checkedId && checkedId.toString() === userId.toString();
             });
-            
+
             if (!existingSeen) {
                 notification.seen_by.push({ user_id: userId });
             }
@@ -463,10 +463,10 @@ const markAllAsRead = async (userId, userRole) => {
 const deleteAllRead = async (userId, userRole) => {
     try {
         // 1. Cập nhật thông báo cá nhân (INDIVIDUAL) đã đọc -> Xóa cứng
-        const deleteIndividual = Notification.deleteMany({ 
-            recipient_id: userId, 
-            status: 'READ', 
-            scope: 'INDIVIDUAL' 
+        const deleteIndividual = Notification.deleteMany({
+            recipient_id: userId,
+            status: 'READ',
+            scope: 'INDIVIDUAL'
         });
 
         // 2. Cập nhật thông báo chung (GROUP/GLOBAL) đã đọc -> Thêm vào deleted_by
