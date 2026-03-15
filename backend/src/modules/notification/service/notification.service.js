@@ -220,11 +220,6 @@ const sendGlobal = async (data) => {
 
 /**
  * Lấy danh sách thông báo của user hiện tại (phân trang, sort mới nhất trước).
- * @param {object} params
- * @param {string} params.userId   - ObjectId user đang đăng nhập
- * @param {string} params.userRole - Role của user (receptionist, doctor...)
- * @param {number} [params.page=1]
- * @param {number} [params.limit=20]
  */
 const getNotifications = async ({ userId, userRole, page = 1, limit = 20 }) => {
     try {
@@ -250,8 +245,29 @@ const getNotifications = async ({ userId, userRole, page = 1, limit = 20 }) => {
             Notification.countDocuments(filter),
         ]);
 
+        // Tính toán field is_read thực tế cho từng thông báo trả về
+        const formattedData = notifications.map(notif => {
+            let is_read = false;
+            // Xử lý cẩn thận do lúc trước code sinh nhầm `_id` mà không có `user_id`
+            const hasRead = (notif.read_by || []).some(entry => {
+                const checkedId = entry.user_id || entry._id; // Fallback cho dữ liệu lỗi lúc nãy
+                return checkedId && checkedId.toString() === userId.toString();
+            });
+
+            if (notif.scope === 'INDIVIDUAL') {
+                is_read = notif.status === 'READ';
+            } else {
+                // GROUP, GLOBAL: đã đọc nếu userId nằm trong mảng read_by (trường user_id hoặc fallback _id)
+                is_read = hasRead;
+            }
+            return {
+                ...notif,
+                is_read // Field phụ để frontend dùng dễ hiểu hơn
+            };
+        });
+
         return {
-            data: notifications,
+            data: formattedData,
             pagination: {
                 total,
                 page: pageNum,
@@ -270,14 +286,14 @@ const getNotifications = async ({ userId, userRole, page = 1, limit = 20 }) => {
 
 /**
  * Đếm số thông báo chưa đọc của user — dùng cho badge số đỏ trên chuông.
- * @param {object} params
- * @param {string} params.userId
- * @param {string} params.userRole
  */
 const getUnreadCount = async ({ userId, userRole }) => {
     try {
+        // Chỉ đếm các thông báo UNREAD VÀ (userId không nằm trong read_by.user_id VÀ read_by._id)
         const count = await Notification.countDocuments({
             status: 'UNREAD',
+            'read_by.user_id': { $ne: userId },
+            'read_by._id': { $ne: userId }, // Fallback thêm cho những data lỡ tạo sai lúc nãy
             $or: [
                 { recipient_id: userId },
                 { target_roles: userRole },
@@ -316,9 +332,14 @@ const markAsRead = async (notificationId, userId) => {
             }
             notification.status = 'READ';
         } else {
-            // Nếu thông báo GROUP/GLOBAL, push userId vào read_by
-            if (!notification.read_by.includes(userId)) {
-                notification.read_by.push(userId);
+            // Nếu thông báo GROUP/GLOBAL, push user_id vào mảng read_by
+            const existingRead = notification.read_by.some(entry => {
+                const checkedId = entry.user_id || entry._id;
+                return checkedId && checkedId.toString() === userId.toString();
+            });
+            
+            if (!existingRead) {
+                notification.read_by.push({ user_id: userId });
             }
         }
 
