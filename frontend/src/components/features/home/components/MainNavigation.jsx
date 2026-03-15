@@ -4,6 +4,7 @@ import { useAuth } from '../../../../contexts/AuthContext';
 import { useState, useEffect } from 'react';
 import { getProfile } from '../../../../services/profileService';
 import serviceService from '../../../../services/serviceService';
+import clinicService from '../../../../services/clinicService';
 import NotificationBell from '../../notifications/NotificationBell';
 
 const MainNavigation = () => {
@@ -11,6 +12,7 @@ const MainNavigation = () => {
     const [showProfileMenu, setShowProfileMenu] = useState(false);
     const [showServicesMenu, setShowServicesMenu] = useState(false);
     const [services, setServices] = useState([]);
+    const [clinicInfo, setClinicInfo] = useState(null);
     const navigate = useNavigate();
     const [avatarUrl, setAvatarUrl] = useState('');
 
@@ -24,17 +26,24 @@ const MainNavigation = () => {
         }
     }, [isAuthenticated]);
 
-    // Fetch services cho dropdown
+    // Fetch services và clinic info cho navbar
     useEffect(() => {
-        const fetchServices = async () => {
+        const fetchData = async () => {
             try {
+                // Fetch services
                 const res = await serviceService.getAllServices({ limit: 100, filter: 'AVAILABLE' });
                 setServices(res?.data || []);
+
+                // Fetch clinic info for logo
+                const clinicRes = await clinicService.getPublicClinics();
+                if (clinicRes?.data && clinicRes.data.length > 0) {
+                    setClinicInfo(clinicRes.data[0]);
+                }
             } catch (err) {
-                console.error('Fetch services navbar error:', err);
+                console.error('Fetch navbar data error:', err);
             }
         };
-        fetchServices();
+        fetchData();
     }, []);
 
     const handleLogout = async () => {
@@ -52,12 +61,30 @@ const MainNavigation = () => {
                 {/* Logo */}
                 <Link to="/" className="flex items-center gap-3">
                     <div className="flex items-center gap-2">
-                        <div className="w-10 h-10 bg-primary-600 rounded-lg flex items-center justify-center">
-                            <span className="text-white font-bold text-xl">D</span>
-                        </div>
+                        {clinicInfo?.logo ? (
+                            <img
+                                src={clinicInfo.logo}
+                                alt="Clinic Logo"
+                                className="w-10 h-10 object-contain rounded-lg"
+                                onError={(e) => {
+                                    e.target.onerror = null;
+                                    e.target.src = 'https://via.placeholder.com/40?text=D'; // Fallback
+                                }}
+                            />
+                        ) : (
+                            <div className="w-10 h-10 bg-primary-600 rounded-lg flex items-center justify-center">
+                                <span className="text-white font-bold text-xl">
+                                    {clinicInfo?.clinic_name?.[0] || 'D'}
+                                </span>
+                            </div>
+                        )}
                         <div>
-                            <h1 className="text-xl font-bold text-gray-900">DCMS</h1>
-                            <p className="text-xs text-gray-500">Dental Clinic</p>
+                            <h1 className="text-xl font-bold text-gray-900 leading-tight">
+                                {clinicInfo?.clinic_name || 'DCMS'}
+                            </h1>
+                            <p className="text-xs text-gray-500 font-medium">
+                                Dental Clinic
+                            </p>
                         </div>
                     </div>
                 </Link>
@@ -79,15 +106,14 @@ const MainNavigation = () => {
                     </Link>
 
                     {/* Services Dropdown */}
-                    <div 
+                    <div
                         className="relative group"
                         onMouseEnter={() => setShowServicesMenu(true)}
                         onMouseLeave={() => setShowServicesMenu(false)}
                     >
                         <button
-                            className={`flex items-center gap-1 px-3 py-2 text-sm font-medium rounded-md transition-all ${
-                                showServicesMenu ? 'text-primary-600 bg-gray-50' : 'text-gray-700 hover:text-primary-600 hover:bg-gray-50'
-                            }`}
+                            className={`flex items-center gap-1 px-3 py-2 text-sm font-medium rounded-md transition-all ${showServicesMenu ? 'text-primary-600 bg-gray-50' : 'text-gray-700 hover:text-primary-600 hover:bg-gray-50'
+                                }`}
                         >
                             Dịch vụ
                             <ChevronDown size={14} className={`transition-transform duration-200 ${showServicesMenu ? 'rotate-180' : ''}`} />
@@ -156,7 +182,7 @@ const MainNavigation = () => {
                     {isAuthenticated ? (
                         <>
                             <NotificationBell />
-                            
+
                             {/* Avatar Dropdown */}
                             <div className="relative">
                                 <button

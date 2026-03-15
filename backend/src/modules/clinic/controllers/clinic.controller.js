@@ -81,4 +81,15 @@ const getAllClinics = async (req, res) => {
     }
 };
 
-module.exports = { updateClinic, getInforClinics, getAllClinics };
+const getPublicClinics = async (req, res) => {
+    try {
+        logger.info('Fetching public clinics data');
+        const clinics = await clinicService.getAllClinics();
+        return new successRes.GetListSuccess(clinics, 'Public clinics data retrieved successfully').send(res);
+    } catch (error) {
+        logger.error(`Error getting public clinics: ${error.message}`);
+        throw new errorRes.InternalServerError('An error occurred while fetching public clinic data');
+    }
+};
+
+module.exports = { updateClinic, getInforClinics, getAllClinics, getPublicClinics };

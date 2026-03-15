@@ -46,6 +46,19 @@ const clinicService = {
         } catch (error) {
             throw error.response || error;
         }
+    },
+
+    /**
+     * Get all clinics (Public)
+     * @returns {Promise} API response
+     */
+    getPublicClinics: async () => {
+        try {
+            const response = await apiClient.get('/api/clinic/public');
+            return response;
+        } catch (error) {
+            throw error.response || error;
+        }
     }
 };
 

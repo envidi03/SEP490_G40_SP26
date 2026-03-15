@@ -74,7 +74,7 @@ const Login = () => {
                 } else {
                     localStorage.removeItem('remembered_username');
                 }
-                
+
                 const from = location.state?.from;
                 const bookingData = location.state?.bookingData;
 
@@ -123,7 +123,7 @@ const Login = () => {
                         setError('Tên đăng nhập hoặc mật khẩu không đúng');
                         break;
                     case 403:
-                        setError('Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên.');
+                        setError(errorMessage || 'Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên.');
                         break;
                     case 404:
                         setError('Tài khoản không tồn tại');
@@ -147,7 +147,7 @@ const Login = () => {
             {showToast && (
                 <Toast
                     type="success"
-                    message="🎉 Đăng nhập thành công! Chào mừng bạn trở lại."
+                    message="Đăng nhập thành công! Chào mừng bạn trở lại."
                     onClose={() => setShowToast(false)}
                     duration={3000}
                 />
