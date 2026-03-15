@@ -214,7 +214,7 @@ exports.login = async (data, ip_address = 'unknown', user_agent = 'unknown') => 
     const loginIdentifier = identifier || email || username;
 
     if (!loginIdentifier || !password) {
-        throw new ValidationError('Email/Username and password are required');
+        throw new ValidationError('Email/Username and password are required', 'AUTH_REQUIRED_FIELDS');
     }
 
     const account = await Account.findOne({
@@ -234,7 +234,7 @@ exports.login = async (data, ip_address = 'unknown', user_agent = 'unknown') => 
         account: account
     })
     if (!account) {
-        throw new NotFoundError('Email or password is incorrect');
+        throw new NotFoundError('Email or password is incorrect', 'AUTH_INVALID_CREDENTIALS');
     }
 
     const recentFailedAttempts = await LoginAttempt.countDocuments({
@@ -244,15 +244,15 @@ exports.login = async (data, ip_address = 'unknown', user_agent = 'unknown') => 
     })
 
     if (recentFailedAttempts >= 5) {
-        throw new ForbiddenError('Too many failed attempts. Please try again later');
+        throw new ForbiddenError('Too many failed attempts. Please try again later', 'AUTH_TOO_MANY_ATTEMPTS');
     }
 
     if (account.status === 'INACTIVE') {
-        throw new ForbiddenError('Account is inactive');
+        throw new ForbiddenError('Account is inactive', 'AUTH_ACCOUNT_INACTIVE');
     }
 
     if (account.status === 'PENDING') {
-        throw new ForbiddenError('Please verify your email');
+        throw new ForbiddenError('Please verify your email', 'AUTH_EMAIL_NOT_VERIFIED');
     }
 
     const isPasswordValid = await bcryptjs.compare(password, account.password);
@@ -264,7 +264,12 @@ exports.login = async (data, ip_address = 'unknown', user_agent = 'unknown') => 
             ok: false,
             reason: 'Invalid password'
         })
-        throw new UnauthorizedError('Invalid password');
+        const remainingAttempts = 5 - (recentFailedAttempts + 1);
+        throw new UnauthorizedError(
+            'Invalid password',
+            'AUTH_INVALID_CREDENTIALS',
+            { remainingAttempts }
+        );
     }
 
     const user = await Profile.findOne({ account_id: account._id });
