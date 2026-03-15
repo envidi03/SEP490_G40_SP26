@@ -1,6 +1,15 @@
 const express = require('express');
 const router = express.Router();
-const { createController, sendToRoleController, sendToUserController, sendToGroupController, sendGlobalController, getListController, getUnreadCountController } = require('../controller/notification.controller');
+const { 
+    createController, 
+    sendToRoleController, 
+    sendToUserController, 
+    sendToGroupController, 
+    sendGlobalController, 
+    getListController, 
+    getUnreadCountController,
+    markAsReadController
+} = require('../controller/notification.controller');
 const { authenticate } = require('../../../common/middlewares/auth.middleware');
 
 router.use(authenticate);
@@ -347,5 +356,30 @@ router.get('/', getListController);
  *         $ref: '#/components/schemas/Error'
  */
 router.get('/unread-count', getUnreadCountController);
+
+/**
+ * @swagger
+ * /api/notification/{id}/read:
+ *   put:
+ *     summary: Đánh dấu một thông báo là đã đọc
+ *     tags: [Notification]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ObjectId của thông báo
+ *     responses:
+ *       200:
+ *         description: Thành công
+ *       403:
+ *         description: Không có quyền truy cập thông báo này
+ *       404:
+ *         description: Không tìm thấy thông báo
+ *       500:
+ *         $ref: '#/components/schemas/Error'
+ */
+router.put('/:id/read', markAsReadController);
 
 module.exports = router;
