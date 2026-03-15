@@ -4,7 +4,7 @@ const Medicine = require("../model/medicine.model");
 /**
  * Lấy danh sách đơn thuốc sau khám (chỉ treatments có medicine_usage)
  */
-exports.getPrescriptions = async ({ status, search, page = 1, limit = 10 }) => {
+exports.getPrescriptions = async ({ status, search, page = 1, limit = 10, date }) => {
     const query = {
         "medicine_usage.0": { $exists: true }
     };
@@ -14,6 +14,15 @@ exports.getPrescriptions = async ({ status, search, page = 1, limit = 10 }) => {
         query["medicine_usage.dispensed"] = false;
     } else if (status === "dispensed") {
         query["medicine_usage"] = { $not: { $elemMatch: { dispensed: false } } };
+    }
+
+    // Filter theo ngày (YYYY-MM-DD)
+    if (date) {
+        const start = new Date(date);
+        start.setHours(0, 0, 0, 0);
+        const end = new Date(date);
+        end.setHours(23, 59, 59, 999);
+        query.createdAt = { $gte: start, $lte: end };
     }
 
     const skip = (parseInt(page) - 1) * parseInt(limit);

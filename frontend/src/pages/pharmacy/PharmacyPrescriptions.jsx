@@ -12,6 +12,7 @@ const PharmacyPrescriptions = () => {
     const [error, setError] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [filterStatus, setFilterStatus] = useState('all');
+    const [filterDate, setFilterDate] = useState('');
     const [dispensingId, setDispensingId] = useState(null);
     const [dispenseMsg, setDispenseMsg] = useState(null); // { type: 'success'|'error', text }
     const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -32,6 +33,7 @@ const PharmacyPrescriptions = () => {
                 limit: 5,
                 ...(searchTerm.trim() && { search: searchTerm.trim() }),
                 ...(filterStatus !== 'all' && { status: filterStatus }),
+                ...(filterDate && { date: filterDate }),
             };
             const res = await inventoryService.getPrescriptions(params);
             console.log("res", res);
@@ -46,17 +48,17 @@ const PharmacyPrescriptions = () => {
         } finally {
             setLoading(false);
         }
-    }, [searchTerm, filterStatus, currentPage]);
+    }, [searchTerm, filterStatus, currentPage, filterDate]);
 
     useEffect(() => {
         const timer = setTimeout(fetchPrescriptions, 400);
         return () => clearTimeout(timer);
     }, [fetchPrescriptions]);
 
-    // Reset page on search
+    // Reset page on search or date filter
     useEffect(() => {
         setCurrentPage(1);
-    }, [searchTerm]);
+    }, [searchTerm, filterDate]);
 
     const handleDispense = (prescription) => {
         setSelectedPrescription(prescription);
@@ -135,18 +137,36 @@ const PharmacyPrescriptions = () => {
                         />
                     </div>
 
-                    <select
-                        value={filterStatus}
-                        onChange={(e) => {
-                            setFilterStatus(e.target.value);
-                            setCurrentPage(1);
-                        }}
-                        className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                    >
-                        <option value="all">Tất cả trạng thái</option>
-                        <option value="pending">Chờ xuất</option>
-                        <option value="completed">Đã xuất</option>
-                    </select>
+                    <div className="flex gap-4">
+                        <input
+                            type="date"
+                            value={filterDate}
+                            onChange={(e) => setFilterDate(e.target.value)}
+                            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                        />
+
+                        <select
+                            value={filterStatus}
+                            onChange={(e) => {
+                                setFilterStatus(e.target.value);
+                                setCurrentPage(1);
+                            }}
+                            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                        >
+                            <option value="all">Tất cả trạng thái</option>
+                            <option value="pending">Chờ xuất</option>
+                            <option value="completed">Đã xuất</option>
+                        </select>
+                        
+                        {filterDate && (
+                            <button 
+                                onClick={() => setFilterDate('')}
+                                className="text-sm text-primary-600 hover:text-primary-700 font-medium"
+                            >
+                                Xóa ngày
+                            </button>
+                        )}
+                    </div>
                 </div>
             </Card>
 

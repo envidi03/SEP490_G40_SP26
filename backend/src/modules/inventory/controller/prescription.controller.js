@@ -2,8 +2,8 @@ const prescriptionService = require("../service/prescription.service");
 
 exports.getPrescriptions = async (req, res) => {
     try {
-        const { status, search, page, limit } = req.query;
-        const result = await prescriptionService.getPrescriptions({ status, search, page, limit });
+        const { status, search, page, limit, date } = req.query;
+        const result = await prescriptionService.getPrescriptions({ status, search, page, limit, date });
         return res.status(200).json({
             success: true,
             data: result.prescriptions,
