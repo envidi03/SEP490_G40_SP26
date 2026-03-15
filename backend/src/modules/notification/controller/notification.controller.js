@@ -22,4 +22,23 @@ const createController = async (req, res, next) => {
     }
 };
 
-module.exports = { createController };
+/**
+ * POST /api/notification/send-to-role
+ * Gửi thông báo đến tất cả user thuộc một hoặc nhiều role.
+ */
+const sendToRoleController = async (req, res, next) => {
+    try {
+        const { roles, ...data } = req.body;
+
+        const notification = await notificationService.sendToRole(roles, data);
+
+        res.status(201).json({
+            status: 'success',
+            data: notification,
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+module.exports = { createController, sendToRoleController };

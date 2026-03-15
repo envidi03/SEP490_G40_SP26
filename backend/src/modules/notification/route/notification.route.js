@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { createController } = require('../controller/notification.controller');
+const { createController, sendToRoleController } = require('../controller/notification.controller');
 
 /**
  * @swagger
@@ -65,5 +65,62 @@ const { createController } = require('../controller/notification.controller');
  *         $ref: '#/components/schemas/Error'
  */
 router.post('/', createController);
+
+/**
+ * @swagger
+ * /api/notification/send-to-role:
+ *   post:
+ *     summary: Gửi thông báo đến tất cả user thuộc một hoặc nhiều role
+ *     tags: [Notification]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - roles
+ *               - type
+ *               - title
+ *               - message
+ *             properties:
+ *               roles:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                   enum: [admin, doctor, receptionist, pharmacist]
+ *                 example: ["receptionist"]
+ *               type:
+ *                 type: string
+ *                 enum: [NEW_APPOINTMENT, APPOINTMENT_CANCELLED, INVOICE_READY, PATIENT_CHECKED_IN, NEW_PRESCRIPTION, LOW_STOCK, EXPIRING_MEDICINE, SYSTEM_ALERT]
+ *               title:
+ *                 type: string
+ *               message:
+ *                 type: string
+ *               action_url:
+ *                 type: string
+ *               exclude_ids:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 description: Mảng ObjectId bị loại trừ không nhận thông báo
+ *               metadata:
+ *                 type: object
+ *                 properties:
+ *                   entity_id:
+ *                     type: string
+ *                   entity_type:
+ *                     type: string
+ *                   extra_data:
+ *                     type: object
+ *     responses:
+ *       201:
+ *         description: Gửi thành công
+ *       400:
+ *         description: Thiếu roles hoặc field bắt buộc
+ *       500:
+ *         $ref: '#/components/schemas/Error'
+ */
+router.post('/send-to-role', sendToRoleController);
 
 module.exports = router;
