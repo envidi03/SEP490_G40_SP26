@@ -1,6 +1,7 @@
 import React from 'react';
 import AssistantSidebar from './AssistantSidebar';
-import { Bell, Search } from 'lucide-react';
+import { Search } from 'lucide-react';
+import NotificationBell from '../../features/notifications/NotificationBell';
 
 const AssistantLayout = ({ children }) => {
     return (
@@ -26,10 +27,7 @@ const AssistantLayout = ({ children }) => {
                     </div>
 
                     <div className="flex items-center gap-4">
-                        <button className="relative w-11 h-11 flex items-center justify-center rounded-2xl bg-white/60 backdrop-blur-md border border-white/50 shadow-sm text-gray-500 hover:text-blue-600 hover:bg-white transition-all duration-200 group">
-                            <Bell size={20} className="group-hover:scale-110 transition-transform" />
-                            <span className="absolute top-3 right-3.5 w-2 h-2 bg-red-500 rounded-full border border-white" />
-                        </button>
+                        <NotificationBell />
                     </div>
                 </header>
 

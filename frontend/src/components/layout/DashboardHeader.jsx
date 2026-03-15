@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { Bell, User, LogOut, Settings, ChevronDown } from 'lucide-react';
+import { User, LogOut, Settings, ChevronDown } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import NotificationBell from '../features/notifications/NotificationBell';
 
 const Header = () => {
     const { user, logout } = useAuth();
@@ -43,10 +44,7 @@ const Header = () => {
 
                 <div className="flex items-center space-x-4">
                     {/* Notifications */}
-                    <button className="p-2 hover:bg-gray-100 rounded-full relative transition-colors">
-                        <Bell size={20} className="text-gray-600" />
-                        <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-                    </button>
+                    <NotificationBell />
 
                     {/* User Menu with Dropdown */}
                     <div className="relative pl-4 border-l border-gray-200">

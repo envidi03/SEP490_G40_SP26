@@ -1,6 +1,7 @@
 import React from 'react';
 import ReceptionistSidebar from './ReceptionistSidebar';
-import { Bell, Search, Calendar, ChevronDown } from 'lucide-react';
+import { Search, Calendar, ChevronDown } from 'lucide-react';
+import NotificationBell from '../../features/notifications/NotificationBell';
 
 const ReceptionistLayout = ({ children }) => {
     return (
@@ -32,10 +33,7 @@ const ReceptionistLayout = ({ children }) => {
                             <span>{new Date().toLocaleDateString('vi-VN')}</span>
                         </div>
 
-                        <button className="relative w-11 h-11 flex items-center justify-center rounded-2xl bg-white/70 backdrop-blur-md border border-white/60 shadow-sm text-gray-500 hover:text-teal-600 hover:bg-white transition-all duration-200 group">
-                            <Bell size={20} className="group-hover:scale-110 transition-transform" />
-                            <span className="absolute top-3 right-3.5 w-2 h-2 bg-rose-500 rounded-full border border-white" />
-                        </button>
+                        <NotificationBell />
                     </div>
                 </header>
 

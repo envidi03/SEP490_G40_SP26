@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Bell, CheckCheck, Trash2, Filter, MoreVertical, MessageSquare, Info, AlertTriangle, CheckCircle2, Search, Clock } from 'lucide-react';
-import Card from '../../components/ui/Card';
-import Badge from '../../components/ui/Badge';
+import { Bell, CheckCheck, Trash2, Search } from 'lucide-react';
 import SharedPagination from '../../components/ui/SharedPagination';
+import NotificationItem from '../../components/features/notifications/NotificationItem';
+import { MessageSquare, AlertTriangle, Info, CheckCircle2 } from 'lucide-react';
 
 const NotificationsPage = () => {
     const [activeTab, setActiveTab] = useState('all');
@@ -185,61 +185,12 @@ const NotificationsPage = () => {
                         </div>
                     ) : filteredNotifications.length > 0 ? (
                         filteredNotifications.map((notification) => (
-                            <div 
+                            <NotificationItem 
                                 key={notification.id}
-                                className={`p-4 transition-all hover:bg-gray-50/50 flex gap-4 items-start relative group ${
-                                    !notification.isRead ? 'bg-primary-50/20' : ''
-                                }`}
-                            >
-                                {!notification.isRead && (
-                                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary-600"></div>
-                                )}
-
-                                <div className={`p-3 rounded-2xl shrink-0 ${notification.iconClass}`}>
-                                    <notification.icon size={24} />
-                                </div>
-
-                                <div className="flex-1 min-w-0">
-                                    <div className="flex items-center justify-between gap-2 mb-1">
-                                        <h3 className={`text-base font-semibold truncate ${
-                                            !notification.isRead ? 'text-gray-900' : 'text-gray-700'
-                                        }`}>
-                                            {notification.title}
-                                        </h3>
-                                        <div className="flex items-center gap-2 text-xs text-gray-400">
-                                            <Clock size={12} />
-                                            {notification.time}
-                                        </div>
-                                    </div>
-                                    <p 
-                                        className={`text-sm leading-relaxed ${
-                                            !notification.isRead ? 'text-gray-800 font-medium' : 'text-gray-600'
-                                        }`}
-                                        dangerouslySetInnerHTML={{ __html: notification.content }}
-                                    ></p>
-                                    
-                                    <div className="mt-3 flex items-center gap-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <button 
-                                            onClick={() => toggleRead(notification.id)}
-                                            className="text-xs font-semibold text-primary-600 hover:text-primary-700 flex items-center gap-1"
-                                        >
-                                            <CheckCheck size={14} />
-                                            {notification.isRead ? 'Đánh dấu chưa đọc' : 'Đánh dấu đã đọc'}
-                                        </button>
-                                        <button 
-                                            onClick={() => deleteNotification(notification.id)}
-                                            className="text-xs font-semibold text-red-600 hover:text-red-700 flex items-center gap-1"
-                                        >
-                                            <Trash2 size={14} />
-                                            Xóa
-                                        </button>
-                                    </div>
-                                </div>
-
-                                {!notification.isRead && (
-                                    <div className="w-2.5 h-2.5 bg-primary-600 rounded-full mt-2 shrink-0"></div>
-                                )}
-                            </div>
+                                notification={notification}
+                                onToggleRead={toggleRead}
+                                onDelete={deleteNotification}
+                            />
                         ))
                     ) : (
                         <div className="p-16 text-center">

@@ -4,6 +4,7 @@ import { useAuth } from '../../../../contexts/AuthContext';
 import { useState, useEffect } from 'react';
 import { getProfile } from '../../../../services/profileService';
 import serviceService from '../../../../services/serviceService';
+import NotificationBell from '../../notifications/NotificationBell';
 
 const MainNavigation = () => {
     const { isAuthenticated, user, logout } = useAuth();
@@ -154,6 +155,8 @@ const MainNavigation = () => {
 
                     {isAuthenticated ? (
                         <>
+                            <NotificationBell />
+                            
                             {/* Avatar Dropdown */}
                             <div className="relative">
                                 <button
