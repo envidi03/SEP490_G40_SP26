@@ -61,7 +61,8 @@ const options = {
                     }
                 }
             }
-        }
+        },
+        security: [{ bearerAuth: [] }],
     }, // Kết thúc swaggerDefinition
     
     // Giữ nguyên apis ở cùng cấp với swaggerDefinition

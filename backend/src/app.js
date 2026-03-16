@@ -123,6 +123,12 @@ app.use('/api/inventory', inventoryRoute);
 const { route: receptionistRoute } = require('./modules/receptionist');
 app.use('/api/receptionist', receptionistRoute);
 
+const { notificationRoute } = require('./modules/notification');
+app.use('/api/notification', notificationRoute);
+
+const { route: routePayment} = require('./modules/payment/index');
+app.use('/api/payment', routePayment);
+
 
 // 404 Handler - Must be after all routes
 app.use((req, res, next) => {
@@ -146,4 +152,4 @@ app.use((err, req, res, next) => {
     });
 });
 
-module.exports = app;
+module.exports = { app, corsOptions };

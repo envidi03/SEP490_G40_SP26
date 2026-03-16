@@ -1,5 +1,7 @@
-const app = require('./app');
+const http = require('http');
+const { app, corsOptions } = require('./app');
 const connectDB = require('./config/dbConfig');
+const { initSocket } = require('./socket');
 require('dotenv').config();
 
 // ============ SERVER CONFIGURATION ============
@@ -22,19 +24,26 @@ async function startServer() {
 
         console.log('✅ MongoDB connected successfully');
 
+        // Tạo HTTP server bọc Express app (cần thiết để Socket.IO dùng chung port)
+        const httpServer = http.createServer(app);
+
+        // Khởi tạo Socket.IO gắn vào HTTP server
+        initSocket(httpServer, corsOptions);
+
         // Khởi động Server
-        const server = app.listen(PORT, HOST, () => {
+        httpServer.listen(PORT, HOST, () => {
             console.log('='.repeat(50));
             console.log(`🚀 Server is running on http://${HOST}:${PORT}`);
             console.log(`📝 Environment: ${process.env.NODE_ENV || 'development'}`);
             console.log(`🌐 CORS Origin: ${process.env.CORS_ORIGIN || '*'}`);
+            console.log(`🔌 Socket.IO ready`);
             console.log('='.repeat(50));
         });
 
         // Graceful Shutdown
         process.on('SIGTERM', () => {
             console.log('⚠️  SIGTERM signal received: closing HTTP server');
-            server.close(() => {
+            httpServer.close(() => {
                 console.log('✅ HTTP server closed');
                 process.exit(0);
             });
@@ -42,7 +51,7 @@ async function startServer() {
 
         process.on('SIGINT', () => {
             console.log('\n⚠️  SIGINT signal received: closing HTTP server');
-            server.close(() => {
+            httpServer.close(() => {
                 console.log('✅ HTTP server closed');
                 process.exit(0);
             });
