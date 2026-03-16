@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 
-const PaymentTest = ({amount = 2000, invoiceCode}) => {
-    
+const PaymentTest = ({ amount = 2000, invoiceCode }) => {
+
   const matchContent = import.meta.env.VITE_MATCH_CONTENT || "INV";
   invoiceCode = `${matchContent}8002`;
 
@@ -35,7 +35,7 @@ const PaymentTest = ({amount = 2000, invoiceCode}) => {
       } catch (error) {
         console.error("Error checking payment status:", error);
       }
-    }, 3000); 
+    }, 3000);
 
     return () => clearInterval(interval);
   }, [isPaid]);

@@ -8,7 +8,7 @@ import ReceptionistServices from '../../pages/receptionist/ReceptionistServices'
 import ReceptionistEquipment from '../../pages/receptionist/ReceptionistEquipment';
 import ReceptionistLeave from '../../pages/receptionist/ReceptionistLeave';
 import ReceptionistCheckIn from '../../pages/receptionist/ReceptionistCheckIn';
-import PaymentTest from '../../pages/receptionist/test/payment.test';
+import PaymentTest from '../../pages/receptionist/payment/payment';
 import ReceptionistSubServices from '../../pages/receptionist/ReceptionistSubServices';
 
 /**
