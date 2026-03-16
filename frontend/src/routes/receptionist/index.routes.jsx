@@ -8,7 +8,7 @@ import ReceptionistServices from '../../pages/receptionist/ReceptionistServices'
 import ReceptionistEquipment from '../../pages/receptionist/ReceptionistEquipment';
 import ReceptionistLeave from '../../pages/receptionist/ReceptionistLeave';
 import ReceptionistCheckIn from '../../pages/receptionist/ReceptionistCheckIn';
-import PaymentTest from '../../pages/receptionist/payment/payment';
+import Payment from '../../pages/receptionist/payment/ReceptionistPayment';
 import ReceptionistSubServices from '../../pages/receptionist/ReceptionistSubServices';
 
 /**
@@ -100,7 +100,7 @@ const receptionistRoutes = [
         element: (
             <ProtectedRoute>
                 <ReceptionistLayout>
-                    <PaymentTest />
+                    <Payment />
                 </ReceptionistLayout>
             </ProtectedRoute>
         )
