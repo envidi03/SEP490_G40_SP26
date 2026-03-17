@@ -23,7 +23,7 @@ const RecordInfoCard = ({ record }) => {
             </h2>
 
             <div className="grid grid-cols-2 gap-4">
-                <InfoRow label="Bác sĩ phụ trách" value={record.created_by?.full_name} />
+                <InfoRow label="Bác sĩ phụ trách" value={record.created_by?.profile_id?.full_name} />
                 <InfoRow label="Ngày tạo" value={formatDate(record.createdAt)} />
                 <InfoRow label="Ngày bắt đầu" value={formatDate(record.start_date) || 'Chưa xác định'} />
                 <InfoRow label="Ngày kết thúc" value={formatDate(record.end_date) || 'Chưa xác định'} />
