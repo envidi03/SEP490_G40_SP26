@@ -228,7 +228,7 @@ const PatientRecordSearch = () => {
                 patientPhone={selectedPatient?.phone}
                 patientEmail={selectedPatient?.email}
                 patientGender={selectedPatient?.gender}
-                patientDateOfBirth={selectedPatient?.date_of_birth}
+                patientDateOfBirth={selectedPatient?.dob}
             />
         </div>
     );
