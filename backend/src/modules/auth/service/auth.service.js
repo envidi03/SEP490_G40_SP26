@@ -287,14 +287,16 @@ exports.login = async (data, ip_address = 'unknown', user_agent = 'unknown') => 
 
     const token = signToken({
         account_id: account._id,
-        user_id: user._id
+        user_id: user._id,
+        role: account.role_id.name
     });
 
     // Remember Me: 30 days if true, 7 days if false
     const refreshTokenExpiry = rememberMe ? 30 : 7;
     const refreshToken = signRefreshToken({
         account_id: account._id,
-        user_id: user._id
+        user_id: user._id,
+        role: account.role_id.name
     }, refreshTokenExpiry);
 
     const hashedRefreshToken = hashToken(refreshToken);
@@ -399,7 +401,8 @@ exports.refreshToken = async (refreshToken) => {
 
     const newAccessToken = signToken({
         account_id: account._id,
-        user_id: user._id
+        user_id: user._id,
+        role: account.role_id.name
     });
 
     return {
@@ -636,13 +639,15 @@ exports.googleAuth = async (googleToken, ip_address = 'unknown', user_agent = 'u
 
     const token = signToken({
         account_id: account._id,
-        user_id: user._id
+        user_id: user._id,
+        role: account.role_id.name
     });
 
     const refreshTokenExpiry = 7;
     const refreshToken = signRefreshToken({
         account_id: account._id,
-        user_id: user._id
+        user_id: user._id,
+        role: account.role_id.name
     }, refreshTokenExpiry);
 
     const hashedRefreshToken = hashToken(refreshToken);
