@@ -21,7 +21,7 @@ const TreatmentPlanModal = ({ plan, isOpen, mode, onClose, onSave, patients = []
         estimatedEndDate: '',
         totalCost: '',
         notes: '',
-        phases: [{ name: '', status: 'pending', startDate: '', endDate: '' }]
+        phases: [{ name: '', tooth_position: '', status: 'pending', startDate: '', endDate: '' }]
     });
 
     console.log("patients: ", patients);
@@ -41,8 +41,9 @@ const TreatmentPlanModal = ({ plan, isOpen, mode, onClose, onSave, patients = []
                 estimatedEndDate: formatDateForInput(plan.estimatedEndDate),
                 totalCost: plan.totalCost || '',
                 notes: plan.notes || '',
-                phases: (plan.phases || [{ name: '', status: 'pending', startDate: '', endDate: '' }]).map(p => ({
+                phases: (plan.phases || [{ name: '', tooth_position: '', status: 'pending', startDate: '', endDate: '' }]).map(p => ({
                     ...p,
+                    tooth_position: p.tooth_position || '',
                     startDate: formatDateForInput(p.startDate),
                     endDate: formatDateForInput(p.endDate)
                 }))
@@ -60,7 +61,7 @@ const TreatmentPlanModal = ({ plan, isOpen, mode, onClose, onSave, patients = []
                 estimatedEndDate: '',
                 totalCost: '',
                 notes: '',
-                phases: [{ name: '', status: 'pending', startDate: '', endDate: '' }]
+                phases: [{ name: '', tooth_position: '', status: 'pending', startDate: '', endDate: '' }]
             });
         }
     }, [plan, mode, isOpen]);
@@ -82,7 +83,7 @@ const TreatmentPlanModal = ({ plan, isOpen, mode, onClose, onSave, patients = []
     const addPhase = () => {
         setFormData(prev => ({
             ...prev,
-            phases: [...prev.phases, { name: '', status: 'pending', startDate: '', endDate: '' }]
+            phases: [...prev.phases, { name: '', tooth_position: '', status: 'pending', startDate: '', endDate: '' }]
         }));
     };
 
@@ -338,6 +339,14 @@ const TreatmentPlanModal = ({ plan, isOpen, mode, onClose, onSave, patients = []
                                                 onChange={(e) => handlePhaseChange(index, 'name', e.target.value)}
                                                 placeholder="Tên giai đoạn (VD: Gắn mắc cài)"
                                                 className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 disabled:bg-transparent disabled:border-transparent disabled:px-0 disabled:font-medium"
+                                                disabled={isReadOnly}
+                                            />
+                                            <input
+                                                type="text"
+                                                value={phase.tooth_position}
+                                                onChange={(e) => handlePhaseChange(index, 'tooth_position', e.target.value)}
+                                                placeholder="Vị trí răng (VD: Răng 38, Toàn hàm)"
+                                                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 disabled:bg-transparent disabled:border-transparent disabled:px-0"
                                                 disabled={isReadOnly}
                                             />
                                             <div className="grid grid-cols-3 gap-3">

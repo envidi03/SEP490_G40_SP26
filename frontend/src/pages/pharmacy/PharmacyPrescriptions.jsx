@@ -3,6 +3,8 @@ import { FileText, Search, Calendar, User, Loader2, AlertTriangle } from 'lucide
 import Card from '../../components/ui/Card';
 import Badge from '../../components/ui/Badge';
 import inventoryService from '../../services/inventoryService';
+import ConfirmationModal from '../../components/ui/ConfirmationModal';
+import SharedPagination from '../../components/ui/SharedPagination';
 
 const PharmacyPrescriptions = () => {
     const [prescriptions, setPrescriptions] = useState([]);
@@ -10,39 +12,70 @@ const PharmacyPrescriptions = () => {
     const [error, setError] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [filterStatus, setFilterStatus] = useState('all');
+    const [filterDate, setFilterDate] = useState('');
     const [dispensingId, setDispensingId] = useState(null);
     const [dispenseMsg, setDispenseMsg] = useState(null); // { type: 'success'|'error', text }
+    const [showConfirmModal, setShowConfirmModal] = useState(false);
+    const [selectedPrescription, setSelectedPrescription] = useState(null);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [pagination, setPagination] = useState({
+        totalPages: 1,
+        totalItems: 0,
+        itemsPerPage: 10
+    });
 
     const fetchPrescriptions = useCallback(async () => {
         setLoading(true);
         setError(null);
         try {
             const params = {
+                page: currentPage,
+                limit: 5,
                 ...(searchTerm.trim() && { search: searchTerm.trim() }),
                 ...(filterStatus !== 'all' && { status: filterStatus }),
+                ...(filterDate && { date: filterDate }),
             };
             const res = await inventoryService.getPrescriptions(params);
-            if (res?.success) setPrescriptions(res.data || []);
+            console.log("res", res);
+            if (res?.success) {
+                setPrescriptions(res.data || []);
+                if (res.pagination) {
+                    setPagination(res.pagination);
+                }
+            }
         } catch {
             setError('Không thể tải đơn thuốc. Vui lòng thử lại.');
         } finally {
             setLoading(false);
         }
-    }, [searchTerm, filterStatus]);
+    }, [searchTerm, filterStatus, currentPage, filterDate]);
 
     useEffect(() => {
         const timer = setTimeout(fetchPrescriptions, 400);
         return () => clearTimeout(timer);
     }, [fetchPrescriptions]);
 
-    const handleDispense = async (prescription) => {
-        if (!window.confirm(`Xác nhận xuất thuốc cho bệnh nhân ${prescription.patient_name}?\nThao tác này sẽ trừ tồn kho ngay lập tức.`)) return;
+    // Reset page on search or date filter
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchTerm, filterDate]);
+
+    const handleDispense = (prescription) => {
+        setSelectedPrescription(prescription);
+        setShowConfirmModal(true);
+    };
+
+    const confirmDispense = async () => {
+        if (!selectedPrescription) return;
+
+        const prescription = selectedPrescription;
+        setShowConfirmModal(false);
         setDispensingId(prescription._id);
         setDispenseMsg(null);
         try {
             const res = await inventoryService.dispensePrescription(prescription._id);
             if (res?.success) {
-                setDispenseMsg({ type: 'success', text: `Xuất thuốc thành công cho ${prescription.patient_name}!` });
+                setDispenseMsg({ type: 'success', text: `Xuất thuốc thành công cho bệnh nhân ${prescription.patient_name}!` });
                 fetchPrescriptions();
             }
         } catch (err) {
@@ -50,6 +83,7 @@ const PharmacyPrescriptions = () => {
             setDispenseMsg({ type: 'error', text: msg });
         } finally {
             setDispensingId(null);
+            setSelectedPrescription(null);
         }
     };
 
@@ -57,6 +91,8 @@ const PharmacyPrescriptions = () => {
     const pendingCount = prescriptions.filter(p => p.dispense_status === 'Chờ xuất').length;
 
     const formatDate = (d) => d ? new Date(d).toLocaleDateString('vi-VN') : '—';
+
+    console.log("prescriptions", prescriptions);
 
     return (
         <div>
@@ -69,8 +105,8 @@ const PharmacyPrescriptions = () => {
             {/* Thông báo xuất thuốc */}
             {dispenseMsg && (
                 <div className={`mb-4 p-4 rounded-lg border flex items-start gap-2 ${dispenseMsg.type === 'success'
-                        ? 'bg-green-50 border-green-200 text-green-800'
-                        : 'bg-red-50 border-red-200 text-red-800'
+                    ? 'bg-green-50 border-green-200 text-green-800'
+                    : 'bg-red-50 border-red-200 text-red-800'
                     }`}>
                     <AlertTriangle size={16} className="mt-0.5 shrink-0" />
                     <span className="text-sm flex-1">{dispenseMsg.text}</span>
@@ -101,15 +137,36 @@ const PharmacyPrescriptions = () => {
                         />
                     </div>
 
-                    <select
-                        value={filterStatus}
-                        onChange={(e) => setFilterStatus(e.target.value)}
-                        className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                    >
-                        <option value="all">Tất cả trạng thái</option>
-                        <option value="pending">Chờ xuất</option>
-                        <option value="completed">Đã xuất</option>
-                    </select>
+                    <div className="flex gap-4">
+                        <input
+                            type="date"
+                            value={filterDate}
+                            onChange={(e) => setFilterDate(e.target.value)}
+                            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                        />
+
+                        <select
+                            value={filterStatus}
+                            onChange={(e) => {
+                                setFilterStatus(e.target.value);
+                                setCurrentPage(1);
+                            }}
+                            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                        >
+                            <option value="all">Tất cả trạng thái</option>
+                            <option value="pending">Chờ xuất</option>
+                            <option value="completed">Đã xuất</option>
+                        </select>
+                        
+                        {filterDate && (
+                            <button 
+                                onClick={() => setFilterDate('')}
+                                className="text-sm text-primary-600 hover:text-primary-700 font-medium"
+                            >
+                                Xóa ngày
+                            </button>
+                        )}
+                    </div>
                 </div>
             </Card>
 
@@ -192,6 +249,31 @@ const PharmacyPrescriptions = () => {
                     )}
                 </div>
             )}
+
+            {/* Pagination */}
+            {!loading && !error && prescriptions.length > 0 && (
+                <SharedPagination
+                    currentPage={currentPage}
+                    totalPages={pagination.totalPages}
+                    totalItems={pagination.totalItems}
+                    onPageChange={(page) => setCurrentPage(page)}
+                    itemLabel="đơn thuốc"
+                />
+            )}
+
+            {/* Confirmation Modal */}
+            <ConfirmationModal
+                show={showConfirmModal}
+                onClose={() => setShowConfirmModal(false)}
+                onConfirm={confirmDispense}
+                title="Xác nhận xuất thuốc"
+                message={`Xác nhận xuất thuốc cho bệnh nhân ${selectedPrescription?.patient_name}?\nThao tác này sẽ trừ tồn kho ngay lập tức.`}
+                confirmText="Xuất thuốc"
+                icon={FileText}
+                iconBgClass="bg-blue-50 text-blue-500"
+                confirmBtnClass="bg-blue-600 text-white hover:bg-blue-700 shadow-blue-200 focus:ring-blue-300"
+                cancelBtnClass="border-gray-200 text-gray-600 hover:bg-gray-50 focus:ring-gray-200"
+            />
         </div>
     );
 };

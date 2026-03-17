@@ -3,7 +3,7 @@ import { ClipboardList, Calendar, Clock, FileText, DollarSign, User, Phone, Mail
 
 const BookingFormStep = ({ bookingData, onSubmit, user }) => {
     // Determine initial values safely
-    const initialName = user?.profile?.full_name || user?.username || user?.full_name || '';
+    const initialName = user?.profile?.full_name || user?.full_name || '';
     const initialPhone = user?.profile?.phone_number || user?.phone_number || user?.phone || '';
     const initialEmail = user?.email || '';
 
@@ -15,7 +15,7 @@ const BookingFormStep = ({ bookingData, onSubmit, user }) => {
     // Pre-fill if user object loads asynchronously later
     useEffect(() => {
         if (user) {
-            setFullName(user?.profile?.full_name || user?.username || user?.full_name || '');
+            setFullName(user?.profile?.full_name || user?.full_name || '');
             setPhone(user?.profile?.phone_number || user?.phone_number || user?.phone || '');
             setEmail(user?.email || '');
         }

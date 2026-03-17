@@ -69,6 +69,7 @@ const getListInvoice = async (query) => {
                                 'patient.patient_code': 1,
                                 'patient.profile.full_name': 1,
                                 'patient.profile.phone': 1,
+                                payment_method: 1,
                             }
                         }
                     ],
@@ -105,6 +106,7 @@ const getInvoiceById = async (id) => {
                 populate: { path: 'profile_id', select: 'full_name phone email' }
             })
             .populate('items.service_id', 'service_name price')
+            .populate('items.sub_service_id', 'sub_service_name min_price max_price')
             .populate('created_by', 'username');
 
         if (!invoice) {
@@ -126,7 +128,7 @@ const getInvoiceById = async (id) => {
 
 const createInvoice = async (data) => {
     try {
-        const { patient_id, appointment_id, items, note, created_by } = data;
+        const { patient_id, appointment_id, items, note, created_by, payment_method } = data;
 
         if (!patient_id) throw new errorRes.BadRequestError('patient_id is required');
         if (!items || items.length === 0) throw new errorRes.BadRequestError('items cannot be empty');
@@ -140,18 +142,34 @@ const createInvoice = async (data) => {
         // Tránh bị ảnh hưởng nếu dịch vụ thay đổi giá sau này
         const builtItems = await Promise.all(
             items.map(async (item) => {
-                if (!item.service_id) throw new errorRes.BadRequestError('service_id is required for each item');
-                const quantity = item.quantity || 1;
+                const { service_id, sub_service_id, quantity = 1, price } = item;
+                if (!service_id) throw new errorRes.BadRequestError('service_id is required for each item');
 
-                const service = await ServiceModel.findById(item.service_id);
-                if (!service) throw new errorRes.NotFoundError(`Service ${item.service_id} not found`);
+                const service = await ServiceModel.findById(service_id);
+                if (!service) throw new errorRes.NotFoundError(`Service ${service_id} not found`);
+
+                let subServiceName = null;
+                let unitPrice = price || service.price || 0;
+
+                if (sub_service_id) {
+                    const subService = await mongoose.model('SubService').findById(sub_service_id);
+                    if (subService) {
+                        subServiceName = subService.sub_service_name;
+                        // If price wasn't passed from frontend (auto-filled), use min_price as default for sub-service
+                        if (price === undefined) {
+                            unitPrice = subService.min_price || 0;
+                        }
+                    }
+                }
 
                 return {
                     service_id: service._id,
-                    service_name: service.service_name,  // snapshot tên dịch vụ
-                    unit_price: service.price,            // snapshot giá tại thời điểm tạo
+                    sub_service_id: sub_service_id || null,
+                    service_name: service.service_name,
+                    sub_service_name: subServiceName,
+                    unit_price: unitPrice,
                     quantity,
-                    amount: service.price * quantity      // pre-save hook cũng tính lại, nhưng set trước cho rõ
+                    amount: unitPrice * quantity
                 };
             })
         );
@@ -163,6 +181,7 @@ const createInvoice = async (data) => {
             items: builtItems,
             status: 'PENDING',
             note: note || '',
+            payment_method: payment_method || 'CASH',
             created_by: created_by || null,
         });
 

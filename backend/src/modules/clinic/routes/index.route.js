@@ -5,9 +5,11 @@ const router = express.Router();
 const getInforClinicRoute = require('./clinic.detail.route');
 const updateClinicRoute = require('./clinic.update.route');
 const getListClinicRoute = require('./clinic.list.route');
+const getPublicClinicRoute = require('./clinic.public.route');
 
 // Nhúng các router con vào router tổng
 // Giả sử bên trong các file con kia bạn đã định nghĩa router.get(...) và router.patch(...)
+router.use(getPublicClinicRoute);
 router.use(getListClinicRoute);
 router.use(getInforClinicRoute);
 router.use(updateClinicRoute);

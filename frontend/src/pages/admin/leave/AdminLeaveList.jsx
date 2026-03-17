@@ -271,6 +271,13 @@ const AdminLeaveList = () => {
                 message={confirmAction?.status === 'APPROVED'
                     ? 'Bạn có chắc chắn muốn PHÊ DUYỆT đơn xin nghỉ phép này không?'
                     : 'Bạn có chắc chắn muốn TỪ CHỐI đơn xin nghỉ phép này không?'}
+                icon={confirmAction?.status === 'APPROVED' ? CheckCircle : XCircle}
+                iconBgClass={confirmAction?.status === 'APPROVED' ? 'bg-green-50 text-green-500' : 'bg-red-50 text-red-500'}
+                confirmBtnClass={confirmAction?.status === 'APPROVED'
+                    ? 'bg-green-600 text-white hover:bg-green-700 shadow-green-200 focus:ring-green-300'
+                    : 'bg-red-500 text-white hover:bg-red-600 shadow-red-200 focus:ring-red-300'}
+                cancelBtnClass="border-gray-200 text-gray-600 hover:bg-gray-50 focus:ring-gray-200"
+                confirmText="Xác nhận"
                 onClose={() => setConfirmAction(null)}
                 onConfirm={executeApprove}
                 isLoading={!!approvingId}

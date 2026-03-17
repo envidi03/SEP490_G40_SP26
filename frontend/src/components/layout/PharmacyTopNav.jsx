@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import clsx from 'clsx';
 import { useAuth } from '../../contexts/AuthContext';
+import NotificationBell from '../features/notifications/NotificationBell';
 
 const PharmacyTopNav = () => {
     const location = useLocation();
@@ -66,6 +67,8 @@ const PharmacyTopNav = () => {
 
                 {/* User & Actions */}
                 <div className="flex items-center gap-4 pl-4 border-l border-gray-100">
+                    <NotificationBell />
+                    
                     <Link
                         to="/pharmacy/profile"
                         className="flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-full hover:bg-gray-50 transition-colors group"

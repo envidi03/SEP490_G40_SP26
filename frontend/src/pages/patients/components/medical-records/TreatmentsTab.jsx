@@ -3,7 +3,7 @@ import { Clock, DollarSign, Eye, Stethoscope, Pill, CheckCircle2, AlertCircle } 
 import { getStatusBadge, formatCurrency } from './statusHelpers';
 
 const TreatmentsTab = ({ treatments, onViewDetail }) => {
-    const sessions = (treatments || []).filter(t => t.phase === 'SESSION' || (t.phase !== 'PLAN' && t.status !== 'PLANNED'));
+    const sessions = (treatments || []).filter(t => t.phase === 'SESSION' || t.status === 'DONE' || t.status === 'IN_PROGRESS');
 
     if (sessions.length === 0) {
         return (

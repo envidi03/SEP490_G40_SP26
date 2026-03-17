@@ -4,7 +4,7 @@ const Medicine = require("../model/medicine.model");
 /**
  * Lấy danh sách đơn thuốc sau khám (chỉ treatments có medicine_usage)
  */
-exports.getPrescriptions = async ({ status, search, page = 1, limit = 10 }) => {
+exports.getPrescriptions = async ({ status, search, page = 1, limit = 10, date }) => {
     const query = {
         "medicine_usage.0": { $exists: true }
     };
@@ -16,12 +16,27 @@ exports.getPrescriptions = async ({ status, search, page = 1, limit = 10 }) => {
         query["medicine_usage"] = { $not: { $elemMatch: { dispensed: false } } };
     }
 
+    // Filter theo ngày (YYYY-MM-DD)
+    if (date) {
+        const start = new Date(date);
+        start.setHours(0, 0, 0, 0);
+        const end = new Date(date);
+        end.setHours(23, 59, 59, 999);
+        query.createdAt = { $gte: start, $lte: end };
+    }
+
     const skip = (parseInt(page) - 1) * parseInt(limit);
     const limitNum = parseInt(limit);
 
     let treatmentQuery = Treatment.find(query)
-        .populate("patient_id", "full_name phone")
-        .populate("doctor_id", "name")
+        .populate({
+            path: "patient_id",
+            populate: { path: "profile_id", select: "full_name phone" }
+        })
+        .populate({
+            path: "doctor_id",
+            populate: { path: "profile_id", select: "full_name" }
+        })
         .populate("medicine_usage.medicine_id", "medicine_name unit dosage")
         .select("patient_id doctor_id medicine_usage createdAt")
         .sort({ createdAt: -1 })
@@ -36,11 +51,14 @@ exports.getPrescriptions = async ({ status, search, page = 1, limit = 10 }) => {
     // Format kết quả
     const prescriptions = treatments.map((t) => {
         const allDispensed = t.medicine_usage.every((m) => m.dispensed);
+        const patientProfile = t.patient_id?.profile_id;
+        const doctorProfile = t.doctor_id?.profile_id;
+
         return {
             _id: t._id,
-            patient_name: t.patient_id?.full_name || "N/A",
-            patient_phone: t.patient_id?.phone || "",
-            doctor_name: t.doctor_id?.name || "N/A",
+            patient_name: patientProfile?.full_name || "N/A",
+            patient_phone: patientProfile?.phone || "",
+            doctor_name: doctorProfile?.full_name || "N/A",
             created_at: t.createdAt,
             dispense_status: allDispensed ? "Đã xuất" : "Chờ xuất",
             medicines: t.medicine_usage.map((m) => ({

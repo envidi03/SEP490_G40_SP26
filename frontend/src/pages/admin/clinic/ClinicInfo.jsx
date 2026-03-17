@@ -40,6 +40,10 @@ const ClinicInfo = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [toast, setToast] = useState({ show: false, type: 'success', message: '' });
+    const [selectedFile, setSelectedFile] = useState(null);
+    const [previewUrl, setPreviewUrl] = useState(null);
+    const [imageError, setImageError] = useState(false);
+    const fileInputRef = React.useRef(null);
 
     // ========== EFFECTS ==========
     useEffect(() => {
@@ -100,6 +104,37 @@ const ClinicInfo = () => {
     };
 
     /**
+     * Handler: Thay đổi file logo
+     */
+    const handleFileChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            if (file.size > 5 * 1024 * 1024) {
+                setToast({
+                    show: true,
+                    type: 'error',
+                    message: 'File quá lớn. Vui lòng chọn file dưới 5MB.'
+                });
+                return;
+            }
+            setSelectedFile(file);
+            setImageError(false); // Reset error when new file is selected
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setPreviewUrl(reader.result);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
+    /**
+     * Handler: Kích hoạt chọn file
+     */
+    const triggerFileInput = () => {
+        fileInputRef.current.click();
+    };
+
+    /**
      * Handler: Lưu thông tin
      */
     const handleSave = async () => {
@@ -117,13 +152,36 @@ const ClinicInfo = () => {
 
         try {
             setLoading(true);
-            const response = await clinicService.updateClinic(targetClinicId, formData);
+
+            // Sử dụng FormData để gửi cả text và file
+            const data = new FormData();
+
+            // Các trường hợp lệ để gửi đi
+            const allowedFields = [
+                'clinic_name', 'clinic_address', 'phone', 'email',
+                'working_house', 'tax_code', 'license_number',
+                'latitude', 'longitude', 'status'
+            ];
+
+            allowedFields.forEach(key => {
+                if (formData[key] !== undefined && formData[key] !== null) {
+                    data.append(key, formData[key]);
+                }
+            });
+
+            if (selectedFile) {
+                data.append('logo', selectedFile);
+            }
+
+            const response = await clinicService.updateClinic(targetClinicId, data);
 
             // Backend returns: { success: true, statusCode: 200, message: "...", data: updatedClinicObj }
             // api.js interceptor unwraps response.data, so we get the whole object
             if (response && response.data) {
                 setClinicData(response.data);
-                setFormData(response.data); // Update form data with confirmed server data
+                setFormData(response.data);
+                setSelectedFile(null);
+                setPreviewUrl(null);
                 setIsEditMode(false);
                 setToast({
                     show: true,
@@ -436,28 +494,45 @@ const ClinicInfo = () => {
                                 <ImageIcon className="text-pink-600" size={20} />
                                 Logo phòng khám
                             </h3>
-                            <div className="aspect-square bg-gradient-to-br from-blue-100 to-indigo-100 rounded-xl flex items-center justify-center mb-4 overflow-hidden">
-                                {formData.logo ? (
+                            <div className="aspect-square bg-gradient-to-br from-blue-100 to-indigo-100 rounded-xl flex items-center justify-center mb-4 overflow-hidden relative">
+                                {(previewUrl || formData.logo) && !imageError ? (
                                     <img
-                                        src={formData.logo}
+                                        src={previewUrl || formData.logo}
                                         alt="Clinic Logo"
                                         className="w-full h-full object-cover"
-                                        onError={(e) => {
-                                            e.target.style.display = 'none';
-                                            e.target.parentElement.innerHTML = '<div class="flex flex-col items-center justify-center h-full"><ImageIcon class="text-gray-400" size="64" /><p class="text-gray-500 mt-4">No Logo</p></div>';
-                                        }}
+                                        onError={() => setImageError(true)}
                                     />
                                 ) : (
                                     <div className="flex flex-col items-center">
                                         <Building2 className="text-gray-400" size={64} />
-                                        <p className="text-gray-500 mt-4 font-medium">Chưa có logo</p>
+                                        <p className="text-gray-500 mt-4 font-medium">
+                                            {imageError ? 'Lỗi tải ảnh' : 'Chưa có logo'}
+                                        </p>
                                     </div>
                                 )}
                             </div>
                             {isEditMode && (
-                                <button className="w-full px-4 py-3 bg-blue-50 text-blue-600 font-semibold rounded-xl hover:bg-blue-100 transition-all duration-200">
-                                    Tải lên logo mới
-                                </button>
+                                <>
+                                    <input
+                                        type="file"
+                                        ref={fileInputRef}
+                                        onChange={handleFileChange}
+                                        accept="image/*"
+                                        className="hidden"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={triggerFileInput}
+                                        className="w-full px-4 py-3 bg-blue-50 text-blue-600 font-semibold rounded-xl hover:bg-blue-100 transition-all duration-200"
+                                    >
+                                        {selectedFile ? 'Chọn ảnh khác' : 'Tải lên logo mới'}
+                                    </button>
+                                    {selectedFile && (
+                                        <p className="text-xs text-gray-500 mt-2 text-center truncate">
+                                            Đã chọn: {selectedFile.name}
+                                        </p>
+                                    )}
+                                </>
                             )}
                         </div>
 
@@ -483,13 +558,9 @@ const ClinicInfo = () => {
                             <h3 className="text-lg font-bold mb-4">Thông tin nhanh</h3>
                             <div className="space-y-3">
                                 <div className="flex items-center gap-2">
-                                    <Building2 size={20} />
-                                    <span className="text-sm">ID: {formData._id || formData.id || 'N/A'}</span>
-                                </div>
-                                <div className="flex items-center gap-2">
                                     <CheckCircle size={20} />
                                     <span className="text-sm">
-                                        {formData.status === 'ACTIVE' ? 'Hoạt động' : 'Tạm ngừng'}
+                                        Trạng thái: {formData.status === 'ACTIVE' ? 'Hoạt động' : 'Tạm ngừng'}
                                     </span>
                                 </div>
                             </div>

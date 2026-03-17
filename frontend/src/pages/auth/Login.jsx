@@ -74,7 +74,7 @@ const Login = () => {
                 } else {
                     localStorage.removeItem('remembered_username');
                 }
-                
+
                 const from = location.state?.from;
                 const bookingData = location.state?.bookingData;
 
@@ -94,8 +94,24 @@ const Login = () => {
 
     const handleLoginError = (error) => {
         console.error('Login error:', error);
+        const errorMapping = {
+            'AUTH_TOO_MANY_ATTEMPTS': 'Bạn đã nhập sai quá 5 lần. Vui lòng thử lại sau 3 phút.',
+            'AUTH_REQUIRED_FIELDS': 'Email/Tên đăng nhập và mật khẩu là bắt buộc',
+            'AUTH_INVALID_CREDENTIALS': 'Email hoặc mật khẩu không chính xác',
+            'AUTH_ACCOUNT_INACTIVE': 'Tài khoản đã bị khóa hoặc ngừng hoạt động',
+            'AUTH_EMAIL_NOT_VERIFIED': 'Vui lòng xác thực email của bạn trước khi đăng nhập',
+            'AUTH_USER_NOT_FOUND': 'Không tìm thấy thông tin người dùng',
+            'NOT_FOUND_ERROR': 'Tài khoản không tồn tại',
+        };
+
         if (error.data) {
-            const errorMessage = error.data.message || error.data.error;
+            const code = error.data.errorCode;
+            const msg = error.data.message || error.data.error;
+            let errorMessage = errorMapping[code] || errorMapping[msg] || msg;
+
+            if (error.status === 401 && error.data.errors?.remainingAttempts !== undefined) {
+                errorMessage += `. Bạn còn ${error.data.errors.remainingAttempts} lần thử trước khi tài khoản bị khóa 3 phút.`;
+            }
             setError(errorMessage || 'Đăng nhập thất bại. Vui lòng thử lại.');
         } else {
             setError('Đăng nhập thất bại. Vui lòng thử lại.');
@@ -112,21 +128,37 @@ const Login = () => {
             const response = await authService.login(username, password, rememberMe);
             handleLoginSuccess(response);
         } catch (error) {
+            const errorMapping = {
+                'AUTH_TOO_MANY_ATTEMPTS': 'Bạn đã nhập sai quá 5 lần. Vui lòng thử lại sau 3 phút.',
+                'AUTH_REQUIRED_FIELDS': 'Email/Tên đăng nhập và mật khẩu là bắt buộc',
+                'AUTH_INVALID_CREDENTIALS': 'Email hoặc mật khẩu không chính xác',
+                'AUTH_ACCOUNT_INACTIVE': 'Tài khoản đã bị khóa hoặc ngừng hoạt động',
+                'AUTH_EMAIL_NOT_VERIFIED': 'Vui lòng xác thực email của bạn trước khi đăng nhập',
+                'AUTH_USER_NOT_FOUND': 'Không tìm thấy thông tin người dùng',
+                'NOT_FOUND_ERROR': 'Tài khoản không tồn tại',
+            };
+
             if (error.data) {
-                // Specific manual login error handling involving status codes
-                const errorMessage = error.data.message || error.data.error;
+                const code = error.data.errorCode;
+                const msg = error.data.message || error.data.error;
+                const errorMessage = errorMapping[code] || errorMapping[msg] || msg;
+
                 switch (error.status) {
                     case 400:
                         setError(errorMessage || 'Thông tin đăng nhập không hợp lệ');
                         break;
                     case 401:
-                        setError('Tên đăng nhập hoặc mật khẩu không đúng');
+                        let finalMsg = errorMessage || 'Tên đăng nhập hoặc mật khẩu không đúng';
+                        if (error.data?.errors?.remainingAttempts !== undefined) {
+                            finalMsg += `. Bạn còn ${error.data.errors.remainingAttempts} lần thử trước khi tài khoản bị khóa 3 phút.`;
+                        }
+                        setError(finalMsg);
                         break;
                     case 403:
-                        setError('Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên.');
+                        setError(errorMessage || 'Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên.');
                         break;
                     case 404:
-                        setError('Tài khoản không tồn tại');
+                        setError(errorMessage || 'Tài khoản không tồn tại');
                         break;
                     default:
                         setError(errorMessage || 'Đăng nhập thất bại. Vui lòng thử lại.');
@@ -147,7 +179,7 @@ const Login = () => {
             {showToast && (
                 <Toast
                     type="success"
-                    message="🎉 Đăng nhập thành công! Chào mừng bạn trở lại."
+                    message="Đăng nhập thành công! Chào mừng bạn trở lại."
                     onClose={() => setShowToast(false)}
                     duration={3000}
                 />

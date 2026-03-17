@@ -24,6 +24,11 @@ const billingService = {
     // Cập nhật trạng thái hóa đơn (COMPLETED, CANCELLED)
     updateInvoiceStatus: (id, statusData) => {
         return api.put(`/api/billing/${id}/status`, statusData);
+    },
+
+    // Kiểm tra trạng thái thanh toán qua QR
+    checkPaymentStatus: (invoiceCode) => {
+        return api.get(`/api/payment/invoices/check-status/${invoiceCode}`);
     }
 };
 

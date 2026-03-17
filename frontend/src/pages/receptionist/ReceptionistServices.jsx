@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { ClipboardList, Search, DollarSign, Clock, Loader2, RefreshCw } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { ClipboardList, Search, DollarSign, Clock, Loader2, RefreshCw, Layers } from 'lucide-react';
 import Card from '../../components/ui/Card';
 import Badge from '../../components/ui/Badge';
 import Toast from '../../components/ui/Toast';
@@ -99,34 +100,23 @@ const ReceptionistServices = () => {
                         <Card key={service._id} className="hover:shadow-lg transition-shadow">
                             <div className="flex justify-between items-start mb-3">
                                 <Badge variant="primary">{service.category || 'Dịch vụ'}</Badge>
-                                <Badge variant={service.status === 'ACTIVE' ? 'success' : 'danger'}>
-                                    {service.status === 'ACTIVE' ? 'Hoạt động' : 'Ngưng'}
+                                <Badge variant={service.status === 'AVAILABLE' ? 'success' : 'danger'}>
+                                    {service.status === 'AVAILABLE' ? 'Hoạt động' : 'Ngưng'}
                                 </Badge>
                             </div>
 
                             <h3 className="text-lg font-bold text-gray-900 mb-2">{service.name}</h3>
                             <p className="text-sm text-gray-600 mb-4 line-clamp-2">{service.description || 'Không có mô tả'}</p>
 
-                            <div className="space-y-2 border-t border-gray-200 pt-4">
-                                <div className="flex justify-between items-center">
-                                    <span className="text-sm text-gray-600 flex items-center">
-                                        <DollarSign size={16} className="mr-1" />
-                                        Giá dịch vụ
-                                    </span>
-                                    <span className="text-lg font-bold text-primary-600">
-                                        {(service.price || 0).toLocaleString('vi-VN')}đ
-                                    </span>
-                                </div>
-                                <div className="flex justify-between items-center">
-                                    <span className="text-sm text-gray-600 flex items-center">
-                                        <Clock size={16} className="mr-1" />
-                                        Thời gian
-                                    </span>
-                                    <span className="text-sm font-medium text-gray-900">
-                                        {service.duration || 30} phút
-                                    </span>
-                                </div>
-                            </div>
+
+
+                            <Link
+                                to={`/receptionist/sub-services/${service._id}`}
+                                className="mt-4 flex items-center justify-center w-full gap-2 px-4 py-2 bg-primary-50 text-primary-600 rounded-lg hover:bg-primary-100 transition-colors font-medium border border-primary-100"
+                            >
+                                <Layers size={16} />
+                                Xem các gói dịch vụ
+                            </Link>
                         </Card>
                     ))
                 ) : (

@@ -37,9 +37,19 @@ const invoiceSchema = new Schema(
                     ref: 'Service',
                     required: true
                 },
+                sub_service_id: {
+                    type: Schema.Types.ObjectId,
+                    ref: 'SubService',
+                    required: false,
+                    default: null
+                },
                 service_name: {
                     type: String,   // lưu lại tên dịch vụ tại thời điểm tạo HĐ
                     required: true  // tránh bị ảnh hưởng nếu service bị đổi tên
+                },
+                sub_service_name: {
+                    type: String,
+                    required: false
                 },
                 unit_price: {
                     type: Number,
@@ -87,6 +97,12 @@ const invoiceSchema = new Schema(
         note: {
             type: String,
             default: ''
+        },
+        payment_method: {
+            type: String,
+            enum: ['CASH', 'TRANSFER'],
+            default: 'CASH',
+            required: true
         }
     },
     { timestamps: true, collection: 'invoices' }

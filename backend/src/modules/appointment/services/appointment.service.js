@@ -11,6 +11,7 @@ const { model: ServiceModel } = require("../../service/index")
 
 const bcrypt = require('bcrypt');
 const emailService = require("../../../common/service/email.service");
+const notificationService = require("../../notification/service/notification.service");
 
 /*
     get list appointment with pagination and filter
@@ -848,6 +849,35 @@ const createService = async (dataCreate, account_id) => {
                 newAppointment.appointment_time
             ).catch(err => logger.error("Lỗi gửi email đặt lịch:", { message: err.message }));
         }
+
+        // --- 6. GỬI THÔNG BÁO NỘI BỘ (In-app Notification) ---
+        const formattedDate = new Date(newAppointment.appointment_date).toLocaleDateString('vi-VN');
+        const appointmentTime = newAppointment.appointment_time;
+        const patientName = newAppointment.full_name;
+
+        // Gửi cho Lễ tân và Admin
+        notificationService.sendToRole(['receptionist', 'admin'], {
+            type: 'NEW_APPOINTMENT',
+            title: 'Lịch hẹn mới',
+            message: `Lịch hẹn mới: ${patientName} vào lúc ${appointmentTime} ngày ${formattedDate}`,
+            action_url: `/receptionist/appointments?id=${newAppointment._id}`,
+            metadata: {
+                entity_id: newAppointment._id,
+                entity_type: 'APPOINTMENT'
+            }
+        }).catch(err => logger.error("Lỗi gửi thông báo cho nhân viên:", err.message));
+
+        // Gửi cho Bệnh nhân
+        notificationService.sendToUser(account_id, {
+            type: 'NEW_APPOINTMENT',
+            title: 'Đặt lịch thành công',
+            message: `Đặt lịch thành công! Lịch hẹn của bạn vào lúc ${appointmentTime} ngày ${formattedDate} đã được ghi nhận.`,
+            action_url: `/patient/appointments`,
+            metadata: {
+                entity_id: newAppointment._id,
+                entity_type: 'APPOINTMENT'
+            }
+        }).catch(err => logger.error("Lỗi gửi thông báo cho bệnh nhân:", err.message));
         return newAppointment;
     } catch (error) {
         logger.error("Error at create new appointment.", {

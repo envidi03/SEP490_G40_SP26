@@ -144,10 +144,15 @@ app.use((err, req, res, next) => {
 
     const statusCode = err.statusCode || 500;
     const message = err.message || 'Internal Server Error';
+    const errorCode = err.errorCode || 'INTERNAL_SERVER_ERROR';
+
+    logger.debug('Sending error response:', { statusCode, errorCode, message, errors: err.errors });
 
     res.status(statusCode).json({
         status: 'error',
+        errorCode: errorCode,
         message: message,
+        errors: err.errors || null,
         ...(process.env.NODE_ENV !== 'production' && { stack: err.stack })
     });
 });

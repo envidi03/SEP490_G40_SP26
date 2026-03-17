@@ -36,7 +36,7 @@ const initSocket = (httpServer, corsOptions) => {
 
     // ── Xử lý kết nối ──
     io.on('connection', (socket) => {
-        const userId = socket.user?.id || socket.user?._id;
+        const userId = socket.user?.account_id || socket.user?.id || socket.user?._id;
         const role   = socket.user?.role;
 
         console.log(`🔌 [Socket] User connected: ${userId} (role: ${role}) - socketId: ${socket.id}`);

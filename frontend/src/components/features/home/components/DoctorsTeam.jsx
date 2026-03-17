@@ -105,12 +105,14 @@ const DoctorsTeam = () => {
                         <SwiperSlide key={doctor._id || Math.random()}>
                             <div className="bg-white rounded-2xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 group h-full">
                                 <div className="flex flex-col sm:flex-row h-full">
-                                    <div className="relative w-full sm:w-48 h-64 sm:h-auto overflow-hidden bg-gradient-to-br from-blue-50 to-purple-50 flex-shrink-0 flex items-end justify-center">
+                                    <div className="relative w-full sm:w-48 h-64 sm:h-auto overflow-hidden bg-gray-100 flex-shrink-0">
                                         <img
                                             src={doctor.profile?.avatar_url || 'https://cdn.iconscout.com/icon/free/png-256/free-avatar-370-456322.png'}
                                             alt={doctor.profile?.full_name || 'Bác sĩ'}
-                                            className="w-[90%] h-auto object-cover object-bottom group-hover:scale-105 transition-transform duration-300"
-                                            onError={(e) => { e.target.src = 'https://cdn.iconscout.com/icon/free/png-256/free-avatar-370-456322.png'; }}
+                                            className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-300"
+                                            onError={(e) => {
+                                                e.target.src = 'https://cdn.iconscout.com/icon/free/png-256/free-avatar-370-456322.png';
+                                            }}
                                         />
                                     </div>
 

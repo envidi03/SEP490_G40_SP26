@@ -232,7 +232,7 @@ const ServiceDetail = () => {
 
                             <Link
                                 to="/book-appointment"
-                                state={{ 
+                                state={{
                                     service: type === 'package' ? service.parent_id : service,
                                     subService: type === 'package' ? service : null
                                 }}

@@ -5,6 +5,7 @@ import Badge from '../../components/ui/Badge';
 import Toast from '../../components/ui/Toast';
 import InvoiceDetailModal from './components/modals/InvoiceDetailModal';
 import CreateInvoiceModal from './components/modals/CreateInvoiceModal';
+import PaymentModal from './components/modals/PaymentModal';
 import billingService from '../../services/billingService';
 
 const ReceptionistInvoices = () => {
@@ -21,6 +22,7 @@ const ReceptionistInvoices = () => {
     const [selectedInvoice, setSelectedInvoice] = useState(null);
     const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
     const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
 
     const fetchData = async () => {
@@ -62,6 +64,14 @@ const ReceptionistInvoices = () => {
     }, [searchInput]);
 
     useEffect(() => {
+        // Safe cleanup for selectedInvoice
+        if (!isDetailModalOpen && !isPaymentModalOpen && !isCreateModalOpen) {
+            const timer = setTimeout(() => setSelectedInvoice(null), 300);
+            return () => clearTimeout(timer);
+        }
+    }, [isDetailModalOpen, isPaymentModalOpen, isCreateModalOpen]);
+
+    useEffect(() => {
         fetchData();
     }, [appliedSearch, filterStatus]);
 
@@ -78,9 +88,23 @@ const ReceptionistInvoices = () => {
     };
 
     const handlePayment = async (invoice) => {
+        if (invoice.payment_method === 'TRANSFER') {
+            setSelectedInvoice(invoice);
+            setIsPaymentModalOpen(true);
+            return;
+        }
+
+        // CASH flow (keep existing simple update or add more confirmation)
         try {
-            await billingService.updateInvoiceStatus(invoice._id, { status: 'COMPLETED', note: 'Thanh toán tiền mặt/chuyển khoản' });
-            setToast({ show: true, message: `Thanh toán thành công cho hóa đơn ${invoice.invoice_code || (invoice._id && invoice._id.substring(invoice._id.length - 6).toUpperCase()) || invoice.code}`, type: 'success' });
+            await billingService.updateInvoiceStatus(invoice._id || invoice.id, { 
+                status: 'COMPLETED', 
+                note: 'Thanh toán tiền mặt' 
+            });
+            setToast({ 
+                show: true, 
+                message: `Thanh toán thành công cho hóa đơn ${invoice.invoice_code || (invoice._id && invoice._id.substring(invoice._id.length - 6).toUpperCase()) || invoice.code}`, 
+                type: 'success' 
+            });
             fetchData();
             setIsDetailModalOpen(false);
         } catch (error) {
@@ -273,7 +297,11 @@ const ReceptionistInvoices = () => {
                                                     onClick={() => handlePayment(invoice)}
                                                     className="px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 transition-colors flex items-center gap-1.5 shadow-sm"
                                                 >
-                                                    <CreditCard size={16} /> Thu tiền
+                                                    {invoice.payment_method === 'TRANSFER' ? (
+                                                        <><CreditCard size={16} /> Quét mã QR</>
+                                                    ) : (
+                                                        <><DollarSign size={16} /> Thu tiền</>
+                                                    )}
                                                 </button>
                                             )}
                                         </td>
@@ -295,10 +323,7 @@ const ReceptionistInvoices = () => {
             <InvoiceDetailModal
                 invoice={selectedInvoice}
                 isOpen={isDetailModalOpen}
-                onClose={() => {
-                    setIsDetailModalOpen(false);
-                    setTimeout(() => setSelectedInvoice(null), 300);
-                }}
+                onClose={() => setIsDetailModalOpen(false)}
                 onPaymentClick={handlePayment}
             />
 
@@ -306,8 +331,24 @@ const ReceptionistInvoices = () => {
             <CreateInvoiceModal
                 isOpen={isCreateModalOpen}
                 onClose={() => setIsCreateModalOpen(false)}
-                onSuccess={() => {
+                onSuccess={(newInvoice) => {
                     setToast({ show: true, message: 'Tạo hóa đơn thành công!', type: 'success' });
+                    fetchData();
+                    // Nếu phương thức là Chuyển khoản, tự động mở modal QR
+                    if (newInvoice?.payment_method === 'TRANSFER') {
+                        setSelectedInvoice(newInvoice);
+                        setIsPaymentModalOpen(true);
+                    }
+                }}
+            />
+
+            {/* Modal Thanh toán QR */}
+            <PaymentModal
+                isOpen={isPaymentModalOpen}
+                invoice={selectedInvoice}
+                onClose={() => setIsPaymentModalOpen(false)}
+                onSuccess={() => {
+                    setToast({ show: true, message: 'Thanh toán qua QR đã được xác nhận!', type: 'success' });
                     fetchData();
                 }}
             />

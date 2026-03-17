@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Plus, Trash2, Search, FileText, User, Calendar, CreditCard, Loader2 } from 'lucide-react';
+import { X, Plus, Trash2, Search, FileText, User, Calendar, CreditCard, Loader2, DollarSign } from 'lucide-react';
 import billingService from '../../../../services/billingService';
 import serviceService from '../../../../services/serviceService';
 // Assuming appointmentService is used to fetch patients/appointments
@@ -14,14 +14,16 @@ const CreateInvoiceModal = ({ isOpen, onClose, onSuccess, initialPatient }) => {
     const [services, setServices] = useState([]);
     const [appointments, setAppointments] = useState([]); // Used to link to patient/appointment
     const [filteredAppointments, setFilteredAppointments] = useState([]);
+    const [subServices, setSubServices] = useState({}); // { service_id: [subServices] }
 
     // Form state
     const [searchApt, setSearchApt] = useState('');
     const [selectedApt, setSelectedApt] = useState(null);
     const [items, setItems] = useState([
-        { service_id: '', quantity: 1, price: 0 }
+        { service_id: '', sub_service_id: '', quantity: 1, price: 0 }
     ]);
     const [note, setNote] = useState('');
+    const [paymentMethod, setPaymentMethod] = useState('CASH');
 
     useEffect(() => {
         if (isOpen) {
@@ -38,11 +40,35 @@ const CreateInvoiceModal = ({ isOpen, onClose, onSuccess, initialPatient }) => {
                 setSelectedApt(null);
                 setSearchApt('');
             }
-            setItems([{ service_id: '', quantity: 1, price: 0 }]);
+            setItems([{ service_id: '', sub_service_id: '', quantity: 1, price: 0 }]);
             setNote('');
+            setPaymentMethod('CASH');
             setError(null);
         }
     }, [isOpen, initialPatient]);
+
+    useEffect(() => {
+        // Auto-populate services from appointment when selected
+        if (selectedApt && selectedApt.book_service && selectedApt.book_service.length > 0) {
+            const autoItems = selectedApt.book_service.map(srv => ({
+                service_id: srv.service_id?._id || srv.service_id,
+                sub_service_id: srv.sub_service_id?._id || srv.sub_service_id || '',
+                quantity: srv.quantity || 1,
+                price: srv.unit_price || 0
+            }));
+            setItems(autoItems);
+
+            // Fetch subservices for all auto-populated services
+            autoItems.forEach(item => {
+                if (item.service_id && !subServices[item.service_id]) {
+                    fetchSubServices(item.service_id);
+                }
+            });
+        } else if (!selectedApt && !initialPatient) {
+            // Reset to default empty item only if we are clearing selection
+            setItems([{ service_id: '', sub_service_id: '', quantity: 1, price: 0 }]);
+        }
+    }, [selectedApt, initialPatient]);
 
     useEffect(() => {
         // Filter appointments based on search
@@ -81,8 +107,21 @@ const CreateInvoiceModal = ({ isOpen, onClose, onSuccess, initialPatient }) => {
         }
     };
 
+    const fetchSubServices = async (serviceId) => {
+        try {
+            const response = await serviceService.getSubServicesByParent(serviceId);
+            const data = response?.data?.data || response?.data || [];
+            setSubServices(prev => ({
+                ...prev,
+                [serviceId]: data
+            }));
+        } catch (error) {
+            console.error('Error fetching sub services:', error);
+        }
+    };
+
     const handleAddItem = () => {
-        setItems([...items, { service_id: '', quantity: 1, price: 0 }]);
+        setItems([...items, { service_id: '', sub_service_id: '', quantity: 1, price: 0 }]);
     };
 
     const handleRemoveItem = (index) => {
@@ -98,10 +137,28 @@ const CreateInvoiceModal = ({ isOpen, onClose, onSuccess, initialPatient }) => {
         // Auto-update price when service changes
         if (field === 'service_id') {
             const selectedService = services.find(s => s._id === value);
+            newItems[index].sub_service_id = ''; // reset sub-service
             if (selectedService) {
                 newItems[index].price = selectedService.price || 0;
+                // Fetch sub-services for this service if not already fetched
+                if (!subServices[value]) {
+                    fetchSubServices(value);
+                }
             } else {
                 newItems[index].price = 0;
+            }
+        }
+
+        if (field === 'sub_service_id') {
+            const serviceSubs = subServices[newItems[index].service_id] || [];
+            const selectedSub = serviceSubs.find(s => s._id === value);
+            if (selectedSub) {
+                // Use min_price as the base price for sub-service
+                newItems[index].price = selectedSub.min_price || 0;
+            } else {
+                // Revert to main service price
+                const mainSrv = services.find(s => s._id === newItems[index].service_id);
+                newItems[index].price = mainSrv?.price || 0;
             }
         }
 
@@ -133,9 +190,12 @@ const CreateInvoiceModal = ({ isOpen, onClose, onSuccess, initialPatient }) => {
             appointment_id: selectedApt._id,
             items: validItems.map(item => ({
                 service_id: item.service_id,
-                quantity: parseInt(item.quantity)
+                sub_service_id: item.sub_service_id || null,
+                quantity: parseInt(item.quantity),
+                price: item.price
             })),
-            note: note
+            note: note,
+            payment_method: paymentMethod
         };
 
         // Fallback: if appointment didn't have patient_id populated, but we still need it.
@@ -143,9 +203,10 @@ const CreateInvoiceModal = ({ isOpen, onClose, onSuccess, initialPatient }) => {
 
         setSubmitting(true);
         try {
-            await billingService.createInvoice(payload);
+            const response = await billingService.createInvoice(payload);
+            const newInvoice = response?.data?.data || response?.data;
             setSubmitting(false);
-            if (onSuccess) onSuccess();
+            if (onSuccess) onSuccess(newInvoice);
             onClose();
         } catch (err) {
             console.error('Error creating invoice:', err);
@@ -158,7 +219,7 @@ const CreateInvoiceModal = ({ isOpen, onClose, onSuccess, initialPatient }) => {
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={!submitting ? onClose : undefined}></div>
+            <div className="absolute inset-0 bg-white/40 backdrop-blur-sm" onClick={!submitting ? onClose : undefined}></div>
             <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-3xl max-h-[95vh] overflow-hidden flex flex-col">
                 {/* Header */}
                 <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
@@ -275,7 +336,7 @@ const CreateInvoiceModal = ({ isOpen, onClose, onSuccess, initialPatient }) => {
                                 <div className="space-y-3">
                                     {items.map((item, index) => (
                                         <div key={index} className="flex gap-3 items-start">
-                                            <div className="flex-1">
+                                            <div className="flex-[2] space-y-2">
                                                 <select
                                                     value={item.service_id}
                                                     onChange={(e) => handleItemChange(index, 'service_id', e.target.value)}
@@ -285,24 +346,28 @@ const CreateInvoiceModal = ({ isOpen, onClose, onSuccess, initialPatient }) => {
                                                     <option value="">-- Chọn dịch vụ --</option>
                                                     {services.map(srv => (
                                                         <option key={srv._id} value={srv._id}>
-                                                            {srv.name || srv.service_name} - {srv.price?.toLocaleString('vi-VN')}đ
+                                                            {srv.name || srv.service_name}
                                                         </option>
                                                     ))}
                                                 </select>
+
+                                                {(subServices[item.service_id] && subServices[item.service_id].length > 0) && (
+                                                    <select
+                                                        value={item.sub_service_id}
+                                                        onChange={(e) => handleItemChange(index, 'sub_service_id', e.target.value)}
+                                                        className="w-full px-3 py-1.5 border border-primary-100 bg-primary-50/30 rounded-lg focus:ring-2 focus:ring-primary-400 outline-none text-[13px] italic"
+                                                    >
+                                                        <option value="">-- Chọn gói / Loại --</option>
+                                                        {subServices[item.service_id].map(sub => (
+                                                            <option key={sub._id} value={sub._id}>
+                                                                {sub.sub_service_name} ({sub.min_price?.toLocaleString('vi-VN')}đ)
+                                                            </option>
+                                                        ))}
+                                                    </select>
+                                                )}
                                             </div>
-                                            <div className="w-24">
-                                                <input
-                                                    type="number"
-                                                    min="1"
-                                                    value={item.quantity}
-                                                    onChange={(e) => handleItemChange(index, 'quantity', e.target.value)}
-                                                    required
-                                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none text-sm text-center"
-                                                    placeholder="SL"
-                                                />
-                                            </div>
-                                            <div className="w-32 py-2 text-right font-medium text-gray-900 text-sm flex-shrink-0">
-                                                {(item.price * item.quantity).toLocaleString('vi-VN')}đ
+                                            <div className="w-36 py-2 text-right font-bold text-gray-900 text-lg flex-shrink-0">
+                                                {item.price.toLocaleString('vi-VN')}đ
                                             </div>
                                             <button
                                                 type="button"
@@ -310,7 +375,7 @@ const CreateInvoiceModal = ({ isOpen, onClose, onSuccess, initialPatient }) => {
                                                 disabled={items.length === 1}
                                                 className={`p-2 rounded-lg transition-colors mt-0.5 ${items.length === 1 ? 'text-gray-300' : 'text-red-500 hover:bg-red-50'}`}
                                             >
-                                                <Trash2 size={18} />
+                                                <Trash2 size={20} />
                                             </button>
                                         </div>
                                     ))}
@@ -335,6 +400,43 @@ const CreateInvoiceModal = ({ isOpen, onClose, onSuccess, initialPatient }) => {
                                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none text-sm"
                                     placeholder="Ví dụ: Bệnh nhân thanh toán trước, cần VAT..."
                                 />
+                            </div>
+
+                            {/* Payment Method Selection */}
+                            <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
+                                <label className="block text-sm font-bold text-gray-900 mb-3">
+                                    Phương thức thanh toán <span className="text-red-500">*</span>
+                                </label>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <label className={`flex items-center gap-3 p-3 rounded-xl border-2 transition-all cursor-pointer ${paymentMethod === 'CASH' ? 'bg-primary-50 border-primary-500 shadow-sm' : 'bg-white border-gray-200 hover:border-gray-300'}`}>
+                                        <input
+                                            type="radio"
+                                            name="paymentMethod"
+                                            value="CASH"
+                                            checked={paymentMethod === 'CASH'}
+                                            onChange={(e) => setPaymentMethod(e.target.value)}
+                                            className="w-4 h-4 text-primary-600 focus:ring-primary-500"
+                                        />
+                                        <div className="flex items-center gap-2">
+                                            <DollarSign size={20} className={paymentMethod === 'CASH' ? 'text-primary-600' : 'text-gray-400'} />
+                                            <span className={`font-medium ${paymentMethod === 'CASH' ? 'text-primary-900' : 'text-gray-700'}`}>Tiền mặt</span>
+                                        </div>
+                                    </label>
+                                    <label className={`flex items-center gap-3 p-3 rounded-xl border-2 transition-all cursor-pointer ${paymentMethod === 'TRANSFER' ? 'bg-primary-50 border-primary-500 shadow-sm' : 'bg-white border-gray-200 hover:border-gray-300'}`}>
+                                        <input
+                                            type="radio"
+                                            name="paymentMethod"
+                                            value="TRANSFER"
+                                            checked={paymentMethod === 'TRANSFER'}
+                                            onChange={(e) => setPaymentMethod(e.target.value)}
+                                            className="w-4 h-4 text-primary-600 focus:ring-primary-500"
+                                        />
+                                        <div className="flex items-center gap-2">
+                                            <CreditCard size={20} className={paymentMethod === 'TRANSFER' ? 'text-primary-600' : 'text-gray-400'} />
+                                            <span className={`font-medium ${paymentMethod === 'TRANSFER' ? 'text-primary-900' : 'text-gray-700'}`}>Chuyển khoản (QR)</span>
+                                        </div>
+                                    </label>
+                                </div>
                             </div>
                         </form>
                     )}

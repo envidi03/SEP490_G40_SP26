@@ -1,4 +1,4 @@
-import { X, Printer, Download, CreditCard, Clock, CheckCircle } from 'lucide-react';
+import { X, Printer, Download, CreditCard, Clock, CheckCircle, DollarSign } from 'lucide-react';
 import Badge from '../../../../components/ui/Badge';
 import { formatDate } from '../../../../utils/dateUtils';
 
@@ -156,8 +156,11 @@ const InvoiceDetailModal = ({ invoice, isOpen, onClose, onPaymentClick }) => {
                                 }}
                                 className="px-6 py-2 bg-primary-600 text-white font-medium rounded-xl hover:bg-primary-700 flex items-center gap-2 transition-colors shadow-sm"
                             >
-                                <CreditCard size={18} />
-                                Thu tiền ngay
+                                {invoice.payment_method === 'TRANSFER' ? (
+                                    <><CreditCard size={18} /> Xem mã QR</>
+                                ) : (
+                                    <><DollarSign size={18} /> Thu tiền ngay</>
+                                )}
                             </button>
                         )}
                     </div>

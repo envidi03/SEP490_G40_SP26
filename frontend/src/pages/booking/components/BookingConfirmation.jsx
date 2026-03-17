@@ -52,12 +52,6 @@ const BookingConfirmation = ({ bookingData, onViewAppointments, onBookAnother })
                         <div className="font-medium text-gray-900">{bookingData.reason}</div>
                     </div>
 
-                    <div className="pt-3 border-t border-green-200">
-                        <div className="text-sm text-gray-600">Trạng thái</div>
-                        <div className="inline-block mt-1 px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full text-sm font-medium">
-                            Chờ xác nhận
-                        </div>
-                    </div>
                 </div>
             </div>
 

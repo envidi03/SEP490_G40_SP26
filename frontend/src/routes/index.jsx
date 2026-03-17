@@ -52,6 +52,10 @@ const AppRoutes = () => {
           <Route key={`profile-${index}`} path={route.path} element={route.element} />
         ))}
 
+        {sharedRoutes.notificationRoutes && sharedRoutes.notificationRoutes.map((route, index) => (
+          <Route key={`notification-${index}`} path={route.path} element={route.element} />
+        ))}
+
         {/* Common Routes - Patients */}
         {sharedRoutes.patientRoutes && sharedRoutes.patientRoutes.map((route, index) => (
           <Route key={`patient-${index}`} path={route.path} element={route.element} />

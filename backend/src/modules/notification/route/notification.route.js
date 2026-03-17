@@ -12,6 +12,7 @@ const {
     markAsSeenController,
     getUnreadCountController,
     deleteAllReadController,
+    toggleReadStatusController,
     deleteNotificationController
 } = require('../controller/notification.controller');
 const { authenticate } = require('../../../common/middlewares/auth.middleware');
@@ -463,5 +464,7 @@ router.delete('/read-all', deleteAllReadController);
  *         $ref: '#/components/schemas/Error'
  */
 router.delete('/:id', deleteNotificationController);
+
+router.put('/:id/toggle-read', toggleReadStatusController);
 
 module.exports = router;

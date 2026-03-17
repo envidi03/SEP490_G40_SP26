@@ -5,12 +5,20 @@ const Pagination = require('../../../common/responses/Pagination');
 const { cleanObjectData } = require('../../../common/utils/cleanObjectData');
 
 const clinicService = require('../services/clinic.service');
+const { uploadToCloudinary } = require('../../../utils/cloudinaryHelper');
 
 const updateClinic = async (req, res) => {
     try {
         logger.info('Attempting to update clinic');
         const clinicId = req.params.clinicId;
-        const updateData = req.body;
+        const updateData = { ...req.body };
+
+        // Handle logo upload if file is present
+        if (req.file) {
+            logger.info('Logo file detected, uploading to Cloudinary');
+            const logoUrl = await uploadToCloudinary(req.file, 'clinics/logos');
+            updateData.logo = logoUrl;
+        }
 
         // Sửa: Dùng Template Literals để nối chuỗi ID và dữ liệu đã clean
         logger.debug(`Clinic ID: ${clinicId}`);
@@ -73,4 +81,15 @@ const getAllClinics = async (req, res) => {
     }
 };
 
-module.exports = { updateClinic, getInforClinics, getAllClinics };
+const getPublicClinics = async (req, res) => {
+    try {
+        logger.info('Fetching public clinics data');
+        const clinics = await clinicService.getAllClinics();
+        return new successRes.GetListSuccess(clinics, 'Public clinics data retrieved successfully').send(res);
+    } catch (error) {
+        logger.error(`Error getting public clinics: ${error.message}`);
+        throw new errorRes.InternalServerError('An error occurred while fetching public clinic data');
+    }
+};
+
+module.exports = { updateClinic, getInforClinics, getAllClinics, getPublicClinics };

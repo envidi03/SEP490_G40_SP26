@@ -186,6 +186,9 @@ const clinicController = require('../controllers/clinic.controller');
  *               statusCode: 500
  *               message: Internal server error
  */
-router.patch('/:clinicId', auth.authenticate, auth.authorize("ADMIN_CLINIC"), clinicController.updateClinic);
+const multer = require('multer');
+const upload = multer({ storage: multer.memoryStorage() });
+
+router.patch('/:clinicId', auth.authenticate, auth.authorize("ADMIN_CLINIC"), upload.single('logo'), clinicController.updateClinic);
 
 module.exports = router;

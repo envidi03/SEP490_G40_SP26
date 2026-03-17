@@ -271,13 +271,6 @@ const ReceptionistPatients = () => {
                                             <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                                 <div className="flex justify-end gap-2">
                                                     <button
-                                                        onClick={() => handleCheckIn(patient)}
-                                                        className="text-orange-600 hover:text-orange-900 p-2 hover:bg-orange-50 rounded transition-colors"
-                                                        title="Check in (Xác nhận đến)"
-                                                    >
-                                                        <CheckCircle size={18} />
-                                                    </button>
-                                                    <button
                                                         onClick={() => handleIssueInvoice(patient)}
                                                         className="text-blue-600 hover:text-blue-900 p-2 hover:bg-blue-50 rounded transition-colors"
                                                         title="Xuất hóa đơn"
