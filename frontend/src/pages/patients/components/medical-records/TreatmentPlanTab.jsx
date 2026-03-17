@@ -3,7 +3,7 @@ import { Calendar, DollarSign, Eye, ListChecks } from 'lucide-react';
 import { getStatusBadge, formatCurrency } from './statusHelpers';
 
 const TreatmentPlanTab = ({ treatments, onViewDetail }) => {
-    const plans = (treatments || []).filter(t => t.phase === 'PLAN' || t.status === 'PLANNED');
+    const plans = (treatments || []).filter(t => t.phase === 'PLAN');
 
     if (plans.length === 0) {
         return (

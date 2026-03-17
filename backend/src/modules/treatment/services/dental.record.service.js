@@ -664,7 +664,7 @@ const createTreatmentPlanService = async (data, accountDoctorId) => {
         patient_id: dentalRecordData.patient_id,
         doctor_id: dentalRecordData.created_by,
         phase: 'PLAN',
-        tooth_position: phase.name, // Using tooth_position or note to store phase name since Schema has tooth_position, result, note
+        tooth_position: phase.tooth_position || phase.name,
         note: phase.name,
         planned_date: phase.startDate || null,
         end_date: phase.endDate || null,
@@ -724,6 +724,7 @@ const updateTreatmentPlanService = async (id, data) => {
           patient_id: existingRecord.patient_id,
           doctor_id: existingRecord.created_by,
           phase: 'PLAN',
+          tooth_position: phase.tooth_position || phase.name || 'Toàn hàm',
           note: phase.name,
           planned_date: phase.startDate || null,
           end_date: phase.endDate || null,
