@@ -25,6 +25,7 @@ const DentalRecordDetail = () => {
             try {
                 const res = await getDentalRecordById(id);
                 setRecord(res.data);
+                console.log(res.data);
             } catch (err) {
                 console.error('Error fetching dental record:', err);
                 setError(err.response?.data?.message || 'Không thể tải hồ sơ. Vui lòng thử lại.');

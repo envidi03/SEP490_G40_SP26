@@ -246,7 +246,13 @@ const getByIdService = async (id, treatmentStatus) => {
     // 1. Get Dental Record
     const dentalRecord = await Model.DentalRecord.findById(id)
       .populate("patient_id")
-      .populate("created_by")
+      .populate({
+        path: "created_by",
+        populate: {
+          path: "profile_id",
+          select: "full_name",
+        },
+      })
       .lean();
 
     if (!dentalRecord) {
