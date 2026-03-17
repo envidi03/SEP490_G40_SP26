@@ -1166,8 +1166,25 @@ const findById = async (id) => {
         });
         return null;
     }
-
 }
+
+const findByTreatmentId = async (treatmentId) => {
+    try {
+        logger.debug("Finding appointment by id", {
+            context: "AppointmentService.findById",
+            treatmentId: treatmentId,
+        });
+        if (!treatmentId) return null;
+        return await AppointmentModel.findOne({treatmentId: treatmentId}).lean();
+    } catch (error) {
+        logger.error("Error get appointment by id", {
+            context: "AppointmentService.findById",
+            error: error
+        });
+        return null;
+    }
+}
+
 module.exports = {
     getListService,
     getByIdService,
@@ -1178,5 +1195,6 @@ module.exports = {
     staffCreateService,
     checkinService,
     findById,
+    findByTreatmentId,
     getListOfPatientServiceWithDate
 };

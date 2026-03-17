@@ -3,7 +3,7 @@ const errorRes = require("../../../common/errors");
 const mongoose = require("mongoose");
 
 const model = require("../models/index.model");
-const {} = require("./../../appointment/index");
+const {service: AppointmentService} = require("./../../appointment/index");
 
 /**
  * get treatment by id populate medicine_usage.medicine_id
@@ -156,7 +156,15 @@ const updateStatusOnly = async (id, status) => {
         }
 
         if (status === "DONE") {
-
+            const appoint = await AppointmentService.findByTreatmentId(treatment._id);
+            if (!appoint) {
+                logger.warn("Appointment not found by treatment", {
+                    context: "TreatmentService.updateStatusOnly",
+                    treatment: treatment
+                });
+                throw new errorRes.NotFoundError("Không tìm thấy lịch khám để cập nhật.")
+            }
+            await AppointmentService.updateStatusOnly(appoint._id, "COMPLETED");
         }
 
         const newData = await model.Treatment.findByIdAndUpdate(
