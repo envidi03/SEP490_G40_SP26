@@ -16,7 +16,7 @@ const { findStaffByAccountId } = require("../../auth/service/account.service");
     get list appointment of patient with pagination and filter
     (
         search: search by full_name, phone, email;
-        filter: filter by status;
+        status: filter by status;
         sort: sort by appointment_date;
         page
         limit
@@ -33,6 +33,64 @@ const getListController = async (req, res) => {
     });
 
     const { data, pagination } = await ServiceProcess.getListService(queryParams);
+
+    const paginationData = new Pagination({
+      page: pagination.page,
+      size: pagination.size,
+      totalItems: pagination.totalItems,
+    });
+
+    return new successRes.GetListSuccess(
+      data,
+      paginationData,
+      "Appointment retrieved successfully",
+    ).send(res);
+  } catch (error) {
+    logger.error("Error get Appointment", {
+      context: "AppointmentController.getListController",
+      message: error.message,
+      stack: error.stack,
+    });
+    throw error;
+  }
+};
+
+/*
+    get list appointment of patient with pagination and filter
+    (
+        search: search by full_name, phone, email;
+        status: filter by status;
+        sort: sort by appointment_date;
+        filter_date: get all appointment greater than by date if null then greater than now
+        page
+        limit
+    )
+    only get appointment with account_id
+*/
+const getListOfPatientControllerWithDate = async (req, res) => {
+  try {
+    const queryParams = req.query;
+    const { account_id } = req.user;
+    if (!account_id) {
+      logger.warn("Missing account_id in token", {
+        context: "AppointmentController.getListOfPatientController",
+        account_id: account_id,
+      });
+      throw new errorRes.UnauthorizedError(
+        "Invalid token: account_id is missing",
+      );
+    }
+
+    logger.debug("Get list appointment of patient request received", {
+      context: "AppointmentController.getListOfPatientController",
+      query: queryParams,
+      account_id: account_id,
+    });
+
+    const { data, pagination } = await ServiceProcess.getListOfPatientServiceWithDate(
+      queryParams,
+      account_id,
+    );
 
     const paginationData = new Pagination({
       page: pagination.page,
@@ -111,6 +169,8 @@ const getListOfPatientController = async (req, res) => {
     throw error;
   }
 };
+
+
 
 /**
  * get list appointment of doctor with pagination and filter
@@ -488,5 +548,6 @@ module.exports = {
   updateStatusController,
   checkinController,
   staffCreateController,
+  getListOfPatientControllerWithDate,
   getListOfDoctorController
 };

@@ -16,7 +16,7 @@ const emailService = require("../../../common/service/email.service");
     get list appointment with pagination and filter
     (
         search: search by full_name, phone, email;
-        filter: filter by status;
+        status: filter by status;
         sort: sort by appointment_date;
         page
         limit
@@ -245,7 +245,7 @@ const getListService = async (query, doctor_id) => {
     get list appointment of patient with pagination and filter
     (
         search: search by full_name, phone, email;
-        filter: filter by status;
+        status: filter by status;
         sort: sort by appointment_date;
         page
         limit
@@ -539,6 +539,244 @@ const getByIdService = async (id) => {
             `An error occurred while fetching appointment by id: ${error.message}`
         );
     }
+};
+
+/*
+    get list appointment of patient with pagination and filter
+    (
+        search: search by full_name, phone, email;
+        status: filter by status;
+        sort: sort by appointment_date;
+        filter_date: get all appointment greater than by date if null then greater than now
+        page
+        limit
+    )
+    only get appointment with account_id
+*/
+const getListOfPatientServiceWithDate = async (query, account_id) => {
+  try {
+    logger.debug("Fetching list of patient appointments with query", {
+      context: "AppointmentService.getListOfPatientService",
+      query: query,
+      account_id: account_id,
+    });
+
+    // 1. Lấy và chuẩn hóa các tham số từ query
+    const search = query.search?.trim();
+    const statusFilter = query.status ? query.status.toUpperCase() : null;
+    const sortOrder = query.sort === "desc" ? -1 : 1;
+
+    // SỬA: Thêm cơ số 10 vào parseInt để đảm bảo an toàn
+    const page = Math.max(1, parseInt(query.page || 1, 10));
+    const limit = Math.max(1, parseInt(query.limit || 5, 10));
+    const skip = (page - 1) * limit;
+
+    // 2. Tìm Hồ sơ Bệnh nhân (Patient) dựa vào account_id
+    const patient = await PatientModel.findOne({ account_id: account_id }).lean();
+
+    if (!patient) {
+      logger.warn("Patient profile not found for this account", {
+        context: "AppointmentService.getListOfPatientService",
+        account_id: account_id,
+      });
+      return {
+        data: [],
+        pagination: { page, size: limit, totalItems: 0 },
+      };
+    }
+
+    // 3. Xây dựng điều kiện lọc (Match)
+    const matchCondition = {
+      patient_id: patient._id,
+    };
+
+    // Lọc theo trạng thái
+    if (statusFilter) {
+      matchCondition.status = statusFilter;
+    }
+
+    // SỬA & BỔ SUNG: Logic cho filter_date (Lớn hơn ngày truyền vào hoặc lớn hơn hiện tại)
+    let dateToFilter = new Date(); // Mặc định là 'now'
+    if (query.filter_date) {
+      dateToFilter = new Date(query.filter_date);
+    }
+    // Giả sử trường lưu thời gian hẹn trong DB của bạn là appointment_date
+    matchCondition.appointment_date = { $gt: dateToFilter };
+
+    // Tìm kiếm (Search) theo tên, số điện thoại, email
+    if (search) {
+      // Escape các ký tự đặc biệt trong regex để tránh lỗi (Optional nhưng khuyên dùng)
+      const safeSearch = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const regexSearch = { $regex: safeSearch, $options: "i" };
+      matchCondition.$or = [
+        { full_name: regexSearch },
+        { phone: regexSearch },
+        { email: regexSearch },
+      ];
+    }
+
+    // 4. Xây dựng Aggregation Pipeline
+    const aggregatePipeline = [
+      { $match: matchCondition },
+
+      // SỬA: Sắp xếp theo appointment_date theo như comment yêu cầu
+      { $sort: { appointment_date: sortOrder } },
+
+      // Phân trang và Lookup
+      {
+        $facet: {
+          data: [
+            { $skip: skip },
+            { $limit: limit },
+
+            // Lookup thông tin bác sĩ
+            {
+              $lookup: {
+                from: "staffs",
+                localField: "doctor_id",
+                foreignField: "_id",
+                as: "doctor_info",
+              },
+            },
+            {
+              $addFields: {
+                doctor_info: { $arrayElemAt: ["$doctor_info", 0] },
+              },
+            },
+
+            // Lookup Profile của bác sĩ
+            {
+              $lookup: {
+                from: "profiles",
+                localField: "doctor_info.profile_id",
+                foreignField: "_id",
+                as: "doctor_profile",
+              },
+            },
+            {
+              $addFields: {
+                "doctor_info.profile_id": {
+                  $arrayElemAt: ["$doctor_profile", 0],
+                },
+                doctor_name: {
+                  $arrayElemAt: ["$doctor_profile.full_name", 0],
+                },
+                // Đưa thẳng object vào doctor_id
+                doctor_id: "$doctor_info" 
+              },
+            },
+
+            // Lookup thông tin các dịch vụ
+            {
+              $lookup: {
+                from: "services",
+                localField: "book_service.service_id",
+                foreignField: "_id",
+                as: "services_data",
+              },
+            },
+            {
+              $lookup: {
+                from: "sub_services",
+                localField: "book_service.sub_service_id",
+                foreignField: "_id",
+                as: "sub_services_data",
+              },
+            },
+            {
+              $addFields: {
+                book_service: {
+                  $map: {
+                    input: "$book_service",
+                    as: "bs",
+                    in: {
+                      $mergeObjects: [
+                        "$$bs",
+                        {
+                          service_name: {
+                            $let: {
+                              vars: {
+                                matchedService: {
+                                  $arrayElemAt: [
+                                    {
+                                      $filter: {
+                                        input: "$services_data",
+                                        cond: { $eq: ["$$this._id", "$$bs.service_id"] },
+                                      },
+                                    },
+                                    0,
+                                  ],
+                                },
+                              },
+                              in: "$$matchedService.service_name",
+                            },
+                          },
+                          sub_service_name: {
+                            $let: {
+                              vars: {
+                                matchedSub: {
+                                  $arrayElemAt: [
+                                    {
+                                      $filter: {
+                                        input: "$sub_services_data",
+                                        cond: { $eq: ["$$this._id", "$$bs.sub_service_id"] },
+                                      },
+                                    },
+                                    0,
+                                  ],
+                                },
+                              },
+                              in: "$$matchedSub.sub_service_name",
+                            },
+                          },
+                        },
+                      ],
+                    },
+                  },
+                },
+              },
+            },
+
+            {
+              $project: {
+                __v: 0,
+                services_data: 0,
+                sub_services_data: 0,
+                doctor_info: 0,
+                doctor_profile: 0,
+              },
+            },
+          ],
+          totalCount: [{ $count: "count" }],
+        },
+      },
+    ];
+
+    // 5. Thực thi truy vấn
+    const result = await AppointmentModel.aggregate(aggregatePipeline);
+
+    const appointments = result[0]?.data || [];
+    const totalItems = result[0]?.totalCount[0]?.count || 0;
+
+    return {
+      data: appointments,
+      pagination: {
+        page: page,
+        size: limit,
+        totalItems: totalItems,
+      },
+    };
+  } catch (error) {
+    logger.error("Error getting list of patient appointments", {
+      context: "AppointmentService.getListOfPatientService",
+      message: error.message,
+      stack: error.stack,
+    });
+    // Tránh việc vứt thẳng raw error.message cho client ở môi trường production
+    throw new errorRes.InternalServerError(
+      `An error occurred while fetching list of appointments: ${error.message}`,
+    );
+  }
 };
 
 const createService = async (dataCreate, account_id) => {
@@ -903,5 +1141,6 @@ module.exports = {
     getListOfPatientService,
     staffCreateService,
     checkinService,
-    findById
+    findById,
+    getListOfPatientServiceWithDate
 };

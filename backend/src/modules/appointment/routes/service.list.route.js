@@ -5,6 +5,8 @@ const controller = require('../controllers/appointment.controller');
 
 router.get('/patient', auth.authenticate, auth.authorize("PATIENT"), controller.getListOfPatientController);
 
+router.get('/date/patient', auth.authenticate, auth.authorize("PATIENT"), controller.getListOfPatientControllerWithDate);
+
 router.get('/staff', controller.getListController);
 
 router.get('/doctor/appointment', auth.authenticate, auth.authorize("DOCTOR"), controller.getListOfDoctorController);
