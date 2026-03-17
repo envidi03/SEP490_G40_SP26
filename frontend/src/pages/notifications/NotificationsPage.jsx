@@ -1,107 +1,222 @@
-import React, { useState, useEffect } from 'react';
-import { Bell, CheckCheck, Trash2, Search } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Bell, CheckCheck, Trash2, Search, MessageSquare, AlertTriangle, Info, CheckCircle2, Clock } from 'lucide-react';
 import SharedPagination from '../../components/ui/SharedPagination';
 import NotificationItem from '../../components/features/notifications/NotificationItem';
-import { MessageSquare, AlertTriangle, Info, CheckCircle2 } from 'lucide-react';
+import notificationService from '../../services/notificationService';
+import { formatDistanceToNow } from 'date-fns';
+import { vi } from 'date-fns/locale';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
+import ConfirmationModal from '../../components/ui/ConfirmationModal';
+import Modal from '../../components/ui/Modal';
+import Button from '../../components/ui/Button';
 
 const NotificationsPage = () => {
+    const navigate = useNavigate();
+    const location = useLocation();
     const [activeTab, setActiveTab] = useState('all');
     const [searchTerm, setSearchTerm] = useState('');
     const [notifications, setNotifications] = useState([]);
     const [loading, setLoading] = useState(true);
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
+    const [totalItems, setTotalItems] = useState(0);
 
-    // Mock data for demonstration
-    useEffect(() => {
-        const mockData = [
-            {
-                id: 1,
-                type: 'work',
-                title: 'Duyệt đơn thuốc',
-                content: 'Bác sĩ **Nguyễn Văn A** vừa gửi một đơn thuốc mới cần bạn xác nhận.',
-                time: '2 phút trước',
-                isRead: false,
-                icon: MessageSquare,
-                iconClass: 'bg-blue-100 text-blue-600'
-            },
-            {
-                id: 2,
-                type: 'system',
-                title: 'Bảo trì hệ thống',
-                content: 'Hệ thống sẽ được bảo trì vào lúc 23:00 tối nay. Vui lòng lưu lại công việc.',
-                time: '1 giờ trước',
-                isRead: false,
-                icon: AlertTriangle,
-                iconClass: 'bg-amber-100 text-amber-600'
-            },
-            {
-                id: 3,
-                type: 'work',
-                title: 'Lịch hẹn mới',
-                content: 'Bệnh nhân **Lê Thị B** đã đặt lịch hẹn khám răng vào ngày mai.',
-                time: '3 giờ trước',
-                isRead: true,
-                icon: Info,
-                iconClass: 'bg-indigo-100 text-indigo-600'
-            },
-            {
-                id: 4,
-                type: 'system',
-                title: 'Thanh toán thành công',
-                content: 'Hóa đơn #INV-2024-001 đã được thanh toán đầy đủ.',
-                time: '5 giờ trước',
-                isRead: true,
-                icon: CheckCircle2,
-                iconClass: 'bg-green-100 text-green-600'
-            },
-            {
-                id: 5,
-                type: 'work',
-                title: 'Yêu cầu nghỉ phép',
-                content: 'Yêu cầu nghỉ phép của bạn đã được **Admin** phê duyệt.',
-                time: '1 ngày trước',
-                isRead: true,
-                icon: CheckCircle2,
-                iconClass: 'bg-green-100 text-green-600'
-            }
-        ];
+    // Detail Modal State
+    const [selectedNotification, setSelectedNotification] = useState(null);
 
-        // Simulate API call
-        const timer = setTimeout(() => {
-            setNotifications(mockData);
-            setLoading(false);
-            setTotalPages(1);
-        }, 800);
-
-        return () => clearTimeout(timer);
-    }, []);
-
-    const filteredNotifications = notifications.filter(n => {
-        const matchesTab = activeTab === 'all' || (activeTab === 'unread' ? !n.isRead : n.type === activeTab);
-        const matchesSearch = n.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                             n.content.toLowerCase().includes(searchTerm.toLowerCase());
-        return matchesTab && matchesSearch;
+    // Confirmation Modal State
+    const [confirmModal, setConfirmModal] = useState({
+        show: false,
+        title: '',
+        message: '',
+        onConfirm: null,
+        isLoading: false
     });
 
-    const markAllAsRead = () => {
-        setNotifications(notifications.map(n => ({ ...n, isRead: true })));
-    };
-
-    const clearAll = () => {
-        if (window.confirm('Bạn có chắc chắn muốn xóa tất cả thông báo?')) {
-            setNotifications([]);
+    const getNotificationStyle = (type) => {
+        switch (type) {
+            case 'NEW_APPOINTMENT':
+            case 'PATIENT_CHECKED_IN':
+                return { icon: Info, iconClass: 'bg-indigo-100 text-indigo-600', category: 'work' };
+            case 'APPOINTMENT_CANCELLED':
+            case 'SYSTEM_ALERT':
+                return { icon: AlertTriangle, iconClass: 'bg-amber-100 text-amber-600', category: 'system' };
+            case 'INVOICE_READY':
+            case 'NEW_PRESCRIPTION':
+                return { icon: MessageSquare, iconClass: 'bg-blue-100 text-blue-600', category: 'work' };
+            case 'LOW_STOCK':
+            case 'EXPIRING_MEDICINE':
+                return { icon: AlertTriangle, iconClass: 'bg-red-100 text-red-600', category: 'work' };
+            case 'SYSTEM_MAINTENANCE':
+                return { icon: Info, iconClass: 'bg-gray-100 text-gray-600', category: 'system' };
+            default:
+                return { icon: Bell, iconClass: 'bg-gray-100 text-gray-600', category: 'system' };
         }
     };
 
-    const toggleRead = (id) => {
-        setNotifications(notifications.map(n => 
-            n.id === id ? { ...n, isRead: !n.isRead } : n
-        ));
+    const fetchNotifications = useCallback(async () => {
+        setLoading(true);
+        try {
+            const response = await notificationService.getNotifications(currentPage, 10);
+            if (response.status === 'success') {
+                const mappedData = response.data.map(notif => {
+                    const style = getNotificationStyle(notif.type);
+                    return {
+                        id: notif._id,
+                        type: style.category,
+                        title: notif.title,
+                        content: notif.message,
+                        time: formatDistanceToNow(new Date(notif.createdAt), { addSuffix: true, locale: vi }),
+                        isRead: notif.is_read,
+                        icon: style.icon,
+                        iconClass: style.iconClass
+                    };
+                });
+                setNotifications(mappedData);
+                setTotalPages(response.pagination.totalPages);
+                setTotalItems(response.pagination.total);
+            }
+        } catch (error) {
+            console.error('Error fetching notifications:', error);
+            toast.error('Không thể tải danh sách thông báo');
+        } finally {
+            setLoading(false);
+        }
+    }, [currentPage]);
+
+    useEffect(() => {
+        fetchNotifications();
+    }, [fetchNotifications]);
+
+    // Handle auto-open detail if navigated from dropdown
+    useEffect(() => {
+        if (location.state?.openNotification) {
+            const notif = location.state.openNotification;
+            setSelectedNotification(notif);
+            
+            // Mark as read if it was unread
+            if (!notif.isRead) {
+                notificationService.markAsRead(notif.id)
+                    .then(response => {
+                        if (response.status === 'success') {
+                            setNotifications(prev => prev.map(n => 
+                                n.id === notif.id ? { ...n, isRead: true } : n
+                            ));
+                            window.dispatchEvent(new CustomEvent('notificationsUpdated'));
+                        }
+                    })
+                    .catch(err => console.error('Error marking as read from state:', err));
+            }
+
+            // Clear state to avoid reopening on refresh
+            window.history.replaceState({}, document.title);
+        }
+    }, [location.state]);
+
+    const filteredNotifications = notifications.filter(n => {
+        const matchesTab = activeTab === 'all' || (activeTab === 'unread' ? !n.isRead : n.type === activeTab);
+        const matchesSearch = n.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            n.content.toLowerCase().includes(searchTerm.toLowerCase());
+        return matchesTab && matchesSearch;
+    });
+
+    const handleMarkAllAsRead = async () => {
+        try {
+            const response = await notificationService.markAllAsRead();
+            if (response.status === 'success') {
+                setNotifications(notifications.map(n => ({ ...n, isRead: true })));
+                toast.success('Đã đánh dấu tất cả là đã đọc');
+                window.dispatchEvent(new CustomEvent('notificationsUpdated'));
+            }
+        } catch (error) {
+            toast.error('Có lỗi xảy ra khi thực hiện');
+        }
+    };
+
+    const handleDeleteAllRead = () => {
+        setConfirmModal({
+            show: true,
+            title: 'Xóa tất cả thông báo đã đọc',
+            message: 'Bạn có chắc chắn muốn xóa tất cả thông báo đã đọc? Hành động này không thể hoàn tác.',
+            onConfirm: performDeleteAllRead,
+            isLoading: false
+        });
+    };
+
+    const performDeleteAllRead = async () => {
+        setConfirmModal(prev => ({ ...prev, isLoading: true }));
+        try {
+            const response = await notificationService.deleteAllRead();
+            if (response.status === 'success') {
+                fetchNotifications();
+                toast.success('Đã xóa các thông báo đã đọc');
+                window.dispatchEvent(new CustomEvent('notificationsUpdated'));
+            }
+        } catch (error) {
+            toast.error('Không thể xóa thông báo');
+        } finally {
+            setConfirmModal({ show: false, title: '', message: '', onConfirm: null, isLoading: false });
+        }
+    };
+
+    const toggleRead = async (id) => {
+        const notif = notifications.find(n => n.id === id);
+        if (!notif) return;
+
+        try {
+            const response = await notificationService.toggleReadStatus(id);
+            if (response.status === 'success') {
+                setNotifications(notifications.map(n =>
+                    n.id === id ? { ...n, isRead: !n.isRead } : n
+                ));
+                // Notify other components to refresh (like NotificationBell)
+                window.dispatchEvent(new CustomEvent('notificationsUpdated'));
+            }
+        } catch (error) {
+            console.error(error);
+            toast.error('Lỗi khi cập nhật trạng thái');
+        }
+    };
+
+    const handleNotificationClick = async (notif) => {
+        setSelectedNotification(notif);
+        if (!notif.isRead) {
+            try {
+                await notificationService.markAsRead(notif.id);
+                setNotifications(notifications.map(n =>
+                    n.id === notif.id ? { ...n, isRead: true } : n
+                ));
+                window.dispatchEvent(new CustomEvent('notificationsUpdated'));
+            } catch (error) {
+                console.error('Error marking as read on click:', error);
+            }
+        }
     };
 
     const deleteNotification = (id) => {
-        setNotifications(notifications.filter(n => n.id !== id));
+        setConfirmModal({
+            show: true,
+            title: 'Xác nhận xóa',
+            message: 'Bạn có chắc chắn muốn xóa thông báo này?',
+            onConfirm: () => performDeleteNotification(id),
+            isLoading: false
+        });
+    };
+
+    const performDeleteNotification = async (id) => {
+        setConfirmModal(prev => ({ ...prev, isLoading: true }));
+        try {
+            const response = await notificationService.deleteNotification(id);
+            if (response.status === 'success') {
+                setNotifications(notifications.filter(n => n.id !== id));
+                toast.success('Đã xóa thông báo');
+                window.dispatchEvent(new CustomEvent('notificationsUpdated'));
+            }
+        } catch (error) {
+            toast.error('Lỗi khi xóa thông báo');
+        } finally {
+            setConfirmModal({ show: false, title: '', message: '', onConfirm: null, isLoading: false });
+        }
     };
 
     const tabs = [
@@ -112,7 +227,7 @@ const NotificationsPage = () => {
     ];
 
     return (
-        <div className="max-w-4xl mx-auto py-8 px-4">
+        <div className="max-w-4xl mx-auto pt-16 pb-8 px-4">
             {/* Header Area */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
                 <div>
@@ -123,19 +238,19 @@ const NotificationsPage = () => {
                     <p className="text-gray-500 mt-1">Cập nhật những hoạt động mới nhất của bạn</p>
                 </div>
                 <div className="flex items-center gap-3">
-                    <button 
-                        onClick={markAllAsRead}
+                    <button
+                        onClick={handleMarkAllAsRead}
                         className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 transition-all hover:shadow-sm"
                     >
                         <CheckCheck size={16} className="text-green-500" />
                         Đánh dấu tất cả đã đọc
                     </button>
-                    <button 
-                        onClick={clearAll}
+                    <button
+                        onClick={handleDeleteAllRead}
                         className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-xl text-sm font-medium text-red-600 hover:bg-red-50 transition-all hover:shadow-sm"
                     >
                         <Trash2 size={16} />
-                        Xóa tất cả
+                        Xóa thông báo đã đọc
                     </button>
                 </div>
             </div>
@@ -148,11 +263,10 @@ const NotificationsPage = () => {
                             <button
                                 key={tab.id}
                                 onClick={() => setActiveTab(tab.id)}
-                                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                                    activeTab === tab.id 
-                                    ? 'bg-white text-primary-600 shadow-sm' 
-                                    : 'text-gray-500 hover:text-gray-700'
-                                }`}
+                                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === tab.id
+                                        ? 'bg-white text-primary-600 shadow-sm'
+                                        : 'text-gray-500 hover:text-gray-700'
+                                    }`}
                             >
                                 {tab.label}
                                 {tab.id === 'unread' && notifications.filter(n => !n.isRead).length > 0 && (
@@ -166,7 +280,7 @@ const NotificationsPage = () => {
 
                     <div className="relative">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                        <input 
+                        <input
                             type="text"
                             placeholder="Tìm kiếm thông báo..."
                             value={searchTerm}
@@ -185,11 +299,12 @@ const NotificationsPage = () => {
                         </div>
                     ) : filteredNotifications.length > 0 ? (
                         filteredNotifications.map((notification) => (
-                            <NotificationItem 
+                            <NotificationItem
                                 key={notification.id}
                                 notification={notification}
                                 onToggleRead={toggleRead}
                                 onDelete={deleteNotification}
+                                onClick={handleNotificationClick}
                             />
                         ))
                     ) : (
@@ -208,14 +323,83 @@ const NotificationsPage = () => {
 
             {/* Pagination Component */}
             {!loading && filteredNotifications.length > 0 && (
-                <SharedPagination 
+                <SharedPagination
                     currentPage={currentPage}
                     totalPages={totalPages}
-                    totalItems={filteredNotifications.length}
+                    totalItems={totalItems}
                     onPageChange={(page) => setCurrentPage(page)}
                     itemLabel="thông báo"
                 />
             )}
+
+            <ConfirmationModal
+                show={confirmModal.show}
+                onClose={() => setConfirmModal(prev => ({ ...prev, show: false }))}
+                onConfirm={confirmModal.onConfirm}
+                title={confirmModal.title}
+                message={confirmModal.message}
+                isLoading={confirmModal.isLoading}
+                confirmText={confirmModal.isLoading ? 'Đang xử lý...' : 'Xác nhận'}
+            />
+
+            {/* Notification Detail Modal */}
+            <Modal
+                isOpen={!!selectedNotification}
+                onClose={() => setSelectedNotification(null)}
+                title="Chi tiết thông báo"
+                size="md"
+                footer={(
+                    <div className="flex gap-3 justify-end">
+                        <Button 
+                            variant="outline" 
+                            onClick={() => setSelectedNotification(null)}
+                        >
+                            Đóng
+                        </Button>
+                        {selectedNotification?.actionUrl && (
+                            <Button 
+                                onClick={() => {
+                                    navigate(selectedNotification.actionUrl);
+                                    setSelectedNotification(null);
+                                }}
+                            >
+                                Đi đến trang liên quan
+                            </Button>
+                        )}
+                    </div>
+                )}
+            >
+                {selectedNotification && (
+                    <div className="space-y-4">
+                        <div className="flex items-center gap-3 pb-4 border-b border-gray-100">
+                            <div className={`p-3 rounded-2xl ${selectedNotification.iconClass}`}>
+                                <selectedNotification.icon size={24} />
+                            </div>
+                            <div>
+                                <h4 className="font-bold text-gray-900 text-lg">{selectedNotification.title}</h4>
+                                <div className="flex items-center gap-2 text-xs text-gray-400 mt-0.5">
+                                    <Clock size={12} />
+                                    {selectedNotification.time}
+                                </div>
+                            </div>
+                        </div>
+                        <div className="py-4">
+                            <p className="text-gray-700 leading-relaxed whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: selectedNotification.content }}>
+                            </p>
+                        </div>
+                        {selectedNotification.actionUrl && (
+                            <div className="p-4 bg-primary-50 rounded-xl border border-primary-100">
+                                <p className="text-xs text-primary-700 font-medium">
+                                    Thao tác đề xuất:
+                                </p>
+                                <p className="text-sm text-primary-800 mt-1">
+                                    Bạn có thể xem chi tiết nội dung liên quan bằng cách nhấn nút dưới đây.
+                                </p>
+                            </div>
+                        )}
+                    </div>
+                )}
+            </Modal>
         </div>
     );
 };

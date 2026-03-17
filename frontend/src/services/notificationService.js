@@ -10,6 +10,9 @@ const notificationService = {
     markAsRead: (id) => {
         return apiClient.put(`/api/notification/${id}/read`);
     },
+    toggleReadStatus: (id) => {
+        return apiClient.put(`/api/notification/${id}/toggle-read`);
+    },
     markAllAsRead: () => {
         return apiClient.put('/api/notification/read-all');
     },

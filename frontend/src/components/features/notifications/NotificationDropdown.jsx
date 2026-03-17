@@ -97,6 +97,11 @@ const NotificationDropdown = ({ onClose, onRefreshCount }) => {
         }
     };
 
+    const handleNotificationClick = (notif) => {
+        navigate('/notifications', { state: { openNotification: notif } });
+        onClose();
+    };
+
     const handleMarkAsRead = async (id) => {
         try {
             const response = await notificationService.markAsRead(id);
@@ -110,7 +115,7 @@ const NotificationDropdown = ({ onClose, onRefreshCount }) => {
     };
 
     return (
-        <div 
+        <div
             ref={dropdownRef}
             className="absolute right-0 mt-2 w-96 max-w-[calc(100vw-2rem)] bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/40 overflow-hidden z-50 animate-in fade-in zoom-in duration-200 origin-top-right scale-100"
         >
@@ -121,9 +126,9 @@ const NotificationDropdown = ({ onClose, onRefreshCount }) => {
                     <button className="p-2 hover:bg-gray-100 rounded-xl text-gray-500 transition-colors" title="Cài đặt">
                         <Settings size={18} />
                     </button>
-                    <button 
+                    <button
                         onClick={handleMarkAllAsRead}
-                        className="p-2 hover:bg-gray-100 rounded-xl text-primary-600 transition-colors" 
+                        className="p-2 hover:bg-gray-100 rounded-xl text-primary-600 transition-colors"
                         title="Đánh dấu tất cả đã đọc"
                     >
                         <CheckCheck size={18} />
@@ -133,23 +138,21 @@ const NotificationDropdown = ({ onClose, onRefreshCount }) => {
 
             {/* Tabs */}
             <div className="flex px-4 py-2 border-b border-gray-50 bg-gray-50/30">
-                <button 
+                <button
                     onClick={() => setActiveTab('all')}
-                    className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${
-                        activeTab === 'all' 
-                        ? 'bg-white text-primary-600 shadow-sm' 
-                        : 'text-gray-500 hover:text-gray-700'
-                    }`}
+                    className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${activeTab === 'all'
+                            ? 'bg-white text-primary-600 shadow-sm'
+                            : 'text-gray-500 hover:text-gray-700'
+                        }`}
                 >
                     Tất cả
                 </button>
-                <button 
+                <button
                     onClick={() => setActiveTab('unread')}
-                    className={`ml-2 px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${
-                        activeTab === 'unread' 
-                        ? 'bg-white text-primary-600 shadow-sm' 
-                        : 'text-gray-500 hover:text-gray-700'
-                    }`}
+                    className={`ml-2 px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${activeTab === 'unread'
+                            ? 'bg-white text-primary-600 shadow-sm'
+                            : 'text-gray-500 hover:text-gray-700'
+                        }`}
                 >
                     Chưa đọc
                     {notifications.some(n => !n.isRead) && (
@@ -166,12 +169,12 @@ const NotificationDropdown = ({ onClose, onRefreshCount }) => {
                     </div>
                 ) : filtered.length > 0 ? (
                     filtered.map(notification => (
-                        <div key={notification.id} onClick={() => !notification.isRead && handleMarkAsRead(notification.id)}>
-                            <NotificationItem 
+                        <div key={notification.id} onClick={() => handleNotificationClick(notification)}>
+                            <NotificationItem
                                 notification={notification}
                                 isCompact={true}
-                                onToggleRead={() => handleMarkAsRead(notification.id)} 
-                                onDelete={() => {}}
+                                onToggleRead={() => handleMarkAsRead(notification.id)}
+                                onDelete={() => { }}
                             />
                         </div>
                     ))
@@ -187,7 +190,7 @@ const NotificationDropdown = ({ onClose, onRefreshCount }) => {
             </div>
 
             {/* Footer */}
-            <button 
+            <button
                 onClick={handleViewAll}
                 className="w-full p-3 text-center text-sm font-bold text-primary-600 hover:bg-primary-50 transition-colors border-t border-gray-100 bg-white/50"
             >

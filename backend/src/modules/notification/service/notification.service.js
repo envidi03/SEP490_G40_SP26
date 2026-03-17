@@ -498,6 +498,52 @@ const deleteAllRead = async (userId, userRole) => {
         throw new errorRes.InternalServerError(error.message);
     }
 };
+/**
+ * Toggle trạng thái đọc của 1 thông báo.
+ * @param {string} notificationId 
+ * @param {string} userId
+ */
+const toggleReadStatus = async (notificationId, userId) => {
+    try {
+        const notification = await Notification.findById(notificationId);
+        if (!notification) {
+            throw new errorRes.NotFoundError('Notification not found');
+        }
+
+        if (notification.scope === 'INDIVIDUAL') {
+            if (notification.recipient_id.toString() !== userId.toString()) {
+                throw new errorRes.ForbiddenError('Not your notification');
+            }
+            notification.status = notification.status === 'READ' ? 'UNREAD' : 'READ';
+        } else {
+            const hasRead = notification.read_by.some(entry => {
+                const checkedId = entry.user_id || entry._id;
+                return checkedId && checkedId.toString() === userId.toString();
+            });
+
+            if (hasRead) {
+                // Đánh dấu chưa đọc -> Xóa khỏi mảng read_by
+                notification.read_by = notification.read_by.filter(entry => {
+                    const checkedId = entry.user_id || entry._id;
+                    return checkedId && checkedId.toString() !== userId.toString();
+                });
+            } else {
+                // Đánh dấu đã đọc -> Push vào mảng read_by
+                notification.read_by.push({ user_id: userId });
+            }
+        }
+
+        await notification.save();
+        return notification;
+    } catch (error) {
+        if (['NotFoundError', 'ForbiddenError'].includes(error.name)) throw error;
+        logger.error('Error in toggleReadStatus', {
+            context: 'NotificationService.toggleReadStatus',
+            message: error.message,
+        });
+        throw new errorRes.InternalServerError(error.message);
+    }
+};
 
 module.exports = {
     createNotification,
@@ -510,5 +556,6 @@ module.exports = {
     markAsRead,
     markAsSeen,
     markAllAsRead,
+    toggleReadStatus,
     deleteAllRead,
 };

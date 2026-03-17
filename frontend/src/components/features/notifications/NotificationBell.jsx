@@ -30,6 +30,17 @@ const NotificationBell = () => {
     }, [isAuthenticated]);
 
     useEffect(() => {
+        const handleUpdate = () => {
+            fetchUnreadCount();
+        };
+
+        window.addEventListener('notificationsUpdated', handleUpdate);
+        return () => {
+            window.removeEventListener('notificationsUpdated', handleUpdate);
+        };
+    }, []);
+
+    useEffect(() => {
         if (socket) {
             socket.on('new_notification', (notification) => {
                 setUnreadCount(prev => prev + 1);

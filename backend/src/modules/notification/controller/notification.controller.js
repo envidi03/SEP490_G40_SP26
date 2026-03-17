@@ -206,6 +206,23 @@ const deleteAllReadController = async (req, res, next) => {
  * DELETE /api/notification/:id
  * Xóa/ẩn 1 thông báo.
  */
+/**
+ * PUT /api/notification/:id/toggle-read
+ * Đảo trạng thái đã đọc/chưa đọc.
+ */
+const toggleReadStatusController = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const userId = req.user?.account_id;
+
+        const result = await notificationService.toggleReadStatus(id, userId);
+
+        res.status(200).json({ status: 'success', data: result });
+    } catch (error) {
+        next(error);
+    }
+};
+
 const deleteNotificationController = async (req, res, next) => {
     try {
         const { id } = req.params;
@@ -231,5 +248,6 @@ module.exports = {
     markAllAsReadController,
     markAsSeenController,
     deleteAllReadController,
+    toggleReadStatusController,
     deleteNotificationController
 };

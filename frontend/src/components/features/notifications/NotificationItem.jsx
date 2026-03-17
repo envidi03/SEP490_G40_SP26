@@ -5,6 +5,7 @@ const NotificationItem = ({
     notification, 
     onToggleRead, 
     onDelete, 
+    onClick,
     isCompact = false 
 }) => {
     const { 
@@ -19,7 +20,8 @@ const NotificationItem = ({
 
     return (
         <div 
-            className={`p-4 transition-all hover:bg-gray-50/50 flex gap-4 items-start relative group ${
+            onClick={() => onClick && onClick(notification)}
+            className={`p-4 transition-all hover:bg-gray-50/50 flex gap-4 items-start relative group cursor-pointer ${
                 !isRead ? 'bg-primary-50/20' : ''
             } ${isCompact ? 'p-3' : 'p-4'}`}
         >
