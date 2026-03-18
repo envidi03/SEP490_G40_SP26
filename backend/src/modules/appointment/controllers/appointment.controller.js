@@ -169,7 +169,7 @@ const getListOfPatientController = async (req, res) => {
     throw error;
   }
 };
-
+                         
 
 
 /**

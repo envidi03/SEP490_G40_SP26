@@ -601,8 +601,14 @@ const getListOfPatientServiceWithDate = async (query, account_id) => {
     if (query.filter_date) {
       dateToFilter = new Date(query.filter_date);
     }
+    dateToFilter.setUTCHours(0, 0, 0, 0);
+
+    logger.debug("filter date.", {
+        context: "getListOfPatientServiceWithDate",
+        data: dateToFilter
+    })
     // Giả sử trường lưu thời gian hẹn trong DB của bạn là appointment_date
-    matchCondition.appointment_date = { $gt: dateToFilter };
+    matchCondition.appointment_date = { $gte: dateToFilter };
 
     // Tìm kiếm (Search) theo tên, số điện thoại, email
     if (search) {
@@ -1160,8 +1166,25 @@ const findById = async (id) => {
         });
         return null;
     }
-
 }
+
+const findByTreatmentId = async (treatmentId) => {
+    try {
+        logger.debug("Finding appointment by id", {
+            context: "AppointmentService.findById",
+            treatmentId: treatmentId,
+        });
+        if (!treatmentId) return null;
+        return await AppointmentModel.findOne({treatmentId: treatmentId}).lean();
+    } catch (error) {
+        logger.error("Error get appointment by id", {
+            context: "AppointmentService.findById",
+            error: error
+        });
+        return null;
+    }
+}
+
 module.exports = {
     getListService,
     getByIdService,
@@ -1172,5 +1195,6 @@ module.exports = {
     staffCreateService,
     checkinService,
     findById,
+    findByTreatmentId,
     getListOfPatientServiceWithDate
 };
