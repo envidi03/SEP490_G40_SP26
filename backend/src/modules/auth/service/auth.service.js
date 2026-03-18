@@ -594,10 +594,17 @@ exports.googleAuth = async (googleToken, ip_address = 'unknown', user_agent = 'u
                 email_verified: true
             });
 
-            await Profile.create({
+            const profile = await Profile.create({
                 account_id: account._id,
                 full_name: name || '',
                 avatar_url: picture || undefined
+            });
+            
+            // Tự động tạo bản ghi Patient cho tài khoản Google mới
+            await Patient.create({
+                account_id: account._id,
+                profile_id: profile._id,
+                status: "active",
             });
 
             await AuthProvider.create({
@@ -636,6 +643,21 @@ exports.googleAuth = async (googleToken, ip_address = 'unknown', user_agent = 'u
     }
 
     const user = await Profile.findOne({ account_id: account._id });
+
+    // "Vá" dữ liệu cho các tài khoản Google cũ bị thiếu Patient record
+    if (account.role_id.name === 'PATIENT') {
+        const existingPatient = await Patient.findOne({ account_id: account._id });
+        if (!existingPatient) {
+            await Patient.create({
+                account_id: account._id,
+                profile_id: user._id,
+                status: "active",
+            });
+            logger.info("Auto-created missing Patient record for Google account", {
+                account_id: account._id
+            });
+        }
+    }
 
     const token = signToken({
         account_id: account._id,
