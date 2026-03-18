@@ -2,8 +2,8 @@ import { BookingScreen } from '@/src/screens/booking/BookingScreen';
 import { useLocalSearchParams } from 'expo-router';
 
 export default function BookingPage() {
-    // If we navigate here from a specific service, we can pre-select it using serviceId
-    const { serviceId } = useLocalSearchParams<{ serviceId?: string }>();
+    // If we navigate here from a specific service or sub-service, pre-select it
+    const { serviceId, subServiceId } = useLocalSearchParams<{ serviceId?: string; subServiceId?: string }>();
 
-    return <BookingScreen initialServiceId={serviceId} />;
+    return <BookingScreen initialServiceId={serviceId} initialSubServiceId={subServiceId} />;
 }

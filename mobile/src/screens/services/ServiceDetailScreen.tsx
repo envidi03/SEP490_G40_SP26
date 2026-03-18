@@ -3,8 +3,7 @@ import { Stack, router } from 'expo-router';
 import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ThemedText } from '@/src/components/ui/themed-text';
-import { useServiceDetail, useProfileData } from '@/src/hooks/useHomeData';
-import { Alert } from 'react-native';
+import { useServiceDetail, useSubServices, useProfileData } from '@/src/hooks/useHomeData';
 
 type Props = {
     serviceId: string;
@@ -13,18 +12,18 @@ type Props = {
 export function ServiceDetailScreen({ serviceId }: Props) {
     const insets = useSafeAreaInsets();
     const { data: service, isLoading, isError } = useServiceDetail(serviceId);
+    const { data: subServices, isLoading: isLoadingSubServices } = useSubServices(serviceId);
     const { data: profileData } = useProfileData();
 
-    // The backend profile query ensures we know tracking status
-    const isLoggedIn = !!profileData?.data || !!profileData?.full_name || !!profileData?.avatar_url;
+    const isLoggedIn = !!profileData?.data;
 
-    const handleBookNow = () => {
+    const handleBookNow = (subServiceId?: string) => {
         if (!isLoggedIn) {
             router.push('/(auth)/login');
         } else {
             router.push({
                 pathname: '/booking' as any,
-                params: { serviceId }
+                params: { serviceId, ...(subServiceId ? { subServiceId } : {}) }
             });
         }
     };
@@ -48,9 +47,23 @@ export function ServiceDetailScreen({ serviceId }: Props) {
         );
     }
 
-    const imageUrl = service.icon;
-    const priceText = service.price ? `${service.price.toLocaleString('vi-VN')} đ` : 'Liên hệ';
-    const durationText = service.duration ? `${service.duration} phút` : 'Chưa cập nhật';
+    const hasSubServices = (subServices && subServices.length > 0) || service.sub_service_count > 0;
+    const availableSubServices: any[] = (subServices || []).filter((s: any) => s.status === 'AVAILABLE');
+    const durationText = service.duration ? `${service.duration} phút` : null;
+
+    let priceDisplayText: string;
+    if (hasSubServices && service.calculated_min_price) {
+        const max = service.calculated_max_price;
+        if (max && max !== service.calculated_min_price) {
+            priceDisplayText = `Từ ${service.calculated_min_price.toLocaleString('vi-VN')}đ - ${max.toLocaleString('vi-VN')}đ`;
+        } else {
+            priceDisplayText = `Từ ${service.calculated_min_price.toLocaleString('vi-VN')}đ`;
+        }
+    } else if (service.price) {
+        priceDisplayText = `${service.price.toLocaleString('vi-VN')}đ`;
+    } else {
+        priceDisplayText = 'Liên hệ';
+    }
 
     return (
         <View style={styles.container}>
@@ -58,19 +71,17 @@ export function ServiceDetailScreen({ serviceId }: Props) {
 
             <ScrollView
                 showsVerticalScrollIndicator={false}
-                contentContainerStyle={{ paddingBottom: insets.bottom + 100 }} // Space for floating button
+                contentContainerStyle={{ paddingBottom: insets.bottom + (hasSubServices ? 20 : 100) }}
                 bounces={false}
             >
-                {/* Hero Image Section */}
+                {/* Hero Image */}
                 <View style={styles.imageContainer}>
                     <Image
-                        source={{ uri: imageUrl }}
+                        source={{ uri: service.icon }}
                         style={styles.heroImage}
                         contentFit="cover"
                         transition={300}
                     />
-
-                    {/* Floating Back Button */}
                     <TouchableOpacity
                         style={[styles.floatingBackButton, { top: Math.max(insets.top, 20) + 10 }]}
                         onPress={() => router.back()}
@@ -86,8 +97,9 @@ export function ServiceDetailScreen({ serviceId }: Props) {
                     </TouchableOpacity>
                 </View>
 
-                {/* Content Section */}
+                {/* Content */}
                 <View style={[styles.contentContainer, { paddingHorizontal: 24 }]}>
+                    {/* Title & Status */}
                     <View style={styles.headerRow}>
                         <ThemedText style={styles.serviceName}>{service.service_name}</ThemedText>
                         <View style={[styles.statusBadge, service.status !== 'AVAILABLE' && styles.statusBadgeUnavailable]}>
@@ -97,50 +109,112 @@ export function ServiceDetailScreen({ serviceId }: Props) {
                         </View>
                     </View>
 
+                    {/* Tags */}
                     <View style={styles.tagsContainer}>
                         <View style={styles.tag}>
-                            <Image
-                                source={require('@/assets/images/prices.png')} // Optional: Add a small price icon if available or remove
-                                style={styles.tagIcon}
-                                contentFit="contain"
-                            />
-                            <ThemedText style={styles.tagTextPrice}>{priceText}</ThemedText>
+                            <Image source={require('@/assets/images/prices.png')} style={styles.tagIcon} contentFit="contain" />
+                            <ThemedText style={styles.tagTextPrice}>{priceDisplayText}</ThemedText>
                         </View>
-
-                        <View style={styles.tag}>
-                            <Image
-                                source={require('@/assets/images/clock.png')} // Optional: Add a clock icon
-                                style={styles.tagIcon}
-                                contentFit="contain"
-                            />
-                            <ThemedText style={styles.tagText}>{durationText}</ThemedText>
-                        </View>
+                        {!!durationText && (
+                            <View style={styles.tag}>
+                                <Image source={require('@/assets/images/clock.png')} style={styles.tagIcon} contentFit="contain" />
+                                <ThemedText style={styles.tagText}>{durationText}</ThemedText>
+                            </View>
+                        )}
                     </View>
 
                     <View style={styles.divider} />
 
-                    <View style={styles.section}>
-                        <ThemedText style={styles.sectionTitle}>Mô tả dịch vụ</ThemedText>
-                        <ThemedText style={styles.descriptionText}>
-                            {service.description || "Chưa có thông tin mô tả chi tiết cho dịch vụ này. Vui lòng liên hệ phòng khám để biết thêm thông tin."}
-                        </ThemedText>
-                    </View>
+                    {/* Description */}
+                    {!!service.description && (
+                        <View style={styles.section}>
+                            <ThemedText style={styles.sectionTitle}>Mô tả dịch vụ</ThemedText>
+                            <ThemedText style={styles.descriptionText}>{service.description}</ThemedText>
+                        </View>
+                    )}
+
+                    {/* Sub-services list */}
+                    {hasSubServices && (
+                        <View style={styles.section}>
+                            <ThemedText style={styles.sectionTitle}>Các gói dịch vụ</ThemedText>
+
+                            {isLoadingSubServices ? (
+                                <ActivityIndicator color="#2563eb" />
+                            ) : availableSubServices.length === 0 ? (
+                                <ThemedText style={styles.descriptionText}>Chưa có gói dịch vụ. Liên hệ để biết thêm chi tiết.</ThemedText>
+                            ) : (
+                                availableSubServices.map((sub: any) => {
+                                    const subMinPrice = sub.min_price ? `${sub.min_price.toLocaleString('vi-VN')}đ` : null;
+                                    const subMaxPrice = sub.max_price ? `${sub.max_price.toLocaleString('vi-VN')}đ` : null;
+                                    let subPriceText = 'Liên hệ';
+                                    if (subMinPrice && subMaxPrice && sub.min_price !== sub.max_price) {
+                                        subPriceText = `${subMinPrice} - ${subMaxPrice}`;
+                                    } else if (subMinPrice) {
+                                        subPriceText = subMinPrice;
+                                    }
+                                    const subDuration = sub.duration ? `${sub.duration} phút` : null;
+
+                                    return (
+                                        <TouchableOpacity
+                                            key={sub._id}
+                                            style={styles.subServiceCard}
+                                            activeOpacity={0.82}
+                                            onPress={() => router.push(`/services/sub-service/${sub._id}` as any)}
+                                        >
+                                            <View style={styles.subServiceHeader}>
+                                                <ThemedText style={styles.subServiceName}>{sub.sub_service_name}</ThemedText>
+                                                <View style={styles.subPriceTag}>
+                                                    <ThemedText style={styles.subPriceText}>{subPriceText}</ThemedText>
+                                                </View>
+                                            </View>
+                                            {!!sub.description && (
+                                                <ThemedText style={styles.subServiceDesc} numberOfLines={2}>{sub.description}</ThemedText>
+                                            )}
+                                            {!!subDuration && (
+                                                <View style={styles.subDuration}>
+                                                    <Image source={require('@/assets/images/clock.png')} style={styles.tagIcon} contentFit="contain" />
+                                                    <ThemedText style={styles.subServiceMeta}>{subDuration}</ThemedText>
+                                                </View>
+                                            )}
+                                            <View style={styles.subServiceFooter}>
+                                                <ThemedText style={styles.viewDetailText}>Xem chi tiết →</ThemedText>
+                                                {service.status === 'AVAILABLE' && (
+                                                    <TouchableOpacity
+                                                        style={styles.bookSubButton}
+                                                        activeOpacity={0.85}
+                                                        onPress={(e) => {
+                                                            e.stopPropagation?.();
+                                                            handleBookNow(sub._id);
+                                                        }}
+                                                    >
+                                                        <ThemedText style={styles.bookSubButtonText}>Đặt ngay</ThemedText>
+                                                    </TouchableOpacity>
+                                                )}
+                                            </View>
+                                        </TouchableOpacity>
+                                    );
+                                })
+                            )}
+                        </View>
+                    )}
                 </View>
             </ScrollView>
 
-            {/* Bottom Action Bar */}
-            <View style={[styles.bottomBar, { paddingBottom: Math.max(insets.bottom, 24) }]}>
-                <TouchableOpacity
-                    style={[styles.primaryButton, service.status !== 'AVAILABLE' && styles.primaryButtonDisabled]}
-                    activeOpacity={0.9}
-                    disabled={service.status !== 'AVAILABLE'}
-                    onPress={handleBookNow}
-                >
-                    <ThemedText style={styles.primaryButtonText}>
-                        {service.status === 'AVAILABLE' ? 'Đặt lịch ngay' : 'Tạm ngưng nhận lịch'}
-                    </ThemedText>
-                </TouchableOpacity>
-            </View>
+            {/* Fixed bottom button for non-category services */}
+            {!hasSubServices && (
+                <View style={[styles.bottomBar, { paddingBottom: Math.max(insets.bottom, 24) }]}>
+                    <TouchableOpacity
+                        style={[styles.primaryButton, service.status !== 'AVAILABLE' && styles.primaryButtonDisabled]}
+                        activeOpacity={0.9}
+                        disabled={service.status !== 'AVAILABLE'}
+                        onPress={() => handleBookNow()}
+                    >
+                        <ThemedText style={styles.primaryButtonText}>
+                            {service.status === 'AVAILABLE' ? 'Đặt lịch ngay' : 'Tạm ngưng nhận lịch'}
+                        </ThemedText>
+                    </TouchableOpacity>
+                </View>
+            )}
         </View>
     );
 }
@@ -176,7 +250,7 @@ const styles = StyleSheet.create({
     },
     imageContainer: {
         width: '100%',
-        height: 350,
+        height: 320,
         position: 'relative',
     },
     heroImage: {
@@ -208,18 +282,18 @@ const styles = StyleSheet.create({
         tintColor: '#2563eb',
     },
     contentContainer: {
-        paddingTop: 32,
+        paddingTop: 28,
     },
     headerRow: {
-        marginBottom: 16,
+        marginBottom: 14,
     },
     serviceName: {
-        fontSize: 28,
+        fontSize: 26,
         fontWeight: '800',
-        lineHeight: 36,
+        lineHeight: 34,
         letterSpacing: -0.5,
         color: '#1e3a8a',
-        marginBottom: 12,
+        marginBottom: 10,
     },
     statusBadge: {
         alignSelf: 'flex-start',
@@ -242,7 +316,8 @@ const styles = StyleSheet.create({
     tagsContainer: {
         flexDirection: 'row',
         gap: 12,
-        marginBottom: 32,
+        marginBottom: 28,
+        flexWrap: 'wrap',
     },
     tag: {
         flexDirection: 'row',
@@ -273,22 +348,95 @@ const styles = StyleSheet.create({
     divider: {
         height: 1,
         backgroundColor: '#dbeafe',
-        marginBottom: 32,
+        marginBottom: 28,
     },
     section: {
-        marginBottom: 32,
+        marginBottom: 28,
     },
     sectionTitle: {
         fontSize: 18,
         fontWeight: '800',
         color: '#1e3a8a',
-        marginBottom: 12,
+        marginBottom: 14,
     },
     descriptionText: {
-        fontSize: 16,
-        lineHeight: 26,
-        color: '#2563eb',
+        fontSize: 15,
+        lineHeight: 24,
+        color: '#1d4ed8',
     },
+    // Sub Service Card
+    subServiceCard: {
+        backgroundColor: '#eff6ff',
+        borderRadius: 16,
+        padding: 16,
+        marginBottom: 12,
+        borderWidth: 1,
+        borderColor: '#bfdbfe',
+    },
+    subServiceHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
+        marginBottom: 8,
+        gap: 8,
+    },
+    subServiceName: {
+        flex: 1,
+        fontSize: 16,
+        fontWeight: '800',
+        color: '#1e3a8a',
+        lineHeight: 22,
+    },
+    subPriceTag: {
+        backgroundColor: '#2563eb',
+        borderRadius: 8,
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+    },
+    subPriceText: {
+        color: '#FFFFFF',
+        fontSize: 13,
+        fontWeight: '700',
+    },
+    subServiceDesc: {
+        fontSize: 13,
+        color: '#1d4ed8',
+        lineHeight: 20,
+        marginBottom: 8,
+    },
+    subServiceMeta: {
+        fontSize: 12,
+        color: '#3b82f6',
+    },
+    subDuration: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+    },
+    bookSubButton: {
+        backgroundColor: '#2563eb',
+        borderRadius: 10,
+        paddingVertical: 10,
+        paddingHorizontal: 18,
+        alignItems: 'center',
+    },
+    bookSubButtonText: {
+        color: '#FFFFFF',
+        fontSize: 14,
+        fontWeight: '700',
+    },
+    subServiceFooter: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginTop: 10,
+    },
+    viewDetailText: {
+        fontSize: 13,
+        color: '#3b82f6',
+        fontWeight: '600',
+    },
+    // Bottom bar (for standalone services)
     bottomBar: {
         position: 'absolute',
         bottom: 0,

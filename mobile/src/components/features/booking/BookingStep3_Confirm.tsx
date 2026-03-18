@@ -37,6 +37,7 @@ export function BookingStep3_Confirm({ bookingData, profile }: Props) {
                 appointment_time: bookingData.selectedTime,
                 book_service: bookingData.selectedServices.map(s => ({
                     service_id: s._id,
+                    ...(s.sub_service_id ? { sub_service_id: s.sub_service_id } : {}),
                     unit_price: s.price
                 }))
             };
@@ -96,13 +97,17 @@ export function BookingStep3_Confirm({ bookingData, profile }: Props) {
                 <ThemedText style={styles.cardTitle}>Dịch vụ đã chọn</ThemedText>
 
                 {bookingData.selectedServices.map((service, index) => (
-                    <View key={service._id} style={[styles.row, index > 0 && styles.rowBorderTop]}>
-                        <ThemedText style={[styles.label, { flex: 1 }]} numberOfLines={2}>
-                            {service.service_name}
-                        </ThemedText>
-                        <ThemedText style={styles.value}>
-                            {service.price > 0 ? `${service.price.toLocaleString('vi-VN')} đ` : `Liên hệ`}
-                        </ThemedText>
+                    <View key={service._id + (service.sub_service_id || '')} style={[index > 0 && styles.rowBorderTop]}>
+                        <ThemedText style={styles.label}>{service.service_name}</ThemedText>
+                        {!!service.sub_service_name && (
+                            <ThemedText style={styles.subServiceLabel}>↳ {service.sub_service_name}</ThemedText>
+                        )}
+                        <View style={styles.row}>
+                            <ThemedText style={{ flex: 1 }} />
+                            <ThemedText style={styles.value}>
+                                {service.price > 0 ? `${service.price.toLocaleString('vi-VN')}đ` : `Liên hệ`}
+                            </ThemedText>
+                        </View>
                     </View>
                 ))}
 
@@ -181,6 +186,13 @@ const styles = StyleSheet.create({
         fontSize: 14,
         fontWeight: '600',
         color: '#1e3a8a',
+    },
+    subServiceLabel: {
+        fontSize: 13,
+        color: '#2563eb',
+        fontStyle: 'italic',
+        marginBottom: 4,
+        marginTop: -4,
     },
     valueHighlight: {
         fontSize: 15,

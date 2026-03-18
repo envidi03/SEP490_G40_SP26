@@ -12,15 +12,16 @@ import { BookingStep3_Confirm } from '@/src/components/features/booking/BookingS
 
 type Props = {
     initialServiceId?: string;
+    initialSubServiceId?: string;
 };
 
 export type BookingState = {
-    selectedServices: Array<{ _id: string; service_name: string; price: number }>;
+    selectedServices: { _id: string; service_name: string; price: number; sub_service_id?: string; sub_service_name?: string }[];
     selectedDate: string;
     selectedTime: string;
 };
 
-export function BookingScreen({ initialServiceId }: Props) {
+export function BookingScreen({ initialServiceId, initialSubServiceId }: Props) {
     const insets = useSafeAreaInsets();
     const { data: profileData } = useProfileData();
     const profile = profileData?.data || {};
@@ -99,6 +100,7 @@ export function BookingScreen({ initialServiceId }: Props) {
                     {currentStep === 1 && (
                         <BookingStep1_Services
                             initialServiceId={initialServiceId}
+                            initialSubServiceId={initialSubServiceId}
                             bookingData={bookingData}
                             setBookingData={setBookingData}
                         />

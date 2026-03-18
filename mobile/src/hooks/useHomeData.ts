@@ -59,6 +59,30 @@ export function useServiceDetail(id: string) {
     });
 }
 
+// 2d. Fetch Sub-Services for a Category
+export function useSubServices(parentId: string) {
+    return useQuery({
+        queryKey: ['sub-services', parentId],
+        queryFn: async () => {
+            const { data } = await apiClient.get(`/api/service/${parentId}/sub-services`);
+            return data?.data || data || [];
+        },
+        enabled: !!parentId,
+    });
+}
+
+// 2e. Fetch a single SubService detail by ID
+export function useSubServiceDetail(subId: string) {
+    return useQuery({
+        queryKey: ['sub-service', subId],
+        queryFn: async () => {
+            const { data } = await apiClient.get(`/api/service/sub-service/${subId}`);
+            return data?.data || data;
+        },
+        enabled: !!subId,
+    });
+}
+
 // 3. Fetch Upcoming Appointments (nearest 1)
 export function useAppointmentsData() {
     return useQuery({
