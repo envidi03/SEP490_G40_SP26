@@ -94,16 +94,6 @@ const receptionistRoutes = [
                 </ReceptionistLayout>
             </ProtectedRoute>
         )
-    },
-    {
-        path: '/receptionist/payment',
-        element: (
-            <ProtectedRoute>
-                <ReceptionistLayout>
-                    <Payment />
-                </ReceptionistLayout>
-            </ProtectedRoute>
-        )
     }
 ];
 
