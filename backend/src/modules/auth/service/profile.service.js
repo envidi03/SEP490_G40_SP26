@@ -24,7 +24,7 @@ const updateProfileService = async (accountId, payload = {}) => {
     }
 
     // update profile fields
-    const profileFields = ["full_name", "gender", "address", "avatar_url"];
+    const profileFields = ["full_name", "gender", "address", "avatar_url", "phone"];
 
     profileFields.forEach(field => {
       if (payload[field] !== undefined) {

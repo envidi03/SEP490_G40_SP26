@@ -179,6 +179,7 @@ const PatientProfile = () => {
         gender: formData.gender,
         address: formData.address,
         dob: formData.dateOfBirth,
+        phone: formData.phone,
       };
 
       const res = await updateProfile(payload);
