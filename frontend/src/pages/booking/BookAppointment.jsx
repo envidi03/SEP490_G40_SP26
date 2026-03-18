@@ -144,14 +144,14 @@ const BookAppointment = () => {
             setToast({
                 show: true,
                 type: 'success',
-                message: '✅ Đặt lịch khám thành công!'
+                message: 'Đặt lịch khám thành công!'
             });
         } catch (error) {
             console.error("Booking Error: ", error);
             setToast({
                 show: true,
                 type: 'error',
-                message: error.response?.data?.message || '❌ Lỗi khi đặt lịch. Vui lòng thử lại.'
+                message: error.response?.data?.message || 'Lỗi khi đặt lịch. Vui lòng thử lại.'
             });
         } finally {
             setIsSubmitting(false);

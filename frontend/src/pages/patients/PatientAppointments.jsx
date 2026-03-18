@@ -206,7 +206,7 @@ const PatientAppointments = () => {
             setToast({
                 show: true,
                 type: 'success',
-                message: '✅ Cập nhật lịch khám thành công!'
+                message: 'Cập nhật lịch khám thành công!'
             });
             setSelectedAppointment(null);
             setUpdateForm({ date: '', time: '', reason: '' });
@@ -215,7 +215,7 @@ const PatientAppointments = () => {
             setToast({
                 show: true,
                 type: 'error',
-                message: error.response?.data?.message || '❌ Lỗi khi cập nhật lịch khám. Vui lòng thử lại!'
+                message: error.response?.data?.message || 'Lỗi khi cập nhật lịch khám. Vui lòng thử lại!'
             });
         }
     };
@@ -251,7 +251,7 @@ const PatientAppointments = () => {
             setToast({
                 show: true,
                 type: 'success',
-                message: '✅ Đã hủy lịch khám thành công!'
+                message: 'Đã hủy lịch khám thành công!'
             });
             setSelectedAppointment(null);
         } catch (error) {
@@ -259,7 +259,7 @@ const PatientAppointments = () => {
             setToast({
                 show: true,
                 type: 'error',
-                message: error.response?.data?.message || '❌ Lỗi khi hủy lịch khám. Vui lòng thử lại!'
+                message: error.response?.data?.message || 'Lỗi khi hủy lịch khám. Vui lòng thử lại!'
             });
         }
     };
