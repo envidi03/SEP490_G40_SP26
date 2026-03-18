@@ -237,6 +237,68 @@ class EmailService {
         return this.sendEmail(email, subject, html);
     }
 
+    async sendWelcomeGoogleAuthEmail(email, setupToken, userName = '') {
+        const setupLink = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/set-password?token=${setupToken}&email=${email}`;
+        const subject = 'Chào mừng bạn đến với Dental Clinic Management System';
+        const html = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <style>
+                    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; }
+                    .container { max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+                    .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 40px 20px; text-align: center; }
+                    .content { padding: 40px; }
+                    .welcome-text { font-size: 24px; color: #4a5568; margin-bottom: 20px; text-align: center; }
+                    .description { color: #718096; line-height: 1.8; margin-bottom: 30px; text-align: center; }
+                    .button-container { text-align: center; margin: 40px 0; }
+                    .setup-button { 
+                        display: inline-block;
+                        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                        color: white !important;
+                        padding: 16px 45px;
+                        text-decoration: none;
+                        border-radius: 50px;
+                        font-size: 18px;
+                        font-weight: 600;
+                        transition: transform 0.2s;
+                    }
+                    .footer { background-color: #f7fafc; padding: 20px; text-align: center; color: #a0aec0; font-size: 14px; }
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <div class="header">
+                        <h1 style="margin:0;"> Chào mừng bạn </h1>
+                    </div>
+                    <div class="content">
+                        <h2 class="welcome-text">Xin chào ${userName || email}!</h2>
+                        <p class="description">
+                            Cảm ơn bạn đã tham gia cùng <strong>Dental CMS</strong>. Bạn đã đăng nhập thành công bằng tài khoản Google.<br><br>
+                            Để có thể đăng nhập bằng mật khẩu thông thường trong tương lai, vui lòng nhấn nút bên dưới để thiết lập mật khẩu của riêng bạn:
+                        </p>
+                        
+                        <div class="button-container">
+                            <a href="${setupLink}" class="setup-button">
+                                Thiết lập Mật khẩu ngay
+                            </a>
+                        </div>
+                        
+                        <p style="text-align: center; color: #a0aec0; font-size: 14px;">
+                            Link này có hiệu lực trong vòng 24 giờ.
+                        </p>
+                    </div>
+                    <div class="footer">
+                        <p>© 2026 Dental Clinic Management System. All rights reserved.</p>
+                    </div>
+                </div>
+            </body>
+            </html>
+        `;
+
+        return this.sendEmail(email, subject, html);
+    }
+
     async sendEmail(to, subject, html) {
         try {
             const info = await this.transporter.sendMail({

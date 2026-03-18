@@ -473,4 +473,35 @@ router.post('/refresh-token', authenticate, authController.refreshToken);
  */
 router.post('/change-password', authenticate, authController.changePassword);
 
+/**
+ * @swagger
+ * /api/auth/setup-password:
+ *   post:
+ *     summary: Set initial password for Google Login accounts
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - token
+ *               - newPassword
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *               token:
+ *                 type: string
+ *               newPassword:
+ *                 type: string
+ *                 minLength: 8
+ *     responses:
+ *       200:
+ *         description: Password setup successful
+ */
+router.post('/setup-password', authController.setupPassword);
+
 module.exports = router;
