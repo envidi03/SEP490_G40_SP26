@@ -315,7 +315,7 @@ const checkExitSerialNumber = async (serialNumber) => {
 };
 
 /**
- * Create a new equipment (With Upsert logic based on equipment_type)
+ * Create a new equipment (Strictly Create - Bắt lỗi nếu trùng equipment_type)
  * @param {Object} dataCreate { equipment_type: "...", equipment: [...] }
  * @returns saved equipment document
  */
@@ -329,27 +329,26 @@ const createEquipment = async (dataCreate) => {
         });
 
         // TÌM KIẾM xem loại thiết bị này đã tồn tại chưa
-        let category = await EquipmentModel.findOne({
+        const category = await EquipmentModel.findOne({
             equipment_type: dataCreate.equipment_type
-        });
+        }).lean();
 
-        let savedEquipment;
-
+        // NẾU ĐÃ TỒN TẠI -> Chặn không cho tạo và ném lỗi Conflict
         if (category) {
-            // KỊCH BẢN 1: Loại thiết bị ĐÃ TỒN TẠI -> Push thêm vào mảng
-            logger.debug("Equipment type exists, appending to array", { context });
-
-            category.equipment.push(...dataCreate.equipment);
-            savedEquipment = await category.save();
-        } else {
-            // KỊCH BẢN 2: Loại thiết bị CHƯA TỒN TẠI -> Tạo document mới hoàn toàn
-            logger.debug("Equipment type does not exist, creating new document", { context });
-
-            const newCategory = new EquipmentModel(dataCreate);
-            savedEquipment = await newCategory.save();
+            logger.warn("Equipment type already exists", { 
+                context: context, 
+                equipment_type: dataCreate.equipment_type 
+            });
+            throw new errorRes.ConflictError(`Equipment type '${dataCreate.equipment_type}' already exists. Please use the add items API instead.`);
         }
 
-        logger.debug("Equipment created/updated successfully", { context });
+        // NẾU CHƯA TỒN TẠI -> Tạo document mới hoàn toàn
+        logger.debug("Equipment type does not exist, creating new document", { context });
+
+        const newCategory = new EquipmentModel(dataCreate);
+        const savedEquipment = await newCategory.save();
+
+        logger.debug("Equipment created successfully", { context });
 
         return savedEquipment;
 
@@ -359,7 +358,10 @@ const createEquipment = async (dataCreate) => {
             message: error.message,
             stack: error.stack,
         });
+        
+        // Giữ lại mã lỗi gốc (ví dụ: 409 Conflict) để trả về đúng cho Frontend
         if (error.statusCode) throw error;
+        
         throw new errorRes.InternalServerError(
             `An error occurred while creating equipment: ${error.message}`
         );
