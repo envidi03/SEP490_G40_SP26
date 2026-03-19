@@ -1,11 +1,10 @@
 import { useState } from 'react';
-import { FileText, Search, Eye, Edit, Clock, CheckCircle, Filter } from 'lucide-react';
+import { FileText, Search, Eye, Clock, CheckCircle } from 'lucide-react';
 import Card from '../../components/ui/Card';
 import Badge from '../../components/ui/Badge';
 import SharedPagination from '../../components/ui/SharedPagination';
 import ViewRecordModal from './modals/ViewRecordModal';
-import UpdateRecordModal from './modals/UpdateRecordModal';
-import { getAllDentalRecords, updateDentalRecord } from '../../services/dentalRecordService';
+import { getAllDentalRecords } from '../../services/dentalRecordService';
 import { useEffect } from 'react';
 
 // Mock medical records data (removed)
@@ -17,7 +16,6 @@ const AssistantMedicalRecords = () => {
 
     const [selectedRecord, setSelectedRecord] = useState(null);
     const [showViewModal, setShowViewModal] = useState(false);
-    const [showUpdateModal, setShowUpdateModal] = useState(false);
 
     const [records, setRecords] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -96,27 +94,12 @@ const AssistantMedicalRecords = () => {
         setShowViewModal(true);
     };
 
-    const handleUpdateClick = (record) => {
-        setSelectedRecord(record);
-        setShowUpdateModal(true);
-    };
-
     const closeModals = () => {
         setShowViewModal(false);
-        setShowUpdateModal(false);
         setSelectedRecord(null);
     };
 
-    const handleSaveRecord = async (recordId, data, isDraft) => {
-        try {
-            await updateDentalRecord(recordId, data);
-            fetchRecords(); // Refresh data after update
-            closeModals();
-        } catch (error) {
-            console.error('Error updating record:', error);
-            // Optionally add toast notification here
-        }
-    };
+
 
     // Get unique doctors for filter based on current fetched records (or ideally from a separate API)
     const doctors = ['all', ...new Set(records.map(r => r.doctor_info?.profile?.full_name).filter(d => d))];
@@ -280,13 +263,6 @@ const AssistantMedicalRecords = () => {
                                         >
                                             <Eye size={20} />
                                         </button>
-                                        <button
-                                            onClick={() => handleUpdateClick(record)}
-                                            className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                                            title="Cập nhật"
-                                        >
-                                            <Edit size={20} />
-                                        </button>
                                     </div>
                                 </div>
                             </Card>
@@ -317,12 +293,6 @@ const AssistantMedicalRecords = () => {
                 record={selectedRecord}
                 isOpen={showViewModal}
                 onClose={closeModals}
-            />
-            <UpdateRecordModal
-                record={selectedRecord}
-                isOpen={showUpdateModal}
-                onClose={closeModals}
-                onSave={handleSaveRecord}
             />
         </div>
     );
