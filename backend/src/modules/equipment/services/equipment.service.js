@@ -17,18 +17,12 @@ const mongoose = require("mongoose");
 */
 const getEquipments = async (query) => {
     try {
-        // Lấy từ khóa tìm kiếm
         const search = query.search?.trim();
-
-        // --- XỬ LÝ FILTER ---
-        // 1. Nhận status trực tiếp từ query.status và chuyển thành IN HOA để khớp với Enum trong DB
         const statusFilter = query.status ? query.status.toUpperCase() : null;
-
-        // 2. Nhận equipment_type trực tiếp từ query.equipment_type
         const equipmentTypeFilter = query.equipment_type;
 
-        // --- XỬ LÝ SẮP XẾP & PHÂN TRANG ---
-        const sort = query.sort === "desc" ? -1 : 1;
+        // Model mới: Sort theo Tên danh mục (equipment_type) sẽ chuẩn hơn là theo tên máy con
+        const sortOrder = query.sort === "desc" ? -1 : 1;
         const page = parseInt(query.page || 1);
         const limit = parseInt(query.limit || 5);
         const skip = (page - 1) * limit;
@@ -38,27 +32,67 @@ const getEquipments = async (query) => {
             query: query,
         });
 
-        // --- THỰC THI QUERY BẰNG AGGREGATION ---
-        const result = await EquipmentModel.aggregate([
-            // 1. Lọc dữ liệu (Match)
-            {
-                $match: {
-                    // Tìm kiếm text (nếu có)
-                    ...(search && {
-                        $or: [
-                            { equipment_name: { $regex: search, $options: "i" } },
-                            { equipment_serial_number: { $regex: search, $options: "i" } },
-                            { supplier: { $regex: search, $options: "i" } }
-                        ],
-                    }),
-                    // Lọc theo trạng thái và loại thiết bị (nếu có truyền lên)
-                    ...(statusFilter && { status: statusFilter }),
-                    ...(equipmentTypeFilter && { equipment_type: equipmentTypeFilter })
+        // --- BƯỚC 1: XÂY DỰNG ĐIỀU KIỆN LỌC NHANH (SỬ DỤNG INDEX) ---
+        const initialMatch = {};
+
+        if (equipmentTypeFilter) {
+            initialMatch.equipment_type = equipmentTypeFilter;
+        }
+
+        const childElemMatch = {};
+        if (statusFilter) childElemMatch.status = statusFilter;
+        if (search) {
+            childElemMatch.$or = [
+                { equipment_name: { $regex: search, $options: "i" } },
+                { equipment_serial_number: { $regex: search, $options: "i" } },
+                { supplier: { $regex: search, $options: "i" } }
+            ];
+        }
+
+        // Nếu có điều kiện tìm kiếm ở thiết bị con, yêu cầu mảng phải có ít nhất 1 cái khớp
+        if (Object.keys(childElemMatch).length > 0) {
+            initialMatch.equipment = { $elemMatch: childElemMatch };
+        }
+
+        // --- BƯỚC 2: XÂY DỰNG ĐIỀU KIỆN "GỌT MẢNG" TRONG RAM ($filter) ---
+        const arrayFilterConditions = [];
+        if (statusFilter) {
+            arrayFilterConditions.push({ $eq: ["$$item.status", statusFilter] });
+        }
+        if (search) {
+            arrayFilterConditions.push({
+                $or: [
+                    // Dùng $ifNull để tránh lỗi khi field bị thiếu/null
+                    { $regexMatch: { input: { $ifNull: ["$$item.equipment_name", ""] }, regex: search, options: "i" } },
+                    { $regexMatch: { input: { $ifNull: ["$$item.equipment_serial_number", ""] }, regex: search, options: "i" } },
+                    { $regexMatch: { input: { $ifNull: ["$$item.supplier", ""] }, regex: search, options: "i" } }
+                ]
+            });
+        }
+
+        const aggregatePipeline = [
+            // 1. Sàng lọc thô (Lọc ra các nhóm cha thỏa mãn)
+            { $match: initialMatch },
+
+            // 2. Tinh chế mảng (Chỉ giữ lại những thằng con thỏa mãn)
+            ...(arrayFilterConditions.length > 0 ? [
+                {
+                    $addFields: {
+                        equipment: {
+                            $filter: {
+                                input: "$equipment",
+                                as: "item",
+                                cond: { $and: arrayFilterConditions } // Áp dụng điều kiện gọt mảng
+                            }
+                        }
+                    }
                 }
-            },
-            // 2. Sắp xếp (Sort)
-            { $sort: { equipment_name: sort } },
-            // 3. Phân trang và định hình dữ liệu trả về (Facet & Project)
+            ] : []),
+
+            // 3. Sắp xếp các nhóm theo Tên Loại Thiết Bị
+            { $sort: { equipment_type: sortOrder } },
+
+            // 4. Phân trang
             {
                 $facet: {
                     data: [
@@ -69,27 +103,25 @@ const getEquipments = async (query) => {
                                 __v: 0,
                                 createdAt: 0,
                                 updatedAt: 0,
-                                maintenance_history: 0,
-                                equipments_log: 0 // Đã chuẩn hóa tên theo đúng model Equipment
+                                "equipment.maintenance_history": 0,
+                                "equipment.equipments_log": 0
                             }
                         }
                     ],
                     totalItems: [{ $count: "count" }]
                 }
             }
-        ]);
+        ];
 
-        logger.debug("Equipments fetched successfully", {
-            context: "EquipmentService.getEquipments",
-            resultCount: result[0]?.data?.length || 0, // Log số lượng thay vì mảng data lớn để console gọn gàng hơn
-        });
+        const result = await EquipmentModel.aggregate(aggregatePipeline);
 
-        // --- CHUẨN BỊ KẾT QUẢ TRẢ VỀ ---
         const data = result[0]?.data || [];
+        const totalItemsCount = result[0]?.totalItems[0]?.count || 0;
+
         const pagination = new Pagination({
             page: page,
             size: limit,
-            totalItems: result[0]?.totalItems[0]?.count || 0,
+            totalItems: totalItemsCount,
         });
 
         return { data, pagination };
@@ -100,9 +132,7 @@ const getEquipments = async (query) => {
             message: error.message,
             stack: error.stack,
         });
-        throw new errorRes.InternalServerError(
-            `An error occurred while fetching equipments: ${error.message}`
-        );
+        throw new errorRes.InternalServerError(`An error occurred while fetching equipments: ${error.message}`);
     }
 };
 
@@ -335,9 +365,9 @@ const createEquipment = async (dataCreate) => {
 
         // NẾU ĐÃ TỒN TẠI -> Chặn không cho tạo và ném lỗi Conflict
         if (category) {
-            logger.warn("Equipment type already exists", { 
-                context: context, 
-                equipment_type: dataCreate.equipment_type 
+            logger.warn("Equipment type already exists", {
+                context: context,
+                equipment_type: dataCreate.equipment_type
             });
             throw new errorRes.ConflictError(`Equipment type '${dataCreate.equipment_type}' already exists. Please use the add items API instead.`);
         }
@@ -358,10 +388,10 @@ const createEquipment = async (dataCreate) => {
             message: error.message,
             stack: error.stack,
         });
-        
+
         // Giữ lại mã lỗi gốc (ví dụ: 409 Conflict) để trả về đúng cho Frontend
         if (error.statusCode) throw error;
-        
+
         throw new errorRes.InternalServerError(
             `An error occurred while creating equipment: ${error.message}`
         );
@@ -380,10 +410,10 @@ const addEquipmentItems = async (categoryId, newItems) => {
         // Sử dụng $push kết hợp $each để thêm nhiều phần tử vào mảng cùng lúc
         const updatedCategory = await EquipmentModel.findByIdAndUpdate(
             categoryId,
-            { 
-                $push: { 
-                    equipment: { $each: newItems } 
-                } 
+            {
+                $push: {
+                    equipment: { $each: newItems }
+                }
             },
             { new: true, runValidators: true }
         );
@@ -475,8 +505,8 @@ const updateEquipmentItem = async (equipmentItemId, dataUpdate) => {
 
         // 2. Tìm document chứa item đó, và chỉ update đúng phần tử (nhờ toán tử $)
         const updatedDoc = await EquipmentModel.findOneAndUpdate(
-            { "equipment._id": equipmentItemId }, 
-            { $set: setQuery },                  
+            { "equipment._id": equipmentItemId },
+            { $set: setQuery },
             { new: true, runValidators: true }
         );
 
@@ -493,48 +523,53 @@ const updateEquipmentItem = async (equipmentItemId, dataUpdate) => {
 };
 
 /*
-    get statistics of equipments based on their status
-*/
+ * get statistics of equipments based on their status (Nested Array - Safe with $ifNull)
+ */
 const getStatistics = async () => {
     try {
         logger.debug("Fetching equipment statistics", {
             context: "EquipmentService.getStatistics"
         });
 
-        // Sử dụng Aggregation để đếm số lượng theo từng trạng thái trong 1 lần query duy nhất
         const result = await EquipmentModel.aggregate([
             {
-                $group: {
-                    _id: null, // Nhóm tất cả các documents lại thành 1 record duy nhất
-                    total: { $sum: 1 }, // Đếm tổng số
-
-                    // Sử dụng $cond (Condition) để kiểm tra: nếu status khớp thì cộng 1, ngược lại cộng 0
-                    // LƯU Ý: Bạn hãy điều chỉnh các chuỗi "READY", "IN_USE"... cho khớp với Enum trong Database của bạn nhé
-                    ready: { $sum: { $cond: [{ $eq: ["$status", "READY"] }, 1, 0] } },
-                    in_use: { $sum: { $cond: [{ $eq: ["$status", "IN_USE"] }, 1, 0] } },
-                    maintenance: { $sum: { $cond: [{ $eq: ["$status", "MAINTENANCE"] }, 1, 0] } },
-                    repairing: { $sum: { $cond: [{ $eq: ["$status", "REPAIRING"] }, 1, 0] } },
-                    faulty: { $sum: { $cond: [{ $eq: ["$status", "FAULTY"] }, 1, 0] } },
-                    sterilizing: { $sum: { $cond: [{ $eq: ["$status", "STERILIZING"] }, 1, 0] } }
+                // BƯỚC 0 (QUAN TRỌNG): Xử lý an toàn mảng equipment, nếu null thì đổi thành mảng rỗng []
+                // Tạo ra một trường ảo tên là safeEquipment để dùng cho các bước sau cho gọn
+                $addFields: {
+                    safeEquipment: { $ifNull: ["$equipment", []] }
                 }
             },
             {
-                // Bước Project để loại bỏ trường _id mặc định của $group
-                $project: {
-                    _id: 0
+                // Bước 1: Đếm số lượng theo từng trạng thái dựa trên safeEquipment
+                $addFields: {
+                    readyCount: { $size: { $filter: { input: "$safeEquipment", as: "item", cond: { $eq: ["$$item.status", "READY"] } } } },
+                    inUseCount: { $size: { $filter: { input: "$safeEquipment", as: "item", cond: { $eq: ["$$item.status", "IN_USE"] } } } },
+                    maintenanceCount: { $size: { $filter: { input: "$safeEquipment", as: "item", cond: { $eq: ["$$item.status", "MAINTENANCE"] } } } },
+                    repairingCount: { $size: { $filter: { input: "$safeEquipment", as: "item", cond: { $eq: ["$$item.status", "REPAIRING"] } } } },
+                    faultyCount: { $size: { $filter: { input: "$safeEquipment", as: "item", cond: { $eq: ["$$item.status", "FAULTY"] } } } },
+                    sterilizingCount: { $size: { $filter: { input: "$safeEquipment", as: "item", cond: { $eq: ["$$item.status", "STERILIZING"] } } } }
                 }
+            },
+            {
+                // Bước 2: Gom tất cả các document lại và tính tổng
+                $group: {
+                    _id: null,
+                    total: { $sum: { $size: "$safeEquipment" } }, // Đếm trên safeEquipment sẽ không bao giờ lỗi
+                    ready: { $sum: "$readyCount" },
+                    in_use: { $sum: "$inUseCount" },
+                    maintenance: { $sum: "$maintenanceCount" },
+                    repairing: { $sum: "$repairingCount" },
+                    faulty: { $sum: "$faultyCount" },
+                    sterilizing: { $sum: "$sterilizingCount" }
+                }
+            },
+            {
+                $project: { _id: 0 }
             }
         ]);
 
-        // Xử lý trường hợp database chưa có thiết bị nào (Collection rỗng)
         const defaultStats = {
-            total: 0,
-            ready: 0,
-            in_use: 0,
-            maintenance: 0,
-            repairing: 0,
-            faulty: 0,
-            sterilizing: 0
+            total: 0, ready: 0, in_use: 0, maintenance: 0, repairing: 0, faulty: 0, sterilizing: 0
         };
 
         const statsData = result.length > 0 ? result[0] : defaultStats;
@@ -552,9 +587,7 @@ const getStatistics = async () => {
             message: error.message,
             stack: error.stack,
         });
-        throw new errorRes.InternalServerError(
-            `An error occurred while fetching equipment statistics: ${error.message}`
-        );
+        throw new errorRes.InternalServerError(`An error occurred while fetching equipment statistics: ${error.message}`);
     }
 };
 
