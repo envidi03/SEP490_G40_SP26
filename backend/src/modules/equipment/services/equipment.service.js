@@ -329,8 +329,8 @@ const createEquipment = async (dataCreate) => {
         });
 
         // TÌM KIẾM xem loại thiết bị này đã tồn tại chưa
-        let category = await EquipmentModel.findOne({ 
-            equipment_type: dataCreate.equipment_type 
+        let category = await EquipmentModel.findOne({
+            equipment_type: dataCreate.equipment_type
         });
 
         let savedEquipment;
@@ -338,19 +338,19 @@ const createEquipment = async (dataCreate) => {
         if (category) {
             // KỊCH BẢN 1: Loại thiết bị ĐÃ TỒN TẠI -> Push thêm vào mảng
             logger.debug("Equipment type exists, appending to array", { context });
-            
+
             category.equipment.push(...dataCreate.equipment);
             savedEquipment = await category.save();
         } else {
             // KỊCH BẢN 2: Loại thiết bị CHƯA TỒN TẠI -> Tạo document mới hoàn toàn
             logger.debug("Equipment type does not exist, creating new document", { context });
-            
+
             const newCategory = new EquipmentModel(dataCreate);
             savedEquipment = await newCategory.save();
         }
 
         logger.debug("Equipment created/updated successfully", { context });
-        
+
         return savedEquipment;
 
     } catch (error) {
@@ -400,34 +400,51 @@ const checkExitSerialNumberNotId = async (serialNumber, id) => {
     }
 };
 
-/**
- * Update an existing equipment
- * @param {ObjectId} id equipment id to update
- * @param {*} updateData data to update
- * @returns updated equipment object
- */
-const updateEquipment = async (id, updateData) => {
+const updateCategory = async (categoryId, updateData) => {
+    const context = "EquipmentService.updateCategory";
     try {
-        logger.debug("Updating equipment", {
-            context: "EquipmentService.updateEquipment",
-            id: id,
-            updateData: updateData,
-        });
-        const updatedEquipment = await EquipmentModel.findByIdAndUpdate(id, updateData, { new: true, runValidators: true });
-        logger.debug("Equipment updated successfully", {
-            context: "EquipmentService.updateEquipment",
-            updatedEquipment: updatedEquipment,
-        });
-        return updatedEquipment;
-    } catch (error) {
-        logger.error("Error updating equipment", {
-            context: "EquipmentService.updateEquipment",
-            message: error.message,
-            stack: error.stack,
-        });
-        throw new errorRes.InternalServerError(
-            `An error occurred while updating equipment: ${error.message}`
+        // Update document cha cực nhanh, bỏ qua array equipment
+        const updatedCategory = await EquipmentModel.findByIdAndUpdate(
+            categoryId,
+            updateData,
+            { new: true, runValidators: true }
         );
+
+        if (!updatedCategory) throw new errorRes.NotFoundError("Equipment category not found");
+        return updatedCategory;
+    } catch (error) {
+        if (error.statusCode) throw error;
+        throw new errorRes.InternalServerError(`Error updating category: ${error.message}`);
+    }
+};
+
+/**
+ * Update 1 item cụ thể trong mảng equipment
+ */
+const updateEquipmentItem = async (equipmentItemId, dataUpdate) => {
+    const context = "EquipmentService.updateEquipmentItem";
+    try {
+        const setQuery = {};
+        for (const key in dataUpdate) {
+            setQuery[`equipment.$.${key}`] = dataUpdate[key];
+        }
+
+        // 2. Tìm document chứa item đó, và chỉ update đúng phần tử (nhờ toán tử $)
+        const updatedDoc = await EquipmentModel.findOneAndUpdate(
+            { "equipment._id": equipmentItemId }, 
+            { $set: setQuery },                  
+            { new: true, runValidators: true }
+        );
+
+        if (!updatedDoc) {
+            throw new errorRes.NotFoundError("Equipment item not found");
+        }
+
+        return updatedDoc;
+    } catch (error) {
+        logger.error("Error updating equipment item", { context, message: error.message });
+        if (error.statusCode) throw error;
+        throw new errorRes.InternalServerError(`An error occurred while updating equipment item: ${error.message}`);
     }
 };
 
@@ -563,6 +580,7 @@ module.exports = {
     checkExitSerialNumber,
     createEquipment,
     checkExitSerialNumberNotId,
-    updateEquipment,
+    updateEquipmentItem,
+    updateCategory,
     reportIncident
 };
