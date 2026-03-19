@@ -16,6 +16,7 @@ import PatientProfile from '../../pages/patients/PatientProfile';
 import PatientAppointments from '../../pages/patients/PatientAppointments';
 import PatientMedicalRecords from '../../pages/patients/PatientMedicalRecords';
 import SetPassword from '../../pages/auth/SetPassword';
+import PatientInvoices from '../../pages/patients/PatientInvoices';
 
 
 // Public routes - accessible without authentication
@@ -132,6 +133,10 @@ const publicRoutes = [
     {
         path: '/medical-records',
         element: <PatientMedicalRecords />
+    },
+    {
+        path: '/invoices',
+        element: <PatientInvoices />
     },
     {
         path: '/set-password',
