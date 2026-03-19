@@ -401,6 +401,57 @@ class EmailService {
         return this.sendEmail(email, subject, html);
     }
 
+    async sendNoShowEmail(email, patientName, date, time) {
+        if (!email) return;
+        const subject = 'Thông báo: Lịch hẹn vắng mặt - Dental Clinic Management System';
+        const clinicName = process.env.SMTP_FROM_NAME || 'Dental CMS';
+        const html = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <style>
+                    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+                    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+                    .header { background: linear-gradient(135deg, #FF4B2B 0%, #FF416C 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+                    .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+                    .info-box { background: white; border-left: 4px solid #FF4B2B; padding: 20px; margin: 20px 0; border-radius: 4px; }
+                    .info-table { width: 100%; border-collapse: collapse; }
+                    .info-table td { padding: 10px 0; border-bottom: 1px solid #eee; }
+                    .footer { text-align: center; margin-top: 20px; color: #666; font-size: 12px; }
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <div class="header">
+                        <h1 style="margin: 0;">Thông báo vắng mặt</h1>
+                    </div>
+                    <div class="content">
+                        <p>Xin chào <strong>${patientName}</strong>,</p>
+                        <p>Chúng tôi nhận thấy bạn đã không có mặt cho lịch hẹn tại <strong>${clinicName}</strong>.</p>
+                        <div class="info-box">
+                            <table class="info-table">
+                                <tr>
+                                    <td><strong>Ngày hẹn:</strong></td>
+                                    <td style="text-align: right; color: #FF4B2B; font-weight: bold;">${date}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Giờ hẹn:</strong></td>
+                                    <td style="text-align: right; color: #FF4B2B; font-weight: bold;">${time}</td>
+                                </tr>
+                            </table>
+                        </div>
+                        <p>Vì vậy, hệ thống đã tự động cập nhật trạng thái lịch hẹn của bạn là <strong>Vắng mặt (No Show)</strong>.</p>
+                        <p>Nếu bạn muốn đặt lại lịch khám mới, vui lòng truy cập trang web của chúng tôi hoặc liên hệ trực tiếp với phòng khám.</p>
+                        <p>Xin cảm ơn!</p>
+                        <div class="footer"><p>© 2026 ${clinicName}. All rights reserved.</p></div>
+                    </div>
+                </div>
+            </body>
+            </html>
+        `;
+        return this.sendEmail(email, subject, html);
+    }
+
     async sendEmail(to, subject, html) {
         try {
             const info = await this.transporter.sendMail({
