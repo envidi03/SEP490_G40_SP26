@@ -189,55 +189,86 @@ const createEquipment = async (req, res) => {
         throw error;
     }
 };
-// update equipment don't have purchase_date, status, maintence_history and equiments_logs
-const updateEquipment = async (req, res) => {
+
+/**
+ * Update Equipment Category (Parent level: equipment_type, status)
+ * Cập nhật tên loại thiết bị hoặc trạng thái của cả nhóm, KHÔNG đụng vào mảng equipment
+ * @param {*} req 
+ * @param {*} res 
+ */
+const updateCategoryController = async (req, res) => {
+    const context = 'EquipmentController.updateCategory';
     try {
-        const { equipmentId } = req.params;
-        const equipmentData = req.body || {};
-        // remove purchase_date, maintenance_history and equipments_log from the data to be updated (allow status)
-        const { purchase_date, maintenance_history, equipments_log, ...dataUpdate } = cleanObjectData(equipmentData, Equipment.createFields);
-        // check field is empty
-        if (Object.keys(dataUpdate).length === 0) {
-            logger.warn('No equipment data provided in request body', {
-                context: 'EquipmentController.updateEquipment'
-            });
-            throw new errorRes.BadRequestError('No equipment data provided');
+        const { categoryId } = req.params; 
+        const payload = req.body || {};
+        
+        // Whitelist các trường được phép update ở cấp độ cha
+        const safeData = {};
+        if (payload.equipment_type) safeData.equipment_type = payload.equipment_type.trim();
+        if (payload.status) safeData.status = payload.status.trim();
+
+        if (Object.keys(safeData).length === 0) {
+            throw new errorRes.BadRequestError('No valid category data provided for update');
         }
-        // check unique serial_number and not belong to this equipment
-        if (dataUpdate.equipment_serial_number) {
-            const existingEquipment = await EquipmentService.checkExitSerialNumberNotId(dataUpdate.equipment_serial_number, equipmentId);
-            if (existingEquipment) {
-                logger.warn('Serial number already exists', {
-                    context: 'EquipmentController.updateEquipment',
-                    serial_number: dataUpdate.equipment_serial_number
-                });
-                throw new errorRes.ConflictError('Serial number already exists');
+
+        const updatedCategory = await EquipmentService.updateCategory(categoryId, safeData);
+        
+        return new successRes.UpdateSuccess(updatedCategory, 'Equipment category updated successfully').send(res);
+    } catch (error) {
+        logger.error('Error updating equipment category', { context, message: error.message });
+        throw error;
+    }
+};
+
+/**
+ * Update Specific Equipment Item (Child level) don't have update purchase_date, status, maintence_history and equiments_logs
+ * Cập nhật thông tin của 1 thiết bị cụ thể dựa vào _id của thiết bị đó trong mảng
+ * @param {*} req 
+ * @param {*} res 
+ */
+const updateEquipmentItemController = async (req, res) => {
+    const context = 'EquipmentController.updateEquipmentItem';
+    try {
+        const { equipmentId } = req.params; // _id của cái máy cụ thể trong mảng
+        const dataUpdate = req.body || {};
+
+        // 1. Dùng Whitelist để tự động loại bỏ purchase_date, maintenance_history...
+        const allowedFields = ['equipment_name', 'equipment_serial_number', 'supplier', 'warranty', 'status'];
+        const safeData = {};
+        
+        for (const field of allowedFields) {
+            if (dataUpdate[field] !== undefined) {
+                safeData[field] = dataUpdate[field];
             }
-            // check lengh of serial_number from 6 to 20
-            if (dataUpdate.equipment_serial_number.length < 6 || dataUpdate.equipment_serial_number.length > 20) {
-                logger.warn('Serial number length is invalid', {
-                    context: 'EquipmentController.updateEquipment',
-                    serial_number: dataUpdate.equipment_serial_number
-                });
+        }
+
+        const cleanedData = cleanObjectData(safeData);
+
+        if (Object.keys(cleanedData).length === 0) {
+            throw new errorRes.BadRequestError('No valid equipment data provided');
+        }
+
+        // 2. Kiểm tra Serial Number (Nếu có thay đổi)
+        if (cleanedData.equipment_serial_number) {
+            const serial = cleanedData.equipment_serial_number;
+            
+            if (serial.length < 6 || serial.length > 20) {
                 throw new errorRes.BadRequestError('Serial number length must be between 6 and 20 characters');
             }
+
+            // Gọi hàm check trùng lặp (Đã được viết lại bên Service)
+            const isExist = await EquipmentService.checkExitSerialNumberNotId(serial, equipmentId);
+            if (isExist) {
+                throw new errorRes.ConflictError('Serial number already exists in another equipment');
+            }
         }
-        const updatedEquipment = await EquipmentService.updateEquipment(equipmentId, dataUpdate);
-        logger.debug('Updated equipment details', {
-            context: 'EquipmentController.updateEquipment',
-            equipment: updatedEquipment
-        });
-        logger.info('Equipment updated successfully', {
-            context: 'EquipmentController.updateEquipment',
-            equipmentId: updatedEquipment.id
-        });
-        return new successRes.UpdateSuccess(updatedEquipment, 'Equipment updated successfully').send(res);
+
+        // 3. Gọi Service để update
+        const updatedDoc = await EquipmentService.updateEquipmentItem(equipmentId, cleanedData);
+
+        return new successRes.UpdateSuccess(updatedDoc, 'Equipment item updated successfully').send(res);
     } catch (error) {
-        logger.error('Error update equipment', {
-            context: 'EquipmentController.updateEquipment',
-            message: error.message,
-            stack: error.stack
-        });
+        logger.error('Error updating equipment item', { context, message: error.message });
         throw error;
     }
 };
@@ -333,7 +364,8 @@ module.exports = {
     createEquipment,
     getEquipments,
     getEquipmentById,
-    updateEquipment,
+    updateEquipmentItemController,
+    updateCategoryController,
     updateEquipmentStatus,
     reportIncident
 };
