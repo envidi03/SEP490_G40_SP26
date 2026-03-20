@@ -157,7 +157,24 @@ const updateStatusOnly = async (id, status) => {
             id,
             { status: status },
             { new: true }
-        );
+        ).populate('patient_id', 'full_name');
+
+        // Gửi thông báo cho Dược sĩ nếu Ca khám đã XONG và Bác sĩ có kê đơn thuốc
+        if (status === 'DONE' && newData.medicine_usage && newData.medicine_usage.length > 0) {
+            try {
+                const notificationService = require('../../notification/service/notification.service');
+                const patientName = newData.patient_id?.full_name || 'Khách hàng';
+                await notificationService.sendToRole(['PHARMACIST'], {
+                    type: 'NEW_PRESCRIPTION',
+                    title: 'Đơn thuốc mới cần chuẩn bị',
+                    message: `Bác sĩ vừa kê đơn thuốc mới cho bệnh nhân ${patientName}. Vui lòng kiểm tra và chuẩn bị thuốc.`,
+                    action_url: `/pharmacy/prescriptions`
+                });
+            } catch (err) {
+                logger.error("Lỗi gửi thông báo Đơn thuốc mới cho Dược sĩ:", { message: err.message });
+            }
+        }
+
         return newData;
     } catch (error) {
         logger.error("Error updating treatment status.", {

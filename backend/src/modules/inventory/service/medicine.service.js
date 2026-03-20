@@ -1,5 +1,6 @@
 const Medicine = require("../model/medicine.model");
 const MedicineCategory = require("../model/medicine-category.model");
+const notificationService = require("../../notification/service/notification.service");
 
 /**
  * Lấy danh sách thuốc có phân trang, tìm kiếm và lọc theo danh mục
@@ -302,6 +303,19 @@ exports.createRestockRequest = async (medicineId, data) => {
     await medicine.save();
 
     const newRequest = medicine.medicine_restock_requests[medicine.medicine_restock_requests.length - 1];
+
+    // Gửi thông báo cho Quản lý kho / Dược sĩ
+    try {
+        await notificationService.sendToRole(['PHARMACIST'], {
+            type: 'RESTOCK_REQUESTED',
+            title: 'Yêu cầu lấy mới vật tư/thuốc',
+            message: `Có yêu cầu bổ sung mới cho thuốc/vật tư "${medicine.medicine_name}" (Số lượng: ${newRequest.quantity_requested}). Mức độ ưu tiên: ${newRequest.priority}.`,
+            action_url: `/inventory/restock-requests`
+        });
+    } catch (err) {
+        console.error("Lỗi gửi thông báo RESTOCK_REQUESTED:", err.message);
+    }
+
     return {
         ...newRequest.toObject(),
         medicine_name: medicine.medicine_name,
