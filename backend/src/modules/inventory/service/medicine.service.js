@@ -111,6 +111,15 @@ exports.createMedicine = async (data) => {
         throw error;
     }
 
+    if (data.dosage_form) {
+        const validDosageForms = ["Viên", "Viên nén", "Viên nang", "Dung dịch", "Siro", "Kem", "Bột", "Gói", "Tuýp", "Chai", "Ống", "Hỗn dịch"];
+        if (!validDosageForms.includes(data.dosage_form.trim())) {
+            const error = new Error("Dạng bào chế không hợp lệ");
+            error.statusCode = 400;
+            throw error;
+        }
+    }
+
     const existingMedicine = await Medicine.findOne({
         medicine_name: { $regex: new RegExp(`^${data.medicine_name}$`, "i") }
     });
@@ -164,6 +173,15 @@ exports.updateMedicine = async (id, data) => {
         const expiryDate = new Date(data.expiry_date);
         if (isNaN(expiryDate.getTime())) {
             const error = new Error("Hạn sử dụng không hợp lệ");
+            error.statusCode = 400;
+            throw error;
+        }
+    }
+
+    if (data.dosage_form) {
+        const validDosageForms = ["Viên", "Viên nén", "Viên nang", "Dung dịch", "Siro", "Kem", "Bột", "Gói", "Tuýp", "Chai", "Ống", "Hỗn dịch"];
+        if (!validDosageForms.includes(data.dosage_form.trim())) {
+            const error = new Error("Dạng bào chế không hợp lệ");
             error.statusCode = 400;
             throw error;
         }

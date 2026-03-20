@@ -158,6 +158,7 @@ router.get("/medicines/categories", medicineController.getCategories);
  *                 example: 500mg
  *               dosage_form:
  *                 type: string
+ *                 description: Viên, Viên nén, Viên nang, Dung dịch, Siro, Kem, Bột, Gói, Tuýp, Chai, Ống, Hỗn dịch
  *                 example: Viên
  *               unit:
  *                 type: string
@@ -219,6 +220,9 @@ router.post("/medicines", medicineController.createMedicine);
  *                 type: string
  *               dosage:
  *                 type: string
+ *               dosage_form:
+ *                 type: string
+ *                 description: Viên, Viên nén, Viên nang, Dung dịch, Siro, Kem, Bột, Gói, Tuýp, Chai, Ống, Hỗn dịch
  *               unit:
  *                 type: string
  *               price:
