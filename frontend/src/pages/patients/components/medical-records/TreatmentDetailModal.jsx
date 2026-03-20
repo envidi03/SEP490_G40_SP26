@@ -1,11 +1,13 @@
 import React from 'react';
 import {
     X, Calendar, MapPin, Activity, DollarSign,
-    CheckCircle2, Pill
+    CheckCircle2, Pill, User
 } from 'lucide-react';
 import { getStatusBadge, formatCurrency } from './statusHelpers';
 
 const TreatmentDetailModal = ({ treatment, onClose }) => {
+
+
     if (!treatment) return null;
 
     return (
@@ -25,9 +27,27 @@ const TreatmentDetailModal = ({ treatment, onClose }) => {
 
                 {/* Body */}
                 <div className="p-6 space-y-5">
-                    {/* Status */}
+                    {/* Doctor */}
+                    <div className="flex items-center gap-3">
+                        <User size={18} className="text-primary-600" />
+                        <span className="font-medium text-gray-700">Bác sĩ:</span>
+                        <span className="text-gray-900 font-semibold">
+                            {treatment.doctor_info?.full_name || 'Đang cập nhật'}
+                        </span>
+                    </div>
+
+                    {/* Phase */}
                     <div className="flex items-center gap-3">
                         <Activity size={18} className="text-primary-600" />
+                        <span className="font-medium text-gray-700">Giai đoạn:</span>
+                        <span className="text-gray-600">
+                            {treatment.phase === 'PLAN' ? 'Kế hoạch' : 'Thực hiện'}
+                        </span>
+                    </div>
+
+                    {/* Status */}
+                    <div className="flex items-center gap-3">
+                        <CheckCircle2 size={18} className="text-primary-600" />
                         <span className="font-medium text-gray-700">Trạng thái:</span>
                         {getStatusBadge(treatment.status)}
                     </div>
@@ -53,7 +73,7 @@ const TreatmentDetailModal = ({ treatment, onClose }) => {
                     {/* Performed date */}
                     {treatment.performed_date && (
                         <div className="flex items-center gap-3">
-                            <CheckCircle2 size={18} className="text-green-600" />
+                            <Calendar size={18} className="text-green-600" />
                             <span className="font-medium text-gray-700">Ngày thực hiện:</span>
                             <span className="text-gray-600">{new Date(treatment.performed_date).toLocaleDateString('vi-VN')}</span>
                         </div>
@@ -85,11 +105,11 @@ const TreatmentDetailModal = ({ treatment, onClose }) => {
                     )}
 
                     {/* Medicine usage */}
-                    {treatment.medicine_usage && treatment.medicine_usage.length > 0 && (
-                        <div>
-                            <span className="font-medium text-gray-700 block mb-2 flex items-center gap-2">
-                                <Pill size={16} className="text-primary-600" /> Thuốc sử dụng trong buổi này:
-                            </span>
+                    <div>
+                        <span className="font-medium text-gray-700 block mb-2 flex items-center gap-2">
+                            <Pill size={16} className="text-primary-600" /> Thuốc sử dụng:
+                        </span>
+                        {treatment.medicine_usage && treatment.medicine_usage.length > 0 ? (
                             <div className="overflow-x-auto">
                                 <table className="w-full text-sm border border-gray-200 rounded-lg overflow-hidden">
                                     <thead className="bg-gray-50">
@@ -112,8 +132,12 @@ const TreatmentDetailModal = ({ treatment, onClose }) => {
                                     </tbody>
                                 </table>
                             </div>
-                        </div>
-                    )}
+                        ) : (
+                            <p className="text-gray-400 text-sm italic bg-gray-50 rounded-lg p-3 border border-dashed border-gray-200">
+                                Chưa có thuốc được chỉ định cho buổi điều trị này.
+                            </p>
+                        )}
+                    </div>
                 </div>
 
                 {/* Footer */}

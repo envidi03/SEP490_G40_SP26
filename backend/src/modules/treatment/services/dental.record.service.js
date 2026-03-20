@@ -109,8 +109,25 @@ const getListOfPatientService = async (query, patientId) => {
             },
           },
 
-          // 💡 [THÊM MỚI Ở ĐÂY]: Dọn dẹp cục data thuốc vừa lấy về
-          // Dùng $unset để chém bỏ mảng medicine_restock_requests trước khi ghép vào Đơn thuốc
+          // 💡 [THÊM MỚI Ở ĐÂY]: Lấy thông tin bác sĩ thực hiện buổi này
+          {
+            $lookup: {
+              from: "staffs",
+              localField: "doctor_id",
+              foreignField: "_id",
+              as: "doctor_temp",
+            },
+          },
+          {
+            $lookup: {
+              from: "profiles",
+              localField: "doctor_temp.profile_id",
+              foreignField: "_id",
+              as: "doctor_profile_temp",
+            },
+          },
+
+          // Dọn dẹp cục data thuốc vừa lấy về
           {
             $unset: "medicine_details_temp.medicine_restock_requests",
           },
@@ -145,11 +162,15 @@ const getListOfPatientService = async (query, patientId) => {
                   },
                 },
               },
+              doctor_info: {
+                _id: { $arrayElemAt: ["$doctor_temp._id", 0] },
+                full_name: { $arrayElemAt: ["$doctor_profile_temp.full_name", 0] },
+              },
             },
           },
 
           // 3.4: Xóa mảng tạm để JSON trả về được sạch đẹp
-          { $project: { medicine_details_temp: 0 } },
+          { $project: { medicine_details_temp: 0, doctor_temp: 0, doctor_profile_temp: 0 } },
 
           // 3.5: Sắp xếp danh sách treatment theo thời gian tạo
           { $sort: { createdAt: 1 } },
