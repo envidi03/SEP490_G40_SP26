@@ -831,6 +831,27 @@ const updateStatusOnly = async (id, status, doctorId = null) => {
                             action_url: `/appointments/${newData._id}`
                         });
                     }
+
+                    // Kiểm tra cảnh báo bất thường số lượng hủy lịch (ADMIN_CLINIC)
+                    if (status === "CANCELLED") {
+                        const now = new Date();
+                        const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                        const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+                        const cancelCount = await AppointmentModel.countDocuments({
+                            status: "CANCELLED",
+                            updatedAt: { $gte: startOfDay, $lte: endOfDay }
+                        });
+                        
+                        // Cảnh báo nếu chạm mốc 10, 20, 30... ca hủy
+                        if (cancelCount > 0 && cancelCount % 10 === 0) {
+                            await notificationService.sendToRole(['ADMIN_CLINIC'], {
+                                type: 'HIGH_CANCELLATION_RATE',
+                                title: 'Cảnh báo khẩn: Hủy lịch tăng vọt',
+                                message: `Hệ thống ghi nhận có ${cancelCount} ca hủy lịch khám trong ngày hôm nay. Vui lòng kiểm tra lại tình hình.`,
+                                action_url: `/appointments`
+                            });
+                        }
+                    }
                 } catch (err) {
                     logger.error("Lỗi gửi thông báo hủy lịch/khách không đến:", { message: err.message });
                 }
