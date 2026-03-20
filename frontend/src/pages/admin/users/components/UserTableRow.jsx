@@ -18,9 +18,6 @@ const UserTableRow = ({ user, roleConfig, statusConfig, onView, onLockUnlock }) 
         <tr className="hover:bg-gray-50">
             <td className="px-6 py-4">
                 <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center flex-shrink-0">
-                        {RoleIcon ? <RoleIcon className="text-primary-600" size={20} /> : <Users size={20} className="text-primary-600" />}
-                    </div>
                     <div className="min-w-0">
                         <div className="font-medium text-gray-900 truncate">{user.fullName}</div>
                         <div className="text-sm text-gray-500 truncate">@{user.username}</div>

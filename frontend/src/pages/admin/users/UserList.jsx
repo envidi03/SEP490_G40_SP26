@@ -63,11 +63,12 @@ const normalizeStaff = (staff) => ({
 const UserList = () => {
     // ========== STATE ==========
     const [users, setUsers] = useState([]);
-    const [pagination, setPagination] = useState({ page: 1, size: 10, totalItems: 0, totalPages: 0 });
+    const [pagination, setPagination] = useState({ page: 1, size: 6, totalItems: 0, totalPages: 0 });
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [filterRole, setFilterRole] = useState('all');
     const [filterStatus, setFilterStatus] = useState('all');
+    const [serverStats, setServerStats] = useState({ total: 0, active: 0, inactive: 0, admins: 0, doctors: 0, staff: 0 });
     const [toast, setToast] = useState({ show: false, type: 'success', message: '' });
 
     // Modal states
@@ -79,61 +80,50 @@ const UserList = () => {
     const [confirmAction, setConfirmAction] = useState(null);
 
     // ========== API CALLS ==========
-    const fetchUsers = useCallback(async (page = 1) => {
+    const fetchUsers = useCallback(async (page = 1, search = searchTerm, role = filterRole, status = filterStatus) => {
         try {
             setLoading(true);
             const params = {
                 page,
                 limit: pagination.size,
-                ...(searchTerm.trim() && { search: searchTerm.trim() }),
+                ...(search.trim() && { search: search.trim() }),
+                ...(role !== 'all' && { role_name: role }),
+                ...(status !== 'all' && { status: status }),
             };
             const response = await staffService.getStaffs(params);
             const raw = response?.data || [];
             const pagi = response?.pagination || {};
+            const stats = response?.statistics || {};
 
             setUsers(raw.map(normalizeStaff));
             setPagination({
                 page: pagi.page || page,
-                size: pagi.size || 10,
+                size: pagi.size || 6,
                 totalItems: pagi.totalItems || 0,
-                totalPages: Math.ceil((pagi.totalItems || 0) / (pagi.size || 10))
+                totalPages: Math.ceil((pagi.totalItems || 0) / (pagi.size || 6))
             });
+            setServerStats(stats);
         } catch (error) {
             console.error('Error fetching users:', error);
             setToast({ show: true, type: 'error', message: '❌ Không thể tải danh sách người dùng.' });
         } finally {
             setLoading(false);
         }
-    }, [searchTerm, pagination.size]);
+    }, [pagination.size]);
 
+    // Combined effect for fetching
     useEffect(() => {
-        fetchUsers(1);
-    }, []);
-
-    // Debounce search
-    useEffect(() => {
+        const isSearchChange = searchTerm !== '';
         const timer = setTimeout(() => {
-            fetchUsers(1);
-        }, 500);
+            fetchUsers(1, searchTerm, filterRole, filterStatus);
+        }, isSearchChange ? 500 : 0);
+
         return () => clearTimeout(timer);
-    }, [searchTerm]);
+    }, [searchTerm, filterRole, filterStatus]);
 
-    // ========== CLIENT-SIDE FILTER (role & status — backend không hỗ trợ) ==========
-    const filteredUsers = users.filter(user => {
-        const matchesRole = filterRole === 'all' || user.role === filterRole;
-        const matchesStatus = filterStatus === 'all' || user.status === filterStatus;
-        return matchesRole && matchesStatus;
-    });
-
-    // ========== STATS ==========
-    const stats = {
-        total: pagination.totalItems,
-        active: users.filter(u => u.status === 'ACTIVE').length,
-        inactive: users.filter(u => u.status === 'INACTIVE').length,
-        admins: users.filter(u => u.role === 'ADMIN_CLINIC').length,
-        doctors: users.filter(u => u.role === 'DOCTOR').length,
-        staff: users.filter(u => ['RECEPTIONIST', 'PHARMACIST', 'ASSISTANT'].includes(u.role)).length,
-    };
+    // Reset to page 1 is handled inside the effect above when filters change (fetchUsers(1,...))
+    // but the currentPage state should probably be explicitly managed if SharedPagination is used.
+    // However, UserPagination currently uses pagination.page from the backend response.
 
     // ========== HANDLERS ==========
     const showToast = (type, message) => setToast({ show: true, type, message });
@@ -176,10 +166,10 @@ const UserList = () => {
             onConfirm: async () => {
                 try {
                     await staffService.updateStaffStatus(user.accountId, isActive ? 'INACTIVE' : 'ACTIVE');
-                    showToast('success', isActive ? '✅ Đã khóa tài khoản!' : '✅ Đã mở khóa tài khoản!');
+                    showToast('success', isActive ? 'Đã khóa tài khoản!' : 'Đã mở khóa tài khoản!');
                     fetchUsers(pagination.page);
                 } catch (error) {
-                    showToast('error', error?.message || '❌ Có lỗi xảy ra.');
+                    showToast('error', error?.message || 'Có lỗi xảy ra.');
                 }
                 setConfirmModalOpen(false);
             }
@@ -206,19 +196,19 @@ const UserList = () => {
                 if (formData.certificate) data.append('license', formData.certificate);
                 if (formData.avatar) data.append('avatar', formData.avatar);
                 await staffService.createStaff(data);
-                showToast('success', '✅ Thêm người dùng thành công!');
+                showToast('success', 'Thêm người dùng thành công!');
             } else {
                 if (formData.certificate) data.append('license', formData.certificate);
                 if (formData.avatar) data.append('avatar', formData.avatar);
                 await staffService.updateStaff(selectedUser.accountId, data);
-                showToast('success', '✅ Cập nhật thông tin thành công!');
+                showToast('success', 'Cập nhật thông tin thành công!');
             }
 
             setFormModalOpen(false);
             fetchUsers(pagination.page);
         } catch (error) {
             console.error('Error saving user:', error);
-            showToast('error', error?.response?.data?.message || error?.message || '❌ Có lỗi xảy ra.');
+            showToast('error', error?.response?.data?.message || error?.message || 'Có lỗi xảy ra.');
         }
     };
 
@@ -241,7 +231,7 @@ const UserList = () => {
             </div>
 
             {/* Stats */}
-            <UserStatsCards stats={stats} />
+            <UserStatsCards stats={serverStats} />
 
             {/* Filters */}
             <UserFilters
@@ -262,7 +252,7 @@ const UserList = () => {
                 <>
                     {/* Desktop Table */}
                     <UserTable
-                        users={filteredUsers}
+                        users={users}
                         roleConfig={roleConfig}
                         statusConfig={statusConfig}
                         onView={handleViewUser}
@@ -271,7 +261,7 @@ const UserList = () => {
 
                     {/* Mobile Card */}
                     <UserMobileList
-                        users={filteredUsers}
+                        users={users}
                         roleConfig={roleConfig}
                         statusConfig={statusConfig}
                         onView={handleViewUser}
@@ -284,7 +274,7 @@ const UserList = () => {
                             currentPage={pagination.page}
                             totalPages={pagination.totalPages}
                             totalItems={pagination.totalItems}
-                            currentCount={filteredUsers.length}
+                            currentCount={users.length}
                             onPageChange={(page) => fetchUsers(page)}
                         />
                     )}

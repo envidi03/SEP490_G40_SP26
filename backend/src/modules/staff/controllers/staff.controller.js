@@ -32,7 +32,7 @@ const getListController = async (req, res) => {
       query: queryParams,
     });
 
-    const { data, pagination } =
+    const { data, pagination, statistics } =
       await ServiceProcess.getListService(queryParams);
     const paginationData = new Pagination({
       page: pagination.page,
@@ -44,6 +44,7 @@ const getListController = async (req, res) => {
       data,
       paginationData,
       "Staff retrieved successfully",
+      statistics
     ).send(res);
   } catch (error) {
     logger.error("Error get staffs", {
