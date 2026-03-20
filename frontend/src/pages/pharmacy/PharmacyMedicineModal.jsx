@@ -18,7 +18,7 @@ const INITIAL_FORM = {
     batchNumber: ''
 };
 
-const DEFAULT_DOSAGE_FORMS = ['Viên', 'Viên nén', 'Viên nang', 'Dung dịch', 'Siro', 'Kem', 'Bột', 'Gói', 'Tuýp', 'Chai', 'Ống', 'Hỗn dịch'];
+
 const UNITS = ['Viên', 'Chai', 'Lọ', 'Tuýp', 'Hộp', 'Bộ', 'Gói', 'ml', 'mg'];
 
 const PharmacyMedicineModal = ({ isOpen, onClose, onSubmit, editData = null, submitting = false }) => {
@@ -54,7 +54,7 @@ const PharmacyMedicineModal = ({ isOpen, onClose, onSubmit, editData = null, sub
                 if (res?.success) setDosageForms(res.data || []);
             })
             .catch(() => {
-                setDosageForms(DEFAULT_DOSAGE_FORMS);
+                setDosageForms([]);
             });
     }, []);
 
