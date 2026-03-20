@@ -19,7 +19,7 @@ const INITIAL_FORM = {
 };
 
 
-const UNITS = ['Viên', 'Chai', 'Lọ', 'Tuýp', 'Hộp', 'Bộ', 'Gói', 'ml', 'mg'];
+
 
 const PharmacyMedicineModal = ({ isOpen, onClose, onSubmit, editData = null, submitting = false }) => {
     const isEdit = !!editData;
@@ -27,6 +27,7 @@ const PharmacyMedicineModal = ({ isOpen, onClose, onSubmit, editData = null, sub
     const [errors, setErrors] = useState({});
     const [categories, setCategories] = useState([]);
     const [dosageForms, setDosageForms] = useState([]);
+    const [units, setUnits] = useState([]);
 
     // Lấy danh mục và dạng bào chế từ API
     useEffect(() => {
@@ -55,6 +56,14 @@ const PharmacyMedicineModal = ({ isOpen, onClose, onSubmit, editData = null, sub
             })
             .catch(() => {
                 setDosageForms([]);
+            });
+
+        inventoryService.getUnits()
+            .then(res => {
+                if (res?.success) setUnits(res.data || []);
+            })
+            .catch(() => {
+                setUnits([]);
             });
     }, []);
 
@@ -270,7 +279,7 @@ const PharmacyMedicineModal = ({ isOpen, onClose, onSubmit, editData = null, sub
                             className={inputClass('unit')}
                         >
                             <option value="">-- Chọn đơn vị --</option>
-                            {UNITS.map(u => (
+                            {units.map(u => (
                                 <option key={u} value={u}>{u}</option>
                             ))}
                         </select>

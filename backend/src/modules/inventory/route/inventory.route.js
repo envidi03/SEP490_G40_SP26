@@ -153,6 +153,33 @@ router.get("/medicines/dosage-forms", medicineController.getDosageForms);
 
 /**
  * @swagger
+ * /api/inventory/medicines/units:
+ *   get:
+ *     summary: Lấy danh sách đơn vị tính thuốc (cho dropdown)
+ *     tags: [Inventory]
+ *     responses:
+ *       200:
+ *         description: Thành công
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: string
+ *                   example: ["Viên", "Chai"]
+ *       500:
+ *         description: Lỗi server
+ */
+router.get("/medicines/units", medicineController.getUnits);
+
+/**
+ * @swagger
  * /api/inventory/medicines:
  *   post:
  *     summary: Thêm thuốc mới

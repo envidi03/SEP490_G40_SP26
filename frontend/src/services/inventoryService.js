@@ -73,6 +73,15 @@ const inventoryService = {
     },
 
     /**
+     * Lấy danh sách đơn vị tính thuốc
+     * GET /api/inventory/medicines/units
+     */
+    getUnits: async () => {
+        const response = await apiClient.get('/api/inventory/medicines/units');
+        return response;
+    },
+
+    /**
      * Lấy chi tiết thuốc theo ID
      * GET /api/inventory/medicines/:id
      */

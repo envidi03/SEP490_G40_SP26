@@ -47,6 +47,21 @@ exports.getDosageForms = (req, res) => {
     }
 };
 
+exports.getUnits = (req, res) => {
+    try {
+        const units = medicineService.getUnits();
+        return res.status(200).json({
+            success: true,
+            data: units
+        });
+    } catch (error) {
+        return res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+};
+
 exports.createMedicine = async (req, res) => {
     try {
         const medicine = await medicineService.createMedicine(req.body);

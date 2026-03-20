@@ -64,6 +64,13 @@ exports.getDosageForms = () => {
 };
 
 /**
+ * Lấy danh sách đơn vị tính thuốc
+ */
+exports.getUnits = () => {
+    return ['Viên', 'Chai', 'Lọ', 'Tuýp', 'Hộp', 'Bộ', 'Gói', 'Vỉ', 'Ống', 'ml', 'mg'];
+};
+
+/**
  * Thêm thuốc mới
  */
 exports.createMedicine = async (data) => {
@@ -125,6 +132,15 @@ exports.createMedicine = async (data) => {
         const validDosageForms = ["Viên", "Viên nén", "Viên nang", "Dung dịch", "Siro", "Kem", "Bột", "Gói", "Tuýp", "Chai", "Ống", "Hỗn dịch"];
         if (!validDosageForms.includes(data.dosage_form.trim())) {
             const error = new Error("Dạng bào chế không hợp lệ");
+            error.statusCode = 400;
+            throw error;
+        }
+    }
+
+    if (data.unit) {
+        const validUnits = ['Viên', 'Chai', 'Lọ', 'Tuýp', 'Hộp', 'Bộ', 'Gói', 'Vỉ', 'Ống', 'ml', 'mg'];
+        if (!validUnits.includes(data.unit.trim())) {
+            const error = new Error("Đơn vị tính không hợp lệ");
             error.statusCode = 400;
             throw error;
         }
@@ -192,6 +208,15 @@ exports.updateMedicine = async (id, data) => {
         const validDosageForms = ["Viên", "Viên nén", "Viên nang", "Dung dịch", "Siro", "Kem", "Bột", "Gói", "Tuýp", "Chai", "Ống", "Hỗn dịch"];
         if (!validDosageForms.includes(data.dosage_form.trim())) {
             const error = new Error("Dạng bào chế không hợp lệ");
+            error.statusCode = 400;
+            throw error;
+        }
+    }
+
+    if (data.unit) {
+        const validUnits = ['Viên', 'Chai', 'Lọ', 'Tuýp', 'Hộp', 'Bộ', 'Gói', 'Vỉ', 'Ống', 'ml', 'mg'];
+        if (!validUnits.includes(data.unit.trim())) {
+            const error = new Error("Đơn vị tính không hợp lệ");
             error.statusCode = 400;
             throw error;
         }

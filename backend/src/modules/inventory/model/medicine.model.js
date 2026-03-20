@@ -88,8 +88,9 @@ const medicineSchema = new Schema(
         },
 
         unit: {
-            // Đơn vị tính: Viên, Hộp, Chai, Tuýp...
+            // Đơn vị tính
             type: String,
+            enum: ['Viên', 'Chai', 'Lọ', 'Tuýp', 'Hộp', 'Bộ', 'Gói', 'Vỉ', 'Ống', 'ml', 'mg'],
             required: true,
             trim: true
         },
