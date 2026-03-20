@@ -73,7 +73,7 @@ const PharmacyMedicineModal = ({ isOpen, onClose, onSubmit, editData = null, sub
             if (editData) {
                 setFormData({
                     name: editData.name || '',
-                    category: editData.category || '',
+                    category: (typeof editData.category === 'object' && editData.category ? editData.category._id : editData.category) || '',
                     dosage: editData.dosage || '',
                     dosage_form: editData.dosage_form || '',
                     manufacturer: editData.manufacturer || '',
@@ -210,9 +210,13 @@ const PharmacyMedicineModal = ({ isOpen, onClose, onSubmit, editData = null, sub
                             className={inputClass('category')}
                         >
                             <option value="">-- Chọn danh mục --</option>
-                            {categories.map(cat => (
-                                <option key={cat} value={cat}>{cat}</option>
-                            ))}
+                            {categories.map(cat => {
+                                const id = typeof cat === 'object' ? cat._id : cat;
+                                const name = typeof cat === 'object' ? cat.name : cat;
+                                return (
+                                    <option key={id} value={id}>{name}</option>
+                                );
+                            })}
                         </select>
                         {errors.category && <p className="text-red-500 text-xs mt-1">{errors.category}</p>}
                     </div>
