@@ -352,7 +352,7 @@ const getListOfPatientService = async (query, account_id) => {
                         {
                             $addFields: {
                                 "doctor_info.profile_id": { $arrayElemAt: ["$doctor_profile", 0] },
-                                doctor_name: { 
+                                doctor_name: {
                                     $arrayElemAt: ["$doctor_profile.full_name", 0]
                                 }
                             }
@@ -555,235 +555,235 @@ const getByIdService = async (id) => {
     only get appointment with account_id
 */
 const getListOfPatientServiceWithDate = async (query, account_id) => {
-  try {
-    logger.debug("Fetching list of patient appointments with query", {
-      context: "AppointmentService.getListOfPatientService",
-      query: query,
-      account_id: account_id,
-    });
+    try {
+        logger.debug("Fetching list of patient appointments with query", {
+            context: "AppointmentService.getListOfPatientService",
+            query: query,
+            account_id: account_id,
+        });
 
-    // 1. Lấy và chuẩn hóa các tham số từ query
-    const search = query.search?.trim();
-    const statusFilter = query.status ? query.status.toUpperCase() : null;
-    const sortOrder = query.sort === "desc" ? -1 : 1;
+        // 1. Lấy và chuẩn hóa các tham số từ query
+        const search = query.search?.trim();
+        const statusFilter = query.status ? query.status.toUpperCase() : null;
+        const sortOrder = query.sort === "desc" ? -1 : 1;
 
-    // SỬA: Thêm cơ số 10 vào parseInt để đảm bảo an toàn
-    const page = Math.max(1, parseInt(query.page || 1, 10));
-    const limit = Math.max(1, parseInt(query.limit || 5, 10));
-    const skip = (page - 1) * limit;
+        // SỬA: Thêm cơ số 10 vào parseInt để đảm bảo an toàn
+        const page = Math.max(1, parseInt(query.page || 1, 10));
+        const limit = Math.max(1, parseInt(query.limit || 5, 10));
+        const skip = (page - 1) * limit;
 
-    // 2. Tìm Hồ sơ Bệnh nhân (Patient) dựa vào account_id
-    const patient = await PatientModel.findOne({ account_id: account_id }).lean();
+        // 2. Tìm Hồ sơ Bệnh nhân (Patient) dựa vào account_id
+        const patient = await PatientModel.findOne({ account_id: account_id }).lean();
 
-    if (!patient) {
-      logger.warn("Patient profile not found for this account", {
-        context: "AppointmentService.getListOfPatientService",
-        account_id: account_id,
-      });
-      return {
-        data: [],
-        pagination: { page, size: limit, totalItems: 0 },
-      };
-    }
+        if (!patient) {
+            logger.warn("Patient profile not found for this account", {
+                context: "AppointmentService.getListOfPatientService",
+                account_id: account_id,
+            });
+            return {
+                data: [],
+                pagination: { page, size: limit, totalItems: 0 },
+            };
+        }
 
-    // 3. Xây dựng điều kiện lọc (Match)
-    const matchCondition = {
-      patient_id: patient._id,
-    };
+        // 3. Xây dựng điều kiện lọc (Match)
+        const matchCondition = {
+            patient_id: patient._id,
+        };
 
-    // Lọc theo trạng thái
-    if (statusFilter) {
-      matchCondition.status = statusFilter;
-    }
+        // Lọc theo trạng thái
+        if (statusFilter) {
+            matchCondition.status = statusFilter;
+        }
 
-    // SỬA & BỔ SUNG: Logic cho filter_date (Lớn hơn ngày truyền vào hoặc lớn hơn hiện tại)
-    let dateToFilter = new Date(); // Mặc định là 'now'
-    if (query.filter_date) {
-      dateToFilter = new Date(query.filter_date);
-    }
-    dateToFilter.setUTCHours(0, 0, 0, 0);
+        // SỬA & BỔ SUNG: Logic cho filter_date (Lớn hơn ngày truyền vào hoặc lớn hơn hiện tại)
+        let dateToFilter = new Date(); // Mặc định là 'now'
+        if (query.filter_date) {
+            dateToFilter = new Date(query.filter_date);
+        }
+        dateToFilter.setUTCHours(0, 0, 0, 0);
 
-    logger.debug("filter date.", {
-        context: "getListOfPatientServiceWithDate",
-        data: dateToFilter
-    })
-    // Giả sử trường lưu thời gian hẹn trong DB của bạn là appointment_date
-    matchCondition.appointment_date = { $gte: dateToFilter };
+        logger.debug("filter date.", {
+            context: "getListOfPatientServiceWithDate",
+            data: dateToFilter
+        })
+        // Giả sử trường lưu thời gian hẹn trong DB của bạn là appointment_date
+        matchCondition.appointment_date = { $gte: dateToFilter };
 
-    // Tìm kiếm (Search) theo tên, số điện thoại, email
-    if (search) {
-      // Escape các ký tự đặc biệt trong regex để tránh lỗi (Optional nhưng khuyên dùng)
-      const safeSearch = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      const regexSearch = { $regex: safeSearch, $options: "i" };
-      matchCondition.$or = [
-        { full_name: regexSearch },
-        { phone: regexSearch },
-        { email: regexSearch },
-      ];
-    }
+        // Tìm kiếm (Search) theo tên, số điện thoại, email
+        if (search) {
+            // Escape các ký tự đặc biệt trong regex để tránh lỗi (Optional nhưng khuyên dùng)
+            const safeSearch = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const regexSearch = { $regex: safeSearch, $options: "i" };
+            matchCondition.$or = [
+                { full_name: regexSearch },
+                { phone: regexSearch },
+                { email: regexSearch },
+            ];
+        }
 
-    // 4. Xây dựng Aggregation Pipeline
-    const aggregatePipeline = [
-      { $match: matchCondition },
+        // 4. Xây dựng Aggregation Pipeline
+        const aggregatePipeline = [
+            { $match: matchCondition },
 
-      // SỬA: Sắp xếp theo appointment_date theo như comment yêu cầu
-      { $sort: { appointment_date: sortOrder } },
+            // SỬA: Sắp xếp theo appointment_date theo như comment yêu cầu
+            { $sort: { appointment_date: sortOrder } },
 
-      // Phân trang và Lookup
-      {
-        $facet: {
-          data: [
-            { $skip: skip },
-            { $limit: limit },
-
-            // Lookup thông tin bác sĩ
+            // Phân trang và Lookup
             {
-              $lookup: {
-                from: "staffs",
-                localField: "doctor_id",
-                foreignField: "_id",
-                as: "doctor_info",
-              },
-            },
-            {
-              $addFields: {
-                doctor_info: { $arrayElemAt: ["$doctor_info", 0] },
-              },
-            },
+                $facet: {
+                    data: [
+                        { $skip: skip },
+                        { $limit: limit },
 
-            // Lookup Profile của bác sĩ
-            {
-              $lookup: {
-                from: "profiles",
-                localField: "doctor_info.profile_id",
-                foreignField: "_id",
-                as: "doctor_profile",
-              },
-            },
-            {
-              $addFields: {
-                "doctor_info.profile_id": {
-                  $arrayElemAt: ["$doctor_profile", 0],
-                },
-                doctor_name: {
-                  $arrayElemAt: ["$doctor_profile.full_name", 0],
-                },
-                // Đưa thẳng object vào doctor_id
-                doctor_id: "$doctor_info" 
-              },
-            },
-
-            // Lookup thông tin các dịch vụ
-            {
-              $lookup: {
-                from: "services",
-                localField: "book_service.service_id",
-                foreignField: "_id",
-                as: "services_data",
-              },
-            },
-            {
-              $lookup: {
-                from: "sub_services",
-                localField: "book_service.sub_service_id",
-                foreignField: "_id",
-                as: "sub_services_data",
-              },
-            },
-            {
-              $addFields: {
-                book_service: {
-                  $map: {
-                    input: "$book_service",
-                    as: "bs",
-                    in: {
-                      $mergeObjects: [
-                        "$$bs",
+                        // Lookup thông tin bác sĩ
                         {
-                          service_name: {
-                            $let: {
-                              vars: {
-                                matchedService: {
-                                  $arrayElemAt: [
-                                    {
-                                      $filter: {
-                                        input: "$services_data",
-                                        cond: { $eq: ["$$this._id", "$$bs.service_id"] },
-                                      },
-                                    },
-                                    0,
-                                  ],
-                                },
-                              },
-                              in: "$$matchedService.service_name",
+                            $lookup: {
+                                from: "staffs",
+                                localField: "doctor_id",
+                                foreignField: "_id",
+                                as: "doctor_info",
                             },
-                          },
-                          sub_service_name: {
-                            $let: {
-                              vars: {
-                                matchedSub: {
-                                  $arrayElemAt: [
-                                    {
-                                      $filter: {
-                                        input: "$sub_services_data",
-                                        cond: { $eq: ["$$this._id", "$$bs.sub_service_id"] },
-                                      },
-                                    },
-                                    0,
-                                  ],
-                                },
-                              },
-                              in: "$$matchedSub.sub_service_name",
-                            },
-                          },
                         },
-                      ],
-                    },
-                  },
+                        {
+                            $addFields: {
+                                doctor_info: { $arrayElemAt: ["$doctor_info", 0] },
+                            },
+                        },
+
+                        // Lookup Profile của bác sĩ
+                        {
+                            $lookup: {
+                                from: "profiles",
+                                localField: "doctor_info.profile_id",
+                                foreignField: "_id",
+                                as: "doctor_profile",
+                            },
+                        },
+                        {
+                            $addFields: {
+                                "doctor_info.profile_id": {
+                                    $arrayElemAt: ["$doctor_profile", 0],
+                                },
+                                doctor_name: {
+                                    $arrayElemAt: ["$doctor_profile.full_name", 0],
+                                },
+                                // Đưa thẳng object vào doctor_id
+                                doctor_id: "$doctor_info"
+                            },
+                        },
+
+                        // Lookup thông tin các dịch vụ
+                        {
+                            $lookup: {
+                                from: "services",
+                                localField: "book_service.service_id",
+                                foreignField: "_id",
+                                as: "services_data",
+                            },
+                        },
+                        {
+                            $lookup: {
+                                from: "sub_services",
+                                localField: "book_service.sub_service_id",
+                                foreignField: "_id",
+                                as: "sub_services_data",
+                            },
+                        },
+                        {
+                            $addFields: {
+                                book_service: {
+                                    $map: {
+                                        input: "$book_service",
+                                        as: "bs",
+                                        in: {
+                                            $mergeObjects: [
+                                                "$$bs",
+                                                {
+                                                    service_name: {
+                                                        $let: {
+                                                            vars: {
+                                                                matchedService: {
+                                                                    $arrayElemAt: [
+                                                                        {
+                                                                            $filter: {
+                                                                                input: "$services_data",
+                                                                                cond: { $eq: ["$$this._id", "$$bs.service_id"] },
+                                                                            },
+                                                                        },
+                                                                        0,
+                                                                    ],
+                                                                },
+                                                            },
+                                                            in: "$$matchedService.service_name",
+                                                        },
+                                                    },
+                                                    sub_service_name: {
+                                                        $let: {
+                                                            vars: {
+                                                                matchedSub: {
+                                                                    $arrayElemAt: [
+                                                                        {
+                                                                            $filter: {
+                                                                                input: "$sub_services_data",
+                                                                                cond: { $eq: ["$$this._id", "$$bs.sub_service_id"] },
+                                                                            },
+                                                                        },
+                                                                        0,
+                                                                    ],
+                                                                },
+                                                            },
+                                                            in: "$$matchedSub.sub_service_name",
+                                                        },
+                                                    },
+                                                },
+                                            ],
+                                        },
+                                    },
+                                },
+                            },
+                        },
+
+                        {
+                            $project: {
+                                __v: 0,
+                                services_data: 0,
+                                sub_services_data: 0,
+                                doctor_info: 0,
+                                doctor_profile: 0,
+                            },
+                        },
+                    ],
+                    totalCount: [{ $count: "count" }],
                 },
-              },
             },
+        ];
 
-            {
-              $project: {
-                __v: 0,
-                services_data: 0,
-                sub_services_data: 0,
-                doctor_info: 0,
-                doctor_profile: 0,
-              },
+        // 5. Thực thi truy vấn
+        const result = await AppointmentModel.aggregate(aggregatePipeline);
+
+        const appointments = result[0]?.data || [];
+        const totalItems = result[0]?.totalCount[0]?.count || 0;
+
+        return {
+            data: appointments,
+            pagination: {
+                page: page,
+                size: limit,
+                totalItems: totalItems,
             },
-          ],
-          totalCount: [{ $count: "count" }],
-        },
-      },
-    ];
-
-    // 5. Thực thi truy vấn
-    const result = await AppointmentModel.aggregate(aggregatePipeline);
-
-    const appointments = result[0]?.data || [];
-    const totalItems = result[0]?.totalCount[0]?.count || 0;
-
-    return {
-      data: appointments,
-      pagination: {
-        page: page,
-        size: limit,
-        totalItems: totalItems,
-      },
-    };
-  } catch (error) {
-    logger.error("Error getting list of patient appointments", {
-      context: "AppointmentService.getListOfPatientService",
-      message: error.message,
-      stack: error.stack,
-    });
-    // Tránh việc vứt thẳng raw error.message cho client ở môi trường production
-    throw new errorRes.InternalServerError(
-      `An error occurred while fetching list of appointments: ${error.message}`,
-    );
-  }
+        };
+    } catch (error) {
+        logger.error("Error getting list of patient appointments", {
+            context: "AppointmentService.getListOfPatientService",
+            message: error.message,
+            stack: error.stack,
+        });
+        // Tránh việc vứt thẳng raw error.message cho client ở môi trường production
+        throw new errorRes.InternalServerError(
+            `An error occurred while fetching list of appointments: ${error.message}`,
+        );
+    }
 };
 
 const createService = async (dataCreate, account_id) => {
@@ -833,7 +833,7 @@ const createService = async (dataCreate, account_id) => {
                     });
                     throw new errorRes.NotFoundError(`Service not found! ID: ${service.service_id}`);
                 }
-                
+
                 if (!subServiceExist) {
                     logger.warn(`ID sub-service not found: ${service.sub_service_id}`, {
                         context: "AppointmentService.createService",
@@ -856,21 +856,6 @@ const createService = async (dataCreate, account_id) => {
             ).catch(err => logger.error("Lỗi gửi email đặt lịch:", { message: err.message }));
         }
 
-<<<<<<< HEAD
-        // Gửi thông báo In-App cho Lễ tân
-        try {
-            const formattedDate = new Date(newAppointment.appointment_date).toLocaleDateString('vi-VN');
-            await notificationService.sendToRole(['RECEPTIONIST'], {
-                type: 'NEW_APPOINTMENT',
-                title: 'Lịch hẹn trực tuyến mới',
-                message: `Bệnh nhân ${newAppointment.full_name} vừa đặt lịch hẹn vào lúc ${newAppointment.appointment_time} ngày ${formattedDate}.`,
-                action_url: `/appointments/${newAppointment._id}`
-            });
-        } catch (err) {
-            logger.error("Lỗi gửi thông báo cho Lễ tân khi có lịch mới:", { message: err.message });
-        }
-
-=======
         // --- 6. GỬI THÔNG BÁO NỘI BỘ (In-app Notification) ---
         const formattedDate = new Date(newAppointment.appointment_date).toLocaleDateString('vi-VN');
         const appointmentTime = newAppointment.appointment_time;
@@ -899,7 +884,6 @@ const createService = async (dataCreate, account_id) => {
                 entity_type: 'APPOINTMENT'
             }
         }).catch(err => logger.error("Lỗi gửi thông báo cho bệnh nhân:", err.message));
->>>>>>> main
         return newAppointment;
     } catch (error) {
         logger.error("Error at create new appointment.", {
@@ -1085,7 +1069,7 @@ const updateStatusOnly = async (id, status, doctorId = null) => {
             if ((status === "CANCELLED" || status === "NO_SHOW") && newData) {
                 try {
                     const formattedDate = new Date(newData.appointment_date).toLocaleDateString('vi-VN');
-                    
+
                     // Gửi thông báo cho Lễ Tân (vẫn giữ nguyên logic cũ cho CANCELLED)
                     if (status === "CANCELLED") {
                         await notificationService.sendToRole(['RECEPTIONIST'], {
@@ -1116,7 +1100,7 @@ const updateStatusOnly = async (id, status, doctorId = null) => {
                             status: "CANCELLED",
                             updatedAt: { $gte: startOfDay, $lte: endOfDay }
                         });
-                        
+
                         // Cảnh báo nếu chạm mốc 10, 20, 30... ca hủy
                         if (cancelCount > 0 && cancelCount % 10 === 0) {
                             await notificationService.sendToRole(['ADMIN_CLINIC'], {
@@ -1256,7 +1240,7 @@ const findByTreatmentId = async (treatmentId) => {
             treatmentId: treatmentId,
         });
         if (!treatmentId) return null;
-        return await AppointmentModel.findOne({treatmentId: treatmentId}).lean();
+        return await AppointmentModel.findOne({ treatmentId: treatmentId }).lean();
     } catch (error) {
         logger.error("Error get appointment by id", {
             context: "AppointmentService.findById",
