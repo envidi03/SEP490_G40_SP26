@@ -4,6 +4,8 @@ const morgan = require('morgan');
 require('dotenv').config();
 const logger = require('./common/utils/logger');
 const initAppointmentJobs = require('./modules/appointment/jobs/appointmentJob');
+const initInventoryJobs = require('./modules/inventory/jobs/inventoryJob');
+const initRevenueJobs = require('./modules/billing/jobs/revenueJob');
 
 const app = express();
 app.set('trust proxy', true);
@@ -20,6 +22,8 @@ const morganMiddleware = morgan(
 );
 
 initAppointmentJobs();
+initInventoryJobs();
+initRevenueJobs();
 
 
 app.use(morganMiddleware);

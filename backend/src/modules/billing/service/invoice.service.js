@@ -5,6 +5,7 @@ const PatientModel = require('../../patient/model/patient.model');
 const Pagination = require('../../../common/responses/Pagination');
 const logger = require('../../../common/utils/logger');
 const errorRes = require('../../../common/errors');
+const notificationService = require('../../notification/service/notification.service');
 
 const getListInvoice = async (query) => {
     try {
@@ -141,8 +142,8 @@ const createInvoice = async (data) => {
         if (!patient_id) throw new errorRes.BadRequestError('patient_id is required');
         if (!items || items.length === 0) throw new errorRes.BadRequestError('items cannot be empty');
 
-        // Kiểm tra patient tồn tại
-        const patient = await PatientModel.findById(patient_id);
+        // Kiểm tra patient tồn tại và lấy thông tin cơ bản
+        const patient = await PatientModel.findById(patient_id).populate('profile_id', 'full_name');
         if (!patient) throw new errorRes.NotFoundError('Patient not found');
 
         // Lấy thông tin dịch vụ từ DB cho từng item
@@ -192,6 +193,19 @@ const createInvoice = async (data) => {
             payment_method: payment_method || 'CASH',
             created_by: created_by || null,
         });
+
+        // Gửi thông báo In-App cho Lễ tân chờ thanh toán
+        try {
+            const patientName = patient.profile_id?.full_name || 'Khách hàng';
+            await notificationService.sendToRole(['RECEPTIONIST'], {
+                type: 'PENDING_PAYMENT',
+                title: 'Hóa đơn chờ thanh toán',
+                message: `Bác sĩ vừa chỉ định xong cho bệnh nhân ${patientName}. Vui lòng hỗ trợ bệnh nhân thanh toán hóa đơn.`,
+                action_url: `/invoices/${invoice._id}`
+            });
+        } catch (err) {
+            logger.error('Lỗi gửi thông báo cho Lễ tân chờ thanh toán:', { message: err.message });
+        }
 
         return invoice;
 

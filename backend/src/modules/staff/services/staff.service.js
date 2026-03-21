@@ -644,6 +644,21 @@ const createLeaveRequestService = async (accountId, payload) => {
         staff_id: staff._id,
     });
 
+    // Gửi thông báo cho Admin
+    try {
+        const notificationService = require('../../notification/service/notification.service');
+        const profile = await AuthModel.Profile.findOne({ account_id: accountId });
+        const staffName = profile?.full_name || 'Nhân viên';
+        await notificationService.sendToRole(['ADMIN_CLINIC'], {
+            type: 'LEAVE_REQUESTED',
+            title: 'Yêu cầu nghỉ phép/đổi ca mới',
+            message: `Nhân viên ${staffName} vừa tạo một yêu cầu nghỉ phép/đổi ca. Vui lòng kiểm tra và xét duyệt.`,
+            action_url: `/admin/leave-requests`
+        });
+    } catch (err) {
+        logger.error("Lỗi gửi thông báo xin nghỉ phép cho Admin:", { message: err.message });
+    }
+
     return leave;
 };
 

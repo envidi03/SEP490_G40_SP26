@@ -554,6 +554,20 @@ const reportIncident = async (id, incidentData) => {
             { new: true, runValidators: true }
         );
 
+        // Gửi thông báo cho Admin
+        try {
+            const notificationService = require('../../notification/service/notification.service');
+            const alertType = newStatus === "FAULTY" ? "Sự cố hỏng hóc" : "Bảo trì thiết bị";
+            await notificationService.sendToRole(['ADMIN_CLINIC'], {
+                type: 'EQUIPMENT_INCIDENT',
+                title: `Cảnh báo thiết bị: ${alertType}`,
+                message: `Thiết bị "${updatedEquipment.equipment_name}" (S/N: ${updatedEquipment.equipment_serial_number}) vừa được báo sự cố. Trạng thái hiện tại: ${newStatus}.`,
+                action_url: `/equipment/${updatedEquipment._id}`
+            });
+        } catch (err) {
+            logger.error("Lỗi gửi cảnh báo thiết bị hỏng cho Admin:", { message: err.message });
+        }
+
         logger.info("Equipment incident reported successfully", {
             context: "EquipmentService.reportIncident",
             equipmentId: id,

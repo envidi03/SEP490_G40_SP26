@@ -1,5 +1,6 @@
 const Treatment = require("../../treatment/models/treatment.model");
 const Medicine = require("../model/medicine.model");
+const notificationService = require("../../notification/service/notification.service");
 
 /**
  * Lấy danh sách đơn thuốc sau khám (chỉ treatments có medicine_usage)
@@ -153,10 +154,25 @@ exports.dispensePrescription = async (treatmentId) => {
     for (const item of treatment.medicine_usage) {
         if (item.dispensed) continue;
 
-        await Medicine.findByIdAndUpdate(
+        const updatedMedicine = await Medicine.findByIdAndUpdate(
             item.medicine_id._id || item.medicine_id,
-            { $inc: { quantity: -item.quantity } }
+            { $inc: { quantity: -item.quantity } },
+            { new: true }
         );
+
+        // Cảnh báo Tồn kho thấp (Low Stock) nếu số lượng mới <= min_quantity
+        if (updatedMedicine && updatedMedicine.quantity <= updatedMedicine.min_quantity) {
+            try {
+                await notificationService.sendToRole(['PHARMACIST'], {
+                    type: 'LOW_STOCK',
+                    title: 'Cảnh báo Tồn kho thấp',
+                    message: `Thuốc/Vật tư "${updatedMedicine.medicine_name}" sắp hết (Còn lại: ${updatedMedicine.quantity} ${updatedMedicine.unit}). Vui lòng nhập thêm.`,
+                    action_url: `/inventory/medicines/${updatedMedicine._id}`
+                });
+            } catch (err) {
+                console.error("Lỗi gửi cảnh báo LOW STOCK:", err.message);
+            }
+        }
 
         item.dispensed = true;
         item.dispensed_at = new Date();

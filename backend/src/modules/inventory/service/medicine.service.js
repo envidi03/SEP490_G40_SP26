@@ -1,5 +1,6 @@
 const Medicine = require("../model/medicine.model");
 const MedicineCategory = require("../model/medicine-category.model");
+const notificationService = require("../../notification/service/notification.service");
 
 /**
  * Lấy danh sách thuốc có phân trang, tìm kiếm và lọc theo danh mục
@@ -95,6 +96,23 @@ exports.getCategories = async () => {
 };
 
 /**
+ * Lấy danh sách dạng bào chế thuốc
+ */
+exports.getDosageForms = () => {
+    return [
+        "Viên", "Viên nén", "Viên nang", "Dung dịch", "Siro", 
+        "Kem", "Bột", "Gói", "Tuýp", "Chai", "Ống", "Hỗn dịch"
+    ];
+};
+
+/**
+ * Lấy danh sách đơn vị tính thuốc
+ */
+exports.getUnits = () => {
+    return ['Viên', 'Chai', 'Lọ', 'Tuýp', 'Hộp', 'Bộ', 'Gói', 'Vỉ', 'Ống', 'ml', 'mg'];
+};
+
+/**
  * Thêm thuốc mới
  */
 exports.createMedicine = async (data) => {
@@ -152,6 +170,24 @@ exports.createMedicine = async (data) => {
         throw error;
     }
 
+    if (data.dosage_form) {
+        const validDosageForms = ["Viên", "Viên nén", "Viên nang", "Dung dịch", "Siro", "Kem", "Bột", "Gói", "Tuýp", "Chai", "Ống", "Hỗn dịch"];
+        if (!validDosageForms.includes(data.dosage_form.trim())) {
+            const error = new Error("Dạng bào chế không hợp lệ");
+            error.statusCode = 400;
+            throw error;
+        }
+    }
+
+    if (data.unit) {
+        const validUnits = ['Viên', 'Chai', 'Lọ', 'Tuýp', 'Hộp', 'Bộ', 'Gói', 'Vỉ', 'Ống', 'ml', 'mg'];
+        if (!validUnits.includes(data.unit.trim())) {
+            const error = new Error("Đơn vị tính không hợp lệ");
+            error.statusCode = 400;
+            throw error;
+        }
+    }
+
     const existingMedicine = await Medicine.findOne({
         medicine_name: { $regex: new RegExp(`^${data.medicine_name}$`, "i") }
     });
@@ -205,6 +241,24 @@ exports.updateMedicine = async (id, data) => {
         const expiryDate = new Date(data.expiry_date);
         if (isNaN(expiryDate.getTime())) {
             const error = new Error("Hạn sử dụng không hợp lệ");
+            error.statusCode = 400;
+            throw error;
+        }
+    }
+
+    if (data.dosage_form) {
+        const validDosageForms = ["Viên", "Viên nén", "Viên nang", "Dung dịch", "Siro", "Kem", "Bột", "Gói", "Tuýp", "Chai", "Ống", "Hỗn dịch"];
+        if (!validDosageForms.includes(data.dosage_form.trim())) {
+            const error = new Error("Dạng bào chế không hợp lệ");
+            error.statusCode = 400;
+            throw error;
+        }
+    }
+
+    if (data.unit) {
+        const validUnits = ['Viên', 'Chai', 'Lọ', 'Tuýp', 'Hộp', 'Bộ', 'Gói', 'Vỉ', 'Ống', 'ml', 'mg'];
+        if (!validUnits.includes(data.unit.trim())) {
+            const error = new Error("Đơn vị tính không hợp lệ");
             error.statusCode = 400;
             throw error;
         }
@@ -290,6 +344,19 @@ exports.createRestockRequest = async (medicineId, data) => {
     await medicine.save();
 
     const newRequest = medicine.medicine_restock_requests[medicine.medicine_restock_requests.length - 1];
+
+    // Gửi thông báo cho Quản lý kho / Dược sĩ
+    try {
+        await notificationService.sendToRole(['PHARMACIST'], {
+            type: 'RESTOCK_REQUESTED',
+            title: 'Yêu cầu lấy mới vật tư/thuốc',
+            message: `Có yêu cầu bổ sung mới cho thuốc/vật tư "${medicine.medicine_name}" (Số lượng: ${newRequest.quantity_requested}). Mức độ ưu tiên: ${newRequest.priority}.`,
+            action_url: `/inventory/restock-requests`
+        });
+    } catch (err) {
+        console.error("Lỗi gửi thông báo RESTOCK_REQUESTED:", err.message);
+    }
+
     return {
         ...newRequest.toObject(),
         medicine_name: medicine.medicine_name,

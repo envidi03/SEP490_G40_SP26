@@ -67,15 +67,30 @@ const medicineSchema = new Schema(
         },
 
         dosage_form: {
-            // Dạng bào chế: Viên, Nang, Dung dịch, Kem, Bột...
+            // Dạng bào chế: Viên nén, Viên nang, Dung dịch, Bột, Kem, v.v.
             type: String,
+            enum: [
+                "Viên",
+                "Viên nén",
+                "Viên nang",
+                "Dung dịch",
+                "Siro",
+                "Kem",
+                "Bột",
+                "Gói",
+                "Tuýp",
+                "Chai",
+                "Ống",
+                "Hỗn dịch"
+            ],
             trim: true,
             default: null
         },
 
         unit: {
-            // Đơn vị tính: Viên, Hộp, Chai, Tuýp...
+            // Đơn vị tính
             type: String,
+            enum: ['Viên', 'Chai', 'Lọ', 'Tuýp', 'Hộp', 'Bộ', 'Gói', 'Vỉ', 'Ống', 'ml', 'mg'],
             required: true,
             trim: true
         },

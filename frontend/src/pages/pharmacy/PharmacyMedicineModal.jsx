@@ -18,16 +18,18 @@ const INITIAL_FORM = {
     batchNumber: ''
 };
 
-const DOSAGE_FORMS = ['Viên', 'Viên nang', 'Viên sủi', 'Dung dịch', 'Siro', 'Bột', 'Gel', 'Cream', 'Xịt', 'Nhỏ mắt', 'Nhỏ tai', 'Khác'];
-const UNITS = ['Viên', 'Chai', 'Lọ', 'Tuýp', 'Hộp', 'Bộ', 'Gói', 'ml', 'mg'];
+
+
 
 const PharmacyMedicineModal = ({ isOpen, onClose, onSubmit, editData = null, submitting = false }) => {
     const isEdit = !!editData;
     const [formData, setFormData] = useState(INITIAL_FORM);
     const [errors, setErrors] = useState({});
     const [categories, setCategories] = useState([]);
+    const [dosageForms, setDosageForms] = useState([]);
+    const [units, setUnits] = useState([]);
 
-    // Lấy danh mục từ API
+    // Lấy danh mục và dạng bào chế từ API
     useEffect(() => {
         inventoryService.getCategories()
             .then(res => {
@@ -47,6 +49,22 @@ const PharmacyMedicineModal = ({ isOpen, onClose, onSubmit, editData = null, sub
                     'Khác'
                 ]);
             });
+
+        inventoryService.getDosageForms()
+            .then(res => {
+                if (res?.success) setDosageForms(res.data || []);
+            })
+            .catch(() => {
+                setDosageForms([]);
+            });
+
+        inventoryService.getUnits()
+            .then(res => {
+                if (res?.success) setUnits(res.data || []);
+            })
+            .catch(() => {
+                setUnits([]);
+            });
     }, []);
 
     // Khi mở modal, load dữ liệu vào form
@@ -55,7 +73,7 @@ const PharmacyMedicineModal = ({ isOpen, onClose, onSubmit, editData = null, sub
             if (editData) {
                 setFormData({
                     name: editData.name || '',
-                    category: editData.category || '',
+                    category: (typeof editData.category === 'object' && editData.category ? editData.category._id : editData.category) || '',
                     dosage: editData.dosage || '',
                     dosage_form: editData.dosage_form || '',
                     manufacturer: editData.manufacturer || '',
@@ -192,9 +210,13 @@ const PharmacyMedicineModal = ({ isOpen, onClose, onSubmit, editData = null, sub
                             className={inputClass('category')}
                         >
                             <option value="">-- Chọn danh mục --</option>
-                            {categories.map(cat => (
-                                <option key={cat} value={cat}>{cat}</option>
-                            ))}
+                            {categories.map(cat => {
+                                const id = typeof cat === 'object' ? cat._id : cat;
+                                const name = typeof cat === 'object' ? cat.name : cat;
+                                return (
+                                    <option key={id} value={id}>{name}</option>
+                                );
+                            })}
                         </select>
                         {errors.category && <p className="text-red-500 text-xs mt-1">{errors.category}</p>}
                     </div>
@@ -209,7 +231,7 @@ const PharmacyMedicineModal = ({ isOpen, onClose, onSubmit, editData = null, sub
                             className={inputClass('dosage_form')}
                         >
                             <option value="">-- Chọn dạng bào chế --</option>
-                            {DOSAGE_FORMS.map(f => (
+                            {dosageForms.map(f => (
                                 <option key={f} value={f}>{f}</option>
                             ))}
                         </select>
@@ -261,7 +283,7 @@ const PharmacyMedicineModal = ({ isOpen, onClose, onSubmit, editData = null, sub
                             className={inputClass('unit')}
                         >
                             <option value="">-- Chọn đơn vị --</option>
-                            {UNITS.map(u => (
+                            {units.map(u => (
                                 <option key={u} value={u}>{u}</option>
                             ))}
                         </select>

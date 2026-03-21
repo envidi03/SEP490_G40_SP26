@@ -1077,6 +1077,20 @@ const updateStatusOnly = async (id, status, doctorId = null) => {
                 },
                 { new: true } // Trả về object sau khi đã update xong
             );
+
+            // Gửi thông báo In-App cho Bác sĩ phụ trách
+            if (newData && newData.doctor_id) {
+                try {
+                    await notificationService.sendToUser(newData.doctor_id, {
+                        type: 'PATIENT_CHECKED_IN',
+                        title: 'Bệnh nhân mới vào hàng đợi',
+                        message: `Bệnh nhân ${newData.full_name} đã check-in và bắt đầu chờ ở phòng khám. (STT: ${nextNumber})`,
+                        action_url: `/treatments?appointment_id=${newData._id}`
+                    });
+                } catch (err) {
+                    logger.error("Lỗi gửi thông báo check-in cho Bác sĩ:", { message: err.message });
+                }
+            }
         }
 
         // --- KỊCH BẢN 2: CÁC TRẠNG THÁI KHÁC (SCHEDULED, IN_CONSULTATION, COMPLETED, CANCELLED...) ---
@@ -1090,6 +1104,57 @@ const updateStatusOnly = async (id, status, doctorId = null) => {
                 updateData,
                 { new: true }
             );
+
+            // Gửi thông báo In-App nếu Lịch hẹn bị Khách hàng hoặc Lễ tân hủy / Bệnh nhân không đến
+            if ((status === "CANCELLED" || status === "NO_SHOW") && newData) {
+                try {
+                    const formattedDate = new Date(newData.appointment_date).toLocaleDateString('vi-VN');
+
+                    // Gửi thông báo cho Lễ Tân (vẫn giữ nguyên logic cũ cho CANCELLED)
+                    if (status === "CANCELLED") {
+                        await notificationService.sendToRole(['RECEPTIONIST'], {
+                            type: 'APPOINTMENT_CANCELLED',
+                            title: 'Lịch hẹn đã bị hủy',
+                            message: `Bệnh nhân ${newData.full_name} đã hủy lịch hẹn lúc ${newData.appointment_time} ngày ${formattedDate}.`,
+                            action_url: `/appointments/${newData._id}`
+                        });
+                    }
+
+                    // Gửi thông báo cho Bác sĩ (ca khám sắp tới bị hủy hoặc no show)
+                    if (newData.doctor_id) {
+                        const statusMessage = status === "NO_SHOW" ? "không đến khám" : "đã hủy/bị hủy lịch khám";
+                        await notificationService.sendToUser(newData.doctor_id, {
+                            type: 'APPOINTMENT_CANCELLED_DOCTOR',
+                            title: `Lịch khám bị hủy / Không đến`,
+                            message: `Ca khám của bệnh nhân ${newData.full_name} (lúc ${newData.appointment_time} ngày ${formattedDate}) ${statusMessage}.`,
+                            action_url: `/appointments/${newData._id}`
+                        });
+                    }
+
+                    // Kiểm tra cảnh báo bất thường số lượng hủy lịch (ADMIN_CLINIC)
+                    if (status === "CANCELLED") {
+                        const now = new Date();
+                        const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                        const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+                        const cancelCount = await AppointmentModel.countDocuments({
+                            status: "CANCELLED",
+                            updatedAt: { $gte: startOfDay, $lte: endOfDay }
+                        });
+
+                        // Cảnh báo nếu chạm mốc 10, 20, 30... ca hủy
+                        if (cancelCount > 0 && cancelCount % 10 === 0) {
+                            await notificationService.sendToRole(['ADMIN_CLINIC'], {
+                                type: 'HIGH_CANCELLATION_RATE',
+                                title: 'Cảnh báo khẩn: Hủy lịch tăng vọt',
+                                message: `Hệ thống ghi nhận có ${cancelCount} ca hủy lịch khám trong ngày hôm nay. Vui lòng kiểm tra lại tình hình.`,
+                                action_url: `/appointments`
+                            });
+                        }
+                    }
+                } catch (err) {
+                    logger.error("Lỗi gửi thông báo hủy lịch/khách không đến:", { message: err.message });
+                }
+            }
         }
 
         // --- KIỂM TRA LẠI KẾT QUẢ ---
