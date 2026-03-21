@@ -1,331 +1,376 @@
-import { useState } from 'react';
-import { FileText, Search, Eye, Edit, Clock, CheckCircle, Filter } from 'lucide-react';
-import Card from '../../components/ui/Card';
-import Badge from '../../components/ui/Badge';
-import SharedPagination from '../../components/ui/SharedPagination';
-import ViewRecordModal from './modals/ViewRecordModal';
-import UpdateRecordModal from './modals/UpdateRecordModal';
-import { getAllDentalRecords, updateDentalRecord } from '../../services/dentalRecordService';
-import { useEffect } from 'react';
-
-// Mock medical records data (removed)
+import React, { useState, useEffect, useCallback } from "react";
+import {
+  FileText,
+  Search,
+  Eye,
+  Edit,
+  Clock,
+  CheckCircle,
+  RotateCcw,
+  ChevronDown,
+  ChevronUp,
+  Stethoscope,
+  Activity,
+  Calendar,
+  User,
+  Phone,
+} from "lucide-react";
+import Card from "../../components/ui/Card";
+import Badge from "../../components/ui/Badge";
+import SharedPagination from "../../components/ui/SharedPagination";
+import { getAllDentalRecords } from "../../services/dentalRecordService";
+import TreatmentComponent from "./components/TreatmentComponent";
 
 const AssistantMedicalRecords = () => {
-    const [searchTerm, setSearchTerm] = useState('');
-    const [filterStatus, setFilterStatus] = useState('all');
-    const [filterDoctor, setFilterDoctor] = useState('all');
+  // --- 1. STATE BỘ LỌC TẠM THỜI (Giao diện UI) ---
+  const [tempSearch, setTempSearch] = useState("");
+  const [tempStatus, setTempStatus] = useState("all");
+  const [filterDoctor, setFilterDoctor] = useState("all");
 
-    const [selectedRecord, setSelectedRecord] = useState(null);
-    const [showViewModal, setShowViewModal] = useState(false);
-    const [showUpdateModal, setShowUpdateModal] = useState(false);
+  // --- 2. STATE THAM SỐ THỰC TẾ (Dùng để gọi API) ---
+  const [filterParams, setFilterParams] = useState({
+    search: "",
+    status: "all",
+  });
 
-    const [records, setRecords] = useState([]);
-    const [loading, setLoading] = useState(false);
-    const [totalPages, setTotalPages] = useState(1);
-    const [totalItems, setTotalItems] = useState(0);
-    const [currentPage, setCurrentPage] = useState(1);
+  // --- 3. STATE DỮ LIỆU & PHÂN TRANG ---
+  const [records, setRecords] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
 
-    const fetchRecords = async () => {
-        try {
-            setLoading(true);
-            const params = {
-                page: currentPage,
-                limit: 5,
-                search: searchTerm || undefined,
-                filter_dental_record: filterStatus !== 'all' ? filterStatus : undefined,
-            };
+  const [expandedId, setExpandedId] = useState(null);
 
-            const response = await getAllDentalRecords(params);
-            if (response && response.data) {
-                setRecords(response.data);
-                if (response.pagination) {
-                    setTotalPages(response.pagination.totalPages || 1);
-                    setTotalItems(response.pagination.totalItems || 0);
-                }
-            }
-        } catch (error) {
-            console.error('Failed to fetch records:', error);
-        } finally {
-            setLoading(false);
+  const fetchRecords = useCallback(async () => {
+    try {
+      setLoading(true);
+      const params = {
+        page: currentPage,
+        limit: 5,
+        search: filterParams.search.trim() || undefined,
+        filter_dental_record:
+          filterParams.status !== "all" ? filterParams.status : undefined,
+      };
+
+      const response = await getAllDentalRecords(params);
+      if (response && response.data) {
+        setRecords(response.data);
+        if (response.pagination) {
+          setTotalPages(response.pagination.totalPages || 1);
+          setTotalItems(response.pagination.totalItems || 0);
         }
-    };
+      }
+    } catch (error) {
+      console.error("Failed to fetch records:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, [currentPage, filterParams]);
 
-    useEffect(() => {
-        fetchRecords();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [currentPage, filterStatus]);
+  useEffect(() => {
+    fetchRecords();
+  }, [fetchRecords]);
 
-    // Use a debounced search or manual search button, here we just trigger on search term change for simplicity
-    useEffect(() => {
-        const timer = setTimeout(() => {
-            if (currentPage !== 1) {
-                setCurrentPage(1); // Reset page on new search
-            } else {
-                fetchRecords();
-            }
-        }, 500);
-
-        return () => clearTimeout(timer);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [searchTerm]);
-
-    const filteredRecords = records.filter(record => {
-        // If we want to support local doctor filtering since it might not be supported natively by backend API
-        const matchesSearch = (record.full_name?.toLowerCase() || record.patientName?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-            (record.phone || record.patientPhone || '').includes(searchTerm);
-        const matchesDoctor = filterDoctor === 'all' ||
-            (record.doctor_info && record.doctor_info.profile && record.doctor_info.profile.full_name === filterDoctor);
-        return matchesSearch && matchesDoctor;
+  // --- BỘ LỌC HANDLERS ---
+  const handleApplyFilters = () => {
+    setCurrentPage(1);
+    setFilterParams({
+      search: tempSearch,
+      status: tempStatus,
     });
+  };
 
-    const getStatusInfo = (status) => {
-        switch (status) {
-            case 'COMPLETED':
-                return { label: 'Hoàn thành', variant: 'success', icon: CheckCircle };
-            case 'IN_PROGRESS':
-                return { label: 'Đang điều trị', variant: 'warning', icon: Clock };
-            case 'CANCELLED':
-                return { label: 'Đã hủy', variant: 'danger', icon: FileText };
-            default:
-                return { label: status, variant: 'default', icon: FileText };
-        }
+  const handleResetFilters = () => {
+    setTempSearch("");
+    setTempStatus("all");
+    setFilterDoctor("all");
+    setCurrentPage(1);
+    setFilterParams({ search: "", status: "all" });
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter") handleApplyFilters();
+  };
+
+  const toggleExpand = (id) => {
+    setExpandedId(expandedId === id ? null : id);
+  };
+
+  // --- HELPERS ---
+  const getStatusInfo = (status) => {
+    const statusMap = {
+      COMPLETED: { label: "Hoàn thành", variant: "success", icon: CheckCircle },
+      IN_PROGRESS: { label: "Đang điều trị", variant: "warning", icon: Clock },
+      CANCELLED: { label: "Đã hủy", variant: "danger", icon: FileText },
     };
-
-    const handleViewClick = (record) => {
-        setSelectedRecord(record);
-        setShowViewModal(true);
-    };
-
-    const handleUpdateClick = (record) => {
-        setSelectedRecord(record);
-        setShowUpdateModal(true);
-    };
-
-    const closeModals = () => {
-        setShowViewModal(false);
-        setShowUpdateModal(false);
-        setSelectedRecord(null);
-    };
-
-    const handleSaveRecord = async (recordId, data, isDraft) => {
-        try {
-            await updateDentalRecord(recordId, data);
-            fetchRecords(); // Refresh data after update
-            closeModals();
-        } catch (error) {
-            console.error('Error updating record:', error);
-            // Optionally add toast notification here
-        }
-    };
-
-    // Get unique doctors for filter based on current fetched records (or ideally from a separate API)
-    const doctors = ['all', ...new Set(records.map(r => r.doctor_info?.profile?.full_name).filter(d => d))];
-
     return (
-        <div>
-            {/* Header */}
-            <div className="mb-8">
-                <h1 className="text-3xl font-bold text-gray-900">Hồ Sơ Bệnh Án</h1>
-                <p className="text-gray-600 mt-1">Quản lý và cập nhật hồ sơ nha khoa</p>
-            </div>
-
-            {/* Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-                <Card>
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-sm text-gray-600">Tổng hồ sơ</p>
-                            <p className="text-3xl font-bold text-blue-600 mt-1">
-                                {records.length}
-                            </p>
-                        </div>
-                        <div className="p-3 bg-blue-100 rounded-full">
-                            <FileText size={24} className="text-blue-600" />
-                        </div>
-                    </div>
-                </Card>
-
-                <Card>
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-sm text-gray-600">Đang điều trị</p>
-                            <p className="text-3xl font-bold text-orange-600 mt-1">
-                                {records.filter(r => r.status === 'IN_PROGRESS').length}
-                            </p>
-                        </div>
-                        <div className="p-3 bg-orange-100 rounded-full">
-                            <Clock size={24} className="text-orange-600" />
-                        </div>
-                    </div>
-                </Card>
-
-                <Card>
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-sm text-gray-600">Hoàn thành</p>
-                            <p className="text-3xl font-bold text-success-600 mt-1">
-                                {records.filter(r => r.status === 'COMPLETED').length}
-                            </p>
-                        </div>
-                        <div className="p-3 bg-success-100 rounded-full">
-                            <CheckCircle size={24} className="text-success-600" />
-                        </div>
-                    </div>
-                </Card>
-            </div>
-
-            {/* Filters */}
-            <Card className="mb-6">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {/* Search */}
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Tìm kiếm
-                        </label>
-                        <div className="relative">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
-                            <input
-                                type="text"
-                                placeholder="Tên bệnh nhân, SĐT..."
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                            />
-                        </div>
-                    </div>
-
-                    {/* Status Filter */}
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Trạng thái
-                        </label>
-                        <select
-                            value={filterStatus}
-                            onChange={(e) => setFilterStatus(e.target.value)}
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                        >
-                            <option value="all">Tất cả</option>
-                            <option value="COMPLETED">Hoàn thành</option>
-                            <option value="IN_PROGRESS">Đang điều trị</option>
-                            <option value="CANCELLED">Đã hủy</option>
-                        </select>
-                    </div>
-
-                    {/* Doctor Filter */}
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Bác sĩ
-                        </label>
-                        <select
-                            value={filterDoctor}
-                            onChange={(e) => setFilterDoctor(e.target.value)}
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                        >
-                            <option value="all">Tất cả</option>
-                            {doctors.filter(d => d !== 'all').map(doctor => (
-                                <option key={doctor} value={doctor}>{doctor}</option>
-                            ))}
-                        </select>
-                    </div>
-                </div>
-            </Card>
-
-            {/* Records List */}
-            <div className="grid grid-cols-1 gap-4">
-                {loading ? (
-                    <div className="text-center py-12">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto"></div>
-                        <p className="mt-2 text-gray-500">Đang tải dữ liệu...</p>
-                    </div>
-                ) : filteredRecords.length > 0 ? (
-                    filteredRecords.map((record) => {
-                        const statusInfo = getStatusInfo(record.status);
-                        const StatusIcon = statusInfo.icon;
-                        const formattedDate = new Date(record.start_date || record.createdAt).toLocaleDateString('vi-VN');
-
-                        return (
-                            <Card key={record._id || record.id} className="hover:shadow-lg transition-shadow">
-                                <div className="flex items-start justify-between">
-                                    <div className="flex items-start gap-4 flex-1">
-                                        {/* Date Badge */}
-                                        <div className="bg-primary-100 px-3 py-2 rounded-lg text-center min-w-[90px]">
-                                            <div className="text-xs text-primary-600 font-medium">Ngày khám</div>
-                                            <div className="text-sm font-bold text-primary-700">{formattedDate}</div>
-                                        </div>
-
-                                        {/* Record Info */}
-                                        <div className="flex-1">
-                                            <div className="flex items-center gap-3 mb-2">
-                                                <h3 className="text-lg font-semibold text-gray-900">{record.full_name || record.patientName}</h3>
-                                                <Badge variant={statusInfo.variant}>
-                                                    <StatusIcon size={14} className="inline mr-1" />
-                                                    {statusInfo.label}
-                                                </Badge>
-                                            </div>
-
-                                            <div className="text-sm text-gray-600 space-y-1">
-                                                <p><span className="font-medium">Hồ sơ:</span> {record.record_name}</p>
-                                                <p><span className="font-medium">SĐT:</span> {record.phone || record.patientPhone}</p>
-                                                <p><span className="font-medium">Bác sĩ:</span> {record.doctor_info?.profile?.full_name || record.doctorName || 'Chưa có'}</p>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Actions */}
-                                    <div className="flex gap-2 ml-4">
-                                        <button
-                                            onClick={() => handleViewClick(record)}
-                                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                                            title="Xem chi tiết"
-                                        >
-                                            <Eye size={20} />
-                                        </button>
-                                        <button
-                                            onClick={() => handleUpdateClick(record)}
-                                            className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                                            title="Cập nhật"
-                                        >
-                                            <Edit size={20} />
-                                        </button>
-                                    </div>
-                                </div>
-                            </Card>
-                        );
-                    })
-                ) : (
-                    <Card>
-                        <div className="text-center py-12 text-gray-500">
-                            <FileText size={48} className="mx-auto text-gray-300 mb-4" />
-                            <p>Không tìm thấy hồ sơ nào</p>
-                        </div>
-                    </Card>
-                )}
-            </div>
-
-            {!loading && (
-                <SharedPagination
-                    currentPage={currentPage}
-                    totalPages={totalPages}
-                    totalItems={totalItems}
-                    onPageChange={setCurrentPage}
-                    itemLabel="hồ sơ"
-                />
-            )}
-
-            {/* Modals */}
-            <ViewRecordModal
-                record={selectedRecord}
-                isOpen={showViewModal}
-                onClose={closeModals}
-            />
-            <UpdateRecordModal
-                record={selectedRecord}
-                isOpen={showUpdateModal}
-                onClose={closeModals}
-                onSave={handleSaveRecord}
-            />
-        </div>
+      statusMap[status] || { label: status, variant: "default", icon: FileText }
     );
+  };
+
+  const filteredRecords = records.filter((record) => {
+    return (
+      filterDoctor === "all" ||
+      record.doctor_info?.profile?.full_name === filterDoctor
+    );
+  });
+
+  const doctorsList = [
+    "all",
+    ...new Set(
+      records.map((r) => r.doctor_info?.profile?.full_name).filter(Boolean),
+    ),
+  ];
+
+  return (
+    <div className="p-1 max-w-7xl mx-auto">
+      {/* Header */}
+      <div className="mb-8">
+        <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">
+          Hồ Sơ Bệnh Án
+        </h1>
+        <p className="text-gray-500 mt-1 italic">
+          Quản lý lộ trình điều trị và hồ sơ bệnh nhân
+        </p>
+      </div>
+
+      {/* Filter Section */}
+      <Card className="mb-8 shadow-md border-gray-100 bg-white/50 backdrop-blur-sm">
+        <div className="flex flex-col lg:flex-row items-end gap-4">
+          <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-4 w-full">
+            <div>
+              <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 px-1">
+                Tìm kiếm
+              </label>
+              <div className="relative">
+                <Search
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                  size={18}
+                />
+                <input
+                  type="text"
+                  placeholder="Tên hồ sơ, bác sĩ..."
+                  value={tempSearch}
+                  onChange={(e) => setTempSearch(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 px-1">
+                Trạng thái
+              </label>
+              <select
+                value={tempStatus}
+                onChange={(e) => setTempStatus(e.target.value)}
+                className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none cursor-pointer"
+              >
+                <option value="all">Tất cả trạng thái</option>
+                <option value="COMPLETED">Hoàn thành</option>
+                <option value="IN_PROGRESS">Đang điều trị</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 px-1">
+                Bác sĩ phụ trách
+              </label>
+              <select
+                value={filterDoctor}
+                onChange={(e) => setFilterDoctor(e.target.value)}
+                className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-blue-600 font-semibold"
+              >
+                {doctorsList.map((doc) => (
+                  <option key={doc} value={doc}>
+                    {doc === "all" ? "Tất cả bác sĩ" : doc}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 w-full lg:w-auto">
+            <button
+              onClick={handleApplyFilters}
+              className="flex-1 lg:flex-none flex items-center justify-center gap-2 px-8 py-2.5 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-all shadow-lg active:scale-95"
+            >
+              <Search size={18} />
+              <span>Tìm kiếm</span>
+            </button>
+            <button
+              onClick={handleResetFilters}
+              className="p-2.5 bg-gray-100 text-gray-500 rounded-xl hover:bg-gray-200 transition-all active:scale-90 shadow-sm"
+              title="Xóa bộ lọc"
+            >
+              <RotateCcw size={20} />
+            </button>
+          </div>
+        </div>
+      </Card>
+
+      {/* Records Accordion List */}
+      <div className="space-y-4 min-h-[400px]">
+        {loading ? (
+          <div className="flex flex-col items-center justify-center py-24 bg-white rounded-3xl border border-dashed border-gray-200">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
+            <p className="text-gray-400 font-medium">
+              Đang tải danh sách hồ sơ...
+            </p>
+          </div>
+        ) : filteredRecords.length > 0 ? (
+          filteredRecords.map((record) => {
+            const isExpanded = expandedId === record._id;
+            const {
+              label,
+              variant,
+              icon: StatusIcon,
+            } = getStatusInfo(record.status);
+
+            return (
+              <div
+                key={record._id}
+                className={`bg-white rounded-2xl border transition-all duration-300 overflow-hidden ${isExpanded ? "border-blue-200 shadow-md ring-1 ring-blue-50" : "border-gray-100 shadow-sm"}`}
+              >
+                {/* Accordion Header */}
+                <div
+                  className={`p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 cursor-pointer transition-colors ${isExpanded ? "bg-blue-50/40" : "hover:bg-gray-50"}`}
+                  onClick={() => toggleExpand(record._id)}
+                >
+                  <div className="flex items-center gap-5 flex-1">
+                    <div
+                      className={`p-3 rounded-xl transition-colors ${isExpanded ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-400"}`}
+                    >
+                      <FileText size={22} />
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex flex-wrap items-center gap-3 mb-1.5">
+                        <h3 className="text-lg font-bold text-gray-900 leading-tight">
+                          {record.record_name}
+                        </h3>
+                        <Badge
+                          variant={variant}
+                          className="rounded-full px-3 py-0.5 text-[10px] font-bold uppercase"
+                        >
+                          <StatusIcon size={12} className="inline mr-1" />
+                          {label}
+                        </Badge>
+                      </div>
+                      <div className="flex flex-wrap gap-x-5 gap-y-1 text-sm text-gray-500 font-medium">
+                        <span className="flex items-center gap-1">
+                          <User size={14} className="text-gray-400" />{" "}
+                          {record.full_name}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Phone size={14} className="text-gray-400" />{" "}
+                          {record.phone}
+                        </span>
+                        <span className="text-blue-600 font-bold">
+                          BS: {record.doctor_info?.profile?.full_name || "N/A"}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <div
+                      className={`p-1.5 rounded-full transition-colors ${isExpanded ? "bg-blue-100 text-blue-600" : "bg-gray-100 text-gray-400"}`}
+                    >
+                      {isExpanded ? (
+                        <ChevronUp size={20} />
+                      ) : (
+                        <ChevronDown size={20} />
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Accordion Content (Details & Treatments) */}
+                {isExpanded && (
+                  <div className="p-6 bg-white border-t border-gray-50 space-y-8 animate-in slide-in-from-top-2 duration-300">
+                    {/* Diagnosis & Tooth Status */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2 text-gray-400">
+                          <Stethoscope size={16} />
+                          <span className="text-[10px] font-bold uppercase tracking-wider">
+                            Chẩn đoán từ bác sĩ
+                          </span>
+                        </div>
+                        <div className="p-4 bg-gray-50 rounded-2xl text-gray-700 font-semibold border border-gray-100">
+                          {record.diagnosis || "Chưa có chẩn đoán chi tiết"}
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2 text-gray-400">
+                          <Activity size={16} />
+                          <span className="text-[10px] font-bold uppercase tracking-wider">
+                            Tình trạng răng miệng
+                          </span>
+                        </div>
+                        <div className="p-4 bg-gray-50 rounded-2xl text-gray-700 font-semibold border border-gray-100">
+                          {record.tooth_status ||
+                            "Chưa ghi nhận tình trạng cụ thể"}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Treatment Timeline */}
+                    <div className="relative">
+                      <div className="flex items-center justify-between mb-4">
+                        <h4 className="text-sm font-bold text-gray-800 flex items-center gap-2 italic">
+                          <Calendar size={16} className="text-blue-500" />
+                          Lộ trình điều trị chi tiết (
+                          {record.treatments?.length || 0})
+                        </h4>
+                      </div>
+
+                      {record.treatments && record.treatments.length > 0 ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {record.treatments.map((treat, idx) => (
+                            <TreatmentComponent key={treat._id} treatment={treat} index={idx}/>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="py-4 text-center text-gray-400 text-xs font-medium bg-gray-50 rounded-xl border border-dashed border-gray-200">
+                          Chưa có dữ liệu điều trị trong hồ sơ này.
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })
+        ) : (
+          <div className="text-center py-24 bg-gray-50 rounded-3xl border-2 border-dashed border-gray-200">
+            <FileText size={48} className="mx-auto text-gray-200 mb-4" />
+            <h3 className="text-lg font-bold text-gray-400 uppercase">
+              Không tìm thấy kết quả
+            </h3>
+            <p className="text-gray-400 text-sm mt-1 font-medium">
+              Hãy thử thay đổi từ khóa tìm kiếm hoặc làm mới bộ lọc.
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* Pagination Container */}
+      {!loading && totalItems > 0 && (
+        <div className="mt-8 flex justify-center">
+          <SharedPagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={totalItems}
+            onPageChange={setCurrentPage}
+            itemLabel="hồ sơ"
+          />
+        </div>
+      )}
+    </div>
+  );
 };
 
 export default AssistantMedicalRecords;

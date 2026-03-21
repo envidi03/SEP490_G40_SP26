@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react"
 
 const PatientInfoModal = ({ isOpen, onClose, appointment, onConfirm }) => {
     const [form, setForm] = useState({
+        appointment_id: appointment?._id || appointment?.appointment_id || "",
         name: "",
         dob: "",
         gender: "Nam",
@@ -11,6 +12,7 @@ const PatientInfoModal = ({ isOpen, onClose, appointment, onConfirm }) => {
     useEffect(() => {
         if (appointment) {
             setForm({
+                appointment_id: appointment._id || appointment.appointment_id || "",
                 name: appointment.patient_id?.full_name || appointment.patientName || "",
                 dob: appointment.patient_id?.dob ? new Date(appointment.patient_id.dob).toISOString().split('T')[0] : "",
                 gender: appointment.patient_id?.gender ? "Nam" : "Nữ",
