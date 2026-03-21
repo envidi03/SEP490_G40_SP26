@@ -14,7 +14,7 @@ const InvoiceCard = ({ invoice, onViewDetail, onPay }) => {
                     <FileText size={22} className="text-primary-600" />
                 </div>
                 <div>
-                    <p className="font-semibold text-gray-900">HĐ #{code}</p>
+                    <p className="font-semibold text-gray-900">Hóa Đơn {code}</p>
                     <p className="text-sm text-gray-400">{date}</p>
                 </div>
             </div>
