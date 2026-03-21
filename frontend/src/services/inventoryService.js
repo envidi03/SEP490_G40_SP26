@@ -73,11 +73,29 @@ const inventoryService = {
     },
 
     /**
-     * Lấy danh sách đơn vị tính thuốc
+     * Lấy danh sách đơn vị tính thuốc (backward compat)
      * GET /api/inventory/medicines/units
      */
     getUnits: async () => {
         const response = await apiClient.get('/api/inventory/medicines/units');
+        return response;
+    },
+
+    /**
+     * Lấy danh sách đơn vị BÁN (quản lý tồn kho)
+     * GET /api/inventory/medicines/selling-units
+     */
+    getSellingUnits: async () => {
+        const response = await apiClient.get('/api/inventory/medicines/selling-units');
+        return response;
+    },
+
+    /**
+     * Lấy danh sách đơn vị CƠ BẢN (dùng khi kê đơn thuốc)
+     * GET /api/inventory/medicines/base-units
+     */
+    getBaseUnits: async () => {
+        const response = await apiClient.get('/api/inventory/medicines/base-units');
         return response;
     },
 

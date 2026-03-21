@@ -18,7 +18,8 @@ exports.getMedicines = async ({ page = 1, limit = 10, search, category, statusFi
         ];
     }
 
-    if (category && category.trim()) {
+    // Lọc theo danh mục (category id)
+    if (category && category.trim() && category !== "all") {
         query.category = category.trim();
     }
 
@@ -66,13 +67,13 @@ exports.getMedicines = async ({ page = 1, limit = 10, search, category, statusFi
     const limitNum = parseInt(limit);
 
     const [medicines, totalCount] = await Promise.all([
-        Medicine.find(query)
-            .select("medicine_name category manufacturer price quantity expiry_date unit dosage_form status")
+        model.Medicine.find(query)
+            .select("medicine_name category manufacturer price quantity expiry_date selling_unit base_unit dosage_form status")
             .populate("category", "name")
             .sort({ createdAt: -1 })
             .skip(skip)
             .limit(limitNum),
-        Medicine.countDocuments(query)
+        model.Medicine.countDocuments(query)
     ]);
 
     return {
@@ -96,21 +97,32 @@ exports.getCategories = async () => {
 };
 
 /**
- * Lấy danh sách dạng bào chế thuốc
+ * Lấy danh sách dạng bào chế thuốc (thuần túy dược học, không bao gồm dạng đóng gói)
  */
 exports.getDosageForms = () => {
     return [
-        "Viên", "Viên nén", "Viên nang", "Dung dịch", "Siro", 
-        "Kem", "Bột", "Gói", "Tuýp", "Chai", "Ống", "Hỗn dịch"
+        "Viên nén", "Viên nang", "Viên sủi", "Viên ngậm",
+        "Dung dịch", "Siro", "Hỗn dịch",
+        "Kem", "Gel", "Bột", "Nhỏ giọt"
     ];
 };
 
 /**
- * Lấy danh sách đơn vị tính thuốc
+ * Lấy danh sách đơn vị BÁN (đơn vị quản lý tồn kho, bán cho bệnh nhân)
  */
-exports.getUnits = () => {
-    return ['Viên', 'Chai', 'Lọ', 'Tuýp', 'Hộp', 'Bộ', 'Gói', 'Vỉ', 'Ống', 'ml', 'mg'];
+exports.getSellingUnits = () => {
+    return ['Viên', 'Vỉ', 'Hộp', 'Chai', 'Lọ', 'Tuýp', 'Gói', 'Ống', 'Bộ'];
 };
+
+/**
+ * Lấy danh sách đơn vị CƠ BẢN (dùng khi kê đơn thuốc)
+ */
+exports.getBaseUnits = () => {
+    return ['Viên', 'ml', 'mg', 'Gói', 'Ống', 'Giọt'];
+};
+
+// Giữ lại để backward compatibility (có thể có các endpoint cũ gọi getUnits)
+exports.getUnits = exports.getSellingUnits;
 
 /**
  * Thêm thuốc mới
@@ -119,12 +131,14 @@ exports.createMedicine = async (data) => {
     const requiredFields = [
         { field: "medicine_name", label: "Tên thuốc" },
         { field: "category", label: "Danh mục" },
-        { field: "unit", label: "Đơn vị" },
+        { field: "selling_unit", label: "Đơn vị bán" },
+        { field: "base_unit", label: "Đơn vị cơ bản (kê đơn)" },
         { field: "manufacturer", label: "Nhà sản xuất" },
         { field: "price", label: "Giá" },
         { field: "quantity", label: "Số lượng tồn kho" },
         { field: "min_quantity", label: "Tồn kho tối thiểu" },
-        { field: "expiry_date", label: "Hạn sử dụng" }
+        { field: "expiry_date", label: "Hạn sử dụng" },
+        { field: "units_per_selling_unit", label: "Hệ số quy đổi" }
     ];
 
     const missingFields = requiredFields.filter(
@@ -171,7 +185,7 @@ exports.createMedicine = async (data) => {
     }
 
     if (data.dosage_form) {
-        const validDosageForms = ["Viên", "Viên nén", "Viên nang", "Dung dịch", "Siro", "Kem", "Bột", "Gói", "Tuýp", "Chai", "Ống", "Hỗn dịch"];
+        const validDosageForms = ["Viên nén", "Viên nang", "Viên sủi", "Viên ngậm", "Dung dịch", "Siro", "Hỗn dịch", "Kem", "Gel", "Bột", "Nhỏ giọt"];
         if (!validDosageForms.includes(data.dosage_form.trim())) {
             const error = new Error("Dạng bào chế không hợp lệ");
             error.statusCode = 400;
@@ -179,10 +193,19 @@ exports.createMedicine = async (data) => {
         }
     }
 
-    if (data.unit) {
-        const validUnits = ['Viên', 'Chai', 'Lọ', 'Tuýp', 'Hộp', 'Bộ', 'Gói', 'Vỉ', 'Ống', 'ml', 'mg'];
-        if (!validUnits.includes(data.unit.trim())) {
-            const error = new Error("Đơn vị tính không hợp lệ");
+    if (data.selling_unit) {
+        const validSellingUnits = ['Viên', 'Vỉ', 'Hộp', 'Chai', 'Lọ', 'Tuýp', 'Gói', 'Ống', 'Bộ'];
+        if (!validSellingUnits.includes(data.selling_unit.trim())) {
+            const error = new Error("Đơn vị bán không hợp lệ");
+            error.statusCode = 400;
+            throw error;
+        }
+    }
+
+    if (data.base_unit) {
+        const validBaseUnits = ['Viên', 'ml', 'mg', 'Gói', 'Ống', 'Giọt'];
+        if (!validBaseUnits.includes(data.base_unit.trim())) {
+            const error = new Error("Đơn vị cơ bản không hợp lệ");
             error.statusCode = 400;
             throw error;
         }
@@ -338,7 +361,11 @@ exports.createRestockRequest = async (medicineId, data) => {
         quantity_requested: Number(data.quantity_requested),
         priority: data.priority || "medium",
         reason: data.reason.trim(),
-        note: data.note || null
+        note: data.note || null,
+        selling_unit: data.selling_unit,
+        base_unit: data.base_unit,
+        units_per_selling_unit: Number(data.units_per_selling_unit) || 1,
+        manufacturer: data.manufacturer
     });
 
     await medicine.save();

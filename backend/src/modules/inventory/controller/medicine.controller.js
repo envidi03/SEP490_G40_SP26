@@ -49,16 +49,28 @@ exports.getDosageForms = (req, res) => {
 
 exports.getUnits = (req, res) => {
     try {
-        const units = medicineService.getUnits();
-        return res.status(200).json({
-            success: true,
-            data: units
-        });
+        const units = medicineService.getSellingUnits(); // backward compat
+        return res.status(200).json({ success: true, data: units });
     } catch (error) {
-        return res.status(500).json({
-            success: false,
-            message: error.message
-        });
+        return res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+exports.getSellingUnits = (req, res) => {
+    try {
+        const units = medicineService.getSellingUnits();
+        return res.status(200).json({ success: true, data: units });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+exports.getBaseUnits = (req, res) => {
+    try {
+        const units = medicineService.getBaseUnits();
+        return res.status(200).json({ success: true, data: units });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: error.message });
     }
 };
 

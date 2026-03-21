@@ -10,12 +10,14 @@ const INITIAL_FORM = {
     dosage_form: '',
     manufacturer: '',
     distributor: '',
-    unit: '',
+    selling_unit: '',
+    base_unit: '',
     price: '',
     stock: '',
     minStock: '',
     expiryDate: '',
-    batchNumber: ''
+    batchNumber: '',
+    units_per_selling_unit: '1'
 };
 
 
@@ -27,44 +29,36 @@ const PharmacyMedicineModal = ({ isOpen, onClose, onSubmit, editData = null, sub
     const [errors, setErrors] = useState({});
     const [categories, setCategories] = useState([]);
     const [dosageForms, setDosageForms] = useState([]);
-    const [units, setUnits] = useState([]);
+    const [sellingUnits, setSellingUnits] = useState([]);
+    const [baseUnits, setBaseUnits] = useState([]);
 
-    // Lấy danh mục và dạng bào chế từ API
+    // Lấy danh mục và các enum từ API
     useEffect(() => {
         inventoryService.getCategories()
             .then(res => {
-                if (res?.success) setCategories(res.data || []);
-            })
-            .catch(() => {
-                // Fallback danh mục mặc định nếu API lỗi
-                setCategories([
-                    'Giảm đau - Hạ sốt',
-                    'Kháng sinh',
-                    'Kháng viêm',
-                    'Thuốc gây tê',
-                    'Vitamin & Khoáng chất',
-                    'Kháng histamin',
-                    'Dung dịch sát trùng',
-                    'Vật liệu nha khoa',
-                    'Khác'
-                ]);
+                if (res?.success && res.data && res.data.length > 0) {
+                    setCategories(res.data);
+                } else {
+                    // Fallback if API returns empty list
+                    setCategories([
+                        'Giảm đau - Hạ sốt', 'Kháng sinh', 'Kháng viêm', 'Thuốc gây tê',
+                        'Vitamin & Khoáng chất', 'Kháng histamin', 'Dung dịch sát trùng',
+                        'Vật liệu nha khoa', 'Khác'
+                    ]);
+                }
             });
 
         inventoryService.getDosageForms()
-            .then(res => {
-                if (res?.success) setDosageForms(res.data || []);
-            })
-            .catch(() => {
-                setDosageForms([]);
-            });
+            .then(res => { if (res?.success) setDosageForms(res.data || []); })
+            .catch(() => setDosageForms([]));
 
-        inventoryService.getUnits()
-            .then(res => {
-                if (res?.success) setUnits(res.data || []);
-            })
-            .catch(() => {
-                setUnits([]);
-            });
+        inventoryService.getSellingUnits()
+            .then(res => { if (res?.success) setSellingUnits(res.data || []); })
+            .catch(() => setSellingUnits(['Viên', 'Vỉ', 'Hộp', 'Chai', 'Lọ', 'Tuýp', 'Gói', 'Ống', 'Bộ']));
+
+        inventoryService.getBaseUnits()
+            .then(res => { if (res?.success) setBaseUnits(res.data || []); })
+            .catch(() => setBaseUnits(['Viên', 'ml', 'mg', 'Gói', 'Ống', 'Giọt']));
     }, []);
 
     // Khi mở modal, load dữ liệu vào form
@@ -78,12 +72,14 @@ const PharmacyMedicineModal = ({ isOpen, onClose, onSubmit, editData = null, sub
                     dosage_form: editData.dosage_form || '',
                     manufacturer: editData.manufacturer || '',
                     distributor: editData.distributor || '',
-                    unit: editData.unit || '',
+                    selling_unit: editData.selling_unit || '',
+                    base_unit: editData.base_unit || '',
                     price: editData.price?.toString() || '',
                     stock: editData.stock?.toString() || '',
                     minStock: editData.minStock?.toString() || '',
                     expiryDate: editData.expiryDate || '',
-                    batchNumber: editData.batchNumber || ''
+                    batchNumber: editData.batchNumber || '',
+                    units_per_selling_unit: editData.units_per_selling_unit?.toString() || '1'
                 });
             } else {
                 setFormData(INITIAL_FORM);
@@ -106,10 +102,12 @@ const PharmacyMedicineModal = ({ isOpen, onClose, onSubmit, editData = null, sub
         if (!formData.category) newErrors.category = 'Vui lòng chọn danh mục';
         if (!formData.dosage_form) newErrors.dosage_form = 'Vui lòng chọn dạng bào chế';
         if (!formData.manufacturer.trim()) newErrors.manufacturer = 'Vui lòng nhập nhà sản xuất';
-        if (!formData.unit) newErrors.unit = 'Vui lòng chọn đơn vị';
+        if (!formData.selling_unit) newErrors.selling_unit = 'Vui lòng chọn đơn vị bán';
+        if (!formData.base_unit) newErrors.base_unit = 'Vui lòng chọn đơn vị kê đơn';
         if (formData.price === '' || Number(formData.price) < 0) newErrors.price = 'Giá phải >= 0';
         if (formData.stock === '' || Number(formData.stock) < 0) newErrors.stock = 'Tồn kho phải >= 0';
         if (formData.minStock === '' || Number(formData.minStock) < 0) newErrors.minStock = 'Tồn kho tối thiểu phải >= 0';
+        if (formData.units_per_selling_unit === '' || Number(formData.units_per_selling_unit) < 1) newErrors.units_per_selling_unit = 'Hệ số quy đổi phải >= 1';
         if (!formData.expiryDate) newErrors.expiryDate = 'Vui lòng chọn hạn sử dụng';
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
@@ -270,25 +268,64 @@ const PharmacyMedicineModal = ({ isOpen, onClose, onSubmit, editData = null, sub
                     </div>
                 </div>
 
-                {/* Đơn vị + Giá */}
+                {/* Đơn vị BÁN + Đơn vị KÊ ĐƠN */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Đơn vị <span className="text-red-500">*</span>
+                            Đơn vị Bán <span className="text-red-500">*</span>
+                            <span className="ml-1 text-xs text-gray-400 font-normal">(quản lý tồn kho)</span>
                         </label>
                         <select
-                            name="unit"
-                            value={formData.unit}
+                            name="selling_unit"
+                            value={formData.selling_unit}
                             onChange={handleChange}
-                            className={inputClass('unit')}
+                            className={inputClass('selling_unit')}
                         >
-                            <option value="">-- Chọn đơn vị --</option>
-                            {units.map(u => (
+                            <option value="">-- Chọn đơn vị bán --</option>
+                            {sellingUnits.map(u => (
                                 <option key={u} value={u}>{u}</option>
                             ))}
                         </select>
-                        {errors.unit && <p className="text-red-500 text-xs mt-1">{errors.unit}</p>}
+                        {errors.selling_unit && <p className="text-red-500 text-xs mt-1">{errors.selling_unit}</p>}
                     </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Đơn vị Kê Đơn <span className="text-red-500">*</span>
+                            <span className="ml-1 text-xs text-gray-400 font-normal">(bác sĩ kê đơn)</span>
+                        </label>
+                        <select
+                            name="base_unit"
+                            value={formData.base_unit}
+                            onChange={handleChange}
+                            className={inputClass('base_unit')}
+                        >
+                            <option value="">-- Chọn đơn vị kê đơn --</option>
+                            {baseUnits.map(u => (
+                                <option key={u} value={u}>{u}</option>
+                            ))}
+                        </select>
+                        {errors.base_unit && <p className="text-red-500 text-xs mt-1">{errors.base_unit}</p>}
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Quy đổi (1 {formData.selling_unit || 'ĐV Bán'} = ? {formData.base_unit || 'ĐV Cơ bản'}) <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                            type="number"
+                            name="units_per_selling_unit"
+                            value={formData.units_per_selling_unit}
+                            onChange={handleChange}
+                            min="1"
+                            placeholder="VD: 10"
+                            className={inputClass('units_per_selling_unit')}
+                        />
+                        {errors.units_per_selling_unit && <p className="text-red-500 text-xs mt-1">{errors.units_per_selling_unit}</p>}
+                    </div>
+                </div>
+
+                {/* Giá bán */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                             Giá (đ) <span className="text-red-500">*</span>

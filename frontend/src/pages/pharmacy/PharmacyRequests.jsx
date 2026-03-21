@@ -177,11 +177,11 @@ const PharmacyRequests = () => {
                                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                                             <div>
                                                 <p className="text-gray-600">Số lượng yêu cầu</p>
-                                                <p className="font-semibold text-gray-900">{request.quantity_requested}</p>
+                                                <p className="font-semibold text-gray-900">{request.quantity_requested} {request.selling_unit || 'đơn vị'}</p>
                                             </div>
                                             <div>
                                                 <p className="text-gray-600">Tồn kho hiện tại</p>
-                                                <p className="font-semibold text-gray-900">{request.current_quantity ?? '—'}</p>
+                                                <p className="font-semibold text-gray-900">{request.current_quantity ?? '—'} {request.selling_unit || ''}</p>
                                             </div>
                                             <div>
                                                 <p className="text-gray-600">Người yêu cầu</p>
