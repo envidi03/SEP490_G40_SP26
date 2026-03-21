@@ -2,23 +2,13 @@ import apiClient from './api';
 
 const treatmentService = {
     // API dành cho Patient xem danh sách hồ sơ bệnh án của bản thân
-    getPatientDentalRecords: async (params) => {
-        try {
-            const response = await apiClient.get('/api/dentist/patient/dental-record', { params });
-            return response;
-        } catch (error) {
-            throw error;
-        }
+    getPatientDentalRecords: (params) => {
+        return apiClient.get('/api/dentist/patient/dental-record', { params });
     },
 
     // XEM chi tiết 1 hồ sơ
-    getDentalRecordById: async (id) => {
-        try {
-            const response = await apiClient.get(`/api/dentist/dental-record/${id}`);
-            return response;
-        } catch (error) {
-            throw error;
-        }
+    getDentalRecordById: (id) => {
+        return apiClient.get(`/api/dentist/dental-record/${id}`);
     },
 
     /**
@@ -26,13 +16,8 @@ const treatmentService = {
      * Lấy tất cả hồ sơ nha khoa kèm treatments (có medicine_usage lồng bên trong)
      * Dùng cho trang Quản lý Đơn thuốc của Assistant/Doctor
      */
-    getAllDentalRecordsWithTreatments: async (params = {}) => {
-        try {
-            const response = await apiClient.get('/api/dentist/dental-record', { params });
-            return response;
-        } catch (error) {
-            throw error;
-        }
+    getAllDentalRecordsWithTreatments: (params = {}) => {
+        return apiClient.get('/api/dentist/dental-record', { params });
     },
 
     /**
@@ -41,16 +26,19 @@ const treatmentService = {
      * Chỉ cập nhật được các field: tooth_position, phase, quantity, planned_price,
      * planned_date, performed_date, result, note, medicine_usage
      */
-    updateTreatmentMedicine: async (treatmentId, data) => {
-        try {
-            const response = await apiClient.patch(`/api/dentist/treatment/${treatmentId}`, data);
-            return response;
-        } catch (error) {
-            throw error;
-        }
+    updateTreatmentMedicine: (treatmentId, data) => {
+        return apiClient.patch(`/api/dentist/treatment/${treatmentId}`, data);
     },
 
-    viewTreatmentDetail: async (treatmentId) => apiClient.get(`/api/dentist/treatment/${treatmentId}`),
+    // Xem chi tiết 1 phiếu điều trị
+    viewTreatmentDetail: (treatmentId) => {
+        return apiClient.get(`/api/dentist/treatment/${treatmentId}`);
+    },
+
+    // TẠO MỚI phiếu điều trị
+    createTreatment: (dentalId, data) => {
+        return apiClient.post(`/api/dentist/treatment/${dentalId}`, data);
+    }
 };
 
 export default treatmentService;

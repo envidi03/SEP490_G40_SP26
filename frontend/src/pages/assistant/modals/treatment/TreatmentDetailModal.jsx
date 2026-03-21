@@ -66,7 +66,6 @@ const TreatmentDetailModal = ({ isOpen, onClose, data, isLoading }) => {
             </div>
           ) : data ? (
             <div className="space-y-6">
-              
               {/* Box 1: Thông tin tổng quan */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">

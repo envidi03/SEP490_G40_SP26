@@ -72,7 +72,6 @@ const TreatmentComponent = ({ treatment, index }) => {
         </div>
       </div>
 
-      {/* SỬ DỤNG COMPONENT MODAL ĐÃ IMPORT */}
       <TreatmentDetailModal 
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)} 
