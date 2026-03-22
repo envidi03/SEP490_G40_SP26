@@ -14,33 +14,36 @@ import {
   Calendar,
   User,
   Phone,
+  Plus,
 } from "lucide-react";
 import Card from "../../components/ui/Card";
 import Badge from "../../components/ui/Badge";
 import SharedPagination from "../../components/ui/SharedPagination";
 import { getAllDentalRecords } from "../../services/dentalRecordService";
 import TreatmentComponent from "./components/TreatmentComponent";
+import AddTreatmentModal from "./modals/treatment/AddTreatmentModal"; 
 
 const AssistantMedicalRecords = () => {
-  // --- 1. STATE BỘ LỌC TẠM THỜI (Giao diện UI) ---
+  // --- STATE BỘ LỌC ---
   const [tempSearch, setTempSearch] = useState("");
   const [tempStatus, setTempStatus] = useState("all");
   const [filterDoctor, setFilterDoctor] = useState("all");
-
-  // --- 2. STATE THAM SỐ THỰC TẾ (Dùng để gọi API) ---
   const [filterParams, setFilterParams] = useState({
     search: "",
     status: "all",
   });
 
-  // --- 3. STATE DỮ LIỆU & PHÂN TRANG ---
+  // --- STATE DỮ LIỆU & PHÂN TRANG ---
   const [records, setRecords] = useState([]);
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
-
   const [expandedId, setExpandedId] = useState(null);
+
+  // --- STATE MODALS ---
+  const [showAddTreatmentModal, setShowAddTreatmentModal] = useState(false);
+  const [recordForAddTreatment, setRecordForAddTreatment] = useState(null);
 
   const fetchRecords = useCallback(async () => {
     try {
@@ -72,7 +75,6 @@ const AssistantMedicalRecords = () => {
     fetchRecords();
   }, [fetchRecords]);
 
-  // --- BỘ LỌC HANDLERS ---
   const handleApplyFilters = () => {
     setCurrentPage(1);
     setFilterParams({
@@ -97,7 +99,10 @@ const AssistantMedicalRecords = () => {
     setExpandedId(expandedId === id ? null : id);
   };
 
-  // --- HELPERS ---
+  const handleTreatmentAddedSuccess = () => {
+    fetchRecords();
+  };
+
   const getStatusInfo = (status) => {
     const statusMap = {
       COMPLETED: { label: "Hoàn thành", variant: "success", icon: CheckCircle },
@@ -319,16 +324,30 @@ const AssistantMedicalRecords = () => {
 
                     {/* Treatment Timeline */}
                     <div className="relative">
-                      <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center justify-between mb-5 border-b-2 border-slate-50 pb-3">
                         <h4 className="text-sm font-bold text-gray-800 flex items-center gap-2 italic">
                           <Calendar size={16} className="text-blue-500" />
                           Lộ trình điều trị chi tiết (
                           {record.treatments?.length || 0})
                         </h4>
+
+                        {/* NÚT THÊM PHIẾU */}
+                        {record.status === "IN_PROGRESS" && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setRecordForAddTreatment(record);
+                              setShowAddTreatmentModal(true);
+                            }}
+                            className="flex items-center gap-2 px-4 py-2 bg-blue-100 text-blue-700 hover:bg-blue-600 hover:text-white rounded-xl text-xs font-black uppercase tracking-widest transition-all shadow-sm active:scale-95"
+                          >
+                            <Plus size={16} strokeWidth={3} /> Thêm phiếu điều trị
+                          </button>
+                        )}
                       </div>
 
                       {record.treatments && record.treatments.length > 0 ? (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="grid grid-cols-2 gap-4">
                           {record.treatments.map((treat, idx) => (
                             <TreatmentComponent key={treat._id} treatment={treat} index={idx} />
                           ))}
@@ -369,6 +388,14 @@ const AssistantMedicalRecords = () => {
           />
         </div>
       )}
+
+      {/* --- MODAL THÊM PHIẾU ĐIỀU TRỊ --- */}
+      <AddTreatmentModal
+        isOpen={showAddTreatmentModal}
+        onClose={() => setShowAddTreatmentModal(false)}
+        record={recordForAddTreatment}
+        onSuccess={handleTreatmentAddedSuccess}
+      />
     </div>
   );
 };

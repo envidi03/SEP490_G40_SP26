@@ -100,44 +100,45 @@ const createController = async (req, res) => {
     cleanedData.patient_id = dental.patient_id;
 
     /*
+      nếu phase = SESSION, nếu là thực hiện luôn lần đầu chứ không phải là từ lần 2 thì lấy appointment_id ở trong dental
       Kiểm tra xem appointment có tồn tại không và có thuộc về cùng một bệnh nhân với dental record không
       - Nếu appointment không tồn tại, trả về lỗi NotFound
       - Nếu appointment tồn tại nhưng patient_id của appointment không khớp với patient_id của dental record, 
       trả về lỗi BadRequest (vì treatment phải liên quan đến một cuộc hẹn của cùng một bệnh nhân)
     */
-    const appointment = await appointmentService.findById(
-      cleanedData.appointment_id,
-    );
-    if (!appointment) {
-      logger.warn("Appointment not found for given ID", {
-        context,
-        appointmentId: cleanedData.appointment_id,
-      });
-      throw new errorRes.NotFoundError("Appointment not found");
-    }
-    if (String(appointment.patient_id) !== String(cleanedData.patient_id)) {
-      logger.warn(
-        "Appointment patient ID does not match dental record patient ID",
-        {
+    if (cleanedData.phase === "SESSION") {
+      const appointment = await appointmentService.findById(
+        cleanedData.appointment_id ? cleanedData.appointment_id : dental.appointment_id
+      );
+      if (!appointment) {
+        logger.warn("Appointment not found for given ID", {
           context,
           appointmentId: cleanedData.appointment_id,
-          appointmentPatientId: appointment.patient_id,
-          dentalRecordPatientId: cleanedData.patient_id,
-        },
-      );
-      throw new errorRes.BadRequestError(
-        "Appointment does not belong to the same patient as the dental record",
-      );
+        });
+        throw new errorRes.NotFoundError("Appointment not found");
+      }
+      if (String(appointment.patient_id) !== String(cleanedData.patient_id)) {
+        logger.warn(
+          "Appointment patient ID does not match dental record patient ID",
+          {
+            context,
+            appointmentId: cleanedData.appointment_id,
+            appointmentPatientId: appointment.patient_id,
+            dentalRecordPatientId: cleanedData.patient_id,
+          },
+        );
+        throw new errorRes.BadRequestError(
+          "Appointment does not belong to the same patient as the dental record",
+        );
+      }
+      cleanedData.doctor_id = appointment.doctor_id;
     }
-    cleanedData.doctor_id = appointment.doctor_id;
 
-    const requiredFields = [
-      "record_id",
-      "appointment_id",
-      "patient_id",
-      "doctor_id",
-      "phase", // Schema yêu cầu bắt buộc (PLAN hoặc SESSION)
-    ];
+    const requiredFields = ["record_id", "patient_id", "doctor_id", "phase"];
+    if (cleanedData.phase === "SESSION") {
+      requiredFields.push("appointment_id");
+    }
+
     checkRequiredFields(requiredFields, cleanedData, this, "createController");
     const newTreatment = await ServiceProcess.createService(cleanedData);
     if (!newTreatment) {
@@ -178,7 +179,7 @@ const updateController = async (req, res) => {
       throw new errorRes.BadRequestError("Invalid Treatment ID format");
     }
 
-    // Chỉ cho phép update những trường nội dung, cấm tuyệt đối cập nhật Khóa ngoại và Status
+    // Chỉ cho phép update những trường nội dung, cấm tuyệt đối cập nhật Khóa ngoại
     const allowedFields = [
       "tooth_position",
       "phase",
@@ -189,6 +190,7 @@ const updateController = async (req, res) => {
       "result",
       "note",
       "medicine_usage",
+      "status"
     ];
     const safeData = {};
     for (const field of allowedFields) {
