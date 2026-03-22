@@ -179,7 +179,7 @@ const updateController = async (req, res) => {
       throw new errorRes.BadRequestError("Invalid Treatment ID format");
     }
 
-    // Chỉ cho phép update những trường nội dung, cấm tuyệt đối cập nhật Khóa ngoại và Status
+    // Chỉ cho phép update những trường nội dung, cấm tuyệt đối cập nhật Khóa ngoại
     const allowedFields = [
       "tooth_position",
       "phase",
@@ -190,6 +190,7 @@ const updateController = async (req, res) => {
       "result",
       "note",
       "medicine_usage",
+      "status"
     ];
     const safeData = {};
     for (const field of allowedFields) {

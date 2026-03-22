@@ -167,9 +167,13 @@ const updateStatusOnly = async (id, status) => {
             await AppointmentService.updateStatusOnly(appoint._id, "COMPLETED");
         }
 
+        const dataUpdate = { status };
+        if (status === "IN_PROGRESS") {
+            dataUpdate.phase = "SESSION";
+        }
         const newData = await model.Treatment.findByIdAndUpdate(
             id,
-            { status: status },
+            dataUpdate,
             { new: true }
         ).populate('patient_id', 'full_name');
 

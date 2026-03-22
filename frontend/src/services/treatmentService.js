@@ -1,14 +1,14 @@
 import apiClient from './api';
-
+const BASE_API_DENTIST = "/api/dentist";
 const treatmentService = {
     // API dành cho Patient xem danh sách hồ sơ bệnh án của bản thân
     getPatientDentalRecords: (params) => {
-        return apiClient.get('/api/dentist/patient/dental-record', { params });
+        return apiClient.get(`${BASE_API_DENTIST}/patient/dental-record`, { params });
     },
 
     // XEM chi tiết 1 hồ sơ
     getDentalRecordById: (id) => {
-        return apiClient.get(`/api/dentist/dental-record/${id}`);
+        return apiClient.get(`${BASE_API_DENTIST}/dental-record/${id}`);
     },
 
     /**
@@ -17,7 +17,7 @@ const treatmentService = {
      * Dùng cho trang Quản lý Đơn thuốc của Assistant/Doctor
      */
     getAllDentalRecordsWithTreatments: (params = {}) => {
-        return apiClient.get('/api/dentist/dental-record', { params });
+        return apiClient.get(`${BASE_API_DENTIST}/dental-record`, { params });
     },
 
     /**
@@ -27,17 +27,21 @@ const treatmentService = {
      * planned_date, performed_date, result, note, medicine_usage
      */
     updateTreatmentMedicine: (treatmentId, data) => {
-        return apiClient.patch(`/api/dentist/treatment/${treatmentId}`, data);
+        return apiClient.patch(`${BASE_API_DENTIST}/treatment/${treatmentId}`, data);
     },
 
     // Xem chi tiết 1 phiếu điều trị
     viewTreatmentDetail: (treatmentId) => {
-        return apiClient.get(`/api/dentist/treatment/${treatmentId}`);
+        return apiClient.get(`${BASE_API_DENTIST}/treatment/${treatmentId}`);
     },
 
     // TẠO MỚI phiếu điều trị
     createTreatment: (dentalId, data) => {
-        return apiClient.post(`/api/dentist/treatment/${dentalId}`, data);
+        return apiClient.post(`${BASE_API_DENTIST}/treatment/${dentalId}`, data);
+    },
+
+    changeStatusTreatment: (treatmentId, status) => {
+        return apiClient.patch(`${BASE_API_DENTIST}/treatment/status/${treatmentId}`, status)
     }
 };
 
