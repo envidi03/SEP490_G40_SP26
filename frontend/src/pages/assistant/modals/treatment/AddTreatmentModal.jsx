@@ -1,15 +1,26 @@
 import React, { useState, useEffect } from "react";
-import { X, Save, FilePlus, AlertCircle, Plus, Trash2 } from "lucide-react";
+import { X, Save, FilePlus, AlertCircle, Plus, Trash2, Pill } from "lucide-react";
 import treatmentApi from "../../../../services/treatmentService";
+import MedicineModal from "./medicineModal"; // Import component dùng chung
 
-// Hàm tạo 1 object form rỗng
+// Hàm tạo 1 object thuốc rỗng
+const generateBlankMedicine = () => ({
+  _localId: Date.now() + Math.random(),
+  medicine_id: "",
+  quantity: 1,
+  usage_instruction: "",
+  note: "",
+});
+
+// Hàm tạo 1 object form rỗng (Đã bổ sung mảng medicine_usage)
 const generateBlankForm = () => ({
   _localId: Date.now() + Math.random(),
   tooth_position: "",
-  phase: "PLAN",
+  phase: "PLAN", // Mặc định là Lên Kế hoạch
   quantity: 1,
   planned_date: new Date().toISOString().split("T")[0],
   note: "",
+  medicine_usage: [], // Khởi tạo mảng đơn thuốc rỗng cho mỗi phiếu
 });
 
 const AddTreatmentModal = ({ isOpen, onClose, record, onSuccess }) => {
@@ -43,6 +54,43 @@ const AddTreatmentModal = ({ isOpen, onClose, record, onSuccess }) => {
     setForms((prev) => prev.filter((f) => f._localId !== localId));
   };
 
+  // --- LOGIC QUẢN LÝ THUỐC CHO TỪNG FORM ---
+  const handleAddMedicine = (formLocalId) => {
+    setForms((prevForms) =>
+      prevForms.map((form) =>
+        form._localId === formLocalId
+          ? { ...form, medicine_usage: [...form.medicine_usage, generateBlankMedicine()] }
+          : form
+      )
+    );
+  };
+
+  const handleRemoveMedicine = (formLocalId, medicineLocalId) => {
+    setForms((prevForms) =>
+      prevForms.map((form) =>
+        form._localId === formLocalId
+          ? { ...form, medicine_usage: form.medicine_usage.filter((m) => m._localId !== medicineLocalId) }
+          : form
+      )
+    );
+  };
+
+  const handleMedicineChange = (formLocalId, medicineLocalId, field, value) => {
+    setForms((prevForms) =>
+      prevForms.map((form) =>
+        form._localId === formLocalId
+          ? {
+              ...form,
+              medicine_usage: form.medicine_usage.map((med) =>
+                med._localId === medicineLocalId ? { ...med, [field]: value } : med
+              ),
+            }
+          : form
+      )
+    );
+  };
+  // -----------------------------------------
+
   // Đóng popup lỗi
   const closeErrorPopup = () => {
     setErrorPopup({ isOpen: false, messages: [] });
@@ -55,11 +103,20 @@ const AddTreatmentModal = ({ isOpen, onClose, record, onSuccess }) => {
     let errors = [];
 
     try {
-      // 1. CHỈ VALIDATE VỊ TRÍ RĂNG Ở FRONTEND
+      // 1. VALIDATE VỊ TRÍ RĂNG VÀ THUỐC
       for (let i = 0; i < forms.length; i++) {
         const form = forms[i];
         if (!form.tooth_position.trim()) {
           errors.push(`Phiếu #${i + 1}: Vui lòng nhập vị trí răng điều trị.`);
+        }
+        
+        // NẾU KHÔNG PHẢI PLAN, kiểm tra xem thuốc đã được chọn ID chưa
+        if (form.phase !== "PLAN" && form.medicine_usage.length > 0) {
+          for (let j = 0; j < form.medicine_usage.length; j++) {
+            if (!form.medicine_usage[j].medicine_id) {
+              errors.push(`Phiếu #${i + 1}: Thuốc số ${j + 1} chưa được chọn.`);
+            }
+          }
         }
       }
 
@@ -74,10 +131,19 @@ const AddTreatmentModal = ({ isOpen, onClose, record, onSuccess }) => {
       for (let i = 0; i < forms.length; i++) {
         const form = forms[i];
         try {
-          // Bỏ _localId ra khỏi data gửi đi
-          const { _localId, ...dataToSend } = form;
+          // Bỏ _localId và medicine_usage gốc ra khỏi data
+          const { _localId, medicine_usage, ...dataToSend } = form;
 
-          // Tạo payload cơ bản, HOÀN TOÀN KHÔNG CÓ appointment_id
+          // Xử lý mảng thuốc (Loại bỏ _localId của thuốc)
+          let cleanMedicineUsage = [];
+          if (form.phase !== "PLAN" && medicine_usage.length > 0) {
+            cleanMedicineUsage = medicine_usage.map((med) => {
+              const { _localId, ...rest } = med;
+              return { ...rest, quantity: Number(rest.quantity) };
+            });
+          }
+
+          // Tạo payload
           const payload = {
             ...dataToSend,
             record_id: record._id,
@@ -85,6 +151,11 @@ const AddTreatmentModal = ({ isOpen, onClose, record, onSuccess }) => {
             doctor_id: record?.doctor_info?._id || record?.doctor_id,
             status: form.phase === "PLAN" ? "PLANNED" : "IN_PROGRESS",
           };
+
+          // Nếu là SESSION (Thực thi), đính kèm mảng thuốc vào payload
+          if (form.phase !== "PLAN") {
+             payload.medicine_usage = cleanMedicineUsage;
+          }
 
           payload.quantity = Number(payload.quantity);
 
@@ -126,7 +197,7 @@ const AddTreatmentModal = ({ isOpen, onClose, record, onSuccess }) => {
     <>
       <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-200">
         <div
-          className="bg-white rounded-3xl w-full max-w-3xl shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200"
+          className="bg-white rounded-3xl w-full max-w-4xl shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200"
           onClick={(e) => e.stopPropagation()}
         >
           {/* --- Header --- */}
@@ -154,7 +225,7 @@ const AddTreatmentModal = ({ isOpen, onClose, record, onSuccess }) => {
           </div>
 
           {/* --- Form Body --- */}
-          <div className="p-6 overflow-y-auto max-h-[65vh] custom-scrollbar space-y-6">
+          <div className="p-6 overflow-y-auto max-h-[70vh] custom-scrollbar space-y-6">
             {forms.map((form, index) => (
               <div
                 key={form._localId}
@@ -206,8 +277,8 @@ const AddTreatmentModal = ({ isOpen, onClose, record, onSuccess }) => {
                       onChange={(e) => handleChange(form._localId, e)}
                       className="w-full px-4 py-3 bg-blue-50 border border-blue-100 text-blue-700 rounded-xl focus:border-blue-500 outline-none font-bold cursor-pointer appearance-none"
                     >
-                      <option value="SESSION">Thực thi (Làm ngay)</option>
                       <option value="PLAN">Lên Kế hoạch</option>
+                      <option value="SESSION">Thực thi (Làm ngay)</option>
                     </select>
                   </div>
                 </div>
@@ -245,7 +316,7 @@ const AddTreatmentModal = ({ isOpen, onClose, record, onSuccess }) => {
                 </div>
 
                 {/* Hàng 3: Ghi chú */}
-                <div className="space-y-2">
+                <div className="space-y-2 mb-2">
                   <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">
                     Ghi chú / Mô tả
                   </label>
@@ -258,6 +329,42 @@ const AddTreatmentModal = ({ isOpen, onClose, record, onSuccess }) => {
                     className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:border-blue-500 outline-none font-medium text-slate-700 transition-colors resize-none"
                   ></textarea>
                 </div>
+
+                {/* HÀNG 4: KÊ ĐƠN THUỐC (CHỈ HIỆN KHI LÀ SESSION) */}
+                {form.phase !== "PLAN" && (
+                  <div className="mt-5 pt-5 border-t border-slate-200">
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="text-[11px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5 ml-1">
+                        <Pill size={14} className="text-orange-500" /> Kê đơn thuốc ({form.medicine_usage.length})
+                      </h4>
+                      <button
+                        type="button"
+                        onClick={() => handleAddMedicine(form._localId)}
+                        className="flex items-center gap-1 px-2.5 py-1.5 bg-orange-100 text-orange-600 hover:bg-orange-600 hover:text-white rounded-lg text-[10px] font-black transition-colors uppercase"
+                      >
+                        <Plus size={12} strokeWidth={3} /> Kê thuốc
+                      </button>
+                    </div>
+
+                    {form.medicine_usage.length === 0 ? (
+                      <div className="p-4 border border-dashed border-slate-200 rounded-xl text-center bg-white">
+                        <p className="text-[11px] font-bold text-slate-400">Chưa kê thuốc cho phiếu này.</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {form.medicine_usage.map((med) => (
+                          <MedicineModal
+                            key={med._localId}
+                            med={med}
+                            handleMedicineChange={(medLocalId, field, value) => handleMedicineChange(form._localId, medLocalId, field, value)}
+                            handleRemoveMedicine={(medLocalId) => handleRemoveMedicine(form._localId, medLocalId)}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+                {/* ----------------------------------------------- */}
               </div>
             ))}
 
