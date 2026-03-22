@@ -126,6 +126,7 @@ const DentistAppointmentList = () => {
   const handlePatientInfoConfirm = (patientInfo) => {
     setIsPatientInfoModalOpen(false)
     const params = new URLSearchParams({
+      appointment_id: patientInfo.appointment_id,
       name: patientInfo.name,
       dob: patientInfo.dob,
       gender: patientInfo.gender,
@@ -141,6 +142,7 @@ const DentistAppointmentList = () => {
     } else {
       // Fallback
       handlePatientInfoConfirm({
+        appointment_id: appointmentForRecord?._id || appointmentForRecord?.appointment_id || "",
         name: appointmentForRecord?.patient_id?.full_name || '',
         dob: appointmentForRecord?.patient_id?.dob ? new Date(appointmentForRecord.patient_id.dob).toISOString().split('T')[0] : '',
         gender: appointmentForRecord?.patient_id?.gender ? "MALE" : "FEMALE",

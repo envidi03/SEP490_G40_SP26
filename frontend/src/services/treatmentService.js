@@ -49,6 +49,8 @@ const treatmentService = {
             throw error;
         }
     },
+
+    viewTreatmentDetail: async (treatmentId) => apiClient.get(`/api/dentist/treatment/${treatmentId}`),
 };
 
 export default treatmentService;
