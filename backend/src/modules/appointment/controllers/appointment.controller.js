@@ -412,6 +412,37 @@ const updateController = async (req, res) => {
 };
 
 /**
+ * Calculate total amount from appointment
+ * * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ */
+const calculateTotalAmountFromAppointment = async (req, res, next) => {
+  const context = "AppointmentController.calculateTotalAmountFromAppointment";
+  
+  try {
+    const { id: appointmentId } = req.params;
+    let totalAmount = 0;
+    if (!appointmentId) {
+      logger.warn("Appointment ID is null or missing.", {
+        context,
+        appointment_id: appointmentId
+      });
+      return new errorRes.NotFoundError("ID appointment is null.");
+    }
+    totalAmount = await ServiceProcess.calculateTotalAmount(appointmentId);
+    return new successRes.GetDetailSuccess({totalAmount: totalAmount}, "Calculated amount from appointment successfully.").send(res);
+
+  } catch (err) {
+    logger.error("Error calculating total amount from appointment.", {
+      context,
+      error: err
+    });
+    throw err;
+  }
+}
+
+/**
  * update appointment status only 
  * - Chỉ cập nhật trường status, không thay đổi các thông tin khác của appointment
  * - Kiểm tra tính hợp lệ của status mới (phải nằm trong danh sách các trạng thái cho phép)
@@ -549,5 +580,6 @@ module.exports = {
   checkinController,
   staffCreateController,
   getListOfPatientControllerWithDate,
-  getListOfDoctorController
+  getListOfDoctorController,
+  calculateTotalAmountFromAppointment
 };
