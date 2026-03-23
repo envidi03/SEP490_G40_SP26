@@ -21,7 +21,7 @@ import Badge from "../../components/ui/Badge";
 import SharedPagination from "../../components/ui/SharedPagination";
 import { getAllDentalRecords } from "../../services/dentalRecordService";
 import TreatmentComponent from "./components/TreatmentComponent";
-import AddTreatmentModal from "./modals/treatment/AddTreatmentModal"; 
+import AddTreatmentModal from "./modals/treatment/AddTreatmentModal";
 
 const AssistantMedicalRecords = () => {
   // --- STATE BỘ LỌC ---
@@ -349,7 +349,7 @@ const AssistantMedicalRecords = () => {
                       {record.treatments && record.treatments.length > 0 ? (
                         <div className="grid grid-cols-2 gap-4">
                           {record.treatments.map((treat, idx) => (
-                            <TreatmentComponent key={treat._id} treatment={treat} index={idx}/>
+                            <TreatmentComponent key={treat._id} treatment={treat} index={idx} onRefresh={fetchRecords} />
                           ))}
                         </div>
                       ) : (

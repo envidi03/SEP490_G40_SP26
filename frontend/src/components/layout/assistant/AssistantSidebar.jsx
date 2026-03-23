@@ -4,7 +4,6 @@ import {
     Calendar,
     FileText,
     ClipboardList,
-    Pill,
     Clock,
     LogOut,
     Wrench
@@ -22,7 +21,6 @@ const AssistantSidebar = () => {
         { path: '/assistant/appointments', icon: Calendar, label: 'Lịch Khám' },
         { path: '/assistant/medical-records', icon: FileText, label: 'Hồ Sơ' },
         { path: '/assistant/treatment-plans', icon: ClipboardList, label: 'KH Điều Trị' },
-        { path: '/assistant/prescriptions', icon: Pill, label: 'Đơn Thuốc' },
         { path: '/assistant/equipment', icon: Wrench, label: 'Thiết Bị' },
         { path: '/assistant/leave-requests', icon: Clock, label: 'Nghỉ Phép' },
     ];

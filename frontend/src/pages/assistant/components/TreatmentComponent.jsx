@@ -1,12 +1,12 @@
 import React, { useState } from "react";
-import { Clock, Activity, Play, Edit } from "lucide-react"; 
+import { Clock, Activity, Play, Edit, Eye, Pill } from "lucide-react";
 import Badge from "../../../components/ui/Badge";
 import treatmentApi from "../../../services/treatmentService";
-import TreatmentDetailModal from "./../modals/treatment/TreatmentDetailModal"; 
+import TreatmentDetailModal from "./../modals/treatment/TreatmentDetailModal";
 import UpdateTreatmentModal from "./../modals/treatment/UpdateTreatmentModal";
 import { getStatusConfig } from "../modals/treatment/getStatusConfig";
 
-const TreatmentComponent = ({ treatment, index }) => {
+const TreatmentComponent = ({ treatment, index, onRefresh }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [detailData, setDetailData] = useState(null);
@@ -19,7 +19,7 @@ const TreatmentComponent = ({ treatment, index }) => {
 
   const handleViewDetail = async () => {
     setIsModalOpen(true);
-    if (detailData) return; 
+    if (detailData) return;
 
     setIsLoading(true);
     try {
@@ -52,8 +52,10 @@ const TreatmentComponent = ({ treatment, index }) => {
     setShowUpdateModal(true);
   };
 
+  const meds = treatment.medicine_usage || [];
+
   return (
-    <div className="w-full h-full"> 
+    <div className="w-full h-full">
       <div
         onClick={handleViewDetail}
         className={`relative p-4 rounded-2xl border transition-all duration-200 hover:shadow-lg hover:-translate-y-1 cursor-pointer group flex flex-col justify-between h-full ${statusConfig.cardClass}`}
@@ -73,6 +75,16 @@ const TreatmentComponent = ({ treatment, index }) => {
           <p className="text-sm text-slate-600 mb-3 font-medium line-clamp-2 relative z-10">
             {treatment.note || "Không có ghi chú"}
           </p>
+
+          {/* Medicine summary badge */}
+          {meds.length > 0 && (
+            <div className="flex items-center gap-1.5 relative z-10 mb-2">
+              <Pill size={12} className="text-orange-500" />
+              <span className="text-[10px] font-bold text-orange-600 uppercase tracking-wider">
+                {meds.length} loại thuốc
+              </span>
+            </div>
+          )}
         </div>
 
         <div className="flex items-center justify-between border-t border-slate-200/50 pt-3 relative z-10 mt-auto">
@@ -80,10 +92,10 @@ const TreatmentComponent = ({ treatment, index }) => {
             <Clock size={14} className={statusConfig.iconColor} />
             {new Date(treatment.planned_date).toLocaleDateString("vi-VN")}
           </div>
-          
+
           <div className="flex items-center gap-2">
             <p className="text-[10px] text-blue-600 font-black uppercase opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
-              <Activity size={12}/> Xem chi tiết
+              <Activity size={12} /> Xem chi tiết
             </p>
 
             {localStatus === 'PLANNED' && (
@@ -93,24 +105,26 @@ const TreatmentComponent = ({ treatment, index }) => {
             )}
 
             {localStatus === 'IN_PROGRESS' && (
-              <button onClick={handleOpenUpdate} className="flex items-center gap-1 bg-orange-500 text-white px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase hover:bg-orange-600 transition-colors">
-                <Edit size={10} /> CẬP NHẬT
-              </button>
+              <>
+                <button onClick={handleOpenUpdate} className="flex items-center gap-1 bg-orange-500 text-white px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase hover:bg-orange-600 transition-colors">
+                  <Edit size={10} /> CẬP NHẬT
+                </button>
+              </>
             )}
           </div>
         </div>
       </div>
 
       <TreatmentDetailModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} data={detailData} isLoading={isLoading} />
-      
+
       <UpdateTreatmentModal
         isOpen={showUpdateModal}
         onClose={() => setShowUpdateModal(false)}
         treatment={treatment}
         onSuccess={(newStatus) => {
-          // Khi popup cập nhật báo lưu thành công, đổi màu thẻ và reset data chi tiết
           setLocalStatus(newStatus);
-          setDetailData(null); 
+          setDetailData(null);
+          if (onRefresh) onRefresh();
         }}
       />
     </div>
