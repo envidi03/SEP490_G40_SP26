@@ -132,6 +132,11 @@ const VerifyEmail = () => {
                                         <h2 className="text-2xl font-bold text-gray-900 mb-2">
                                             Xác minh thất bại
                                         </h2>
+                                        <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+                                            <p className="text-sm text-red-800 text-center">
+                                                {message}
+                                            </p>
+                                        </div>
 
                                         {/* Resend Verification Section */}
                                         <div className="border-t border-gray-100 pt-6 mt-6">
