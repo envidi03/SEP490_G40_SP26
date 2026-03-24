@@ -122,7 +122,7 @@ const Login = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
-        
+
         // Manual validation
         const errors = {
             username: !username ? 'Vui lòng nhập email hoặc tên đăng nhập' : '',
