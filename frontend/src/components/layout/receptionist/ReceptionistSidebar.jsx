@@ -1,4 +1,4 @@
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
     LayoutDashboard,
     Users,
@@ -16,7 +16,25 @@ import { useAuth } from '../../../contexts/AuthContext';
 
 const ReceptionistSidebar = () => {
     const location = useLocation();
+    const navigate = useNavigate();
     const { logout, user } = useAuth();
+
+    const handleLogout = () => {
+        const logoutToast = {
+            message: 'Đăng xuất thành công. Hẹn gặp lại bạn!',
+            type: 'success',
+            duration: 3000
+        };
+
+        // 1. Set toast in BOTH sessionStorage and navigate state for reliability
+        sessionStorage.setItem('pendingToast', JSON.stringify(logoutToast));
+
+        // 2. Perform logout
+        logout();
+        
+        // 3. Navigate to login (or /) with state
+        navigate('/login', { state: { toast: logoutToast } });
+    };
 
     const menuItems = [
         { path: '/receptionist/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
@@ -117,7 +135,7 @@ const ReceptionistSidebar = () => {
             {/* Footer / Logout */}
             <div className="p-4 mt-auto relative z-10">
                 <button
-                    onClick={logout}
+                    onClick={handleLogout}
                     className="w-full flex items-center justify-center gap-2 px-4 py-3.5 rounded-xl text-sm font-medium text-rose-500 hover:bg-rose-50 hover:text-rose-600 transition-all duration-300 border border-transparent hover:border-rose-100 group"
                 >
                     <LogOut size={18} className="transition-transform group-hover:-translate-x-1" />

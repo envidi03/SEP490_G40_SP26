@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
 import Toast from './Toast';
 
 const ToastListener = () => {
     const location = useLocation();
     const navigate = useNavigate();
+    const { isAuthenticated } = useAuth();
     const [toast, setToast] = useState(null);
 
     useEffect(() => {
@@ -13,19 +15,19 @@ const ToastListener = () => {
         if (pendingToast) {
             try {
                 setToast(JSON.parse(pendingToast));
-            } catch (e) {}
+            } catch (e) { }
             sessionStorage.removeItem('pendingToast');
-        } 
+        }
         // Fallback to router state
         else if (location.state && location.state.toast) {
             setToast(location.state.toast);
-            
+
             // Clear the toast from location state so it doesn't show again on refresh/back
             const newState = { ...location.state };
             delete newState.toast;
             navigate(location.pathname, { state: newState, replace: true });
         }
-    }, [location, navigate]);
+    }, [location, navigate, isAuthenticated]);
 
     if (!toast) return null;
 
@@ -35,7 +37,7 @@ const ToastListener = () => {
             message={toast.message}
             type={toast.type || 'success'}
             onClose={() => setToast(null)}
-            duration={toast.duration || 5000}
+            duration={toast.duration || 3000}
         />
     );
 };
