@@ -17,8 +17,10 @@ const PublicRoute = ({ children, allowPatient = false }) => {
         const navigationState = location.state || {};
         
         // Let explicit `from` navigation happen if it was specified
-        if (navigationState.from) {
-             return <Navigate to={navigationState.from} state={navigationState} replace />;
+        if (navigationState.from && navigationState.from !== location.pathname) {
+             const stateToPass = { ...navigationState };
+             delete stateToPass.from; // Prevent infinite loops
+             return <Navigate to={navigationState.from} state={stateToPass} replace />;
         }
 
         if (hasDashboard(user.role)) {

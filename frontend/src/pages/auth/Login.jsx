@@ -82,16 +82,6 @@ const Login = () => {
             // Bulletproof delivery via sessionStorage
             sessionStorage.setItem('pendingToast', JSON.stringify(successToast));
 
-            // Inject state into history. Replace current entry so PublicRoute can forward it when it redirects.
-            navigate(location.pathname, {
-                replace: true,
-                state: {
-                    ...location.state,
-                    toast: successToast,
-                    recoveredBookingData: bookingData,
-                }
-            });
-
             // Update auth context with user data (this triggers PublicRoute redirect)
             login(userData, rememberMe);
         } else {
