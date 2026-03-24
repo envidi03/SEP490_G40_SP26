@@ -8,6 +8,7 @@ import * as assistantRoutes from './assistant';
 import * as doctorRoutes from './doctor';
 import * as publicRoutes from './public';
 import * as sharedRoutes from './shared';
+import ToastListener from '../components/ui/ToastListener';
 
 // Import error pages
 import Unauthorized from '../pages/error/Unauthorized';
@@ -16,6 +17,7 @@ import NotFound from '../pages/error/NotFound';
 const AppRoutes = () => {
   return (
     <BrowserRouter>
+      <ToastListener />
       <Routes>
         {/* Public Routes */}
         {publicRoutes.publicRoutes && publicRoutes.publicRoutes.map((route, index) => (
