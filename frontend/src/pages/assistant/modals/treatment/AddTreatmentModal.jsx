@@ -7,6 +7,7 @@ import MedicineModal from "./medicineModal"; // Import component dùng chung
 const generateBlankMedicine = () => ({
   _localId: Date.now() + Math.random(),
   medicine_id: "",
+  _medicine_name: "",
   quantity: 1,
   usage_instruction: "",
   note: "",
@@ -80,11 +81,11 @@ const AddTreatmentModal = ({ isOpen, onClose, record, onSuccess }) => {
       prevForms.map((form) =>
         form._localId === formLocalId
           ? {
-              ...form,
-              medicine_usage: form.medicine_usage.map((med) =>
-                med._localId === medicineLocalId ? { ...med, [field]: value } : med
-              ),
-            }
+            ...form,
+            medicine_usage: form.medicine_usage.map((med) =>
+              med._localId === medicineLocalId ? { ...med, [field]: value } : med
+            ),
+          }
           : form
       )
     );
@@ -109,7 +110,7 @@ const AddTreatmentModal = ({ isOpen, onClose, record, onSuccess }) => {
         if (!form.tooth_position.trim()) {
           errors.push(`Phiếu #${i + 1}: Vui lòng nhập vị trí răng điều trị.`);
         }
-        
+
         // NẾU KHÔNG PHẢI PLAN, kiểm tra xem thuốc đã được chọn ID chưa
         if (form.phase !== "PLAN" && form.medicine_usage.length > 0) {
           for (let j = 0; j < form.medicine_usage.length; j++) {
@@ -147,14 +148,14 @@ const AddTreatmentModal = ({ isOpen, onClose, record, onSuccess }) => {
           const payload = {
             ...dataToSend,
             record_id: record._id,
-            patient_id: record?.patient_id?._id || record?.patient_id, 
+            patient_id: record?.patient_id?._id || record?.patient_id,
             doctor_id: record?.doctor_info?._id || record?.doctor_id,
             status: form.phase === "PLAN" ? "PLANNED" : "IN_PROGRESS",
           };
 
           // Nếu là SESSION (Thực thi), đính kèm mảng thuốc vào payload
           if (form.phase !== "PLAN") {
-             payload.medicine_usage = cleanMedicineUsage;
+            payload.medicine_usage = cleanMedicineUsage;
           }
 
           payload.quantity = Number(payload.quantity);

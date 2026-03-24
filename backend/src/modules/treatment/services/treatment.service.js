@@ -3,7 +3,7 @@ const errorRes = require("../../../common/errors");
 const mongoose = require("mongoose");
 
 const model = require("../models/index.model");
-const {service: AppointmentService} = require("./../../appointment/index");
+const { service: AppointmentService } = require("./../../appointment/index");
 
 /**
  * get treatment by id populate medicine_usage.medicine_id
@@ -64,8 +64,8 @@ const createService = async (dataCreate) => {
         const newData = await model.Treatment.create(dataCreate);
         return newData;
     } catch (error) {
-        logger.error("Error at create new treatment.", { 
-            context: context, 
+        logger.error("Error at create new treatment.", {
+            context: context,
             message: error.message,
             stack: error.stack,
         });
@@ -98,16 +98,16 @@ const updateService = async (treatmentId, data) => {
         }
 
         const dataUpdate = await model.Treatment.findByIdAndUpdate(
-            treatmentId, 
-            data, 
-            { new: true, runValidators: true } 
+            treatmentId,
+            data,
+            { new: true, runValidators: true }
         );
 
         return dataUpdate;
 
     } catch (error) {
-        logger.error("Error at update treatment.", { 
-            context: context, 
+        logger.error("Error at update treatment.", {
+            context: context,
             treatmentId: treatmentId,
             message: error.message,
             stack: error.stack,
@@ -149,7 +149,7 @@ const updateStatusOnly = async (id, status) => {
             throw new errorRes.NotFoundError("Treatment not found");
         }
         if (treatment.status === status) {
-            return treatment; 
+            return treatment;
         }
         if (treatment.status === 'CANCELLED' || treatment.status === 'DONE') {
             throw new errorRes.BadRequestError(`Cannot change status from ${treatment.status}`);

@@ -1,6 +1,6 @@
 import React from "react";
 import { X, Stethoscope, Pill, Calendar, FileText, CheckCircle } from "lucide-react";
-import Badge from "../../../../components/ui/Badge"; 
+import Badge from "../../../../components/ui/Badge";
 import { getStatusConfig } from "./getStatusConfig";
 
 
@@ -19,20 +19,22 @@ const TreatmentDetailModal = ({ isOpen, onClose, data, isLoading }) => {
   const statusConfig = getStatusConfig(currentStatus);
   const theme = statusConfig.modalTheme; // Trích xuất theme ra để code cho gọn
 
+  console.log(data);
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-200">
-      
+
       {/* KHUNG MODAL */}
-      <div 
-        className={`bg-white rounded-3xl w-full max-w-2xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden border-2 ${theme.border} ring-4 ${theme.ring}`} 
+      <div
+        className={`bg-white rounded-3xl w-full max-w-2xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden border-2 ${theme.border} ring-4 ${theme.ring}`}
         onClick={(e) => e.stopPropagation()}
       >
-        
+
         {/* HEADER */}
         <div className={`flex items-center justify-between p-6 border-b ${theme.border} ${theme.headerBg}`}>
           <div className="flex items-center gap-4">
             <div className={`p-3 text-white rounded-2xl shadow-md ${theme.iconBg}`}>
-                <Stethoscope size={24} />
+              <Stethoscope size={24} />
             </div>
             <div>
               <h2 className="text-xl font-black text-slate-800 tracking-tight">Chi tiết điều trị</h2>
@@ -40,7 +42,7 @@ const TreatmentDetailModal = ({ isOpen, onClose, data, isLoading }) => {
             </div>
           </div>
           <button onClick={onClose} className="p-2 text-slate-400 hover:bg-slate-200 hover:text-slate-700 rounded-xl transition-all active:scale-95">
-              <X size={24} />
+            <X size={24} />
           </button>
         </div>
 
@@ -53,7 +55,7 @@ const TreatmentDetailModal = ({ isOpen, onClose, data, isLoading }) => {
             </div>
           ) : data ? (
             <div className="space-y-6">
-              
+
               {/* Box 4 thông số */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className={`p-4 bg-slate-50 rounded-2xl border ${theme.border}`}>
@@ -79,13 +81,13 @@ const TreatmentDetailModal = ({ isOpen, onClose, data, isLoading }) => {
               {/* Box Ngày tháng & Ghi chú */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="p-5 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
-                   <div className="flex items-center gap-2 text-slate-600"><Calendar size={18} /><span className="font-black uppercase tracking-widest text-xs">Thời gian</span></div>
-                   <div><p className="text-[10px] font-bold text-slate-400 uppercase">Dự kiến</p><p className="font-bold text-slate-700">{formatDate(data.planned_date)}</p></div>
-                   <div><p className="text-[10px] font-bold text-slate-400 uppercase">Thực hiện</p><p className="font-bold text-slate-700">{formatDate(data.performed_date)}</p></div>
+                  <div className="flex items-center gap-2 text-slate-600"><Calendar size={18} /><span className="font-black uppercase tracking-widest text-xs">Thời gian</span></div>
+                  <div><p className="text-[10px] font-bold text-slate-400 uppercase">Dự kiến</p><p className="font-bold text-slate-700">{formatDate(data.planned_date)}</p></div>
+                  <div><p className="text-[10px] font-bold text-slate-400 uppercase">Thực hiện</p><p className="font-bold text-slate-700">{formatDate(data.performed_date)}</p></div>
                 </div>
                 <div className="p-5 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
-                   <div className="flex items-center gap-2 text-slate-600"><FileText size={18} /><span className="font-black uppercase tracking-widest text-xs">Ghi chú của bác sĩ</span></div>
-                   <p className="text-sm font-bold text-slate-600 leading-relaxed bg-white p-3 rounded-xl border border-slate-100">{data.note || "Không có ghi chú"}</p>
+                  <div className="flex items-center gap-2 text-slate-600"><FileText size={18} /><span className="font-black uppercase tracking-widest text-xs">Ghi chú của bác sĩ</span></div>
+                  <p className="text-sm font-bold text-slate-600 leading-relaxed bg-white p-3 rounded-xl border border-slate-100">{data.note || "Không có ghi chú"}</p>
                 </div>
               </div>
 
@@ -105,11 +107,11 @@ const TreatmentDetailModal = ({ isOpen, onClose, data, isLoading }) => {
                           </div>
                         </div>
                         <div className="flex flex-col items-end gap-2 min-w-[120px]">
-                           <div className="text-center bg-slate-50 px-4 py-2 rounded-xl border border-slate-200 w-full">
-                              <p className="text-[10px] font-black text-slate-400 uppercase">Số lượng</p>
-                              <p className="text-lg font-black text-slate-700">{med.quantity} <span className="text-xs">{med.medicine_id?.unit}</span></p>
-                           </div>
-                           {med.dispensed && <Badge variant="success" className="text-[9px] px-2 py-0.5 mt-1 font-bold w-full text-center"><CheckCircle size={10} className="inline mr-1"/>Đã phát</Badge>}
+                          <div className="text-center bg-slate-50 px-4 py-2 rounded-xl border border-slate-200 w-full">
+                            <p className="text-[10px] font-black text-slate-400 uppercase">Số lượng</p>
+                            <p className="text-lg font-black text-slate-700">{med.quantity} <span className="text-xs">{med.medicine_id?.unit}</span></p>
+                          </div>
+                          {med.dispensed && <Badge variant="success" className="text-[9px] px-2 py-0.5 mt-1 font-bold w-full text-center"><CheckCircle size={10} className="inline mr-1" />Đã phát</Badge>}
                         </div>
                       </div>
                     ))}
