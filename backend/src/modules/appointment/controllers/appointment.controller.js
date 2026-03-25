@@ -292,6 +292,23 @@ const createController = async (req, res) => {
 
     // Kiểm tra validation cơ bản
     checkRequiredFields(requiredFields, cleanedData, this, "createController");
+
+    // Regex validation
+    const regex = {
+      fullName: /^[a-zA-ZÀ-ỹ\s]{2,50}$/,
+      phone: /(84|0[3|5|7|8|9])+([0-9]{8})\b/,
+      email: /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    };
+
+    if (!regex.fullName.test(cleanedData.full_name)) {
+      throw new errorRes.BadRequestError("Full name is invalid (2-50 characters, no numbers)");
+    }
+    if (!regex.phone.test(cleanedData.phone)) {
+      throw new errorRes.BadRequestError("Phone number is invalid (Vietnamese format)");
+    }
+    if (!regex.email.test(cleanedData.email)) {
+      throw new errorRes.BadRequestError("Email format is invalid");
+    }
     // Validate mảng book_service nếu client có gửi kèm dịch vụ
     if (cleanedData.book_service && Array.isArray(cleanedData.book_service)) {
       cleanedData.book_service.forEach((item, index) => {
