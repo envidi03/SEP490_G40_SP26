@@ -116,4 +116,6 @@ appointmentSchema.statics.getNextQueueNumber = async function (date) {
         : 1;
 };
 
+
+
 module.exports = mongoose.model("Appointment", appointmentSchema);
