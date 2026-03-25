@@ -155,7 +155,7 @@ const updateStatusOnly = async (id, status) => {
             throw new errorRes.BadRequestError(`Cannot change status from ${treatment.status}`);
         }
 
-        if (status === "DONE") {
+        if (status === "WAITING_APPROVAL") {
             const appoint = await AppointmentService.findByTreatmentId(treatment._id);
             if (!appoint) {
                 logger.warn("Appointment not found by treatment", {
