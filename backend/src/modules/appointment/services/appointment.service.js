@@ -1293,6 +1293,44 @@ const calculateTotalAmount = async (appointmentId) => {
     }
 }
 
+/**
+ * check duplicate appointment if full_name, phone, appointment_date, appointment_time is existed
+ * @param {String} full_name full name patient 
+ * @param {String} phone phone number patient
+ * @param {String} appointment_date date booking
+ * @param {String} appointment_time time booing
+ */
+const checkDuplicateFullNameAndPhoneAndAppointDateAndAppointTime = async(full_name, phone, appointment_date, appointment_time) => {
+    const contex = "AppointmentService.CheckDuplicateFullNameAndPhoneAndAppointDateAndAppointTime";
+    try {
+        const appointment = await AppointmentModel.findOne({
+            full_name: full_name,
+            phone: phone,
+            appointment_date: appointment_date,
+            appointment_time: appointment_time
+        });
+        logger.debug("Finding appointment.", {
+            context: contex,
+            full_name: full_name, 
+            phone: phone, 
+            appointment_date: appointment_date, 
+            appointment_time: appointment_time,
+            appointment: appointment
+        });
+        return !!appointment;
+    } catch (error) {
+        logger.error("Erro check duplicate", {
+            contex: contex,
+            full_name: full_name, 
+            phone: phone, 
+            appointment_date: appointment_date, 
+            appointment_time: appointment_time,
+            error: error
+        });
+        return true;
+    }
+}
+
 module.exports = {
     getListService,
     getByIdService,
@@ -1305,5 +1343,6 @@ module.exports = {
     findById,
     findByTreatmentId,
     getListOfPatientServiceWithDate,
-    calculateTotalAmount
+    calculateTotalAmount,
+    checkDuplicateFullNameAndPhoneAndAppointDateAndAppointTime
 };

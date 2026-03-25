@@ -32,7 +32,8 @@ const getListController = async (req, res) => {
       query: queryParams,
     });
 
-    const { data, pagination } = await ServiceProcess.getListService(queryParams);
+    const { data, pagination } =
+      await ServiceProcess.getListService(queryParams);
 
     const paginationData = new Pagination({
       page: pagination.page,
@@ -87,10 +88,11 @@ const getListOfPatientControllerWithDate = async (req, res) => {
       account_id: account_id,
     });
 
-    const { data, pagination } = await ServiceProcess.getListOfPatientServiceWithDate(
-      queryParams,
-      account_id,
-    );
+    const { data, pagination } =
+      await ServiceProcess.getListOfPatientServiceWithDate(
+        queryParams,
+        account_id,
+      );
 
     const paginationData = new Pagination({
       page: pagination.page,
@@ -169,8 +171,6 @@ const getListOfPatientController = async (req, res) => {
     throw error;
   }
 };
-                         
-
 
 /**
  * get list appointment of doctor with pagination and filter
@@ -235,7 +235,7 @@ const getListOfDoctorController = async (req, res) => {
     });
     throw error;
   }
-}
+};
 
 /*
     get appointment by id
@@ -309,7 +309,7 @@ const createController = async (req, res) => {
     );
     if (!newAppointment) {
       logger.warn("Failed to create new appointment");
-      throw new errorRes.BadRequestError("Create new appointment fails.")
+      throw new errorRes.BadRequestError("Create new appointment fails.");
     }
     // 3. Trả về response
     return new successRes.CreateSuccess(newAppointment).send(res);
@@ -344,10 +344,23 @@ const staffCreateController = async (req, res) => {
       cleanedData.book_service.forEach((item, index) => {
         if (!item.service_id || item.unit_price === undefined) {
           throw new errorRes.BadRequestError(
-            `Service at index ${index} is missing service_id or unit_price`
+            `Service at index ${index} is missing service_id or unit_price`,
           );
         }
       });
+    }
+
+    // check duplicate
+    if (
+      await ServiceProcess.checkDuplicateFullNameAndPhoneAndAppointDateAndAppointTime(
+        cleanedData.full_name,
+        cleanedData.phone,
+        cleanedData.appointment_date,
+        cleanedData.appointment_time,
+      )
+    ) {
+      logger.warn("Appointment is existed.");
+      throw new errorRes.ConflictError("Appointment is already existed.");
     }
 
     // 2. Chuyển dữ liệu sang Service để xử lý logic nghiệp vụ
@@ -356,7 +369,7 @@ const staffCreateController = async (req, res) => {
     if (!newAppointment) {
       logger.warn("Failed to create new appointment", {
         context: "appointmentController.staffCreateController",
-        data: cleanedData
+        data: cleanedData,
       });
       throw new errorRes.BadRequestError("Create new appointment fails.");
     }
@@ -364,9 +377,8 @@ const staffCreateController = async (req, res) => {
     // 3. Trả về response
     return new successRes.CreateSuccess(
       newAppointment,
-      "Appointment created successfully"
+      "Appointment created successfully",
     ).send(res);
-
   } catch (error) {
     logger.error("Error appointm create new appointment controller", {
       context: "appointmentController.staffCreateController",
@@ -392,14 +404,17 @@ const updateController = async (req, res) => {
     const updateData = {
       appointment_date,
       appointment_time,
-      reason
+      reason,
     };
 
     // 2. Gọi Service thực hiện cập nhật
     const updated = await ServiceProcess.updateService(id, updateData);
 
     // Gửi response thành công
-    return new successRes.UpdateSuccess(updated, "Appointment updated successfully").send(res);
+    return new successRes.UpdateSuccess(
+      updated,
+      "Appointment updated successfully",
+    ).send(res);
   } catch (error) {
     // Logging lỗi chi tiết để debug
     logger.error("Error update appointment controller", {
@@ -419,37 +434,39 @@ const updateController = async (req, res) => {
  */
 const calculateTotalAmountFromAppointment = async (req, res, next) => {
   const context = "AppointmentController.calculateTotalAmountFromAppointment";
-  
+
   try {
     const { id: appointmentId } = req.params;
     let totalAmount = 0;
     if (!appointmentId) {
       logger.warn("Appointment ID is null or missing.", {
         context,
-        appointment_id: appointmentId
+        appointment_id: appointmentId,
       });
       return new errorRes.NotFoundError("ID appointment is null.");
     }
     totalAmount = await ServiceProcess.calculateTotalAmount(appointmentId);
-    return new successRes.GetDetailSuccess({totalAmount: totalAmount}, "Calculated amount from appointment successfully.").send(res);
-
+    return new successRes.GetDetailSuccess(
+      { totalAmount: totalAmount },
+      "Calculated amount from appointment successfully.",
+    ).send(res);
   } catch (err) {
     logger.error("Error calculating total amount from appointment.", {
       context,
-      error: err
+      error: err,
     });
     throw err;
   }
-}
+};
 
 /**
- * update appointment status only 
+ * update appointment status only
  * - Chỉ cập nhật trường status, không thay đổi các thông tin khác của appointment
  * - Kiểm tra tính hợp lệ của status mới (phải nằm trong danh sách các trạng thái cho phép)
  * - Nếu status mới là "IN_CONSULTATION", bắt buộc phải có doctorId để gán bác sĩ đang khám bệnh nhân này
- * @param {*} req 
- * @param {*} res 
- * @returns 
+ * @param {*} req
+ * @param {*} res
+ * @returns
  */
 const updateStatusController = async (req, res) => {
   try {
@@ -470,7 +487,7 @@ const updateStatusController = async (req, res) => {
       "IN_CONSULTATION",
       "COMPLETED",
       "CANCELLED",
-      "NO_SHOW"
+      "NO_SHOW",
     ];
 
     if (!status || !validStatuses.includes(status)) {
@@ -480,7 +497,7 @@ const updateStatusController = async (req, res) => {
         allowed: validStatuses,
       });
       throw new errorRes.BadRequestError(
-        `Invalid status. Allowed values: ${validStatuses.join(", ")}`
+        `Invalid status. Allowed values: ${validStatuses.join(", ")}`,
       );
     }
 
@@ -491,10 +508,9 @@ const updateStatusController = async (req, res) => {
           status: status,
         });
         throw new errorRes.BadRequestError(
-          "doctorId is required when status is IN_CONSULTATION"
+          "doctorId is required when status is IN_CONSULTATION",
         );
       }
-
     }
 
     // 3. Gọi Service cập nhật (Đã sửa lỗi: truyền trực tiếp biến status dạng chuỗi)
@@ -502,7 +518,9 @@ const updateStatusController = async (req, res) => {
 
     // Kiểm tra kết quả
     if (!result) {
-      throw new errorRes.NotFoundError("Appointment not found or update failed");
+      throw new errorRes.NotFoundError(
+        "Appointment not found or update failed",
+      );
     }
 
     logger.info("Appointment status updated successfully", {
@@ -514,9 +532,8 @@ const updateStatusController = async (req, res) => {
     // 4. Trả về kết quả
     return new successRes.UpdateSuccess(
       result,
-      "Appointment status updated successfully"
+      "Appointment status updated successfully",
     ).send(res);
-
   } catch (error) {
     logger.error("Error updating appointment status", {
       context: "AppointmentController.updateStatusController",
@@ -532,7 +549,8 @@ const updateStatusController = async (req, res) => {
   If correct, auto change status to CHECKED_IN and generate queue number.
 */
 const checkinController = async (req, res) => {
-  try { // ĐÃ SỬA: Thêm thẻ try bị thiếu
+  try {
+    // ĐÃ SỬA: Thêm thẻ try bị thiếu
     const query = req.body || {};
     const cleanedData = cleanObjectData(query);
 
@@ -541,13 +559,9 @@ const checkinController = async (req, res) => {
       query: cleanedData, // ĐÃ SỬA: Xóa biến 'id' rác gây crash app
     });
 
-    // LƯU Ý: Nếu người lớn tuổi không có email, bạn nên cân nhắc bỏ "email" 
+    // LƯU Ý: Nếu người lớn tuổi không có email, bạn nên cân nhắc bỏ "email"
     // ra khỏi requiredFields để họ chỉ cần nhập Tên + SĐT là check-in được nhé!
-    const requiredFields = [
-      "full_name",
-      "phone",
-      "email",
-    ];
+    const requiredFields = ["full_name", "phone", "email"];
 
     checkRequiredFields(requiredFields, cleanedData, this, "checkinController");
 
@@ -557,9 +571,8 @@ const checkinController = async (req, res) => {
     // Trả về kết quả
     return new successRes.UpdateSuccess(
       result,
-      `Check-in successful! Your queue number is ${result.queue_number}`
+      `Check-in successful! Your queue number is ${result.queue_number}`,
     ).send(res);
-
   } catch (error) {
     logger.error("Error during checkin", {
       context: "AppointmentController.checkinController", // ĐÃ SỬA đúng tên context
@@ -581,5 +594,5 @@ module.exports = {
   staffCreateController,
   getListOfPatientControllerWithDate,
   getListOfDoctorController,
-  calculateTotalAmountFromAppointment
+  calculateTotalAmountFromAppointment,
 };
