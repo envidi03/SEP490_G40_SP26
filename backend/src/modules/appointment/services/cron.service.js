@@ -1,6 +1,7 @@
 const cron = require('node-cron');
 const Appointment = require('../models/appointment.model'); 
 const notificationService = require('./../../notification/service/notification.service'); 
+const emailService = require('../../../common/service/email.service');
 
 const startAppointmentReminderCron = () => {
     // Chạy job này MỖI PHÚT 1 LẦN ('* * * * *')
@@ -37,30 +38,43 @@ const startAppointmentReminderCron = () => {
             // 5. Gửi thông báo cho từng bệnh nhân
             for (const appt of upcomingAppointments) {
                 
-                // LƯU Ý QUAN TRỌNG: Notification Model cần recipient_id là Account ID.
-                // Nếu model Patient của bạn có chứa account_id, hãy lấy nó ra.
-                // Ví dụ: const accountId = appt.patient_id.account_id;
+                // === A. GỬI THÔNG BÁO IN-APP (TÙY CHỌN, NẾU CÓ ACCOUNT) ===
                 const accountId = appt.patient_id?.account_id || appt.patient_id?._id; 
-
-                if (!accountId) continue; 
-
-                // Gọi hàm tạo thông báo từ notification service
-                await notificationService.createNotification({
-                    sender_id: null,
-                    scope: 'INDIVIDUAL',
-                    type: 'APPOINTMENT_REMINDER',
-                    recipient_id: accountId,
-                    title: '⏳ Nhắc nhở lịch hẹn sắp tới!',
-                    message: `Chào ${appt.full_name}, bạn có lịch hẹn khám nha khoa vào lúc ${appt.appointment_time} hôm nay. Vui lòng đến đúng giờ để được phục vụ tốt nhất nhé!`,
-                    metadata: {
-                        entity_id: appt._id,
-                        entity_type: 'APPOINTMENT'
+                if (accountId) {
+                    try {
+                        // Gọi hàm tạo thông báo từ notification service
+                        await notificationService.createNotification({
+                            sender_id: null,
+                            scope: 'INDIVIDUAL',
+                            type: 'APPOINTMENT_REMINDER',
+                            recipient_id: accountId,
+                            title: '⏳ Nhắc nhở lịch hẹn sắp tới!',
+                            message: `Chào ${appt.full_name}, bạn có lịch hẹn khám nha khoa vào lúc ${appt.appointment_time} hôm nay. Vui lòng đến đúng giờ để được phục vụ tốt nhất nhé!`,
+                            metadata: {
+                                entity_id: appt._id,
+                                entity_type: 'APPOINTMENT'
+                            }
+                        });
+                    } catch (notifyErr) {
+                        // Bắt lỗi riêng để không làm chết vòng lặp
+                        console.error(`[CRON] Lỗi gửi In-App Notify cho lịch ${appt._id}:`, notifyErr.message);
                     }
-                });
+                }
+
+                // === B. GỬI EMAIL NHẮC HẸN ===
+                if (appt.email) {
+                    try {
+                        // Gọi hàm từ EmailService đã tạo
+                        await emailService.sendAppointmentReminder(appt);
+                    } catch (emailErr) {
+                        // Bắt lỗi riêng để nếu gửi mail người này xịt thì người kia vẫn nhận được
+                        console.error(`[CRON] Lỗi gửi Email cho lịch ${appt._id} (${appt.email}):`, emailErr.message);
+                    }
+                }
             }
 
             if (upcomingAppointments.length > 0) {
-                console.log(`[CRON] Đã gửi thông báo nhắc hẹn cho ${upcomingAppointments.length} bệnh nhân lúc ${targetTimeString}`);
+                console.log(`[CRON] Đã gửi thông báo & email nhắc hẹn cho ${upcomingAppointments.length} bệnh nhân lúc ${targetTimeString}`);
             }
 
         } catch (error) {
