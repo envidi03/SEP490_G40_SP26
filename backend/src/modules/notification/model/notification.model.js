@@ -19,6 +19,8 @@ const NOTIFICATION_TYPES = [
     // Admin / System
     'SYSTEM_ALERT',
     'SYSTEM_MAINTENANCE',
+    // --- THÊM DÒNG NÀY ---
+    'APPOINTMENT_REMINDER' 
 ];
 
 const SCOPE = ['INDIVIDUAL', 'GROUP', 'GLOBAL'];

@@ -237,6 +237,68 @@ class EmailService {
         return this.sendEmail(email, subject, html);
     }
 
+    // --- HÀM MỚI BỔ SUNG: GỬI EMAIL NHẮC HẸN (CRON JOB SẼ GỌI HÀM NÀY) ---
+    async sendAppointmentReminder(appointment) {
+        if (!appointment || !appointment.email) return;
+
+        const subject = `⏳ Nhắc nhở lịch hẹn khám: ${appointment.appointment_time} hôm nay`;
+        const html = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <style>
+                    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+                    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+                    .header { background: linear-gradient(135deg, #ff9966 0%, #ff5e62 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+                    .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+                    .info-box { background: white; border-left: 4px solid #ff5e62; padding: 20px; margin: 20px 0; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+                    .info-table { width: 100%; border-collapse: collapse; }
+                    .info-table td { padding: 10px 0; border-bottom: 1px solid #eee; }
+                    .footer { text-align: center; margin-top: 20px; color: #666; font-size: 12px; }
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <div class="header">
+                        <h1 style="margin: 0;">⏳ Nhắc Nhở Lịch Hẹn</h1>
+                    </div>
+                    <div class="content">
+                        <p>Xin chào <strong>${appointment.full_name}</strong>,</p>
+                        <p><strong>${process.env.SMTP_FROM_NAME || 'Dental CMS'}</strong> xin thông báo nhắc nhở bạn về lịch hẹn khám nha khoa sắp diễn ra vào hôm nay.</p>
+                        
+                        <div class="info-box">
+                            <table class="info-table">
+                                <tr>
+                                    <td><strong>Thời gian hẹn:</strong></td>
+                                    <td style="text-align: right; color: #ff5e62; font-weight: bold;">${appointment.appointment_time} - Hôm nay</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Số điện thoại:</strong></td>
+                                    <td style="text-align: right; color: #333;">${appointment.phone}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Lý do khám:</strong></td>
+                                    <td style="text-align: right; color: #333;">${appointment.reason || 'Không có ghi chú'}</td>
+                                </tr>
+                            </table>
+                        </div>
+                        
+                        <p style="color: #d9534f; font-size: 14px;"><strong>* Lưu ý:</strong> Vui lòng đến phòng khám trước 5-10 phút để làm thủ tục. Nếu bạn cần thay đổi lịch, xin vui lòng liên hệ lại với chúng tôi sớm nhất có thể.</p>
+                        <p>Hẹn gặp lại bạn!</p>
+                        
+                        <div class="footer">
+                            <p style="margin-bottom: 5px;">Đây là email tự động. Vui lòng không trả lời email này.</p>
+                            <p>© 2026 ${process.env.SMTP_FROM_NAME || 'Dental CMS'}. All rights reserved.</p>
+                        </div>
+                    </div>
+                </div>
+            </body>
+            </html>
+        `;
+
+        return this.sendEmail(appointment.email, subject, html);
+    }
+
     async sendWelcomeGoogleAuthEmail(email, setupToken, userName = '') {
         const setupLink = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/set-password?token=${setupToken}&email=${email}`;
         const subject = 'Chào mừng bạn đến với Dental Clinic Management System';

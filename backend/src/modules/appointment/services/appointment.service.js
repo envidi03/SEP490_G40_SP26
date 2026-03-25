@@ -1,15 +1,11 @@
 const logger = require("../../../common/utils/logger");
 const errorRes = require("../../../common/errors");
 const mongoose = require("mongoose");
-const Pagination = require("../../../common/responses/Pagination");
 
-const StaffModel = require("../models/index.model");
-const { Model: AuthModel } = require("../../auth/index");
 const PatientModel = require("../../../modules/patient/model/patient.model");
 const AppointmentModel = require("./../models/appointment.model");
 const { model: ServiceModel } = require("../../service/index")
 
-const bcrypt = require('bcrypt');
 const emailService = require("../../../common/service/email.service");
 const notificationService = require("../../notification/service/notification.service");
 
@@ -1349,6 +1345,91 @@ const findByTreatmentId = async (treatmentId) => {
     }
 }
 
+/**
+ * Calculate total amount by appointment
+ * * @param {ObjectId} appointmentId - Appointment ID to calculate amount for
+ * @returns {Promise<number>} total amount of appointment or 0
+ */
+const calculateTotalAmount = async (appointmentId) => {
+    const context = "AppointmentService.calculateTotalAmount";
+    
+    try {
+        const appointment = await AppointmentModel.findById(appointmentId).lean();
+        
+        if (!appointment) {
+            logger.error("Could not find appointment by id.", {
+                context,
+                appointmentId
+            });
+            return 0;
+        }
+        const serviceBooking = appointment.book_service || [];
+        
+        logger.debug("Services found.", {
+            context,
+            serviceCount: serviceBooking.length,
+            serviceBooking: serviceBooking
+        });
+
+        const totalAmount = serviceBooking.reduce((total, service) => {
+            const price = service.unit_price || 0;
+            return total + price; 
+        }, 0);
+
+        logger.debug("Final total amount calculated.", {
+            context,
+            totalAmount
+        });
+
+        return totalAmount;
+
+    } catch (error) {
+        logger.error("Error calculating total amount", {
+            context,
+            error
+        });
+        return 0; // Trả về 0 trực tiếp khi có lỗi
+    }
+}
+
+/**
+ * check duplicate appointment if full_name, phone, appointment_date, appointment_time is existed
+ * @param {String} full_name full name patient 
+ * @param {String} phone phone number patient
+ * @param {String} appointment_date date booking
+ * @param {String} appointment_time time booing
+ */
+const checkDuplicateFullNameAndPhoneAndAppointDateAndAppointTime = async(full_name, phone, appointment_date, appointment_time) => {
+    const contex = "AppointmentService.CheckDuplicateFullNameAndPhoneAndAppointDateAndAppointTime";
+    try {
+        const appointment = await AppointmentModel.findOne({
+            full_name: full_name,
+            phone: phone,
+            appointment_date: appointment_date,
+            appointment_time: appointment_time
+        });
+        logger.debug("Finding appointment.", {
+            context: contex,
+            full_name: full_name, 
+            phone: phone, 
+            appointment_date: appointment_date, 
+            appointment_time: appointment_time,
+            appointment: appointment
+        });
+        return !!appointment;
+    } catch (error) {
+        logger.error("Erro check duplicate", {
+            contex: contex,
+            full_name: full_name, 
+            phone: phone, 
+            appointment_date: appointment_date, 
+            appointment_time: appointment_time,
+            error: error
+        });
+        return true;
+    }
+}
+
 module.exports = {
     getListService,
     getByIdService,
@@ -1360,5 +1441,7 @@ module.exports = {
     checkinService,
     findById,
     findByTreatmentId,
-    getListOfPatientServiceWithDate
+    getListOfPatientServiceWithDate,
+    calculateTotalAmount,
+    checkDuplicateFullNameAndPhoneAndAppointDateAndAppointTime
 };

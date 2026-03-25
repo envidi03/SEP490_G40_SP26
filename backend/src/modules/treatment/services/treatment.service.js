@@ -138,6 +138,7 @@ const findById = async (id) => {
 
 /**
  * Update only status of treatment - cannot update status if current status is CANCELLED or DONE
+ * if status treatment is WAITING_APPROVAL, system will auto change status appointment to COMPLETED
  * @param {ObjectId} id treatment id to find
  * @param {string} status the new status to set
  * @returns treatment object or null if not found
@@ -155,17 +156,21 @@ const updateStatusOnly = async (id, status) => {
             throw new errorRes.BadRequestError(`Cannot change status from ${treatment.status}`);
         }
 
-        if (status === "DONE") {
+        if (status === "WAITING_APPROVAL") {
             const appoint = await AppointmentService.findByTreatmentId(treatment._id);
-            if (!appoint) {
-                logger.warn("Appointment not found by treatment", {
-                    context: "TreatmentService.updateStatusOnly",
-                    treatment: treatment
-                });
-                throw new errorRes.NotFoundError("Không tìm thấy lịch khám để cập nhật.")
+            if (appoint.status !== "COMPLETED") {
+                if (!appoint) {
+                    logger.warn("Appointment not found by treatment", {
+                        context: "TreatmentService.updateStatusOnly",
+                        treatment: treatment
+                    });
+                    throw new errorRes.NotFoundError("Không tìm thấy lịch khám để cập nhật.");
+                }
+                await AppointmentService.updateStatusOnly(appoint._id, "COMPLETED");
             }
-            await AppointmentService.updateStatusOnly(appoint._id, "COMPLETED");
         }
+
+        if (status === "APPROVED") status = "DONE";
 
         const dataUpdate = { status };
         if (status === "IN_PROGRESS") {
