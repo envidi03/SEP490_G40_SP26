@@ -12,7 +12,17 @@ const treatmentSchema = new Schema(
         appointment_id: {
             type: Schema.Types.ObjectId,
             ref: "Appointment",
-            required: function () { return this.phase !== 'PLAN'; }
+            required: function () {
+                // Skip validation for updates (findByIdAndUpdate) as Query context lacks doc instance.
+                if (this.getUpdate || this.constructor.name === 'Query') return false;
+                
+                // Also skip for existing documents being saved (e.g. inventory dispense), 
+                // assuming appointment_id was handled during creation.
+                if (this.isNew === false) return false;
+
+                // Only require for NEW documents when phase is 'SESSION'.
+                return this.phase === 'SESSION';
+            }
         },
         patient_id: {
             type: Schema.Types.ObjectId,
@@ -146,14 +156,11 @@ const checkAndCompleteDentalRecord = async function (recordId) {
                     // Lấy tất cả appointment ids duy nhất từ các treatments của đợt khám này
                     const appointmentIds = [...new Set(allTreatments.map(t => t.appointment_id).filter(Boolean))];
                     if (appointmentIds.length > 0) {
-                        const Appointment = mongoose.model("Appointment");
+                        const AppointmentService = require("../../appointment/services/appointment.service");
                         try {
                             for (const aptId of appointmentIds) {
-                                // Chỉ chuyển những appointment đang mở sang COMPLETED
-                                await Appointment.updateOne(
-                                    { _id: aptId, status: { $in: ['SCHEDULED', 'CHECKED_IN', 'IN_CONSULTATION'] } },
-                                    { $set: { status: 'COMPLETED' } }
-                                );
+                                // Sử dụng Service để kích hoạt các logic đi kèm (như tạo hóa đơn)
+                                await AppointmentService.updateStatusOnly(aptId, 'COMPLETED');
                             }
                             console.log(`[System Background] Auto-completed Appointments for record: ${recordId}`);
                         } catch (err) {

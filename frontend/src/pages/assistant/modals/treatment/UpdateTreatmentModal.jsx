@@ -158,8 +158,11 @@ const UpdateTreatmentModal = ({ isOpen, onClose, treatment, onSuccess }) => {
         medicine_usage: cleanMedicineUsage,
       };
 
+      await treatmentApi.updateTreatmentMedicine(treatment._id, payload);
+
       if (onSuccess) onSuccess(finalStatus);
       onClose();
+
     } catch (err) {
       console.error("Lỗi cập nhật phiếu điều trị:", err);
       setError(err.response?.data?.message || err.message || "Có lỗi xảy ra, vui lòng thử lại.");

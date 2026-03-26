@@ -103,6 +103,85 @@ const updateService = async (treatmentId, data) => {
             { new: true, runValidators: true }
         );
 
+        // --- TỰ ĐỘNG: Khi Phụ tá hoàn thành → WAITING_APPROVAL ---
+        // - SESSION phase: có appointment_id riêng → dùng trực tiếp
+        // - PLAN phase: không có appointment_id riêng → fallback qua DentalRecord
+        if (data.status === 'WAITING_APPROVAL') {
+            console.log('[DEBUG-HARD] WAITING_APPROVAL block reached. phase =', existingTreatment.phase, '| appointment_id =', existingTreatment.appointment_id, '| record_id =', existingTreatment.record_id);
+            try {
+                const AppointmentModel = require('../../appointment/models/appointment.model');
+                let targetAppointmentId = existingTreatment.appointment_id;
+
+                // Nếu PLAN phase (không có appointment_id riêng) → tìm lịch khám ĐANG KHÁM của bệnh nhân
+                if (!targetAppointmentId) {
+                    const activeAppt = await AppointmentModel.findOne({
+                        patient_id: existingTreatment.patient_id,
+                        status: 'IN_CONSULTATION'
+                    }).select('_id').lean();
+
+                    if (activeAppt) {
+                        targetAppointmentId = activeAppt._id;
+                        logger.debug("PLAN phase: found active IN_CONSULTATION appointment", {
+                            context,
+                            patientId: existingTreatment.patient_id?.toString(),
+                            foundAppointmentId: targetAppointmentId?.toString(),
+                        });
+                    } else if (existingTreatment.record_id) {
+                        // Fallback dự phòng: lấy từ DentalRecord
+                        const DentalRecord = require('../models/dental-record.model');
+                        const record = await DentalRecord.findById(existingTreatment.record_id).lean();
+                        targetAppointmentId = record?.appointment_id;
+                        logger.debug("PLAN phase: fallback to DentalRecord.appointment_id", {
+                            context,
+                            recordId: existingTreatment.record_id?.toString(),
+                            foundAppointmentId: targetAppointmentId?.toString(),
+                        });
+                    }
+                }
+
+                if (targetAppointmentId) {
+                    // Dùng trực tiếp Model để tránh circular dependency với AppointmentService
+                    const updatedAppt = await AppointmentModel.findOneAndUpdate(
+                        {
+                            _id: targetAppointmentId,
+                            status: { $in: ['SCHEDULED', 'CHECKED_IN', 'IN_CONSULTATION'] }
+                        },
+                        { $set: { status: 'COMPLETED' } },
+                        { new: true }
+                    );
+
+                    console.log('[DEBUG-HARD] Auto-complete appointment result:', updatedAppt ? updatedAppt.status : 'NOT_FOUND_OR_WRONG_STATUS');
+                    logger.info("Auto-complete appointment result", {
+                        context,
+                        treatmentId,
+                        phase: existingTreatment.phase,
+                        appointmentId: targetAppointmentId?.toString(),
+                        result: updatedAppt ? updatedAppt.status : 'NOT_FOUND_OR_WRONG_STATUS',
+                    });
+
+                    // Tự động tạo hóa đơn nháp (PENDING) nếu appointment vừa được hoàn thành
+                    if (updatedAppt) {
+                        try {
+                            const InvoiceService = require('../../billing/service/invoice.service');
+                            InvoiceService.autoCreateInvoiceFromAppointment(targetAppointmentId).catch(err =>
+                                logger.error("Auto-invoice creation failed:", { message: err.message })
+                            );
+                        } catch (invErr) {
+                            logger.error("Failed to require InvoiceService:", { message: invErr.message });
+                        }
+                    }
+                } else {
+                    logger.warn("No appointment_id found to auto-complete", {
+                        context, treatmentId, phase: existingTreatment.phase,
+                    });
+                }
+            } catch (aptErr) {
+                logger.error("Failed to auto-complete appointment", {
+                    context, treatmentId, message: aptErr.message,
+                });
+            }
+        }
+
         return dataUpdate;
 
     } catch (error) {

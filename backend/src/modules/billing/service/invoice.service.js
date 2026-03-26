@@ -6,6 +6,8 @@ const Pagination = require('../../../common/responses/Pagination');
 const logger = require('../../../common/utils/logger');
 const errorRes = require('../../../common/errors');
 const notificationService = require('../../notification/service/notification.service');
+const AppointmentModel = require('../../appointment/models/appointment.model');
+const AuthModel = require('../../auth/models/index.model');
 
 const getListInvoice = async (query) => {
     try {
@@ -194,11 +196,10 @@ const createInvoice = async (data) => {
             created_by: created_by || null,
         });
 
-        // Gửi thông báo In-App cho Lễ tân chờ thanh toán
         try {
             const patientName = patient.profile_id?.full_name || 'Khách hàng';
             await notificationService.sendToRole(['RECEPTIONIST'], {
-                type: 'PENDING_PAYMENT',
+                type: 'INVOICE_READY',
                 title: 'Hóa đơn chờ thanh toán',
                 message: `Bác sĩ vừa chỉ định xong cho bệnh nhân ${patientName}. Vui lòng hỗ trợ bệnh nhân thanh toán hóa đơn.`,
                 action_url: `/invoices/${invoice._id}`
@@ -314,4 +315,82 @@ const getInvoiceStats = async () => {
     }
 };
 
-module.exports = { getListInvoice, getInvoiceById, createInvoice, updateInvoiceStatus, getInvoiceStats };
+/**
+ * Tự động tạo hóa đơn nháp (PENDING) từ thông tin lịch hẹn
+ * Thường gọi khi Lịch hẹn -> COMPLETED
+ */
+const autoCreateInvoiceFromAppointment = async (appointmentId) => {
+    const context = 'InvoiceService.autoCreateInvoiceFromAppointment';
+    try {
+        if (!appointmentId) return null;
+
+        // 1. Kiểm tra xem đã có hóa đơn cho lịch hẹn này chưa (Idempotency)
+        const existing = await InvoiceModel.findOne({ appointment_id: appointmentId }).lean();
+        if (existing) {
+            logger.debug('Invoice already exists for this appointment', { context, appointmentId, invoiceId: existing._id });
+            return existing;
+        }
+
+        // 2. Lấy thông tin lịch hẹn (+ services)
+        const appointment = await AppointmentModel.findById(appointmentId).lean();
+        if (!appointment) {
+            logger.warn('Appointment not found for auto-invoice', { context, appointmentId });
+            return null;
+        }
+
+        if (!appointment.patient_id) {
+            logger.warn('Appointment has no patient_id, cannot create invoice', { context, appointmentId });
+            return null;
+        }
+
+        // 3. Chuẩn bị items từ book_service của lịch hẹn
+        const items = appointment.book_service || [];
+        if (items.length === 0) {
+            logger.warn('Appointment has no booked services, skipping auto-invoice', { context, appointmentId });
+            return null;
+        }
+
+        // 4. Gọi createInvoice để xử lý logic lấy tên service, tính tiền...
+        // Mẹo: Truyền data thô vào, hàm createInvoice sẽ tự truy vấn ServiceModel để lấy name
+        const invoiceData = {
+            patient_id: appointment.patient_id,
+            appointment_id: appointment._id,
+            note: appointment.reason || 'Hóa đơn tự động sinh từ lịch hẹn',
+            payment_method: 'CASH', // Mặc định
+            items: items.map(s => ({
+                service_id: s.service_id,
+                sub_service_id: s.sub_service_id,
+                price: s.unit_price, // Ưu tiên giá lúc đặt lịch
+                quantity: 1
+            }))
+        };
+
+        const newInvoice = await createInvoice(invoiceData);
+        logger.info('Auto-created invoice successfully', { 
+            context, 
+            appointmentId, 
+            invoiceId: newInvoice._id,
+            invoiceCode: newInvoice.invoice_code
+        });
+
+        return newInvoice;
+
+    } catch (error) {
+        logger.error('Error in auto-creating invoice', {
+            context,
+            appointmentId,
+            message: error.message
+        });
+        // Không quăng lỗi để không làm chết luồng cập nhật lịch hẹn
+        return null;
+    }
+};
+
+module.exports = { 
+    getListInvoice, 
+    getInvoiceById, 
+    createInvoice, 
+    updateInvoiceStatus, 
+    getInvoiceStats,
+    autoCreateInvoiceFromAppointment 
+};

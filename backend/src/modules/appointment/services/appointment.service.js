@@ -34,10 +34,11 @@ const getListService = async (query, doctor_id, lte_date) => {
 
         // 1. Lấy và chuẩn hóa các tham số
         const search = query.search?.trim();
-        const statusFilter = query.status ? query.status.toUpperCase() : null;
-        const filterDoctorId = doctor_id || query.doctor_id; 
-        const filterLteDate = lte_date || query.lte_date;    
-        
+        const statusFilter = query.status && query.status !== "all" ? query.status.toUpperCase() : null;
+        const filterDoctorId = doctor_id || (query.doctor_id && query.doctor_id !== "all" ? query.doctor_id : null);
+        const filterLteDate = lte_date || query.lte_date;
+        const filterSpecificDate = query.appointment_date;
+
         const sortOrder = query.sort === "desc" ? -1 : 1;
         const page = Math.max(1, parseInt(query.page || 1));
         const limit = Math.max(1, parseInt(query.limit || 5));
@@ -59,10 +60,25 @@ const getListService = async (query, doctor_id, lte_date) => {
         // Lọc theo khoảng thời gian <= lte_date
         if (filterLteDate) {
             const endOfDay = new Date(filterLteDate);
-            endOfDay.setUTCHours(23, 59, 59, 999); 
+            endOfDay.setUTCHours(23, 59, 59, 999);
 
             matchCondition.appointment_date = {
                 $lte: endOfDay
+            };
+        }
+
+        // --- BỔ SUNG: Lọc theo ngày cụ thể (appointment_date) ---
+        if (filterSpecificDate) {
+            const start = new Date(filterSpecificDate);
+            start.setUTCHours(0, 0, 0, 0);
+            const end = new Date(filterSpecificDate);
+            end.setUTCHours(23, 59, 59, 999);
+
+            // Nếu dùng cả lte_date và appointment_date thì logic này sẽ ghi đè $lte của lte_date
+            // Tuy nhiên trong thực tế trang Phụ tá sẽ dùng appointment_date.
+            matchCondition.appointment_date = {
+                $gte: start,
+                $lte: end
             };
         }
 
@@ -1029,20 +1045,20 @@ const updateService = async (id, data) => {
                 try {
                     const patient = await PatientModel.findById(updatedAppt.patient_id).select('account_id email').lean();
                     const account = patient?.account_id
-                       ? await AuthModel.Account.findById(patient.account_id).select('email').lean()
-                       : null;
+                        ? await AuthModel.Account.findById(patient.account_id).select('email').lean()
+                        : null;
                     const patientEmail = account?.email || updatedAppt.email || patient?.email;
-                    
+
                     const oldDateStr = new Date(existingAppt.appointment_date).toLocaleDateString('vi-VN');
                     const newDateStr = new Date(updatedAppt.appointment_date).toLocaleDateString('vi-VN');
 
                     // 1. Gửi Email thông báo dời lịch
                     emailService.sendAppointmentRescheduledByClinicEmail(
-                        patientEmail, 
-                        updatedAppt.full_name, 
-                        oldDateStr, 
-                        existingAppt.appointment_time, 
-                        newDateStr, 
+                        patientEmail,
+                        updatedAppt.full_name,
+                        oldDateStr,
+                        existingAppt.appointment_time,
+                        newDateStr,
                         updatedAppt.appointment_time
                     ).catch(err => logger.error('Lỗi gửi email đổi lịch:', err.message));
 
@@ -1137,6 +1153,18 @@ const updateStatusOnly = async (id, status, doctorId = null) => {
                 { new: true }
             );
 
+            // TỰ ĐỘNG: Tạo hóa đơn khi hoàn thành lịch hẹn
+            if (status === "COMPLETED" && oldAppt.status !== "COMPLETED" && newData) {
+                try {
+                    const InvoiceService = require('../../billing/service/invoice.service');
+                    InvoiceService.autoCreateInvoiceFromAppointment(id).catch(err => 
+                        logger.error("Error auto-creating invoice on completion:", { message: err.message })
+                    );
+                } catch (invoiceErr) {
+                    logger.error("Failed to trigger auto-invoice creation:", { message: invoiceErr.message });
+                }
+            }
+
             // Gửi thông báo In-App nếu Lịch hẹn bị Khách hàng hoặc Lễ tân hủy / Bệnh nhân không đến
             if ((status === "CANCELLED" || status === "NO_SHOW") && newData) {
                 try {
@@ -1195,7 +1223,7 @@ const updateStatusOnly = async (id, status, doctorId = null) => {
         }
 
         // --- GỬI EMAIL + THÔNG BÁO KHI LỄ TÂN XỬ LÝ YÊU CẦU ĐỔI LỊCH ---
-        // Duyệt: PENDING_CONFIRMATION -> SCHEDULED
+        // Duyệt: PENDING_CONFIRMATION -> SCHEDULED 
         const isApproved = oldAppt.status === 'PENDING_CONFIRMATION' && status === 'SCHEDULED';
         // Từ chối: PENDING_CONFIRMATION -> CANCELLED (hoặc bất kỳ ai hủy lịch)
         const isRejected = oldAppt.status === 'PENDING_CONFIRMATION' && status === 'CANCELLED';
@@ -1373,15 +1401,20 @@ const findById = async (id) => {
 
 const findByTreatmentId = async (treatmentId) => {
     try {
-        logger.debug("Finding appointment by id", {
-            context: "AppointmentService.findById",
+        logger.debug("Finding appointment by treatmentId", {
+            context: "AppointmentService.findByTreatmentId",
             treatmentId: treatmentId,
         });
         if (!treatmentId) return null;
-        return await AppointmentModel.findOne({ treatmentId: treatmentId }).lean();
+        // Treatment lưu appointment_id (không phải ngược lại)
+        // Nên cần tìm Treatment trước, sau đó lấy appointment_id từ đó
+        const TreatmentModel = require('../../treatment/models/treatment.model');
+        const treatment = await TreatmentModel.findById(treatmentId).lean();
+        if (!treatment || !treatment.appointment_id) return null;
+        return await AppointmentModel.findById(treatment.appointment_id).lean();
     } catch (error) {
-        logger.error("Error get appointment by id", {
-            context: "AppointmentService.findById",
+        logger.error("Error finding appointment by treatmentId", {
+            context: "AppointmentService.findByTreatmentId",
             error: error
         });
         return null;
@@ -1395,10 +1428,10 @@ const findByTreatmentId = async (treatmentId) => {
  */
 const calculateTotalAmount = async (appointmentId) => {
     const context = "AppointmentService.calculateTotalAmount";
-    
+
     try {
         const appointment = await AppointmentModel.findById(appointmentId).lean();
-        
+
         if (!appointment) {
             logger.error("Could not find appointment by id.", {
                 context,
@@ -1407,7 +1440,7 @@ const calculateTotalAmount = async (appointmentId) => {
             return 0;
         }
         const serviceBooking = appointment.book_service || [];
-        
+
         logger.debug("Services found.", {
             context,
             serviceCount: serviceBooking.length,
@@ -1416,7 +1449,7 @@ const calculateTotalAmount = async (appointmentId) => {
 
         const totalAmount = serviceBooking.reduce((total, service) => {
             const price = service.unit_price || 0;
-            return total + price; 
+            return total + price;
         }, 0);
 
         logger.debug("Final total amount calculated.", {
@@ -1442,7 +1475,7 @@ const calculateTotalAmount = async (appointmentId) => {
  * @param {String} appointment_date date booking
  * @param {String} appointment_time time booing
  */
-const checkDuplicateFullNameAndPhoneAndAppointDateAndAppointTime = async(full_name, phone, appointment_date, appointment_time) => {
+const checkDuplicateFullNameAndPhoneAndAppointDateAndAppointTime = async (full_name, phone, appointment_date, appointment_time) => {
     const contex = "AppointmentService.CheckDuplicateFullNameAndPhoneAndAppointDateAndAppointTime";
     try {
         const appointment = await AppointmentModel.findOne({
@@ -1453,9 +1486,9 @@ const checkDuplicateFullNameAndPhoneAndAppointDateAndAppointTime = async(full_na
         });
         logger.debug("Finding appointment.", {
             context: contex,
-            full_name: full_name, 
-            phone: phone, 
-            appointment_date: appointment_date, 
+            full_name: full_name,
+            phone: phone,
+            appointment_date: appointment_date,
             appointment_time: appointment_time,
             appointment: appointment
         });
@@ -1463,9 +1496,9 @@ const checkDuplicateFullNameAndPhoneAndAppointDateAndAppointTime = async(full_na
     } catch (error) {
         logger.error("Erro check duplicate", {
             contex: contex,
-            full_name: full_name, 
-            phone: phone, 
-            appointment_date: appointment_date, 
+            full_name: full_name,
+            phone: phone,
+            appointment_date: appointment_date,
             appointment_time: appointment_time,
             error: error
         });
