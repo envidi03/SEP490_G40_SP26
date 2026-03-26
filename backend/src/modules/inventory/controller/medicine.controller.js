@@ -2,8 +2,8 @@ const medicineService = require("../service/medicine.service");
 
 exports.getMedicines = async (req, res) => {
     try {
-        const { page, limit, search, category } = req.query;
-        const result = await medicineService.getMedicines({ page, limit, search, category });
+        const { page, limit, search, category, statusFilter } = req.query;
+        const result = await medicineService.getMedicines({ page, limit, search, category, statusFilter });
         return res.status(200).json({
             success: true,
             data: result.medicines,
@@ -49,16 +49,28 @@ exports.getDosageForms = (req, res) => {
 
 exports.getUnits = (req, res) => {
     try {
-        const units = medicineService.getUnits();
-        return res.status(200).json({
-            success: true,
-            data: units
-        });
+        const units = medicineService.getSellingUnits(); // backward compat
+        return res.status(200).json({ success: true, data: units });
     } catch (error) {
-        return res.status(500).json({
-            success: false,
-            message: error.message
-        });
+        return res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+exports.getSellingUnits = (req, res) => {
+    try {
+        const units = medicineService.getSellingUnits();
+        return res.status(200).json({ success: true, data: units });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+exports.getBaseUnits = (req, res) => {
+    try {
+        const units = medicineService.getBaseUnits();
+        return res.status(200).json({ success: true, data: units });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: error.message });
     }
 };
 
@@ -131,12 +143,13 @@ exports.createRestockRequest = async (req, res) => {
 
 exports.getRestockRequests = async (req, res) => {
     try {
-        const { status, page, limit } = req.query;
-        const result = await medicineService.getRestockRequests({ status, page, limit });
+        const { status, priority, search, page, limit } = req.query;
+        const result = await medicineService.getRestockRequests({ status, priority, search, page, limit });
         return res.status(200).json({
             success: true,
             data: result.requests,
-            pagination: result.pagination
+            pagination: result.pagination,
+            statistics: result.statistics
         });
     } catch (error) {
         return res.status(500).json({

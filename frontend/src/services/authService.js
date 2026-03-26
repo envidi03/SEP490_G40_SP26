@@ -186,6 +186,26 @@ const authService = {
         } catch (error) {
             throw error.response || error;
         }
+    },
+
+    /**
+     * Set initial password for Google Login accounts
+     * @param {string} email - User email
+     * @param {string} token - Setup token
+     * @param {string} newPassword - New password
+     * @returns {Promise}
+     */
+    setupPassword: async (email, token, newPassword) => {
+        try {
+            const response = await apiClient.post('/api/auth/setup-password', {
+                email,
+                token,
+                newPassword
+            });
+            return response;
+        } catch (error) {
+            throw error.response || error;
+        }
     }
 };
 

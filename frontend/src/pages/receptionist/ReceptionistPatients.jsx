@@ -228,19 +228,9 @@ const ReceptionistPatients = () => {
                                         <tr key={patient._id || patient.id} className="hover:bg-gray-50">
                                             <td className="px-6 py-4 whitespace-nowrap">
                                                 <div className="flex items-center">
-                                                    <div className="h-10 w-10 flex-shrink-0">
-                                                        <div className="h-10 w-10 rounded-full bg-primary-100 flex items-center justify-center">
-                                                            <span className="text-primary-600 font-medium">
-                                                                {pName.charAt(0)}
-                                                            </span>
-                                                        </div>
-                                                    </div>
                                                     <div className="ml-4">
                                                         <div className="text-sm font-medium text-gray-900">
                                                             {pName}
-                                                        </div>
-                                                        <div className="text-sm text-gray-500">
-                                                            ID: {(patient._id || patient.id).slice(-8)}
                                                         </div>
                                                     </div>
                                                 </div>

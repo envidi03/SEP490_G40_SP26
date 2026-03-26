@@ -180,6 +180,30 @@ router.get("/medicines/units", medicineController.getUnits);
 
 /**
  * @swagger
+ * /api/inventory/medicines/selling-units:
+ *   get:
+ *     summary: Lấy danh sách đơn vị BÁN (quản lý tồn kho)
+ *     tags: [Inventory]
+ *     responses:
+ *       200:
+ *         description: Thành công, VD ["Viên", "Vỉ", "Hộp", "Chai"]
+ */
+router.get("/medicines/selling-units", medicineController.getSellingUnits);
+
+/**
+ * @swagger
+ * /api/inventory/medicines/base-units:
+ *   get:
+ *     summary: Lấy danh sách đơn vị CƠ BẢN (dùng khi kê đơn thuốc)
+ *     tags: [Inventory]
+ *     responses:
+ *       200:
+ *         description: Thành công, VD ["Viên", "ml", "mg"]
+ */
+router.get("/medicines/base-units", medicineController.getBaseUnits);
+
+/**
+ * @swagger
  * /api/inventory/medicines:
  *   post:
  *     summary: Thêm thuốc mới

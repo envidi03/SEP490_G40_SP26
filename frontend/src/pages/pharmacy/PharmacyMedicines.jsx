@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Pill, Search, Plus, Edit, AlertTriangle, Package, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Pill, Search, Plus, Edit, AlertTriangle, Package, ChevronLeft, ChevronRight, CheckCircle } from 'lucide-react';
 import Card from '../../components/ui/Card';
 import Badge from '../../components/ui/Badge';
 import PharmacyMedicineModal from './PharmacyMedicineModal';
@@ -22,6 +22,7 @@ const PharmacyMedicines = () => {
     const [modalOpen, setModalOpen] = useState(false);
     const [editData, setEditData] = useState(null);
     const [submitting, setSubmitting] = useState(false);
+    const [alertMsg, setAlertMsg] = useState(null); // { type, text }
 
     // Fetch categories once
     useEffect(() => {
@@ -89,7 +90,8 @@ const PharmacyMedicines = () => {
                 category: med.category,
                 dosage: med.dosage,
                 dosage_form: med.dosage_form,
-                unit: med.unit,
+                selling_unit: med.selling_unit,
+                base_unit: med.base_unit,
                 price: med.price,
                 manufacturer: med.manufacturer,
                 distributor: med.distributor,
@@ -97,6 +99,7 @@ const PharmacyMedicines = () => {
                 stock: med.quantity,
                 minStock: med.min_quantity,
                 batchNumber: med.batch_number,
+                units_per_selling_unit: med.units_per_selling_unit,
             });
         } catch (err) {
             console.error('Lỗi lấy chi tiết thuốc:', err);
@@ -107,7 +110,8 @@ const PharmacyMedicines = () => {
                 category: medicine.category,
                 dosage: medicine.dosage,
                 dosage_form: medicine.dosage_form,
-                unit: medicine.unit,
+                selling_unit: medicine.selling_unit,
+                base_unit: medicine.base_unit,
                 price: medicine.price,
                 manufacturer: medicine.manufacturer,
                 distributor: medicine.distributor,
@@ -115,6 +119,7 @@ const PharmacyMedicines = () => {
                 stock: medicine.quantity,
                 minStock: medicine.min_quantity,
                 batchNumber: medicine.batch_number,
+                units_per_selling_unit: medicine.units_per_selling_unit,
             });
         }
         setModalOpen(true);
@@ -129,7 +134,8 @@ const PharmacyMedicines = () => {
                 category: data.category,
                 dosage: data.dosage,
                 dosage_form: data.dosage_form,
-                unit: data.unit,
+                selling_unit: data.selling_unit,
+                base_unit: data.base_unit,
                 price: Number(data.price),
                 manufacturer: data.manufacturer,
                 distributor: data.distributor,
@@ -137,12 +143,15 @@ const PharmacyMedicines = () => {
                 quantity: Number(data.stock),
                 min_quantity: Number(data.minStock),
                 batch_number: data.batchNumber,
+                units_per_selling_unit: Number(data.units_per_selling_unit) || 1,
             };
 
             if (isEdit) {
                 await inventoryService.updateMedicine(data.id, payload);
+                setAlertMsg({ type: 'success', text: `Đã cập nhật thông tin thuốc ${data.name}!` });
             } else {
                 await inventoryService.createMedicine(payload);
+                setAlertMsg({ type: 'success', text: `Đã thêm thuốc ${data.name} vào danh mục!` });
             }
 
             setModalOpen(false);
@@ -173,10 +182,31 @@ const PharmacyMedicines = () => {
     return (
         <div>
             {/* Header */}
-            <div className="mb-8">
-                <h1 className="text-3xl font-bold text-gray-900">Quản Lý Thuốc</h1>
-                <p className="text-gray-600 mt-1">Danh mục và thông tin thuốc</p>
+            <div className="mb-8 flex justify-between items-start">
+                <div>
+                    <h1 className="text-3xl font-bold text-gray-900">Quản Lý Thuốc</h1>
+                    <p className="text-gray-600 mt-1">Danh mục và thông tin thuốc</p>
+                </div>
+                <button
+                    onClick={handleOpenAdd}
+                    className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 flex items-center gap-2 shadow-lg shadow-primary-200"
+                >
+                    <Plus size={20} />
+                    Thêm thuốc mới
+                </button>
             </div>
+
+            {/* Alert Message */}
+            {alertMsg && (
+                <div className={`mb-6 p-4 rounded-lg border flex items-center justify-between animate-in fade-in slide-in-from-top-4 duration-300 ${alertMsg.type === 'success' ? 'bg-green-50 border-green-200 text-green-800' : 'bg-red-50 border-red-200 text-red-800'
+                    }`}>
+                    <div className="flex items-center gap-2">
+                        {alertMsg.type === 'success' ? <CheckCircle size={18} className="text-green-600" /> : <AlertTriangle size={18} className="text-red-600" />}
+                        <span className="text-sm font-medium">{alertMsg.text}</span>
+                    </div>
+                    <button onClick={() => setAlertMsg(null)} className="text-lg leading-none opacity-60 hover:opacity-100 p-1">×</button>
+                </div>
+            )}
 
             {/* Low stock alert */}
             {!loading && lowStockCount > 0 && (
@@ -225,18 +255,15 @@ const PharmacyMedicines = () => {
                         className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
                     >
                         <option value="all">Tất cả danh mục</option>
-                        {categories.map(cat => (
-                            <option key={cat} value={cat}>{cat}</option>
-                        ))}
+                        {categories.map(cat => {
+                            const id = typeof cat === 'object' ? cat._id : cat;
+                            const name = typeof cat === 'object' ? cat.name : cat;
+                            return (
+                                <option key={id} value={id}>{name}</option>
+                            );
+                        })}
                     </select>
 
-                    <button
-                        onClick={handleOpenAdd}
-                        className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 flex items-center gap-2"
-                    >
-                        <Plus size={20} />
-                        Thêm thuốc
-                    </button>
                 </div>
             </Card>
 
@@ -279,12 +306,14 @@ const PharmacyMedicines = () => {
                                                 </div>
                                                 <div>
                                                     <div className="text-sm font-medium text-gray-900">{medicine.medicine_name}</div>
-                                                    <div className="text-xs text-gray-500">{medicine.unit}</div>
+                                                    <div className="text-xs text-gray-500">{medicine.selling_unit}</div>
                                                 </div>
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            <span className="text-sm text-gray-900">{medicine.category}</span>
+                                            <span className="text-sm text-gray-900">
+                                                {typeof medicine.category === 'object' ? medicine.category.name : medicine.category}
+                                            </span>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <span className="text-sm text-gray-600">{medicine.manufacturer}</span>

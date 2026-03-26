@@ -3,7 +3,7 @@ const errorRes = require("../../../common/errors");
 const mongoose = require("mongoose");
 
 const model = require("../models/index.model");
-const {service: AppointmentService} = require("./../../appointment/index");
+const { service: AppointmentService } = require("./../../appointment/index");
 
 /**
  * get treatment by id populate medicine_usage.medicine_id
@@ -64,8 +64,8 @@ const createService = async (dataCreate) => {
         const newData = await model.Treatment.create(dataCreate);
         return newData;
     } catch (error) {
-        logger.error("Error at create new treatment.", { 
-            context: context, 
+        logger.error("Error at create new treatment.", {
+            context: context,
             message: error.message,
             stack: error.stack,
         });
@@ -98,16 +98,16 @@ const updateService = async (treatmentId, data) => {
         }
 
         const dataUpdate = await model.Treatment.findByIdAndUpdate(
-            treatmentId, 
-            data, 
-            { new: true, runValidators: true } 
+            treatmentId,
+            data,
+            { new: true, runValidators: true }
         );
 
         return dataUpdate;
 
     } catch (error) {
-        logger.error("Error at update treatment.", { 
-            context: context, 
+        logger.error("Error at update treatment.", {
+            context: context,
             treatmentId: treatmentId,
             message: error.message,
             stack: error.stack,
@@ -138,6 +138,7 @@ const findById = async (id) => {
 
 /**
  * Update only status of treatment - cannot update status if current status is CANCELLED or DONE
+ * if status treatment is WAITING_APPROVAL, system will auto change status appointment to COMPLETED
  * @param {ObjectId} id treatment id to find
  * @param {string} status the new status to set
  * @returns treatment object or null if not found
@@ -149,27 +150,35 @@ const updateStatusOnly = async (id, status) => {
             throw new errorRes.NotFoundError("Treatment not found");
         }
         if (treatment.status === status) {
-            return treatment; 
+            return treatment;
         }
         if (treatment.status === 'CANCELLED' || treatment.status === 'DONE') {
             throw new errorRes.BadRequestError(`Cannot change status from ${treatment.status}`);
         }
 
-        if (status === "DONE") {
+        if (status === "WAITING_APPROVAL") {
             const appoint = await AppointmentService.findByTreatmentId(treatment._id);
-            if (!appoint) {
-                logger.warn("Appointment not found by treatment", {
-                    context: "TreatmentService.updateStatusOnly",
-                    treatment: treatment
-                });
-                throw new errorRes.NotFoundError("Không tìm thấy lịch khám để cập nhật.")
+            if (appoint.status !== "COMPLETED") {
+                if (!appoint) {
+                    logger.warn("Appointment not found by treatment", {
+                        context: "TreatmentService.updateStatusOnly",
+                        treatment: treatment
+                    });
+                    throw new errorRes.NotFoundError("Không tìm thấy lịch khám để cập nhật.");
+                }
+                await AppointmentService.updateStatusOnly(appoint._id, "COMPLETED");
             }
-            await AppointmentService.updateStatusOnly(appoint._id, "COMPLETED");
         }
 
+        if (status === "APPROVED") status = "DONE";
+
+        const dataUpdate = { status };
+        if (status === "IN_PROGRESS") {
+            dataUpdate.phase = "SESSION";
+        }
         const newData = await model.Treatment.findByIdAndUpdate(
             id,
-            { status: status },
+            dataUpdate,
             { new: true }
         ).populate('patient_id', 'full_name');
 
@@ -202,9 +211,169 @@ const updateStatusOnly = async (id, status) => {
     }
 };
 
+/**
+ * get list treatement with appointment_id is null with filter
+ * (
+ *  search: search by full_name(patient name on dental record), record_name (dental record name), 
+ *  filter_date: filter treatement lte planned_date 
+ *  sort: sort by planned_date, default is desc
+ * )
+ */
+const getListTreatementWithAppointmentNull = async (query) => {
+    const context = "TreatmentService.getListTreatementWithAppointmentNull";
+    try {
+        logger.debug("Fetching treatments with appointment_id = null", { context, query });
+
+        // 1. Chuẩn hóa tham số query
+        const search = query.search?.trim();
+        const filterDate = query.filter_date;
+        const sortOrder = query.sort === "asc" ? 1 : -1; 
+        const page = Math.max(1, parseInt(query.page || 1));
+        const limit = Math.max(1, parseInt(query.limit || 10));
+        const skip = (page - 1) * limit;
+
+        // 2. Điều kiện Match ở vòng 1 (Lọc ngay trên bảng Treatment)
+        const initialMatch = {
+            appointment_id: null
+        };
+
+        if (filterDate) {
+            const endOfDay = new Date(filterDate);
+            endOfDay.setUTCHours(23, 59, 59, 999);
+            initialMatch.planned_date = { $lte: endOfDay };
+        }
+
+        // 3. Xây dựng Aggregation Pipeline
+        const pipeline = [
+            // Bước 1: Lọc dữ liệu thô từ bảng Treatment
+            { $match: initialMatch },
+
+            // Bước 2: Lookup lấy thông tin Dental Record (Kết quả trả về là 1 MẢNG record_info)
+            // (Thao tác này tương đương với populate record_id)
+            {
+                $lookup: {
+                    from: "dental_records", 
+                    localField: "record_id",
+                    foreignField: "_id",
+                    as: "record_info"
+                }
+            }
+        ];
+
+        // Bước 3: Áp dụng điều kiện Search
+        if (search) {
+            const regexSearch = { $regex: search, $options: "i" };
+            pipeline.push({
+                $match: {
+                    $or: [
+                        { "record_info.full_name": regexSearch },
+                        { "record_info.record_name": regexSearch }
+                    ]
+                }
+            });
+        }
+
+        // Bước 4: Flatten mảng record_info thành Object
+        pipeline.push({
+            $addFields: {
+                record_info: { $arrayElemAt: ["$record_info", 0] }
+            }
+        });
+
+        // Bước 5: Sắp xếp
+        pipeline.push({ $sort: { planned_date: sortOrder } });
+
+        // Bước 6: Phân trang (Facet) và Lookup thêm Doctor + Profile
+        pipeline.push({
+            $facet: {
+                data: [
+                    { $skip: skip },
+                    { $limit: limit },
+                    
+                    // --- LOOKUP DOCTOR ---
+                    {
+                        $lookup: {
+                            from: "staffs", 
+                            localField: "doctor_id",
+                            foreignField: "_id",
+                            as: "doctor_info"
+                        }
+                    },
+                    // Flatten mảng doctor_info thành Object
+                    {
+                        $addFields: {
+                            doctor_info: { $arrayElemAt: ["$doctor_info", 0] }
+                        }
+                    },
+
+                    // --- LOOKUP PROFILE CỦA DOCTOR ---
+                    // (Thao tác này tương đương với việc populate profile_id bên trong doctor_info)
+                    {
+                        $lookup: {
+                            from: "profiles",
+                            localField: "doctor_info.profile_id", // Trỏ vào profile_id bên trong doctor_info vừa tạo
+                            foreignField: "_id",
+                            as: "doctor_profile" // Tạm thời để ở 1 mảng riêng
+                        }
+                    },
+                    // Gắn đè mảng doctor_profile thành dạng object lồng vào bên trong doctor_info
+                    {
+                        $addFields: {
+                            "doctor_info.profile": { $arrayElemAt: ["$doctor_profile", 0] }
+                        }
+                    },
+                    
+                    // --- DỌN DẸP DỮ LIỆU THỪA ---
+                    {
+                        $project: {
+                            __v: 0,
+                            doctor_profile: 0, // Ẩn mảng tạm dùng để chứa profile
+                            "record_info.__v": 0,
+                            "doctor_info.__v": 0,
+                            "doctor_info.profile.__v": 0,
+                            "doctor_info.password": 0 // Che password nếu có
+                        }
+                    }
+                ],
+                totalCount: [
+                    { $count: "count" }
+                ]
+            }
+        });
+
+        // 4. Thực thi truy vấn
+        const result = await model.Treatment.aggregate(pipeline);
+
+        const treatments = result[0]?.data || [];
+        const totalItems = result[0]?.totalCount[0]?.count || 0;
+
+        return {
+            data: treatments,
+            pagination: {
+                page: page,
+                size: limit,
+                totalItems: totalItems,
+                totalPages: Math.ceil(totalItems / limit)
+            }
+        };
+
+    } catch (error) {
+        logger.error("Error cannot get list treatment with appointment is null", {
+            context: context,
+            query: query,
+            error: error.message
+        });
+        
+        throw new errorRes.InternalServerError(
+            `Failed to fetch treatments without appointment: ${error.message}`
+        );
+    }
+};
+
 module.exports = {
     getByIdService,
     createService,
     updateService,
     updateStatusOnly,
+    getListTreatementWithAppointmentNull,
 };

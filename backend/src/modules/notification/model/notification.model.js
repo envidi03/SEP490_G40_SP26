@@ -5,6 +5,10 @@ const NOTIFICATION_TYPES = [
     // Receptionist
     'NEW_APPOINTMENT',
     'APPOINTMENT_CANCELLED',
+    'APPOINTMENT_UPDATE_REQUESTED',   // Bệnh nhân yêu cầu đổi lịch
+    'APPOINTMENT_UPDATE_CONFIRMED',   // Xác nhận yêu cầu đổi lịch cho bệnh nhân
+    'APPOINTMENT_UPDATE_REJECTED',    // Từ chối yêu cầu đổi lịch cho bệnh nhân
+    'APPOINTMENT_NO_SHOW',            // Bệnh nhân vắng mặt - hệ thống tự động
     'INVOICE_READY',
     // Doctor
     'PATIENT_CHECKED_IN',
@@ -15,6 +19,8 @@ const NOTIFICATION_TYPES = [
     // Admin / System
     'SYSTEM_ALERT',
     'SYSTEM_MAINTENANCE',
+    // --- THÊM DÒNG NÀY ---
+    'APPOINTMENT_REMINDER' 
 ];
 
 const SCOPE = ['INDIVIDUAL', 'GROUP', 'GLOBAL'];

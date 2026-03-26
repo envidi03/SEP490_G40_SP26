@@ -24,8 +24,10 @@ const CreateDentalRecordModal = ({
     patientEmail = '',
     patientGender = '',
     patientDateOfBirth = '',
+    appointmentId = '',
 }) => {
     const [form, setForm] = useState({
+        appointment_id: appointmentId,
         full_name: patientName,
         phone: patientPhone,
         email: patientEmail,
@@ -45,6 +47,7 @@ const CreateDentalRecordModal = ({
     useEffect(() => {
         if (isOpen) {
             setForm({
+                appointment_id: appointmentId,
                 full_name: patientName,
                 phone: patientPhone,
                 email: patientEmail,
@@ -73,6 +76,7 @@ const CreateDentalRecordModal = ({
         setError(null);
         try {
             const body = {
+                appointment_id: form.appointment_id || undefined,
                 full_name: form.full_name.trim(),
                 phone: form.phone.trim() || undefined,
                 email: form.email.trim() || undefined,

@@ -199,3 +199,23 @@ exports.googleAuth = async (req, res, next) => {
         next(error);
     }
 };
+
+exports.setupPassword = async (req, res, next) => {
+    try {
+        const { email, token, newPassword } = req.body;
+        if (!email || !token || !newPassword) {
+            return res.status(400).json({
+                status: 'error',
+                message: 'Email, token, and new password are required'
+            });
+        }
+
+        const result = await authService.setupPasswordService(email, token, newPassword);
+        res.status(200).json({
+            status: 'success',
+            message: result.message
+        });
+    } catch (error) {
+        next(error);
+    }
+};

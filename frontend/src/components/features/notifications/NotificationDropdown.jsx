@@ -20,6 +20,7 @@ const NotificationDropdown = ({ onClose, onRefreshCount }) => {
             case 'PATIENT_CHECKED_IN':
                 return { icon: Info, iconClass: 'bg-indigo-100 text-indigo-600' };
             case 'APPOINTMENT_CANCELLED':
+            case 'APPOINTMENT_NO_SHOW':
             case 'SYSTEM_ALERT':
                 return { icon: AlertTriangle, iconClass: 'bg-amber-100 text-amber-600' };
             case 'INVOICE_READY':

@@ -229,6 +229,7 @@ const PatientRecordSearch = () => {
                 patientEmail={selectedPatient?.email}
                 patientGender={selectedPatient?.gender}
                 patientDateOfBirth={selectedPatient?.dob}
+                appointmentId={searchParams.get('appointment_id') || undefined}
             />
         </div>
     );

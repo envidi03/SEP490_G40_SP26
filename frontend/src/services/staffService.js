@@ -138,9 +138,9 @@ const staffService = {
     /**
      * Admin: Lấy tất cả yêu cầu nghỉ phép của tất cả nhân viên
      */
-    getAllLeaveRequestsAdmin: async () => {
+    getAllLeaveRequestsAdmin: async (params = {}) => {
         try {
-            const response = await apiClient.get('/api/staff/admin/leave');
+            const response = await apiClient.get('/api/staff/admin/leave', { params });
             return response;
         } catch (error) {
             throw error;

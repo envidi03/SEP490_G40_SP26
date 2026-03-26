@@ -38,7 +38,7 @@ const MedicineCard = ({
                         <AlertTriangle size={24} />
                     )}
                 </div>
-                <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold border ${getStatusColor(medicine.status)} bg-white`}>
+                <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold border ${getStatusColor(medicine.status)}`}>
                     {getStatusText(medicine.status)}
                 </span>
             </div>

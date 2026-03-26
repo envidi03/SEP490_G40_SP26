@@ -2,10 +2,12 @@ import React from 'react';
 import ReceptionistSidebar from './ReceptionistSidebar';
 import { Search, Calendar, ChevronDown } from 'lucide-react';
 import NotificationBell from '../../features/notifications/NotificationBell';
+import { Toaster } from 'react-hot-toast';
 
 const ReceptionistLayout = ({ children }) => {
     return (
         <div className="min-h-screen bg-[#F5F8F9] relative overflow-hidden font-sans selection:bg-teal-100 selection:text-teal-900">
+            <Toaster position="top-right" reverseOrder={false} />
             {/* Ambient Background Accents */}
             <div className="fixed top-[-10%] left-[-5%] w-[30%] h-[30%] bg-teal-200/30 rounded-full blur-[100px] mix-blend-multiply pointer-events-none" />
             <div className="fixed bottom-[10%] right-[-5%] w-[35%] h-[35%] bg-emerald-100/40 rounded-full blur-[120px] mix-blend-multiply pointer-events-none" />

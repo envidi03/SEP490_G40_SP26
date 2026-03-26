@@ -9,15 +9,18 @@ import RestockFilter from './components/RestockFilter';
 import RestockTable from './components/RestockTable';
 
 import inventoryService from '../../../services/inventoryService';
+import SharedPagination from '../../../components/ui/SharedPagination';
 
 const AdminRestockList = () => {
     const [requests, setRequests] = useState([]);
-    const [filteredRequests, setFilteredRequests] = useState([]);
+    const [pagination, setPagination] = useState({ totalItems: 0, totalPages: 1 });
+    const [serverStats, setServerStats] = useState({ total: 0, pending: 0, highPriority: 0, completed: 0 });
 
     // Filters
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
     const [priorityFilter, setPriorityFilter] = useState('all');
+    const [currentPage, setCurrentPage] = useState(1);
 
     // UI States
     const [toast, setToast] = useState({ show: false, type: 'success', message: '' });
@@ -26,13 +29,29 @@ const AdminRestockList = () => {
     // Modal action state (approve or reject)
     const [confirmAction, setConfirmAction] = useState({ show: false, action: null, request: null });
 
-    const fetchRequests = async () => {
+    const fetchRequests = async (search = searchTerm, status = statusFilter, priority = priorityFilter, page = currentPage) => {
         try {
             setLoading(true);
-            const res = await inventoryService.getRestockRequests({ page: 1, limit: 100 });
+            const params = {
+                page,
+                limit: 6,
+                status: status !== 'all' ? status : undefined,
+                priority: priority !== 'all' ? priority : undefined,
+                search: search || undefined
+            };
+
+            const res = await inventoryService.getRestockRequests(params);
             if (res.success && res.data) {
                 setRequests(res.data);
-                setFilteredRequests(res.data);
+                if (res.pagination) {
+                    setPagination({
+                        totalItems: res.pagination.totalItems,
+                        totalPages: res.pagination.totalPages
+                    });
+                }
+                if (res.statistics) {
+                    setServerStats(res.statistics);
+                }
             }
         } catch (error) {
             console.error("Error fetching restock requests:", error);
@@ -46,34 +65,20 @@ const AdminRestockList = () => {
         }
     };
 
+    // Combined effect for fetching
     useEffect(() => {
-        fetchRequests();
-    }, []);
+        const isSearchChange = searchTerm !== '';
+        const timer = setTimeout(() => {
+            fetchRequests(searchTerm, statusFilter, priorityFilter, currentPage);
+        }, isSearchChange ? 500 : 0);
 
+        return () => clearTimeout(timer);
+    }, [searchTerm, statusFilter, priorityFilter, currentPage]);
+
+    // Reset to page 1 when filters change
     useEffect(() => {
-        let filtered = requests;
-
-        // Status Filter
-        if (statusFilter !== 'all') {
-            filtered = filtered.filter(r => r.status === statusFilter);
-        }
-
-        // Priority Filter
-        if (priorityFilter !== 'all') {
-            filtered = filtered.filter(r => r.priority === priorityFilter);
-        }
-
-        // Search Term Filter
-        if (searchTerm) {
-            const lowerSearch = searchTerm.toLowerCase();
-            filtered = filtered.filter(r =>
-                r.medicine_name.toLowerCase().includes(lowerSearch) ||
-                r.request_by_name.toLowerCase().includes(lowerSearch)
-            );
-        }
-
-        setFilteredRequests(filtered);
-    }, [searchTerm, statusFilter, priorityFilter, requests]);
+        setCurrentPage(1);
+    }, [searchTerm, statusFilter, priorityFilter]);
 
     // Handle open confirmation modals
     const handleApproveClick = (req) => {
@@ -136,10 +141,10 @@ const AdminRestockList = () => {
                 </div>
 
                 <RestockStats
-                    totalRequests={totalRequests}
-                    pendingRequests={pendingRequests}
-                    highPriority={highPriority}
-                    completedRequests={completedRequests}
+                    totalRequests={serverStats.total}
+                    pendingRequests={serverStats.pending}
+                    highPriority={serverStats.highPriority}
+                    completedRequests={serverStats.completed}
                 />
 
                 <RestockFilter
@@ -152,15 +157,18 @@ const AdminRestockList = () => {
                 />
 
                 <RestockTable
-                    requests={filteredRequests}
+                    requests={requests}
                     onApprove={handleApproveClick}
                     onReject={handleRejectClick}
                 />
 
-                {/* Status counts text */}
-                <div className="mt-6 text-center text-sm font-medium text-gray-500">
-                    Hiển thị <span className="text-gray-900 font-bold">{filteredRequests.length}</span> / {requests.length} yêu cầu
-                </div>
+                <SharedPagination
+                    currentPage={currentPage}
+                    totalPages={pagination.totalPages}
+                    totalItems={pagination.totalItems}
+                    onPageChange={setCurrentPage}
+                    itemLabel="yêu cầu nhập thuốc"
+                />
             </div>
 
             <ConfirmationModal

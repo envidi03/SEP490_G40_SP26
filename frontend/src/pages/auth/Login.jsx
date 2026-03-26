@@ -17,6 +17,7 @@ const Login = () => {
     const [loading, setLoading] = React.useState(false);
     const [showPassword, setShowPassword] = React.useState(false);
     const [focusedField, setFocusedField] = React.useState(null);
+    const [fieldErrors, setFieldErrors] = React.useState({ username: '', password: '' });
     const [showToast, setShowToast] = React.useState(false);
     const { login } = useAuth();
     const navigate = useNavigate();
@@ -121,6 +122,16 @@ const Login = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
+
+        // Manual validation
+        const errors = {
+            username: !username ? 'Vui lòng nhập email hoặc tên đăng nhập' : '',
+            password: !password ? 'Vui lòng nhập mật khẩu' : ''
+        };
+        setFieldErrors(errors);
+
+        if (errors.username || errors.password) return;
+
         setLoading(true);
 
         try {
@@ -218,17 +229,22 @@ const Login = () => {
                                 <div className="relative group">
                                     <div className={`absolute left-3 transition-all duration-300 ${username || focusedField === 'username' ? '-top-2 text-xs bg-white px-1 text-primary-600' : 'top-3 text-gray-500'}`}>
                                         <User size={username || focusedField === 'username' ? 14 : 16} className="inline mr-1" />
-                                        <span className="font-medium">Tên đăng nhập</span>
+                                        <span className="font-medium">Email / Tên đăng nhập</span>
                                     </div>
                                     <Input
                                         type="text"
                                         value={username}
-                                        onChange={(e) => setUsername(e.target.value)}
+                                        onChange={(e) => {
+                                            setUsername(e.target.value);
+                                            if (fieldErrors.username) setFieldErrors(prev => ({ ...prev, username: '' }));
+                                        }}
                                         onFocus={() => setFocusedField('username')}
                                         onBlur={() => setFocusedField(null)}
-                                        className="w-full pt-5 pb-2 border-2 focus:border-primary-500 focus:ring-4 focus:ring-primary-100 transition-all duration-300 hover:border-primary-300"
-                                        required
+                                        className={`w-full pt-5 pb-2 border-2 focus:ring-4 transition-all duration-300 ${fieldErrors.username ? 'border-red-500 focus:border-red-500 focus:ring-red-100' : 'focus:border-primary-500 focus:ring-primary-100 hover:border-primary-300'}`}
                                     />
+                                    {fieldErrors.username && (
+                                        <p className="text-red-500 text-xs mt-1 absolute">{fieldErrors.username}</p>
+                                    )}
                                     <div className={`absolute bottom-0 left-0 h-0.5 bg-gradient-to-r from-primary-500 to-blue-500 transition-all duration-300 ${focusedField === 'username' ? 'w-full' : 'w-0'}`}></div>
                                 </div>
 
@@ -242,11 +258,13 @@ const Login = () => {
                                         <Input
                                             type={showPassword ? "text" : "password"}
                                             value={password}
-                                            onChange={(e) => setPassword(e.target.value)}
+                                            onChange={(e) => {
+                                                setPassword(e.target.value);
+                                                if (fieldErrors.password) setFieldErrors(prev => ({ ...prev, password: '' }));
+                                            }}
                                             onFocus={() => setFocusedField('password')}
                                             onBlur={() => setFocusedField(null)}
-                                            className="w-full pt-5 pb-2 pr-12 border-2 focus:border-primary-500 focus:ring-4 focus:ring-primary-100 transition-all duration-300 hover:border-primary-300"
-                                            required
+                                            className={`w-full pt-5 pb-2 pr-12 border-2 focus:ring-4 transition-all duration-300 ${fieldErrors.password ? 'border-red-500 focus:border-red-500 focus:ring-red-100' : 'focus:border-primary-500 focus:ring-primary-100 hover:border-primary-300'}`}
                                         />
                                         <button
                                             type="button"
@@ -256,6 +274,9 @@ const Login = () => {
                                             {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                                         </button>
                                     </div>
+                                    {fieldErrors.password && (
+                                        <p className="text-red-500 text-xs mt-1 absolute">{fieldErrors.password}</p>
+                                    )}
                                     <div className={`absolute bottom-0 left-0 h-0.5 bg-gradient-to-r from-primary-500 to-blue-500 transition-all duration-300 ${focusedField === 'password' ? 'w-full' : 'w-0'}`}></div>
                                 </div>
 

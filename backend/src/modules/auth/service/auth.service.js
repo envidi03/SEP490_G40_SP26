@@ -29,6 +29,19 @@ exports.register = async (data) => {
         throw new ValidationError('Username, email, password and full_name are required');
     }
 
+    if (username.length < 3) {
+        throw new ValidationError('Tên đăng nhập phải có ít nhất 3 ký tự');
+    }
+
+    if (username.length > 20) {
+        throw new ValidationError('Tên đăng nhập không được vượt quá 20 ký tự');
+    }
+
+    const usernameRegex = /^[a-zA-Z][a-zA-Z0-9_]*$/;
+    if (!usernameRegex.test(username)) {
+        throw new ValidationError('Tên đăng nhập chỉ được chứa chữ cái, số, dấu gạch dưới và không được bắt đầu bằng số');
+    }
+
 
     if (password.length < 8) {
         throw new ValidationError('Password must be at least 8 characters long');
@@ -394,7 +407,7 @@ exports.refreshToken = async (refreshToken) => {
         throw new ForbiddenError('Account is not active');
     }
 
-    const user = await Profile.findById(session.user_id);
+    const user = await Profile.findOne({ account_id: account._id });
     if (!user) {
         throw new NotFoundError('User not found');
     }
@@ -560,14 +573,17 @@ exports.googleAuth = async (googleToken, ip_address = 'unknown', user_agent = 'u
         });
 
         if (!account) {
-            throw new NotFoundError('Account linked to this Google account not found');
-        }
-
-        if (account.status === 'INACTIVE') {
+            // Case of data inconsistency: AuthProvider exists but Account was deleted.
+            // Delete the orphaned AuthProvider to allow the next logic to handle account creation/linking correctly.
+            await AuthProvider.deleteOne({ _id: existingGoogleProvider._id });
+            logger.warn('Deleted orphaned Google AuthProvider record', { googleId });
+        } else if (account.status === 'INACTIVE') {
             throw new ForbiddenError('Account is inactive');
         }
-    } else {
-        // Google ID doesn't exist, check if email exists
+    }
+
+    if (!account) {
+        // Google ID doesn't exist OR orphaned record was deleted, check if email exists
         account = await Account.findOne({ email }).populate({
             path: "role_id",
             populate: {
@@ -594,10 +610,17 @@ exports.googleAuth = async (googleToken, ip_address = 'unknown', user_agent = 'u
                 email_verified: true
             });
 
-            await Profile.create({
+            const profile = await Profile.create({
                 account_id: account._id,
                 full_name: name || '',
                 avatar_url: picture || undefined
+            });
+
+            // Tự động tạo bản ghi Patient cho tài khoản Google mới
+            await Patient.create({
+                account_id: account._id,
+                profile_id: profile._id,
+                status: "active",
             });
 
             await AuthProvider.create({
@@ -606,6 +629,22 @@ exports.googleAuth = async (googleToken, ip_address = 'unknown', user_agent = 'u
                 provider_user_id: googleId,
                 email: email
             });
+
+            // Gửi email chào mừng kèm link thiết lập mật khẩu
+            const setupToken = crypto.randomBytes(32).toString('hex');
+            const hashedToken = crypto.createHash('sha256').update(setupToken).digest('hex');
+
+            await PasswordReset.create({
+                account_id: account._id,
+                token_hash: hashedToken,
+                expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000) // 24h hiệu lực
+            });
+
+            try {
+                await emailService.sendWelcomeGoogleAuthEmail(email, setupToken, name);
+            } catch (error) {
+                logger.error('Failed to send welcome email:', error);
+            }
 
             account = await Account.findById(account._id).populate({
                 path: 'role_id',
@@ -636,6 +675,21 @@ exports.googleAuth = async (googleToken, ip_address = 'unknown', user_agent = 'u
     }
 
     const user = await Profile.findOne({ account_id: account._id });
+
+    // "Vá" dữ liệu cho các tài khoản Google cũ bị thiếu Patient record
+    if (account.role_id.name === 'PATIENT') {
+        const existingPatient = await Patient.findOne({ account_id: account._id });
+        if (!existingPatient) {
+            await Patient.create({
+                account_id: account._id,
+                profile_id: user._id,
+                status: "active",
+            });
+            logger.info("Auto-created missing Patient record for Google account", {
+                account_id: account._id
+            });
+        }
+    }
 
     const token = signToken({
         account_id: account._id,
@@ -697,6 +751,52 @@ exports.googleAuth = async (googleToken, ip_address = 'unknown', user_agent = 'u
         },
         token,
         refreshToken
+    };
+};
+
+exports.setupPasswordService = async (email, token, newPassword) => {
+    if (!newPassword || newPassword.length < 8) {
+        throw new ValidationError('Mật khẩu phải có ít nhất 8 ký tự!');
+    }
+
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+    if (!passwordRegex.test(newPassword)) {
+        throw new ValidationError('Mật khẩu phải chứa ít nhất một chữ hoa, một chữ thường, một số và một ký tự đặc biệt!');
+    }
+
+    const account = await Account.findOne({ email });
+    if (!account) {
+        throw new NotFoundError('Không tìm thấy tài khoản!');
+    }
+
+    const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+
+    const setupTokenDoc = await PasswordReset.findOne({
+        account_id: account._id,
+        token_hash: hashedToken,
+        used: false
+    });
+
+    if (!setupTokenDoc) {
+        throw new UnauthorizedError('Mã thiết lập không hợp lệ hoặc đã được sử dụng!');
+    }
+
+    if (setupTokenDoc.expires_at < new Date()) {
+        await PasswordReset.deleteOne({ _id: setupTokenDoc._id });
+        throw new UnauthorizedError('Mã thiết lập đã hết hạn!');
+    }
+
+    const hashedPassword = await bcryptjs.hash(newPassword, 10);
+    account.password = hashedPassword;
+    await account.save();
+
+    await PasswordReset.deleteOne({ _id: setupTokenDoc._id });
+
+    // Đăng xuất các session cũ (nếu có)
+    await Session.deleteMany({ account_id: account._id });
+
+    return {
+        message: 'Thiết lập mật khẩu thành công! Bây giờ bạn có thể đăng nhập bằng email và mật khẩu mới.'
     };
 };
 

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { CheckCircle, XCircle, Clock, Users, Filter, RefreshCw } from 'lucide-react';
 import staffService from '../../../services/staffService';
+import SharedPagination from '../../../components/ui/SharedPagination';
 import Toast from '../../../components/ui/Toast';
 import ConfirmationModal from '../../../components/ui/ConfirmationModal';
 
@@ -34,15 +35,36 @@ const AdminLeaveList = () => {
     const [loading, setLoading] = useState(false);
     const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
     const [statusFilter, setStatusFilter] = useState('All');
+    const [searchTerm, setSearchTerm] = useState('');
+    const [currentPage, setCurrentPage] = useState(1);
+    const [pagination, setPagination] = useState({ totalItems: 0, totalPages: 1 });
+    const [serverStats, setServerStats] = useState({ total: 0, pending: 0, approved: 0, rejected: 0 });
     const [approvingId, setApprovingId] = useState(null);
     const [confirmAction, setConfirmAction] = useState(null); // { id, status }
 
-    const fetchLeaveRequests = async () => {
+    const fetchLeaveRequests = async (search = searchTerm, status = statusFilter, page = currentPage) => {
         setLoading(true);
         try {
-            const res = await staffService.getAllLeaveRequestsAdmin();
-            const data = res?.data?.data || res?.data || [];
+            const params = { page, limit: 10 };
+            if (search) params.search = search;
+            if (status !== 'All') params.status = status;
+
+            const res = await staffService.getAllLeaveRequestsAdmin(params);
+            const data = res?.data || [];
+            
+            // Backend now returns GetListSuccess with { data, pagination }
+            // Because of our api interceptor (response.data), res here is the WHOLE json
             setRequests(data);
+            
+            if (res.pagination) {
+                setPagination({
+                    totalItems: res.pagination.totalItems,
+                    totalPages: res.pagination.totalPages
+                });
+            }
+            if (res.statistics) {
+                setServerStats(res.statistics);
+            }
         } catch (error) {
             console.error(error);
             setToast({ show: true, message: 'Không thể tải danh sách đơn nghỉ phép.', type: 'error' });
@@ -51,9 +73,20 @@ const AdminLeaveList = () => {
         }
     };
 
+    // Reset to page 1 when search or filter changes
     useEffect(() => {
-        fetchLeaveRequests();
-    }, []);
+        setCurrentPage(1);
+    }, [searchTerm, statusFilter]);
+
+    // Combined effect for fetching
+    useEffect(() => {
+        const isSearchChange = searchTerm !== ''; 
+        const timer = setTimeout(() => {
+            fetchLeaveRequests(searchTerm, statusFilter, currentPage);
+        }, isSearchChange ? 500 : 0);
+
+        return () => clearTimeout(timer);
+    }, [searchTerm, statusFilter, currentPage]);
 
     const handleApprove = (leaveId, status) => {
         setConfirmAction({ id: leaveId, status });
@@ -79,18 +112,6 @@ const AdminLeaveList = () => {
             setConfirmAction(null);
         }
     };
-
-    const filteredRequests = useMemo(() => {
-        if (statusFilter === 'All') return requests;
-        return requests.filter(r => r.status === statusFilter);
-    }, [requests, statusFilter]);
-
-    const stats = useMemo(() => ({
-        total: requests.length,
-        pending: requests.filter(r => r.status === 'PENDING').length,
-        approved: requests.filter(r => r.status === 'APPROVED').length,
-        rejected: requests.filter(r => r.status === 'REJECTED').length,
-    }), [requests]);
 
     const getStaffName = (req) => {
         return req.staff_id?.profile_id?.full_name
@@ -132,12 +153,12 @@ const AdminLeaveList = () => {
             {/* Stats Cards */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 {[
-                    { label: 'Tổng đơn', value: stats.total, color: 'bg-blue-50 border-blue-100 text-blue-700', icon: Users },
-                    { label: 'Chờ duyệt', value: stats.pending, color: 'bg-yellow-50 border-yellow-100 text-yellow-700', icon: Clock },
-                    { label: 'Đã duyệt', value: stats.approved, color: 'bg-green-50 border-green-100 text-green-700', icon: CheckCircle },
-                    { label: 'Từ chối', value: stats.rejected, color: 'bg-red-50 border-red-100 text-red-700', icon: XCircle },
+                    { label: 'Tổng đơn', value: serverStats.total, color: 'bg-blue-50 border-blue-100 text-blue-700', icon: Users },
+                    { label: 'Chờ duyệt', value: serverStats.pending, color: 'bg-yellow-50 border-yellow-100 text-yellow-700', icon: Clock },
+                    { label: 'Đã duyệt', value: serverStats.approved, color: 'bg-green-50 border-green-100 text-green-700', icon: CheckCircle },
+                    { label: 'Từ chối', value: serverStats.rejected, color: 'bg-red-50 border-red-100 text-red-700', icon: XCircle },
                 ].map(({ label, value, color, icon: Icon }) => (
-                    <div key={label} className={`${color} border rounded-xl p-4`}>
+                    <div key={label} className={`${color} border rounded-xl p-4 transition-all hover:shadow-md`}>
                         <div className="flex items-center gap-3">
                             <Icon size={20} />
                             <div>
@@ -149,23 +170,38 @@ const AdminLeaveList = () => {
                 ))}
             </div>
 
-            {/* Filter */}
-            <div className="bg-white border border-gray-200 rounded-xl p-4 flex items-center gap-3">
-                <Filter size={16} className="text-gray-400 flex-shrink-0" />
-                <span className="text-sm text-gray-600 font-medium">Lọc theo trạng thái:</span>
-                <div className="flex gap-2 flex-wrap">
-                    {['All', 'PENDING', 'APPROVED', 'REJECTED', 'CANCELLED'].map(s => (
-                        <button
-                            key={s}
-                            onClick={() => setStatusFilter(s)}
-                            className={`px-3 py-1 text-xs font-medium rounded-full border transition-colors ${statusFilter === s
-                                ? 'bg-primary-600 text-white border-primary-600'
-                                : 'bg-white text-gray-600 border-gray-300 hover:border-primary-400 hover:text-primary-600'
-                                }`}
-                        >
-                            {s === 'All' ? 'Tất cả' : STATUS_CONFIG[s]?.label}
-                        </button>
-                    ))}
+            {/* Filter & Search */}
+            <div className="bg-white border border-gray-200 rounded-xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm">
+                <div className="flex items-center gap-3">
+                    <Filter size={16} className="text-gray-400 flex-shrink-0" />
+                    <span className="text-sm text-gray-600 font-medium">Lọc theo trạng thái:</span>
+                    <div className="flex gap-2 flex-wrap">
+                        {['All', 'PENDING', 'APPROVED', 'REJECTED', 'CANCELLED'].map(s => (
+                            <button
+                                key={s}
+                                onClick={() => setStatusFilter(s)}
+                                className={`px-3 py-1 text-xs font-medium rounded-full border transition-colors ${statusFilter === s
+                                    ? 'bg-primary-600 text-white border-primary-600'
+                                    : 'bg-white text-gray-600 border-gray-300 hover:border-primary-400 hover:text-primary-600'
+                                    }`}
+                            >
+                                {s === 'All' ? 'Tất cả' : STATUS_CONFIG[s]?.label}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
+                <div className="relative flex-1 max-w-md">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <Filter className="h-4 w-4 text-gray-400" />
+                    </div>
+                    <input
+                        type="text"
+                        placeholder="Tìm kiếm theo tên nhân viên..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                    />
                 </div>
             </div>
 
@@ -173,13 +209,13 @@ const AdminLeaveList = () => {
             <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
                 <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
                     <h2 className="font-semibold text-gray-900">
-                        Danh sách đơn ({filteredRequests.length})
+                        Danh sách đơn ({requests.length})
                     </h2>
                 </div>
 
                 {loading ? (
                     <div className="py-16 text-center text-gray-400 text-sm">Đang tải dữ liệu...</div>
-                ) : filteredRequests.length === 0 ? (
+                ) : requests.length === 0 ? (
                     <div className="py-16 text-center text-gray-400 text-sm">Không có đơn nào</div>
                 ) : (
                     <div className="overflow-x-auto">
@@ -197,7 +233,7 @@ const AdminLeaveList = () => {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100">
-                                {filteredRequests.map(req => {
+                                {requests.map(req => {
                                     const StatusIcon = STATUS_CONFIG[req.status]?.icon || Clock;
                                     const isPending = req.status === 'PENDING';
                                     const isActioning = approvingId === req._id;
@@ -262,6 +298,15 @@ const AdminLeaveList = () => {
                         </table>
                     </div>
                 )}
+
+                {/* Pagination */}
+                <SharedPagination
+                    currentPage={currentPage}
+                    totalPages={pagination.totalPages}
+                    totalItems={pagination.totalItems}
+                    onPageChange={setCurrentPage}
+                    itemLabel="đơn nghỉ phép"
+                />
             </div>
 
             {/* Confirmation Modal */}

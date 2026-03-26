@@ -26,6 +26,11 @@ const billingService = {
         return api.put(`/api/billing/${id}/status`, statusData);
     },
 
+    // Lấy hóa đơn của bệnh nhân hiện tại (theo patient_id)
+    getPatientInvoices: (patientId, params = {}) => {
+        return api.get('/api/billing', { params: { ...params, patient_id: patientId } });
+    },
+
     // Kiểm tra trạng thái thanh toán qua QR
     checkPaymentStatus: (invoiceCode) => {
         return api.get(`/api/payment/invoices/check-status/${invoiceCode}`);

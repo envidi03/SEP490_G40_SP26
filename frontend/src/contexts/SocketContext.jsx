@@ -36,6 +36,13 @@ export const SocketProvider = ({ children }) => {
 
         newSocket.on('connect_error', (error) => {
             if (import.meta.env.DEV) console.error('Socket connection error:', error);
+            
+            // If it's an authentication error, the token is likely invalid/expired.
+            // Don't keep retrying with an invalid token to avoid console spam.
+            if (error.message && (error.message.includes('Authentication') || error.message.includes('token'))) {
+                console.warn('Socket authentication failed. Disconnecting...');
+                newSocket.disconnect();
+            }
             setConnected(false);
         });
 

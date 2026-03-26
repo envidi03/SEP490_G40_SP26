@@ -125,18 +125,24 @@ exports.dispensePrescription = async (treatmentId) => {
     // Kiểm tra tồn kho đủ trước khi xuất
     const insufficientStock = [];
     for (const item of treatment.medicine_usage) {
-        if (item.dispensed) continue; // Bỏ qua thuốc đã xuất
+        if (item.dispensed) continue;
 
         const medicine = await Medicine.findById(item.medicine_id._id || item.medicine_id);
         if (!medicine) {
             insufficientStock.push({ name: "Thuốc không tồn tại", required: item.quantity, available: 0 });
             continue;
         }
-        if (medicine.quantity < item.quantity) {
+
+        // Quy đổi từ base_unit sang selling_unit
+        // item.quantity là số lượng theo base_unit (Viên)
+        // medicine.units_per_selling_unit là số lượng base_unit trong 1 đơn vị bán (Vỉ)
+        const requiredInSellingUnit = item.quantity / (medicine.units_per_selling_unit || 1);
+
+        if (medicine.quantity < requiredInSellingUnit) {
             insufficientStock.push({
                 name: medicine.medicine_name,
-                required: item.quantity,
-                available: medicine.quantity
+                required: `${item.quantity} ${medicine.base_unit || ''} (~${requiredInSellingUnit.toFixed(2)} ${medicine.selling_unit})`,
+                available: `${medicine.quantity} ${medicine.selling_unit}`
             });
         }
     }
@@ -154,9 +160,12 @@ exports.dispensePrescription = async (treatmentId) => {
     for (const item of treatment.medicine_usage) {
         if (item.dispensed) continue;
 
+        const factor = medicine.units_per_selling_unit || 1;
+        const deduction = item.quantity / factor;
+
         const updatedMedicine = await Medicine.findByIdAndUpdate(
             item.medicine_id._id || item.medicine_id,
-            { $inc: { quantity: -item.quantity } },
+            { $inc: { quantity: -deduction } },
             { new: true }
         );
 
@@ -166,7 +175,7 @@ exports.dispensePrescription = async (treatmentId) => {
                 await notificationService.sendToRole(['PHARMACIST'], {
                     type: 'LOW_STOCK',
                     title: 'Cảnh báo Tồn kho thấp',
-                    message: `Thuốc/Vật tư "${updatedMedicine.medicine_name}" sắp hết (Còn lại: ${updatedMedicine.quantity} ${updatedMedicine.unit}). Vui lòng nhập thêm.`,
+                    message: `Thuốc/Vật tư "${updatedMedicine.medicine_name}" sắp hết (Còn lại: ${updatedMedicine.quantity} ${updatedMedicine.selling_unit}). Vui lòng nhập thêm.`,
                     action_url: `/inventory/medicines/${updatedMedicine._id}`
                 });
             } catch (err) {

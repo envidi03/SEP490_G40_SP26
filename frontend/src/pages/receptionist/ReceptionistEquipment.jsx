@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Wrench, Search, AlertCircle, CheckCircle, Settings, Loader2, RefreshCw } from 'lucide-react';
+import { Wrench, Search, AlertCircle, CheckCircle, Settings, Loader2, RefreshCw, ChevronDown, ChevronUp } from 'lucide-react';
 import Card from '../../components/ui/Card';
 import Badge from '../../components/ui/Badge';
 import Toast from '../../components/ui/Toast';
 import equipmentService from '../../services/equipmentService';
 import UpdateMaintenanceModal from './components/modals/UpdateMaintenanceModal';
+
+import EquipmentPagination from '../admin/equipments/components/EquipmentPagination';
 
 const ReceptionistEquipment = () => {
     const [equipments, setEquipments] = useState([]);
@@ -14,41 +16,81 @@ const ReceptionistEquipment = () => {
     const [selectedEquipment, setSelectedEquipment] = useState(null);
     const [showUpdateModal, setShowUpdateModal] = useState(false);
     const [toast, setToast] = useState({ show: false, type: '', message: '' });
+    const [expandedCategories, setExpandedCategories] = useState([]);
+    const [pagination, setPagination] = useState({
+        page: 1,
+        limit: 6,
+        totalItems: 0,
+        totalPages: 0
+    });
 
     // --- FETCH DATA TỪ API ---
-    const fetchEquipments = async () => {
+    const fetchEquipments = async (page = pagination.page) => {
         setLoading(true);
         try {
             const response = await equipmentService.getEquipments({
+                page,
+                limit: pagination.limit,
                 search: searchTerm || undefined,
                 status: filterStatus !== 'all' ? filterStatus : undefined,
             });
             const data = response?.data?.data || response?.data || [];
             setEquipments(Array.isArray(data) ? data : data.data || []);
+
+            if (response?.pagination) {
+                setPagination(prev => ({
+                    ...prev,
+                    ...response.pagination,
+                    page: response.pagination.page // Đảm bảo đồng bộ
+                }));
+            }
+
+            // Lần đầu tải xong hoặc khi đổi trang, có thể giữ hoặc mở lại category
+            if (expandedCategories.length === 0 && Array.isArray(data)) {
+                const hasItems = data.filter(cat => cat.equipment?.length > 0).map(cat => cat.equipment_type);
+                setExpandedCategories(hasItems);
+            }
         } catch (error) {
             console.error('Error fetching equipments:', error);
-            setToast({ show: true, type: 'error', message: '❌ Lỗi khi tải danh sách thiết bị' });
+            setToast({ show: true, type: 'error', message: 'Lỗi khi tải danh sách thiết bị' });
         } finally {
             setLoading(false);
         }
     };
 
     useEffect(() => {
-        fetchEquipments();
-    }, []); // eslint-disable-line react-hooks/exhaustive-deps
+        fetchEquipments(1);
+    }, [searchTerm, filterStatus]);
 
-    // --- LỌC PHÍA CLIENT (cho search nhanh mà không cần gọi API lại) ---
-    const filteredEquipment = useMemo(() => {
-        return equipments.filter(eq => {
-            const name = eq.equipment_name || '';
-            const code = eq.equipment_serial_number || '';
-            const type = eq.equipment_type || '';
-            const matchesSearch = name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                type.toLowerCase().includes(searchTerm.toLowerCase());
-            const matchesStatus = filterStatus === 'all' || eq.status === filterStatus;
-            return matchesSearch && matchesStatus;
-        });
+    const handlePageChange = (newPage) => {
+        fetchEquipments(newPage);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    // --- LỌC PHÍA CLIENT (Nếu cần thiết, nhưng thường Pagination nên đi kèm Server-side) ---
+    const displayedCategories = useMemo(() => {
+        return equipments
+            .filter(category => category.status === 'ACTIVE') // Chỉ hiển thị danh mục ACTIVE
+            .map(category => {
+                const filteredItems = (category.equipment || []).filter(item => {
+                    const name = item.equipment_name || '';
+                    const serial = item.equipment_serial_number || '';
+                    const type = category.equipment_type || '';
+
+                    const matchesSearch = name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                        serial.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                        type.toLowerCase().includes(searchTerm.toLowerCase());
+
+                    const matchesStatus = filterStatus === 'all' || item.status === filterStatus;
+
+                    return matchesSearch && matchesStatus;
+                });
+
+                return {
+                    ...category,
+                    filteredEquipment: filteredItems
+                };
+            });
     }, [equipments, searchTerm, filterStatus]);
 
     // --- MAP TRẠNG THÁI ---
@@ -82,200 +124,259 @@ const ReceptionistEquipment = () => {
         setSelectedEquipment(null);
     };
 
+    const toggleCategory = (type) => {
+        setExpandedCategories(prev =>
+            prev.includes(type)
+                ? prev.filter(t => t !== type)
+                : [...prev, type]
+        );
+    };
+
     const handleUpdateMaintenance = async (equipmentId, data) => {
         try {
-            // Gọi API cập nhật trạng thái
             if (data.status) {
                 await equipmentService.updateEquipmentStatus(equipmentId, data.status);
             }
 
             setToast({ show: true, type: 'success', message: '✅ Cập nhật bảo trì thành công!' });
             closeModal();
-            // Reload danh sách từ API
-            fetchEquipments();
+            fetchEquipments(pagination.page);
         } catch (error) {
             console.error('Error updating maintenance:', error);
             setToast({
                 show: true,
                 type: 'error',
-                message: error?.data?.message || '❌ Lỗi khi cập nhật thiết bị. Vui lòng thử lại!'
+                message: error?.data?.message || 'Lỗi khi cập nhật thiết bị. Vui lòng thử lại!'
             });
         }
     };
 
     // --- THỐNG KÊ ---
-    const totalCount = equipments.length;
-    const activeCount = equipments.filter(eq => eq.status === 'READY' || eq.status === 'IN_USE').length;
-    const maintenanceCount = equipments.filter(eq => ['MAINTENANCE', 'REPAIRING', 'FAULTY'].includes(eq.status)).length;
+    const totalCount = useMemo(() => {
+        return equipments.reduce((acc, cat) => acc + (cat.equipment?.length || 0), 0);
+    }, [equipments]);
+
+    const activeCount = useMemo(() => {
+        return equipments.reduce((acc, cat) => {
+            return acc + (cat.equipment?.filter(eq => eq.status === 'READY' || eq.status === 'IN_USE').length || 0);
+        }, 0);
+    }, [equipments]);
+
+    const maintenanceCount = useMemo(() => {
+        return equipments.reduce((acc, cat) => {
+            return acc + (cat.equipment?.filter(eq => ['MAINTENANCE', 'REPAIRING', 'FAULTY'].includes(eq.status)).length || 0);
+        }, 0);
+    }, [equipments]);
 
     return (
-        <div>
+        <div className="min-h-screen bg-transparent pb-12">
             {/* Header */}
-            <div className="mb-8 flex justify-between items-center">
+            <div className="mb-8 flex justify-between items-center px-1">
                 <div>
-                    <h1 className="text-3xl font-bold text-gray-900">Quản Lý Thiết Bị</h1>
-                    <p className="text-gray-600 mt-1">Theo dõi thiết bị và lịch bảo trì</p>
+                    <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">Quản Lý Thiết Bị</h1>
+                    <p className="text-gray-500 mt-1 font-medium">Theo dõi thiết bị và lịch trình bảo trì phòng khám</p>
                 </div>
                 <button
-                    onClick={fetchEquipments}
-                    className="flex items-center gap-2 px-4 py-2 text-sm bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                    onClick={() => fetchEquipments(1)}
+                    className="flex items-center gap-2 px-5 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm font-semibold text-sm"
                 >
-                    <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
-                    Tải lại
+                    <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
+                    Làm mới dữ liệu
                 </button>
             </div>
 
-            {/* Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-                <Card>
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-sm text-gray-600">Tổng thiết bị</p>
-                            <p className="text-3xl font-bold text-gray-900 mt-1">{totalCount}</p>
-                        </div>
-                        <div className="p-3 bg-blue-100 rounded-full">
-                            <Wrench size={24} className="text-blue-600" />
-                        </div>
+            {/* Stats Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between">
+                    <div>
+                        <p className="text-sm font-bold text-gray-400 uppercase tracking-wider">Tổng thiết bị</p>
+                        <p className="text-3xl font-black text-gray-900 mt-1">{pagination.totalItems || totalCount}</p>
                     </div>
-                </Card>
+                    <div className="p-4 bg-blue-50 rounded-2xl text-blue-600 shadow-inner">
+                        <Wrench size={28} />
+                    </div>
+                </div>
 
-                <Card>
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-sm text-gray-600">Đang hoạt động</p>
-                            <p className="text-3xl font-bold text-green-600 mt-1">{activeCount}</p>
-                        </div>
-                        <div className="p-3 bg-green-100 rounded-full">
-                            <CheckCircle size={24} className="text-green-600" />
-                        </div>
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between">
+                    <div>
+                        <p className="text-sm font-bold text-gray-400 uppercase tracking-wider">Đang hoạt động</p>
+                        <p className="text-3xl font-black text-green-600 mt-1">{activeCount}</p>
                     </div>
-                </Card>
+                    <div className="p-4 bg-green-50 rounded-2xl text-green-600 shadow-inner">
+                        <CheckCircle size={28} />
+                    </div>
+                </div>
 
-                <Card>
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-sm text-gray-600">Cần bảo trì / Hỏng</p>
-                            <p className="text-3xl font-bold text-orange-600 mt-1">{maintenanceCount}</p>
-                        </div>
-                        <div className="p-3 bg-orange-100 rounded-full">
-                            <AlertCircle size={24} className="text-orange-600" />
-                        </div>
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between">
+                    <div>
+                        <p className="text-sm font-bold text-gray-400 uppercase tracking-wider">Cần bảo trì / Hỏng</p>
+                        <p className="text-3xl font-black text-orange-600 mt-1">{maintenanceCount}</p>
                     </div>
-                </Card>
+                    <div className="p-4 bg-orange-50 rounded-2xl text-orange-600 shadow-inner">
+                        <AlertCircle size={28} />
+                    </div>
+                </div>
             </div>
 
-            {/* Filters */}
-            <Card className="mb-6">
-                <div className="flex flex-col md:flex-row gap-4">
-                    {/* Search */}
-                    <div className="flex-1 relative">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
-                        <input
-                            type="text"
-                            placeholder="Tìm kiếm thiết bị, mã thiết bị, loại..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                        />
-                    </div>
-
-                    {/* Status Filter */}
-                    <select
-                        value={filterStatus}
-                        onChange={(e) => setFilterStatus(e.target.value)}
-                        className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                    >
-                        <option value="all">Tất cả trạng thái</option>
-                        <option value="READY">Sẵn sàng</option>
-                        <option value="IN_USE">Đang sử dụng</option>
-                        <option value="MAINTENANCE">Đang bảo trì</option>
-                        <option value="REPAIRING">Đang sửa chữa</option>
-                        <option value="FAULTY">Hỏng</option>
-                        <option value="STERILIZING">Đang khử trùng</option>
-                    </select>
+            {/* Filters Bar */}
+            <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 mb-8 flex flex-col md:flex-row gap-4 items-center">
+                <div className="flex-1 relative w-full">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+                    <input
+                        type="text"
+                        placeholder="Tìm kiếm thiết bị, mã serial, hoặc loại thiết bị..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="w-full pl-12 pr-4 py-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-blue-500 transition-all font-medium text-gray-700 placeholder:text-gray-400"
+                    />
                 </div>
-            </Card>
 
-            {/* Equipment Table */}
-            <Card>
-                {loading ? (
-                    <div className="text-center py-16">
-                        <Loader2 size={40} className="mx-auto text-primary-500 animate-spin mb-4" />
-                        <p className="text-gray-500">Đang tải danh sách thiết bị...</p>
-                    </div>
-                ) : (
-                    <>
-                        <div className="overflow-x-auto">
-                            <table className="w-full">
-                                <thead className="bg-gray-50 border-b border-gray-200">
-                                    <tr>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Thiết bị</th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Số Serial</th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Loại TB</th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nhà cung cấp</th>
-                                        <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Trạng thái</th>
-                                        <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Thao tác</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="bg-white divide-y divide-gray-200">
-                                    {filteredEquipment.map((equipment) => {
-                                        const statusInfo = getStatusInfo(equipment.status);
+                <select
+                    value={filterStatus}
+                    onChange={(e) => setFilterStatus(e.target.value)}
+                    className="w-full md:w-64 px-4 py-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-blue-500 transition-all font-bold text-gray-700 appearance-none cursor-pointer"
+                >
+                    <option value="all">Tất cả trạng thái</option>
+                    <option value="READY">Sẵn sàng</option>
+                    <option value="IN_USE">Đang sử dụng</option>
+                    <option value="MAINTENANCE">Đang bảo trì</option>
+                    <option value="REPAIRING">Đang sửa chữa</option>
+                    <option value="FAULTY">Hỏng</option>
+                    <option value="STERILIZING">Đang khử trùng</option>
+                </select>
+            </div>
 
-                                        return (
-                                            <tr key={equipment._id} className="hover:bg-gray-50">
-                                                <td className="px-6 py-4 whitespace-nowrap">
-                                                    <div className="flex items-center">
-                                                        <span className="text-sm font-medium text-gray-900">{equipment.equipment_name}</span>
-                                                    </div>
-                                                </td>
-                                                <td className="px-6 py-4 whitespace-nowrap">
-                                                    <span className="text-sm text-gray-600">{equipment.equipment_serial_number || '—'}</span>
-                                                </td>
-                                                <td className="px-6 py-4 whitespace-nowrap">
-                                                    <span className="text-sm text-gray-900">{equipment.equipment_type}</span>
-                                                </td>
-                                                <td className="px-6 py-4 whitespace-nowrap">
-                                                    <span className="text-sm text-gray-600">{equipment.supplier || '—'}</span>
-                                                </td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-center">
-                                                    <Badge variant={statusInfo.variant}>
-                                                        {statusInfo.label}
-                                                    </Badge>
-                                                </td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-center">
-                                                    <button
-                                                        onClick={() => handleUpdateClick(equipment)}
-                                                        className="p-2 text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
-                                                        title="Cập nhật bảo trì"
-                                                    >
-                                                        <Settings size={18} />
-                                                    </button>
-                                                </td>
-                                            </tr>
-                                        );
-                                    })}
-                                </tbody>
-                            </table>
-                        </div>
+            {/* Grouped Equipment Cards (Admin Style) */}
+            {loading ? (
+                <div className="flex flex-col items-center justify-center py-24">
+                    <Loader2 size={48} className="text-blue-500 animate-spin mb-4" />
+                    <p className="text-gray-500 font-bold tracking-wide">ĐANG TẢI DỮ LIỆU...</p>
+                </div>
+            ) : (
+                <div className="space-y-6">
+                    {displayedCategories.map((category) => {
+                        const isExpanded = expandedCategories.includes(category.equipment_type);
+                        const items = category.filteredEquipment || [];
+                        const categoryId = category._id || category.id;
 
-                        {filteredEquipment.length === 0 && (
-                            <div className="text-center py-12 text-gray-500">
-                                Không tìm thấy thiết bị nào
+                        return (
+                            <div key={categoryId} className="group">
+                                {/* Category Horizontal Card */}
+                                <div
+                                    onClick={() => toggleCategory(category.equipment_type)}
+                                    className="flex items-center justify-between p-5 bg-white rounded-2xl shadow-sm border border-gray-100 hover:border-blue-200 hover:shadow-md transition-all cursor-pointer"
+                                >
+                                    <div className="flex items-center gap-5">
+                                        <div className="w-1.5 h-10 bg-blue-600 rounded-full shadow-[0_0_10px_rgba(37,99,235,0.3)]"></div>
+                                        <div>
+                                            <h2 className="text-lg font-extrabold text-gray-800 group-hover:text-blue-600 transition-colors">
+                                                {category.equipment_type}
+                                            </h2>
+                                            <p className="text-sm text-gray-400 font-bold mt-0.5">
+                                                Tổng cộng: {category.equipment?.length || 0} thiết bị
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex items-center gap-4">
+                                        {/* Category Status */}
+                                        <span className={`px-4 py-1.5 rounded-full text-[11px] font-black uppercase tracking-wider border ${category.status === 'ACTIVE'
+                                                ? 'bg-green-50 text-green-600 border-green-100'
+                                                : 'bg-red-50 text-red-600 border-red-100'
+                                            }`}>
+                                            {category.status === 'ACTIVE' ? 'Đang hoạt động' : 'Ngừng hoạt động'}
+                                        </span>
+
+                                        <div className="p-2 bg-gray-50 rounded-full text-gray-400 group-hover:bg-blue-50 group-hover:text-blue-500 transition-all">
+                                            {isExpanded ? <ChevronUp size={22} /> : <ChevronDown size={22} />}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Items Table/List (When expanded) */}
+                                {isExpanded && (
+                                    <div className="mt-4 ml-4 pl-6 border-l-2 border-dashed border-gray-200 animate-in fade-in slide-in-from-top-4 duration-500">
+                                        {items.length > 0 ? (
+                                            <div className="bg-white rounded-2xl shadow-inner border border-gray-100 overflow-hidden">
+                                                <table className="w-full text-left">
+                                                    <thead>
+                                                        <tr className="bg-gray-50/50 text-[11px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-100">
+                                                            <th className="px-6 py-4">Tên thiết bị</th>
+                                                            <th className="px-6 py-4">Số Serial</th>
+                                                            <th className="px-6 py-4">Nhà cung cấp</th>
+                                                            <th className="px-6 py-4 text-center">Trạng thái</th>
+                                                            <th className="px-6 py-4 text-center">Thao tác</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody className="divide-y divide-gray-50">
+                                                        {items.map((item) => {
+                                                            const statusInfo = getStatusInfo(item.status);
+                                                            return (
+                                                                <tr key={item._id} className="hover:bg-gray-50/80 transition-colors font-medium text-sm text-gray-600">
+                                                                    <td className="px-6 py-4 font-extrabold text-gray-900">{item.equipment_name}</td>
+                                                                    <td className="px-6 py-4 font-mono text-xs">{item.equipment_serial_number || '—'}</td>
+                                                                    <td className="px-6 py-4">{item.supplier || '—'}</td>
+                                                                    <td className="px-6 py-4 text-center">
+                                                                        <Badge variant={statusInfo.variant} className="font-bold text-[10px] uppercase px-3 shadow-none">
+                                                                            {statusInfo.label}
+                                                                        </Badge>
+                                                                    </td>
+                                                                    <td className="px-6 py-4 text-center">
+                                                                        <button
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation();
+                                                                                handleUpdateClick({ ...item, equipment_type: category.equipment_type });
+                                                                            }}
+                                                                            className="p-2.5 text-blue-600 hover:bg-blue-50 rounded-xl transition-all shadow-sm active:scale-95"
+                                                                            title="Cập nhật bảo trì"
+                                                                        >
+                                                                            <Settings size={18} />
+                                                                        </button>
+                                                                    </td>
+                                                                </tr>
+                                                            );
+                                                        })}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        ) : (
+                                            <div className="py-12 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200 text-center">
+                                                <p className="text-gray-400 font-bold italic">Không có thiết bị con nào khớp với tìm kiếm</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
                             </div>
-                        )}
-                    </>
-                )}
-            </Card>
+                        );
+                    })}
 
-            {/* Update Maintenance Modal */}
+                    {displayedCategories.length === 0 && (
+                        <div className="text-center py-32 bg-white rounded-3xl border-2 border-dashed border-gray-100">
+                            <Wrench size={64} className="mx-auto text-gray-200 mb-6" />
+                            <h3 className="text-xl font-black text-gray-900 mb-2">Không tìm thấy danh mục nào</h3>
+                            <p className="text-gray-400 font-bold">Thử thay đổi từ khóa hoặc bộ lọc của bạn</p>
+                        </div>
+                    )}
+
+                    <EquipmentPagination
+                        currentPage={pagination.page}
+                        totalPages={pagination.totalPages}
+                        totalItems={pagination.totalItems}
+                        pageSize={pagination.limit}
+                        onPageChange={handlePageChange}
+                    />
+                </div>
+            )}
+
+            {/* Modals */}
             <UpdateMaintenanceModal
-                equipment={selectedEquipment}
                 isOpen={showUpdateModal}
-                onClose={closeModal}
+                equipment={selectedEquipment}
                 onUpdate={handleUpdateMaintenance}
+                onClose={closeModal}
             />
 
-            {/* Toast */}
+            {/* Toast Notification */}
             <Toast
                 show={toast.show}
                 type={toast.type}

@@ -63,7 +63,7 @@ const VerifyEmail = () => {
 
     return (
         <PublicLayout>
-            <div className="min-h-[calc(100vh-160px)] bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 flex items-center justify-center p-4">
+            <div className="min-h-[calc(100vh-160px)] bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 flex items-center justify-center py-12 px-4">
                 <div className="max-w-md w-full">
                     <div className="bg-white rounded-2xl shadow-2xl p-8">
                         {/* Verifying State */}
@@ -95,7 +95,7 @@ const VerifyEmail = () => {
                                 </p>
                                 <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
                                     <p className="text-sm text-green-800">
-                                        ✅ Tài khoản của bạn đã được kích hoạt. Bạn có thể đăng nhập ngay bây giờ!
+                                        Tài khoản của bạn đã được kích hoạt. Bạn có thể đăng nhập ngay bây giờ!
                                     </p>
                                 </div>
                                 <Button
@@ -110,53 +110,64 @@ const VerifyEmail = () => {
                         {/* Error State */}
                         {status === 'error' && (
                             <div className="text-center py-8">
-                                <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                                    <XCircle size={40} className="text-red-600" />
-                                </div>
-                                <h2 className="text-2xl font-bold text-gray-900 mb-2">
-                                    Xác minh thất bại
-                                </h2>
-                                <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
-                                    <p className="text-sm text-red-800">
-                                        {message}
-                                    </p>
-                                </div>
-
-                                {/* Resend Verification Section */}
-                                <div className="border-t border-gray-100 pt-6 mt-6">
-                                    <h3 className="font-medium text-gray-900 mb-4">Gửi lại email kích hoạt?</h3>
-
-                                    {resendStatus === 'sent' ? (
-                                        <div className="bg-green-50 text-green-700 p-3 rounded-lg text-sm mb-4">
-                                            Đã gửi lại email kích hoạt! Vui lòng kiểm tra hộp thư của bạn.
+                                {resendStatus === 'sent' ? (
+                                    <>
+                                        <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                                            <Mail size={40} className="text-green-600" />
                                         </div>
-                                    ) : (
-                                        <form onSubmit={handleResendEmail} className="space-y-3">
-                                            <input
-                                                type="email"
-                                                placeholder="Nhập email của bạn"
-                                                value={emailToResend}
-                                                onChange={(e) => setEmailToResend(e.target.value)}
-                                                required
-                                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all"
-                                            />
-                                            <Button
-                                                type="submit"
-                                                variant="outline"
-                                                className="w-full"
-                                                disabled={resendStatus === 'sending'}
-                                            >
-                                                {resendStatus === 'sending' ? 'Đang gửi...' : 'Gửi lại email xác thực'}
-                                            </Button>
-                                        </form>
-                                    )}
+                                        <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                                            Vui lòng kiểm tra email!
+                                        </h2>
+                                        <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
+                                            <p className="text-sm text-green-800">
+                                                Đã gửi lại email kích hoạt! Vui lòng kiểm tra hộp thư của bạn (bao gồm cả thư rác/spam).
+                                            </p>
+                                        </div>
+                                    </>
+                                ) : (
+                                    <>
+                                        <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                                            <XCircle size={40} className="text-red-600" />
+                                        </div>
+                                        <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                                            Xác minh thất bại
+                                        </h2>
+                                        <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+                                            <p className="text-sm text-red-800 text-center">
+                                                {message}
+                                            </p>
+                                        </div>
 
-                                    {resendStatus === 'error' && (
-                                        <p className="text-red-500 text-sm mt-2">
-                                            Gửi thất bại. Vui lòng kiểm tra lại email hoặc thử lại sau.
-                                        </p>
-                                    )}
-                                </div>
+                                        {/* Resend Verification Section */}
+                                        <div className="border-t border-gray-100 pt-6 mt-6">
+                                            <h3 className="font-medium text-gray-900 mb-4">Gửi lại email kích hoạt?</h3>
+                                            <form onSubmit={handleResendEmail} className="space-y-3">
+                                                <input
+                                                    type="email"
+                                                    placeholder="Nhập email của bạn"
+                                                    value={emailToResend}
+                                                    onChange={(e) => setEmailToResend(e.target.value)}
+                                                    required
+                                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all"
+                                                />
+                                                <Button
+                                                    type="submit"
+                                                    variant="outline"
+                                                    className="w-full"
+                                                    disabled={resendStatus === 'sending'}
+                                                >
+                                                    {resendStatus === 'sending' ? 'Đang gửi...' : 'Gửi lại email xác thực'}
+                                                </Button>
+                                            </form>
+
+                                            {resendStatus === 'error' && (
+                                                <p className="text-red-500 text-sm mt-2">
+                                                    Gửi thất bại. Vui lòng kiểm tra lại email hoặc thử lại sau.
+                                                </p>
+                                            )}
+                                        </div>
+                                    </>
+                                )}
 
                                 <div className="mt-6 pt-6 border-t border-gray-100">
                                     <Button

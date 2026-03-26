@@ -1,5 +1,5 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { LogIn, Calendar, ChevronDown, LogOut, User as UserIcon, FileText } from 'lucide-react';
+import { LogIn, Calendar, ChevronDown, LogOut, User as UserIcon, FileText, Receipt } from 'lucide-react';
 import { useAuth } from '../../../../contexts/AuthContext';
 import { useState, useEffect } from 'react';
 import { getProfile } from '../../../../services/profileService';
@@ -16,13 +16,17 @@ const MainNavigation = () => {
     const navigate = useNavigate();
     const [avatarUrl, setAvatarUrl] = useState('');
 
-    // Fetch avatar khi user đã đăng nhập
+    // Fetch avatar when user is authenticated
     useEffect(() => {
         if (isAuthenticated) {
             getProfile()
                 .then((res) => {
                     setAvatarUrl(res.data?.avatar_url || '');
                 })
+                .catch((err) => {
+                    console.error('Navbar profile fetch error:', err);
+                    setAvatarUrl('');
+                });
         }
     }, [isAuthenticated]);
 
@@ -251,6 +255,17 @@ const MainNavigation = () => {
                                             >
                                                 <FileText size={16} />
                                                 Danh sách hồ sơ nha khoa
+                                            </button>
+
+                                            <button
+                                                onClick={() => {
+                                                    setShowProfileMenu(false);
+                                                    navigate('/invoices');
+                                                }}
+                                                className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                                            >
+                                                <Receipt size={16} />
+                                                Hóa đơn của tôi
                                             </button>
 
                                             <div className="border-t border-gray-200 my-1"></div>

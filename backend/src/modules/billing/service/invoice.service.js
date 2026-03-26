@@ -11,11 +11,19 @@ const getListInvoice = async (query) => {
     try {
         const search = query.search?.trim();
         const statusFilter = query.status;
+        const patientIdFilter = query.patient_id; // ← Lọc theo bệnh nhân cụ thể
         const page = Math.max(1, parseInt(query.page || 1));
         const limit = Math.max(1, parseInt(query.limit || 10));
         const skip = (page - 1) * limit;
 
         const matchCondition = {};
+
+        if (patientIdFilter) {
+            const mongoose = require('mongoose');
+            if (mongoose.isValidObjectId(patientIdFilter)) {
+                matchCondition.patient_id = new mongoose.Types.ObjectId(patientIdFilter);
+            }
+        }
 
         if (statusFilter) {
             matchCondition.status = statusFilter;

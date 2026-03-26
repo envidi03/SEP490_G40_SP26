@@ -49,6 +49,7 @@ const appointmentSchema = new Schema(
             type: String,
             enum: [
                 "SCHEDULED",
+                "PENDING_CONFIRMATION",
                 "CHECKED_IN",
                 "IN_CONSULTATION",
                 "COMPLETED",
@@ -115,5 +116,7 @@ appointmentSchema.statics.getNextQueueNumber = async function (date) {
         ? lastAppointment.queue_number + 1
         : 1;
 };
+
+
 
 module.exports = mongoose.model("Appointment", appointmentSchema);

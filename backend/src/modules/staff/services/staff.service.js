@@ -24,20 +24,14 @@ const leaveRequestModel = require("../models/leaveRequest.model");
 const getListService = async (query) => {
     try {
         const search = query.search?.trim();
-        const roleFilter = query.role_name?.trim().toUpperCase(); // Nhận filter và tự động Upper Case chuẩn hóa
+        const roleFilter = query.role_name?.trim().toUpperCase();
         const genderFilter = query.filter;
         const sortOrder = query.sort === "desc" ? -1 : 1;
         const page = Math.max(1, parseInt(query.page || 1));
         const limit = Math.max(1, parseInt(query.limit || 5));
         const skip = (page - 1) * limit;
 
-        logger.debug("Fetching staff list with query (No Unwind)", {
-            context: "StaffService.getListService",
-            query: query,
-        });
-
         const pipeline = [
-            // 1. JOIN BẢNG ACCOUNT
             {
                 $lookup: {
                     from: "accounts",
@@ -46,14 +40,7 @@ const getListService = async (query) => {
                     as: "account_info"
                 }
             },
-            // Thay thế $unwind: Lấy phần tử đầu tiên của mảng (vì quan hệ là 1-1)
-            {
-                $addFields: {
-                    account_info: { $arrayElemAt: ["$account_info", 0] }
-                }
-            },
-
-            // 2b. JOIN BẢNG ROLES (dựa theo role_id của account)
+            { $addFields: { account_info: { $arrayElemAt: ["$account_info", 0] } } },
             {
                 $lookup: {
                     from: "roles",
@@ -62,13 +49,7 @@ const getListService = async (query) => {
                     as: "role_info"
                 }
             },
-            {
-                $addFields: {
-                    role_info: { $arrayElemAt: ["$role_info", 0] }
-                }
-            },
-
-            // 2. JOIN BẢNG PROFILE
+            { $addFields: { role_info: { $arrayElemAt: ["$role_info", 0] } } },
             {
                 $lookup: {
                     from: "profiles",
@@ -77,26 +58,20 @@ const getListService = async (query) => {
                     as: "profile_info"
                 }
             },
-            // Thay thế $unwind: Lấy phần tử đầu tiên của mảng
-            {
-                $addFields: {
-                    profile_info: { $arrayElemAt: ["$profile_info", 0] }
-                }
-            }
+            { $addFields: { profile_info: { $arrayElemAt: ["$profile_info", 0] } } }
         ];
 
-        // 3. ĐIỀU KIỆN LỌC (MATCH)
+        // --- ĐIỀU KIỆN LỌC (MATCH) ---
         const matchCondition = {};
-
         if (genderFilter) {
             matchCondition["profile_info.gender"] = genderFilter;
         }
-
-        // MỚI: Filter chính xác theo Tên Role (VD: "DOCTOR")
         if (roleFilter) {
             matchCondition["role_info.name"] = roleFilter;
         }
-
+        if (query.status && query.status !== 'all') {
+            matchCondition["account_info.status"] = query.status;
+        }
         if (search) {
             const regexSearch = { $regex: search, $options: "i" };
             matchCondition.$or = [
@@ -108,14 +83,11 @@ const getListService = async (query) => {
             ];
         }
 
-        if (Object.keys(matchCondition).length > 0) {
-            pipeline.push({ $match: matchCondition });
-        }
-
-        // 4. SẮP XẾP VÀ PHÂN TRANG (FACET)
+        // --- CHUẨN BỊ FACET (PHÂN TRANG + THỐNG KÊ) ---
         pipeline.push({
             $facet: {
                 data: [
+                    { $match: matchCondition },
                     { $sort: { "profile_info.full_name": sortOrder } },
                     { $skip: skip },
                     { $limit: limit },
@@ -125,8 +97,6 @@ const getListService = async (query) => {
                             work_start: 1,
                             work_end: 1,
                             status: 1,
-
-                            // Bao gồm role_id (với name) để frontend hiển thị vai trò
                             account: {
                                 _id: "$account_info._id",
                                 username: "$account_info.username",
@@ -140,9 +110,6 @@ const getListService = async (query) => {
                                     name: "$role_info.name"
                                 }
                             },
-
-                            // Chỉ định rõ các trường CẦN LẤY cho Profile 
-                            // (Tự động loại bỏ status, __v)
                             profile: {
                                 _id: "$profile_info._id",
                                 full_name: "$profile_info.full_name",
@@ -156,22 +123,53 @@ const getListService = async (query) => {
                         }
                     }
                 ],
-                totalCount: [{ $count: "count" }]
+                totalCount: [
+                    { $match: matchCondition },
+                    { $count: "count" }
+                ],
+                overallStats: [
+                    {
+                        $group: {
+                            _id: null,
+                            total: { $sum: 1 },
+                            active: { $sum: { $cond: [{ $eq: ["$account_info.status", "ACTIVE"] }, 1, 0] } },
+                            inactive: { $sum: { $cond: [{ $eq: ["$account_info.status", "INACTIVE"] }, 1, 0] } },
+                            admins: { $sum: { $cond: [{ $eq: ["$role_info.name", "ADMIN_CLINIC"] }, 1, 0] } },
+                            doctors: { $sum: { $cond: [{ $eq: ["$role_info.name", "DOCTOR"] }, 1, 0] } },
+                            staff: { 
+                                $sum: { 
+                                    $cond: [
+                                        { $in: ["$role_info.name", ["RECEPTIONIST", "PHARMACY", "ASSISTANT"]] }, 
+                                        1, 0
+                                    ] 
+                                } 
+                            }
+                        }
+                    }
+                ]
             }
         });
 
-        // 5. THỰC THI
         const result = await StaffModel.Staff.aggregate(pipeline);
 
         const staffs = result[0]?.data || [];
-        const totalItems = result[0]?.totalCount[0]?.count || 0;
+        const totalItems = result[0]?.totalCount?.[0]?.count || 0;
+        const stats = result[0]?.overallStats?.[0] || { total: 0, active: 0, inactive: 0, admins: 0, doctors: 0, staff: 0 };
 
         return {
             data: staffs,
             pagination: {
-                page: page,
+                page,
                 size: limit,
-                totalItems: totalItems
+                totalItems
+            },
+            statistics: {
+                total: stats.total || 0,
+                active: stats.active || 0,
+                inactive: stats.inactive || 0,
+                admins: stats.admins || 0,
+                doctors: stats.doctors || 0,
+                staff: stats.staff || 0
             }
         };
 
@@ -748,18 +746,155 @@ const getStaffRoles = async () => {
     }
 };
 
-// Admin: Lấy tất cả leave requests (view toàn bộ nhân viên)
-const getAllLeaveRequestsService = async () => {
-    const data = await leaveRequestModel.find({ status: { $ne: 'CANCELLED' } })
-        .populate({
-            path: 'staff_id',
-            populate: [
-                { path: 'account_id', select: 'username email phone_number role_id', populate: { path: 'role_id', select: 'name' } },
-                { path: 'profile_id', select: 'full_name' }
-            ]
-        })
-        .sort({ createdAt: -1 });
-    return data;
+// Admin: Lấy tất cả leave requests (view toàn bộ nhân viên) với bộ lọc
+const getAllLeaveRequestsService = async (query = {}) => {
+    const { status, search, page = 1, limit = 100 } = query;
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    const pipeline = [
+        // 1. Join với bảng Staff
+        {
+            $lookup: {
+                from: "staffs",
+                localField: "staff_id",
+                foreignField: "_id",
+                as: "staff"
+            }
+        },
+        { $unwind: "$staff" },
+
+        // 2. Join với bảng Profile (để lấy name)
+        {
+            $lookup: {
+                from: "profiles",
+                localField: "staff.profile_id",
+                foreignField: "_id",
+                as: "profile"
+            }
+        },
+        { $unwind: "$profile" },
+
+        // 3. Join với bảng Account (để lấy username/email/role)
+        {
+            $lookup: {
+                from: "accounts",
+                localField: "staff.account_id",
+                foreignField: "_id",
+                as: "account"
+            }
+        },
+        { $unwind: "$account" },
+
+        // 4. Join với bảng Role (để lấy role name)
+        {
+            $lookup: {
+                from: "roles",
+                localField: "account.role_id",
+                foreignField: "_id",
+                as: "role"
+            }
+        },
+        { $unwind: "$role" }
+    ];
+
+    // 5. Thống kê tổng quan (Chỉ loại bỏ CANCELLED, không theo search/status)
+    const statsPipeline = [
+        { $match: { status: { $ne: 'CANCELLED' } } },
+        {
+            $group: {
+                _id: null,
+                total: { $sum: 1 },
+                pending: { $sum: { $cond: [{ $eq: ["$status", "PENDING"] }, 1, 0] } },
+                approved: { $sum: { $cond: [{ $eq: ["$status", "APPROVED"] }, 1, 0] } },
+                rejected: { $sum: { $cond: [{ $eq: ["$status", "REJECTED"] }, 1, 0] } }
+            }
+        }
+    ];
+
+    // 6. Dữ liệu bảng (Có áp dụng search/status)
+    const matchCondition = {};
+    if (status && status !== 'All') {
+        matchCondition.status = status;
+    } else if (!status || status === 'All') {
+        matchCondition.status = { $ne: 'CANCELLED' };
+    }
+
+    if (search) {
+        const searchRegex = new RegExp(search, 'i');
+        matchCondition.$or = [
+            { "profile.full_name": searchRegex }
+        ];
+    }
+
+    const dataPipeline = [
+        { $match: matchCondition },
+        { $sort: { createdAt: -1 } },
+        { $skip: skip },
+        { $limit: parseInt(limit) },
+        {
+            $project: {
+                _id: 1,
+                type: 1,
+                reason: 1,
+                startedDate: 1,
+                endDate: 1,
+                status: 1,
+                createdAt: 1,
+                updatedAt: 1,
+                staff_id: {
+                    _id: "$staff._id",
+                    account_id: {
+                        _id: "$account._id",
+                        username: "$account.username",
+                        email: "$account.email",
+                        phone_number: "$account.phone_number",
+                        role_id: {
+                            _id: "$role._id",
+                            name: "$role.name"
+                        }
+                    },
+                    profile_id: {
+                        _id: "$profile._id",
+                        full_name: "$profile.full_name"
+                    }
+                }
+            }
+        }
+    ];
+
+    const result = await leaveRequestModel.aggregate([
+        ...pipeline, // Đầu tiên là các bước Join (Lookup)
+        {
+            $facet: {
+                data: dataPipeline,
+                totalCount: [
+                    { $match: matchCondition },
+                    { $count: "count" }
+                ],
+                overallStats: statsPipeline
+            }
+        }
+    ]);
+
+    const finalData = result[0]?.data || [];
+    const totalItems = result[0]?.totalCount[0]?.count || 0;
+    const stats = result[0]?.overallStats[0] || { total: 0, pending: 0, approved: 0, rejected: 0 };
+
+    return {
+        data: finalData,
+        pagination: {
+            page: parseInt(page),
+            limit: parseInt(limit),
+            totalItems: totalItems,
+            totalPages: Math.ceil(totalItems / parseInt(limit))
+        },
+        statistics: {
+            total: stats.total,
+            pending: stats.pending,
+            approved: stats.approved,
+            rejected: stats.rejected
+        }
+    };
 };
 
 // Admin: Phê duyệt hoặc từ chối leave request

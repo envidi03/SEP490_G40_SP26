@@ -29,9 +29,9 @@ const Sidebar = ({ role }) => {
     const hoverTimeoutRef = useRef({});
 
     const toggleMenu = (key, value) => {
-        setExpandedMenus(prev => ({ 
-            ...prev, 
-            [key]: typeof value === 'boolean' ? value : !prev[key] 
+        setExpandedMenus(prev => ({
+            ...prev,
+            [key]: typeof value === 'boolean' ? value : !prev[key]
         }));
     };
 
@@ -106,7 +106,7 @@ const Sidebar = ({ role }) => {
                         <Stethoscope className="text-white" size={24} />
                     </div>
                     <div>
-                        <h1 className="text-xl font-bold tracking-tight text-white">ANTIGRAVITY</h1>
+                        <h1 className="text-xl font-bold tracking-tight text-white">DMCS</h1>
                         <p className="text-[10px] font-bold text-primary-400 uppercase tracking-widest">Dental Clinic</p>
                     </div>
                 </Link>
@@ -123,7 +123,7 @@ const Sidebar = ({ role }) => {
                         const isOpen = expandedMenus[item.key] ?? childActive;
 
                         return (
-                            <div 
+                            <div
                                 key={item.key}
                                 onMouseEnter={() => handleMouseEnter(item.key)}
                                 onMouseLeave={() => handleMouseLeave(item.key)}

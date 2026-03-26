@@ -49,9 +49,6 @@ const treatmentSchema = new Schema(
         performed_date: {
             type: Date
         },
-        end_date: { // NEW FIELD ADDED PER REQUEST
-            type: Date
-        },
         result: {
             type: String,
             trim: true

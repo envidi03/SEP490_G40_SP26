@@ -25,7 +25,7 @@ import PasswordChangeSection from "./components/PasswordChangeSection";
  * @component
  */
 const PatientProfile = () => {
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
   const navigate = useNavigate();
 
   // State quản lý chế độ edit
@@ -83,6 +83,15 @@ const PatientProfile = () => {
 
         setFormData(profileData);
         originalDataRef.current = profileData;
+
+        // Đồng bộ với AuthContext
+        updateUser({
+          full_name: profileData.name,
+          phone: profileData.phone,
+          address: profileData.address,
+          gender: profileData.gender,
+          dob: profileData.dateOfBirth
+        });
 
         // Set avatar URL from profile
         setAvatarUrl(profile?.avatar_url || "");
@@ -179,9 +188,19 @@ const PatientProfile = () => {
         gender: formData.gender,
         address: formData.address,
         dob: formData.dateOfBirth,
+        phone: formData.phone,
       };
 
       const res = await updateProfile(payload);
+
+      // Đồng bộ với AuthContext
+      updateUser({
+        full_name: formData.name,
+        phone: formData.phone,
+        address: formData.address,
+        gender: formData.gender,
+        dob: formData.dateOfBirth
+      });
 
       setIsEditing(false);
 

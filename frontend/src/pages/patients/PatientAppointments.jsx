@@ -115,6 +115,7 @@ const PatientAppointments = () => {
     const getStatusColor = (status) => {
         const colors = {
             'SCHEDULED': 'bg-blue-100 text-blue-700 border-blue-200',
+            'PENDING_CONFIRMATION': 'bg-orange-100 text-orange-700 border-orange-200',
             'CHECKED_IN': 'bg-yellow-100 text-yellow-700 border-yellow-200',
             'IN_CONSULTATION': 'bg-purple-100 text-purple-700 border-purple-200',
             'COMPLETED': 'bg-green-100 text-green-700 border-green-200',
@@ -130,6 +131,7 @@ const PatientAppointments = () => {
     const getStatusText = (status) => {
         const texts = {
             'SCHEDULED': 'Đã lên lịch',
+            'PENDING_CONFIRMATION': 'Chờ xác nhận',
             'CHECKED_IN': 'Đã check-in',
             'IN_CONSULTATION': 'Đang khám',
             'COMPLETED': 'Hoàn thành',
@@ -196,6 +198,7 @@ const PatientAppointments = () => {
                             appointment_date: updateForm.date,
                             appointment_time: updateForm.time,
                             reason: updateForm.reason,
+                            status: 'PENDING_CONFIRMATION' // Cập nhật trạng thái chờ xác nhận
                         }
                         : apt
                 )
@@ -206,7 +209,7 @@ const PatientAppointments = () => {
             setToast({
                 show: true,
                 type: 'success',
-                message: '✅ Cập nhật lịch khám thành công!'
+                message: 'Cập nhật lịch khám thành công!'
             });
             setSelectedAppointment(null);
             setUpdateForm({ date: '', time: '', reason: '' });
@@ -215,7 +218,7 @@ const PatientAppointments = () => {
             setToast({
                 show: true,
                 type: 'error',
-                message: error.response?.data?.message || '❌ Lỗi khi cập nhật lịch khám. Vui lòng thử lại!'
+                message: error.response?.data?.message || 'Lỗi khi cập nhật lịch khám. Vui lòng thử lại!'
             });
         }
     };
@@ -251,7 +254,7 @@ const PatientAppointments = () => {
             setToast({
                 show: true,
                 type: 'success',
-                message: '✅ Đã hủy lịch khám thành công!'
+                message: 'Đã hủy lịch khám thành công!'
             });
             setSelectedAppointment(null);
         } catch (error) {
@@ -259,7 +262,7 @@ const PatientAppointments = () => {
             setToast({
                 show: true,
                 type: 'error',
-                message: error.response?.data?.message || '❌ Lỗi khi hủy lịch khám. Vui lòng thử lại!'
+                message: error.response?.data?.message || 'Lỗi khi hủy lịch khám. Vui lòng thử lại!'
             });
         }
     };

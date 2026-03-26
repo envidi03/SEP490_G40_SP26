@@ -4,19 +4,19 @@ const successRes = require('../../../common/success');
 const Pagination = require('../../../common/responses/Pagination');
 const { cleanObjectData } = require('../../../common/utils/cleanObjectData');
 
-const Equipment = require('../models/equipment.model');
 const EquipmentService = require('../services/equipment.service');
 
-/*
-    get list equipments with pagination and filter 
-    (
-        search: search by equipment_name, equipment_serial_number, supplier; 
-        filter: filter by equipment_type, status; 
-        sort: sort by equipment_name
-        page 
-        limit
-    )
-*/
+/**
+ * Get list of equipments with pagination and filter (Optimized for Nested Array, No $unwind)
+ *
+ * Query Params:
+ * - search: Tìm kiếm theo tên máy, số serial, nhà cung cấp (Cấp độ thiết bị con)
+ * - category_status: Lọc theo trạng thái danh mục - ACTIVE, INACTIVE (Cấp độ danh mục cha)
+ * - status: Lọc theo trạng thái máy - READY, IN_USE, MAINTENANCE... (Cấp độ thiết bị con)
+ * - sort: Sắp xếp (asc/desc) theo tên danh mục (equipment_type)
+ * - page: Số trang hiện tại
+ * - limit: Số lượng danh mục trên 1 trang
+ */
 const getEquipments = async (req, res) => {
     try {
         const queryParams = req.query;
@@ -182,6 +182,85 @@ const createEquipment = async (req, res) => {
 
     } catch (error) {
         logger.error('Error create equipment', {
+            context: context,
+            message: error.message,
+            stack: error.stack
+        });
+        throw error;
+    }
+};
+
+/**
+ * Add new equipment items to an existing Equipment Category
+ * Client gửi lên ID của Danh mục cha (equipment_type) và mảng các thiết bị muốn thêm vào
+ * @param {*} req 
+ * @param {*} res 
+ */
+const addEquipmentItemsController = async (req, res) => {
+    const context = 'EquipmentController.addEquipmentItems';
+    try {
+        const { categoryId } = req.params; // ID của document cha (Equipment Type)
+        const payload = req.body || {};
+
+        logger.debug('Add equipment items request received', {
+            context: context,
+            categoryId: categoryId,
+            itemCount: payload.equipment ? payload.equipment.length : 0
+        });
+
+        if (!payload.equipment || !Array.isArray(payload.equipment) || payload.equipment.length === 0) {
+            throw new errorRes.BadRequestError("The 'equipment' array is required and must contain at least one item");
+        }
+
+        const cleanEquipmentArray = [];
+        const serialNumbersInRequest = new Set();
+
+        for (let i = 0; i < payload.equipment.length; i++) {
+            let item = payload.equipment[i];
+
+            const { purchase_date, maintenance_history, equipments_log, ...dataCreate } = item;
+
+            const requiredFields = ['equipment_name', 'equipment_serial_number', 'supplier', 'warranty'];
+            for (const field of requiredFields) {
+                if (!dataCreate[field] || !String(dataCreate[field]).trim()) {
+                    throw new errorRes.BadRequestError(`Missing required field '${field}' at item index ${i}`);
+                }
+            }
+
+            const serialNumber = dataCreate.equipment_serial_number.trim();
+
+            if (serialNumber.length < 6 || serialNumber.length > 20) {
+                throw new errorRes.BadRequestError(`Serial number length must be between 6 and 20 characters at item index ${i}`);
+            }
+
+            if (serialNumbersInRequest.has(serialNumber)) {
+                throw new errorRes.BadRequestError(`Duplicate serial number '${serialNumber}' found in the request payload`);
+            }
+            serialNumbersInRequest.add(serialNumber);
+
+            const existingEquipment = await EquipmentService.checkExitSerialNumber(serialNumber);
+            if (existingEquipment) {
+                throw new errorRes.ConflictError(`Serial number '${serialNumber}' already exists in the system`);
+            }
+
+            cleanEquipmentArray.push(dataCreate);
+        }
+
+        const updatedCategory = await EquipmentService.addEquipmentItems(categoryId, cleanEquipmentArray);
+
+        logger.info('New equipment items added successfully', {
+            context: context,
+            categoryId: categoryId,
+            addedCount: cleanEquipmentArray.length
+        });
+
+        return new successRes.CreateSuccess(
+            updatedCategory, 
+            'New equipment items added successfully'
+        ).send(res);
+
+    } catch (error) {
+        logger.error('Error adding equipment items', {
             context: context,
             message: error.message,
             stack: error.stack
@@ -373,5 +452,6 @@ module.exports = {
     updateEquipmentItemController,
     updateCategoryController,
     updateEquipmentStatus,
-    reportIncident
+    reportIncident,
+    addEquipmentItemsController
 };

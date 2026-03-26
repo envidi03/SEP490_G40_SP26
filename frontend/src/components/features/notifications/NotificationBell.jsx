@@ -5,6 +5,8 @@ import notificationService from '../../../services/notificationService';
 import { useSocket } from '../../../contexts/SocketContext';
 import { useAuth } from '../../../contexts/AuthContext';
 
+import { toast } from 'react-hot-toast';
+
 const NotificationBell = () => {
     const { isAuthenticated } = useAuth();
     const { socket } = useSocket();
@@ -14,7 +16,6 @@ const NotificationBell = () => {
     const fetchUnreadCount = async () => {
         try {
             const response = await notificationService.getUnreadCount();
-            console.log(response);
             if (response.status === 'success') {
                 setUnreadCount(response.data.unread_count);
             }
@@ -44,7 +45,11 @@ const NotificationBell = () => {
         if (socket) {
             socket.on('new_notification', (notification) => {
                 setUnreadCount(prev => prev + 1);
-                // Bạn có thể thêm xử lý toast ở đây nếu muốn
+                // Hiển thị toast thông báo tức thời
+                toast.success(`${notification.title}: ${notification.message}`, {
+                    duration: 5000,
+                    icon: '🔔',
+                });
             });
 
             return () => {
@@ -58,8 +63,8 @@ const NotificationBell = () => {
             <button
                 onClick={() => setIsOpen(!isOpen)}
                 className={`p-2.5 rounded-2xl transition-all duration-300 relative group ${isOpen
-                        ? 'bg-primary-50 text-primary-600 shadow-inner'
-                        : 'bg-gray-50 text-gray-500 hover:bg-gray-100 hover:text-gray-700'
+                    ? 'bg-primary-50 text-primary-600 shadow-inner'
+                    : 'bg-gray-50 text-gray-500 hover:bg-gray-100 hover:text-gray-700'
                     }`}
             >
                 <Bell

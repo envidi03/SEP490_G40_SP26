@@ -7,6 +7,7 @@ import Toast from '../../../components/ui/Toast';
 import MedicineStats from './components/MedicineStats';
 import MedicineFilter from './components/MedicineFilter';
 import MedicineGrid from './components/MedicineGrid';
+import SharedPagination from '../../../components/ui/SharedPagination';
 
 const MedicineList = () => {
     // ========== STATE MANAGEMENT ==========
@@ -14,57 +15,80 @@ const MedicineList = () => {
     const [filteredMedicines, setFilteredMedicines] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
+    const [currentPage, setCurrentPage] = useState(1);
+    const [pagination, setPagination] = useState({ totalPages: 1, totalItems: 0 });
+    const [stats, setStats] = useState({ totalMedicines: 0, expiringSoon: 0, lowStock: 0 });
     const [toast, setToast] = useState({ show: false, type: 'success', message: '' });
-
     const [loading, setLoading] = useState(false);
 
     // ========== EFFECTS ==========
-    const fetchMedicines = async () => {
+    const fetchStats = async () => {
+        try {
+            const res = await inventoryService.getDashboardStats();
+            if (res.success && res.data) {
+                // The backend returns: totalMedicines, lowStockCount, urgentStockCount, nearExpiredCount (checking backend)
+                // Let's check dashboard.controller.js for exact field names
+                setStats({
+                    totalMedicines: res.data.totalMedicines || 0,
+                    expiringSoon: res.data.nearExpiredCount || 0,
+                    lowStock: res.data.lowStockCount || 0
+                });
+            }
+        } catch (error) {
+            console.error("Error fetching stats:", error);
+        }
+    };
+
+    useEffect(() => {
+        fetchStats();
+    }, []);
+
+    const fetchMedicines = async (search = searchTerm, filter = statusFilter, page = currentPage) => {
         try {
             setLoading(true);
-            const res = await inventoryService.getMedicines({ page: 1, limit: 1000 });
+            const params = { page, limit: 6 };
+            if (search) params.search = search;
+            if (filter !== 'all') params.statusFilter = filter;
+
+            const res = await inventoryService.getMedicines(params);
             if (res.success && res.data) {
+                // The response structure is { success: true, data: Array, pagination: Object }
                 setMedicines(res.data);
                 setFilteredMedicines(res.data);
+                if (res.pagination) {
+                    setPagination({
+                        totalPages: res.pagination.totalPages,
+                        totalItems: res.pagination.totalItems
+                    });
+                }
             }
         } catch (error) {
             console.error("Error fetching medicines:", error);
             setToast({
                 show: true,
                 type: 'error',
-                message: '❌ Không thể tải danh sách thuốc từ server.'
+                message: 'Không thể tải danh sách thuốc từ server.'
             });
         } finally {
             setLoading(false);
         }
     };
 
+    // Refetch logic: Debounce for search, immediate for filter/page
     useEffect(() => {
-        fetchMedicines();
-    }, []);
+        const isSearchChange = searchTerm !== ''; // Simple check, or track previous
 
+        const timer = setTimeout(() => {
+            fetchMedicines(searchTerm, statusFilter, currentPage);
+        }, isSearchChange ? 500 : 0);
+
+        return () => clearTimeout(timer);
+    }, [searchTerm, statusFilter, currentPage]);
+
+    // Reset to page 1 when search or filter changes
     useEffect(() => {
-        let filtered = medicines;
-
-        if (statusFilter !== 'all') {
-            if (statusFilter === 'EXPIRED') {
-                filtered = filtered.filter(m => isExpired(m.expiry_date) || m.status === 'EXPIRED');
-            } else {
-                filtered = filtered.filter(m => m.status === statusFilter && !isExpired(m.expiry_date));
-            }
-        }
-
-        if (searchTerm) {
-            const searchLower = searchTerm.toLowerCase();
-            filtered = filtered.filter(m =>
-                m.medicine_name?.toLowerCase().includes(searchLower) ||
-                m.category?.toLowerCase().includes(searchLower) ||
-                m.manufacturer?.toLowerCase().includes(searchLower)
-            );
-        }
-
-        setFilteredMedicines(filtered);
-    }, [searchTerm, statusFilter, medicines]);
+        setCurrentPage(1);
+    }, [searchTerm, statusFilter]);
 
     // ========== HELPER FUNCTIONS ==========
     const isExpiringSoon = (expiryDate) => {
@@ -108,17 +132,13 @@ const MedicineList = () => {
         return texts[status] || status;
     };
 
+    // ========== RENDER HELPERS ==========
     const formatCurrency = (amount) => {
         return new Intl.NumberFormat('vi-VN', {
             style: 'currency',
             currency: 'VND'
         }).format(amount);
     };
-
-    // Calculate statistics
-    const totalMedicines = medicines.length;
-    const expiringSoon = medicines.filter(m => isExpiringSoon(m.expiry_date)).length;
-    const lowStock = medicines.filter(m => m.quantity < 50).length;
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 p-6">
@@ -137,9 +157,9 @@ const MedicineList = () => {
                 </div>
 
                 <MedicineStats
-                    totalMedicines={totalMedicines}
-                    expiringSoon={expiringSoon}
-                    lowStock={lowStock}
+                    totalMedicines={stats.totalMedicines}
+                    expiringSoon={stats.expiringSoon}
+                    lowStock={stats.lowStock}
                 />
 
                 <MedicineFilter
@@ -161,10 +181,19 @@ const MedicineList = () => {
                     statusFilter={statusFilter}
                 />
 
-                {/* Results Count */}
-                {filteredMedicines.length > 0 && (
-                    <div className="mt-8 text-center text-gray-500 text-sm">
-                        Hiển thị <span className="font-bold text-gray-900">{filteredMedicines.length}</span> / {medicines.length} loại thuốc
+                {/* Pagination */}
+                <SharedPagination
+                    currentPage={currentPage}
+                    totalPages={pagination.totalPages}
+                    totalItems={pagination.totalItems}
+                    onPageChange={setCurrentPage}
+                    itemLabel="loại thuốc"
+                />
+
+                {/* Results Count Summary (Optional, since SharedPagination shows it) */}
+                {filteredMedicines.length > 0 && !loading && (
+                    <div className="mt-4 text-center text-gray-400 text-xs">
+                        Đang hiển thị {filteredMedicines.length} sản phẩm trên trang này
                     </div>
                 )}
             </div>

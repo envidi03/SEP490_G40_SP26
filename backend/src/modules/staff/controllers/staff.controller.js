@@ -32,7 +32,7 @@ const getListController = async (req, res) => {
       query: queryParams,
     });
 
-    const { data, pagination } =
+    const { data, pagination, statistics } =
       await ServiceProcess.getListService(queryParams);
     const paginationData = new Pagination({
       page: pagination.page,
@@ -44,6 +44,7 @@ const getListController = async (req, res) => {
       data,
       paginationData,
       "Staff retrieved successfully",
+      statistics
     ).send(res);
   } catch (error) {
     logger.error("Error get staffs", {
@@ -559,8 +560,15 @@ const cancelLeaveRequestController = async (req, res) => {
 // Admin: Get all leave requests
 const getAllLeaveController = async (req, res) => {
   try {
-    const data = await ServiceProcess.getAllLeaveRequestsService();
-    return new successRes.GetListSuccess(data, null, 'Leave requests retrieved successfully').send(res);
+    const { data, pagination: paginationInfo, statistics } = await ServiceProcess.getAllLeaveRequestsService(req.query);
+    
+    const paginationData = new Pagination({
+      page: paginationInfo.page,
+      size: paginationInfo.limit,
+      totalItems: paginationInfo.totalItems,
+    });
+
+    return new successRes.GetListSuccess(data, paginationData, 'Leave requests retrieved successfully', statistics).send(res);
   } catch (error) {
     logger.error('[LeaveController.getAllLeaveController]', { message: error.message });
     throw error;

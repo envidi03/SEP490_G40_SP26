@@ -237,6 +237,283 @@ class EmailService {
         return this.sendEmail(email, subject, html);
     }
 
+    // --- HÀM MỚI BỔ SUNG: GỬI EMAIL NHẮC HẸN (CRON JOB SẼ GỌI HÀM NÀY) ---
+    async sendAppointmentReminder(appointment) {
+        if (!appointment || !appointment.email) return;
+
+        const subject = `⏳ Nhắc nhở lịch hẹn khám: ${appointment.appointment_time} hôm nay`;
+        const html = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <style>
+                    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+                    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+                    .header { background: linear-gradient(135deg, #ff9966 0%, #ff5e62 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+                    .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+                    .info-box { background: white; border-left: 4px solid #ff5e62; padding: 20px; margin: 20px 0; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+                    .info-table { width: 100%; border-collapse: collapse; }
+                    .info-table td { padding: 10px 0; border-bottom: 1px solid #eee; }
+                    .footer { text-align: center; margin-top: 20px; color: #666; font-size: 12px; }
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <div class="header">
+                        <h1 style="margin: 0;">⏳ Nhắc Nhở Lịch Hẹn</h1>
+                    </div>
+                    <div class="content">
+                        <p>Xin chào <strong>${appointment.full_name}</strong>,</p>
+                        <p><strong>${process.env.SMTP_FROM_NAME || 'Dental CMS'}</strong> xin thông báo nhắc nhở bạn về lịch hẹn khám nha khoa sắp diễn ra vào hôm nay.</p>
+                        
+                        <div class="info-box">
+                            <table class="info-table">
+                                <tr>
+                                    <td><strong>Thời gian hẹn:</strong></td>
+                                    <td style="text-align: right; color: #ff5e62; font-weight: bold;">${appointment.appointment_time} - Hôm nay</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Số điện thoại:</strong></td>
+                                    <td style="text-align: right; color: #333;">${appointment.phone}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Lý do khám:</strong></td>
+                                    <td style="text-align: right; color: #333;">${appointment.reason || 'Không có ghi chú'}</td>
+                                </tr>
+                            </table>
+                        </div>
+                        
+                        <p style="color: #d9534f; font-size: 14px;"><strong>* Lưu ý:</strong> Vui lòng đến phòng khám trước 5-10 phút để làm thủ tục. Nếu bạn cần thay đổi lịch, xin vui lòng liên hệ lại với chúng tôi sớm nhất có thể.</p>
+                        <p>Hẹn gặp lại bạn!</p>
+                        
+                        <div class="footer">
+                            <p style="margin-bottom: 5px;">Đây là email tự động. Vui lòng không trả lời email này.</p>
+                            <p>© 2026 ${process.env.SMTP_FROM_NAME || 'Dental CMS'}. All rights reserved.</p>
+                        </div>
+                    </div>
+                </div>
+            </body>
+            </html>
+        `;
+
+        return this.sendEmail(appointment.email, subject, html);
+    }
+
+    async sendWelcomeGoogleAuthEmail(email, setupToken, userName = '') {
+        const setupLink = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/set-password?token=${setupToken}&email=${email}`;
+        const subject = 'Chào mừng bạn đến với Dental Clinic Management System';
+        const html = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <style>
+                    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; }
+                    .container { max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+                    .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 40px 20px; text-align: center; }
+                    .content { padding: 40px; }
+                    .welcome-text { font-size: 24px; color: #4a5568; margin-bottom: 20px; text-align: center; }
+                    .description { color: #718096; line-height: 1.8; margin-bottom: 30px; text-align: center; }
+                    .button-container { text-align: center; margin: 40px 0; }
+                    .setup-button { 
+                        display: inline-block;
+                        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                        color: white !important;
+                        padding: 16px 45px;
+                        text-decoration: none;
+                        border-radius: 50px;
+                        font-size: 18px;
+                        font-weight: 600;
+                        transition: transform 0.2s;
+                    }
+                    .footer { background-color: #f7fafc; padding: 20px; text-align: center; color: #a0aec0; font-size: 14px; }
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <div class="header">
+                        <h1 style="margin:0;"> Chào mừng bạn </h1>
+                    </div>
+                    <div class="content">
+                        <h2 class="welcome-text">Xin chào ${userName || email}!</h2>
+                        <p class="description">
+                            Cảm ơn bạn đã tham gia cùng <strong>Dental CMS</strong>. Bạn đã đăng nhập thành công bằng tài khoản Google.<br><br>
+                            Để có thể đăng nhập bằng mật khẩu thông thường trong tương lai, vui lòng nhấn nút bên dưới để thiết lập mật khẩu của riêng bạn:
+                        </p>
+                        
+                        <div class="button-container">
+                            <a href="${setupLink}" class="setup-button">
+                                Thiết lập Mật khẩu ngay
+                            </a>
+                        </div>
+                        
+                        <p style="text-align: center; color: #a0aec0; font-size: 14px;">
+                            Link này có hiệu lực trong vòng 24 giờ.
+                        </p>
+                    </div>
+                    <div class="footer">
+                        <p>© 2026 Dental Clinic Management System. All rights reserved.</p>
+                    </div>
+                </div>
+            </body>
+            </html>
+        `;
+
+        return this.sendEmail(email, subject, html);
+    }
+
+    // Email thông báo lễ tân đã XÁC NHẬN yêu cầu đổi lịch
+    async sendAppointmentUpdateApprovedEmail(email, patientName, date, time) {
+        if (!email) return;
+        const subject = 'Lịch hẹn đã được xác nhận - Dental Clinic Management System';
+        const clinicName = process.env.SMTP_FROM_NAME || 'Dental CMS';
+        const html = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <style>
+                    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+                    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+                    .header { background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+                    .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+                    .info-box { background: white; border-left: 4px solid #11998e; padding: 20px; margin: 20px 0; border-radius: 4px; }
+                    .info-table { width: 100%; border-collapse: collapse; }
+                    .info-table td { padding: 10px 0; border-bottom: 1px solid #eee; }
+                    .footer { text-align: center; margin-top: 20px; color: #666; font-size: 12px; }
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <div class="header">
+                        <h1 style="margin: 0;">Lịch hẹn đã được xác nhận</h1>
+                    </div>
+                    <div class="content">
+                        <p>Xin chào <strong>${patientName}</strong>,</p>
+                        <p>Yêu cầu đổi lịch khám của bạn đã được phòng khám <strong>${clinicName}</strong> xác nhận.</p>
+                        <div class="info-box">
+                            <table class="info-table">
+                                <tr>
+                                    <td><strong>Ngày khám:</strong></td>
+                                    <td style="text-align: right; color: #11998e; font-weight: bold;">${date}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Giờ dự kiến:</strong></td>
+                                    <td style="text-align: right; color: #11998e; font-weight: bold;">${time}</td>
+                                </tr>
+                            </table>
+                        </div>
+                        <p style="color: #d9534f; font-size: 14px;"><strong>* Lưu ý:</strong> Vui lòng đến sớm hơn 10 phút để thực hiện thủ tục Check-in.</p>
+                        <p>Hẹn gặp lại bạn!</p>
+                        <div class="footer"><p>© 2026 ${clinicName}. All rights reserved.</p></div>
+                    </div>
+                </div>
+            </body>
+            </html>
+        `;
+        return this.sendEmail(email, subject, html);
+    }
+
+    // Email thông báo lễ tân đã TỪ CHỐI yêu cầu đổi lịch
+    async sendAppointmentUpdateRejectedEmail(email, patientName, date, time) {
+        if (!email) return;
+        const subject = 'Yêu cầu đổi lịch không được chấp nhận - Dental Clinic Management System';
+        const clinicName = process.env.SMTP_FROM_NAME || 'Dental CMS';
+        const html = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <style>
+                    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+                    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+                    .header { background: linear-gradient(135deg, #f5576c 0%, #f093fb 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+                    .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+                    .info-box { background: white; border-left: 4px solid #f5576c; padding: 20px; margin: 20px 0; border-radius: 4px; }
+                    .info-table { width: 100%; border-collapse: collapse; }
+                    .info-table td { padding: 10px 0; border-bottom: 1px solid #eee; }
+                    .footer { text-align: center; margin-top: 20px; color: #666; font-size: 12px; }
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <div class="header">
+                        <h1 style="margin: 0;">Yêu cầu đổi lịch không được chấp nhận</h1>
+                    </div>
+                    <div class="content">
+                        <p>Xin chào <strong>${patientName}</strong>,</p>
+                        <p>Rất tiếc, yêu cầu đổi lịch khám của bạn vào khung giờ dưới đây chưa phù hợp và không được phòng khám chấp nhận:</p>
+                        <div class="info-box">
+                            <table class="info-table">
+                                <tr>
+                                    <td><strong>Ngày đề xuất:</strong></td>
+                                    <td style="text-align: right; color: #f5576c; font-weight: bold;">${date}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Giờ đề xuất:</strong></td>
+                                    <td style="text-align: right; color: #f5576c; font-weight: bold;">${time}</td>
+                                </tr>
+                            </table>
+                        </div>
+                        <p>Vui lòng <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/appointments" style="color:#f5576c;">đặt lại lịch khám</a> với thời gian khác phù hợp hơn, hoặc liên hệ trực tiếp với phòng khám để được hỗ trợ.</p>
+                        <p>Xin lỗi vì sự bất tiện này. Cảm ơn bạn đã thông cảm!</p>
+                        <div class="footer"><p>© 2026 ${clinicName}. All rights reserved.</p></div>
+                    </div>
+                </div>
+            </body>
+            </html>
+        `;
+        return this.sendEmail(email, subject, html);
+    }
+
+    async sendNoShowEmail(email, patientName, date, time) {
+        if (!email) return;
+        const subject = 'Thông báo: Lịch hẹn vắng mặt - Dental Clinic Management System';
+        const clinicName = process.env.SMTP_FROM_NAME || 'Dental CMS';
+        const html = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <style>
+                    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+                    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+                    .header { background: linear-gradient(135deg, #FF4B2B 0%, #FF416C 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+                    .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+                    .info-box { background: white; border-left: 4px solid #FF4B2B; padding: 20px; margin: 20px 0; border-radius: 4px; }
+                    .info-table { width: 100%; border-collapse: collapse; }
+                    .info-table td { padding: 10px 0; border-bottom: 1px solid #eee; }
+                    .footer { text-align: center; margin-top: 20px; color: #666; font-size: 12px; }
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <div class="header">
+                        <h1 style="margin: 0;">Thông báo vắng mặt</h1>
+                    </div>
+                    <div class="content">
+                        <p>Xin chào <strong>${patientName}</strong>,</p>
+                        <p>Chúng tôi nhận thấy bạn đã không có mặt cho lịch hẹn tại <strong>${clinicName}</strong>.</p>
+                        <div class="info-box">
+                            <table class="info-table">
+                                <tr>
+                                    <td><strong>Ngày hẹn:</strong></td>
+                                    <td style="text-align: right; color: #FF4B2B; font-weight: bold;">${date}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Giờ hẹn:</strong></td>
+                                    <td style="text-align: right; color: #FF4B2B; font-weight: bold;">${time}</td>
+                                </tr>
+                            </table>
+                        </div>
+                        <p>Vì vậy, hệ thống đã tự động cập nhật trạng thái lịch hẹn của bạn là <strong>Vắng mặt (No Show)</strong>.</p>
+                        <p>Nếu bạn muốn đặt lại lịch khám mới, vui lòng truy cập trang web của chúng tôi hoặc liên hệ trực tiếp với phòng khám.</p>
+                        <p>Xin cảm ơn!</p>
+                        <div class="footer"><p>© 2026 ${clinicName}. All rights reserved.</p></div>
+                    </div>
+                </div>
+            </body>
+            </html>
+        `;
+        return this.sendEmail(email, subject, html);
+    }
+
     async sendEmail(to, subject, html) {
         try {
             const info = await this.transporter.sendMail({

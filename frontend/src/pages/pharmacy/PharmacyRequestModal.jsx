@@ -108,7 +108,7 @@ const PharmacyRequestModal = ({ isOpen, onClose, onSubmit }) => {
                         <option value="">-- Chọn thuốc --</option>
                         {medicines.map(med => (
                             <option key={med._id} value={med._id}>
-                                {med.medicine_name} (Tồn: {med.quantity} {med.unit})
+                                {med.medicine_name} (Tồn: {med.quantity} {med.selling_unit})
                             </option>
                         ))}
                     </select>

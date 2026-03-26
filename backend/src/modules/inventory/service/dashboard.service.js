@@ -2,7 +2,11 @@ const Medicine = require("../model/medicine.model");
 const Treatment = require("../../treatment/models/treatment.model");
 
 exports.getDashboardStats = async () => {
-    const [totalActive, lowStock, urgentStock, inventoryResult, pendingDispense] = await Promise.all([
+    const now = new Date();
+    const sixtyDaysLater = new Date();
+    sixtyDaysLater.setDate(now.getDate() + 60);
+
+    const [totalActive, lowStock, urgentStock, inventoryResult, pendingDispense, nearExpired] = await Promise.all([
         Medicine.countDocuments({ status: "AVAILABLE" }),
         Medicine.countDocuments({ $expr: { $lte: ["$quantity", "$min_quantity"] }, quantity: { $gt: 0 } }),
         Medicine.countDocuments({
@@ -22,16 +26,21 @@ exports.getDashboardStats = async () => {
         Treatment.countDocuments({
             "medicine_usage.0": { $exists: true },
             "medicine_usage.dispensed": false
+        }),
+        Medicine.countDocuments({
+            expiry_date: { $gte: now, $lte: sixtyDaysLater }
         })
-    ])
+    ]);
+
     return {
         totalMedicines: totalActive,
         totalInventoryQuantity: inventoryResult[0]?.totalQuantity || 0,
         pendingOrders: pendingDispense,
         lowStockCount: lowStock,
-        urgentStockCount: urgentStock
-    }
-}
+        urgentStockCount: urgentStock,
+        nearExpiredCount: nearExpired
+    };
+};
 
 exports.getLowStockMedicines = async (limit = 3) => {
     return await Medicine.find({

@@ -19,6 +19,7 @@ const Register = () => {
     const [showConfirmPassword, setShowConfirmPassword] = React.useState(false);
     const [loading, setLoading] = React.useState(false);
     const [error, setError] = React.useState('');
+    const [fieldErrors, setFieldErrors] = React.useState({});
     const [step, setStep] = React.useState('form');
     const navigate = useNavigate();
 
@@ -29,27 +30,62 @@ const Register = () => {
         });
     };
 
-    const validatePassword = (password) => {
-        const errors = [];
+    const validateForm = () => {
+        const errors = {};
 
-        if (password.length < 8) {
-            errors.push('Mật khẩu phải có ít nhất 8 ký tự');
+        // Username validation
+        if (!formData.username) {
+            errors.username = 'Tên đăng nhập là bắt buộc';
+        } else {
+            if (formData.username.length < 3) {
+                errors.username = 'Tên đăng nhập phải có ít nhất 3 ký tự';
+            } else if (formData.username.length > 20) {
+                errors.username = 'Tên đăng nhập không được vượt quá 20 ký tự';
+            } else if (!/^[a-zA-Z][a-zA-Z0-9_]*$/.test(formData.username)) {
+                errors.username = 'Tên đăng nhập chỉ được chứa chữ cái, số, dấu gạch dưới và không được bắt đầu bằng số';
+            }
         }
 
-        if (!/[a-z]/.test(password)) {
-            errors.push('Phải có ít nhất 1 chữ thường');
+        // Full Name validation
+        if (!formData.fullName) {
+            errors.fullName = 'Họ và tên là bắt buộc';
         }
 
-        if (!/[A-Z]/.test(password)) {
-            errors.push('Phải có ít nhất 1 chữ hoa');
+        // Email validation
+        if (!formData.email) {
+            errors.email = 'Email là bắt buộc';
+        } else if (!/^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/.test(formData.email)) {
+            errors.email = 'Email không hợp lệ';
         }
 
-        if (!/\d/.test(password)) {
-            errors.push('Phải có ít nhất 1 số');
+        // Phone validation
+        if (!formData.phone) {
+            errors.phone = 'Số điện thoại là bắt buộc';
+        } else if (!/^(0|\+84)[0-9]{9}$/.test(formData.phone)) {
+            errors.phone = 'Số điện thoại không hợp lệ (phải là 10 số)';
         }
 
-        if (!/[@$!%*?&]/.test(password)) {
-            errors.push('Phải có ít nhất 1 ký tự đặc biệt (@$!%*?&)');
+        // Password validation
+        if (!formData.password) {
+            errors.password = 'Mật khẩu là bắt buộc';
+        } else {
+            const passErrors = [];
+            if (formData.password.length < 8) passErrors.push('Ít nhất 8 ký tự');
+            if (!/[a-z]/.test(formData.password)) passErrors.push('cần chữ thường');
+            if (!/[A-Z]/.test(formData.password)) passErrors.push('cần chữ hoa');
+            if (!/\d/.test(formData.password)) passErrors.push('cần số');
+            if (!/[@$!%*?&]/.test(formData.password)) passErrors.push('cần ký tự đặc biệt');
+            
+            if (passErrors.length > 0) {
+                errors.password = 'Mật khẩu chưa đủ mạnh: ' + passErrors.join(', ');
+            }
+        }
+
+        // Confirm Password validation
+        if (!formData.confirmPassword) {
+            errors.confirmPassword = 'Vui lòng nhập lại mật khẩu';
+        } else if (formData.password !== formData.confirmPassword) {
+            errors.confirmPassword = 'Mật khẩu xác nhận không khớp';
         }
 
         return errors;
@@ -58,17 +94,12 @@ const Register = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
+        setFieldErrors({});
 
         // Validation
-        if (formData.password !== formData.confirmPassword) {
-            setError('Mật khẩu xác nhận không khớp');
-            return;
-        }
-
-        // Validate password format (match backend requirements)
-        const passwordErrors = validatePassword(formData.password);
-        if (passwordErrors.length > 0) {
-            setError(passwordErrors.join('. '));
+        const errors = validateForm();
+        if (Object.keys(errors).length > 0) {
+            setFieldErrors(errors);
             return;
         }
 
@@ -90,7 +121,34 @@ const Register = () => {
             }, 1000);
 
         } catch (err) {
-            setError(err.response?.data?.message || 'Đăng ký thất bại. Vui lòng thử lại.');
+            console.error('Registration error details:', err);
+            
+            const errorData = err.data || err.response?.data;
+            let errorMessage = 'Đăng ký thất bại. Vui lòng thử lại.';
+            
+            if (errorData) {
+                if (errorData.errors && Array.isArray(errorData.errors) && errorData.errors.length > 0) {
+                    // Combine validation errors
+                    errorMessage = errorData.errors.map(e => e.message).join('. ');
+                } else if (errorData.message) {
+                    let msg = errorData.message;
+                    if (msg.includes('validation failed:')) {
+                        const parts = msg.split('validation failed:')[1];
+                        if (parts) {
+                            errorMessage = parts.split(',').map(part => {
+                                const subParts = part.split(':');
+                                return subParts[subParts.length - 1].trim();
+                            }).join('. ');
+                        }
+                    } else {
+                        errorMessage = msg;
+                    }
+                }
+            } else if (err.message) {
+                errorMessage = err.message;
+            }
+
+            setError(errorMessage);
             setLoading(false);
         }
     };
@@ -128,62 +186,62 @@ const Register = () => {
                                             value={formData.username}
                                             onChange={handleChange}
                                             placeholder="username123"
-                                            required
+                                            error={fieldErrors.username}
                                             className="w-full"
                                         />
                                         <p className="text-xs text-gray-500 mt-1">Tên đăng nhập để đăng nhập hệ thống</p>
                                     </div>
 
-                                    {/* Full Name */}
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                                            <User size={16} className="inline mr-1" />
-                                            Họ và tên đầy đủ
-                                        </label>
-                                        <Input
-                                            type="text"
-                                            name="fullName"
-                                            value={formData.fullName}
-                                            onChange={handleChange}
-                                            placeholder="Nguyễn Văn A"
-                                            required
-                                            className="w-full"
-                                        />
-                                    </div>
+                                    {/* Họ và tên */}
+                                    <Input
+                                        label={
+                                            <>
+                                                <User size={16} className="inline mr-1" />
+                                                Họ và tên đầy đủ
+                                            </>
+                                        }
+                                        type="text"
+                                        name="fullName"
+                                        value={formData.fullName}
+                                        onChange={handleChange}
+                                        placeholder="Nguyễn Văn A"
+                                        error={fieldErrors.fullName}
+                                        className="w-full"
+                                    />
 
                                     {/* Email */}
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                                            <Mail size={16} className="inline mr-1" />
-                                            Email
-                                        </label>
-                                        <Input
-                                            type="email"
-                                            name="email"
-                                            value={formData.email}
-                                            onChange={handleChange}
-                                            placeholder="example@email.com"
-                                            required
-                                            className="w-full"
-                                        />
-                                    </div>
+                                    <Input
+                                        label={
+                                            <>
+                                                <Mail size={16} className="inline mr-1" />
+                                                Email
+                                            </>
+                                        }
+                                        type="email"
+                                        name="email"
+                                        value={formData.email}
+                                        onChange={handleChange}
+                                        placeholder="example@email.com"
+                                        error={fieldErrors.email}
+                                        className="w-full"
+                                    />
 
                                     {/* Phone */}
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                                            <Phone size={16} className="inline mr-1" />
-                                            Số điện thoại
-                                        </label>
-                                        <Input
-                                            type="tel"
-                                            name="phone"
-                                            value={formData.phone}
-                                            onChange={handleChange}
-                                            placeholder="0123456789"
-                                            required
-                                            className="w-full"
-                                        />
-                                    </div>
+                                    <Input
+                                        label={
+                                            <>
+                                                <Phone size={16} className="inline mr-1" />
+                                                Số điện thoại
+                                            </>
+                                        }
+                                        type="tel"
+                                        name="phone"
+                                        value={formData.phone}
+                                        onChange={handleChange}
+                                        placeholder="0123456789"
+                                        error={fieldErrors.phone}
+                                        className="w-full"
+                                    />
 
                                     {/* Password */}
                                     <div>
@@ -198,13 +256,14 @@ const Register = () => {
                                                 value={formData.password}
                                                 onChange={handleChange}
                                                 placeholder="Ít nhất 8 ký tự"
-                                                required
+                                                error={fieldErrors.password}
                                                 className="w-full pr-10"
                                             />
                                             <button
                                                 type="button"
                                                 onClick={() => setShowPassword(!showPassword)}
-                                                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                                                className="absolute right-3 top-[38px] -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                                                style={{ top: fieldErrors.password ? '26px' : '21px' }}
                                             >
                                                 {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                                             </button>
@@ -215,29 +274,30 @@ const Register = () => {
                                     </div>
 
                                     {/* Confirm Password */}
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                                            <Lock size={16} className="inline mr-1" />
-                                            Xác nhận mật khẩu
-                                        </label>
-                                        <div className="relative">
-                                            <Input
-                                                type={showConfirmPassword ? "text" : "password"}
-                                                name="confirmPassword"
-                                                value={formData.confirmPassword}
-                                                onChange={handleChange}
-                                                placeholder="Nhập lại mật khẩu"
-                                                required
-                                                className="w-full pr-10"
-                                            />
-                                            <button
-                                                type="button"
-                                                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                                                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
-                                            >
-                                                {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                                            </button>
-                                        </div>
+                                    <div className="relative">
+                                        <Input
+                                            label={
+                                                <>
+                                                    <Lock size={16} className="inline mr-1" />
+                                                    Xác nhận mật khẩu
+                                                </>
+                                            }
+                                            type={showConfirmPassword ? "text" : "password"}
+                                            name="confirmPassword"
+                                            value={formData.confirmPassword}
+                                            onChange={handleChange}
+                                            placeholder="Nhập lại mật khẩu"
+                                            error={fieldErrors.confirmPassword}
+                                            className="w-full pr-10"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                            className="absolute right-3 top-[38px] -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                                            style={{ top: fieldErrors.confirmPassword ? '50px' : '44px' }}
+                                        >
+                                            {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                                        </button>
                                     </div>
 
                                     {/* Error Message */}
@@ -297,10 +357,13 @@ const Register = () => {
                                     </p>
                                     <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
                                         <p className="text-sm text-green-800 mb-2">
-                                            📧 <strong>Email:</strong> {formData.email}
+                                            <strong>Email:</strong> {formData.email}
                                         </p>
-                                        <p className="text-sm text-green-800">
-                                            ✅ Bạn có thể đăng nhập ngay bây giờ!
+                                        <p className="text-sm text-green-800 mb-2">
+                                            Bạn có thể đăng nhập ngay bây giờ!
+                                        </p>
+                                        <p className="text-sm text-green-800 font-semibold">
+                                            <strong> Vui lòng kiểm tra và xác nhận email của bạn! </strong>
                                         </p>
                                     </div>
                                     <Button

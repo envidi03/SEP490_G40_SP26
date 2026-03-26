@@ -60,39 +60,69 @@ const medicineSchema = new Schema(
         },
 
         dosage: {
-            // Hàm lượng: VD 500mg, 2%, 250mg/5ml
+            // Hàm lượng hoạt chất: VD 500mg, 2%, 250mg/5ml
             type: String,
             trim: true,
             default: null
         },
 
         dosage_form: {
-            // Dạng bào chế: Viên nén, Viên nang, Dung dịch, Bột, Kem, v.v.
+            /**
+             * Dạng bào chế dược học của thuốc.
+             * Chỉ mô tả DẠNG THUỐC, không liên quan đến cách đóng gói hay bán hàng.
+             * VD: Thuốc Panadol → dosage_form = 'Viên nang'
+             */
             type: String,
             enum: [
-                "Viên",
                 "Viên nén",
                 "Viên nang",
+                "Viên sủi",
+                "Viên ngậm",
                 "Dung dịch",
                 "Siro",
+                "Hỗn dịch",
                 "Kem",
+                "Gel",
                 "Bột",
-                "Gói",
-                "Tuýp",
-                "Chai",
-                "Ống",
-                "Hỗn dịch"
+                "Nhỏ giọt"
             ],
             trim: true,
             default: null
         },
 
-        unit: {
-            // Đơn vị tính
+        selling_unit: {
+            /**
+             * Đơn vị BÁN RA cho bệnh nhân (đơn vị được lưu trữ và quản lý tồn kho).
+             * Trường `quantity` sẽ tính theo đơn vị này.
+             * VD: Panadol → selling_unit = 'Vỉ' (kho có 100 VỈ)
+             */
             type: String,
-            enum: ['Viên', 'Chai', 'Lọ', 'Tuýp', 'Hộp', 'Bộ', 'Gói', 'Vỉ', 'Ống', 'ml', 'mg'],
+            enum: ['Viên', 'Vỉ', 'Hộp', 'Chai', 'Lọ', 'Tuýp', 'Gói', 'Ống', 'Bộ'],
             required: true,
             trim: true
+        },
+
+        base_unit: {
+            /**
+             * Đơn vị nhỏ nhất dùng để kê đơn.
+             * VD: Panadol → base_unit = 'Viên' (bác sĩ kê "2 Viên/lần")
+             */
+            type: String,
+            enum: ['Viên', 'ml', 'mg', 'Gói', 'Ống', 'Giọt'],
+            required: true,
+            trim: true
+        },
+
+        units_per_selling_unit: {
+            /** 
+             * Số lượng đơn vị kê đơn (base_unit) có trong 1 đơn vị bán (selling_unit).
+             * Giúp hệ thống tự động trừ kho chính xác khi bác sĩ kê đơn theo Viên nhưng kho quản lý theo Vỉ.
+             * VD: 1 Vỉ (selling_unit) có 10 Viên (base_unit) -> units_per_selling_unit = 10.
+             */
+            type: Number,
+            required: true,
+            default: 1,
+            min: 1
         },
 
         price: {
@@ -167,7 +197,9 @@ const medicineSchema = new Schema(
     },
     {
         timestamps: true,
-        collection: "medicines"
+        collection: "medicines",
+        toJSON: { virtuals: true },
+        toObject: { virtuals: true }
     }
 );
 
@@ -193,5 +225,6 @@ medicineSchema.index({ status: 1 });
 medicineSchema.index({ expiry_date: 1 });
 medicineSchema.index({ category: 1 });
 medicineSchema.index({ quantity: 1 });
+medicineSchema.index({ selling_unit: 1 });
 
 module.exports = mongoose.model("Medicine", medicineSchema);

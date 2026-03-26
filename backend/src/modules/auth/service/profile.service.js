@@ -24,7 +24,7 @@ const updateProfileService = async (accountId, payload = {}) => {
     }
 
     // update profile fields
-    const profileFields = ["full_name", "gender", "address", "avatar_url"];
+    const profileFields = ["full_name", "gender", "address", "avatar_url", "phone"];
 
     profileFields.forEach(field => {
       if (payload[field] !== undefined) {
@@ -90,13 +90,43 @@ const getProfileService = async (accountId) => {
   }
 
   const profile = await Profile.findOne({ account_id: accountId })
-    .populate("account_id", "-password -refresh_token");
+    .populate({
+      path: "account_id",
+      select: "-password -refresh_token",
+      populate: { path: "role_id", select: "name" }
+    });
 
   if (!profile) {
     throw new errorRes.NotFoundError("Profile not found");
   }
 
-  return profile;
+  // Nếu là bệnh nhân (PATIENT), lấy thêm patient_id để dùng khi lọc hóa đơn
+  const result = profile.toObject();
+  const logger = require('../../../common/utils/logger');
+  
+  const roleName = profile.account_id?.role_id?.name;
+  logger.debug('Profile role check', {
+    hasAccountId: !!profile.account_id,
+    roleName: roleName,
+    isPatient: roleName === 'PATIENT'
+  });
+
+  if (roleName === 'PATIENT') {
+    const PatientModel = require('../../patient/model/patient.model');
+    const patient = await PatientModel.findOne({ account_id: accountId }).select('_id').lean();
+    
+    logger.debug('Patient lookup result', {
+      accountId,
+      foundPatient: !!patient,
+      patientId: patient?._id
+    });
+
+    if (patient) {
+      result.patient_id = patient._id;
+    }
+  }
+
+  return result;
 };
 
 module.exports = {

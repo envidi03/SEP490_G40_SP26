@@ -48,7 +48,7 @@ export const createDentalRecord = (patientId, body) =>
  * @param {Object} body - { full_name, phone, record_name, description, status }
  */
 export const updateDentalRecord = (id, body) =>
-    apiClient.put(`/api/dentist/dental-record/${id}`, body);
+    apiClient.patch(`/api/dentist/dental-record/${id}`, body);
 
 /**
  * PATCH /api/dentist/treatment/status/:id

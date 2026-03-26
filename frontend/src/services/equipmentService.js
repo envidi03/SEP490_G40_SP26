@@ -30,6 +30,21 @@ const equipmentService = {
     },
 
     /**
+     * Create a new equipment
+     * @param {string} equipmentId - ID of the equipment category to add items to
+     * @param {Object} data - Equipment data
+     * @returns {Promise} API response
+     */
+    createEquipmentItem: async (equipmentId, data) => {
+        try {
+            const response = await apiClient.post(`/api/equipment/${equipmentId}/items`, data);
+            return response;
+        } catch (error) {
+            throw error.response || error;
+        }
+    },
+
+    /**
      * Get equipment details by ID
      * @param {string} equipmentId 
      * @returns {Promise} API response
@@ -37,6 +52,21 @@ const equipmentService = {
     getEquipmentById: async (equipmentId, params = {}) => {
         try {
             const response = await apiClient.get(`/api/equipment/${equipmentId}`, { params });
+            return response;
+        } catch (error) {
+            throw error.response || error;
+        }
+    },
+
+    /**
+     * Update equipment category details
+     * @param {string} equipmentId 
+     * @param {Object} data - Update data
+     * @returns {Promise} API response
+     */
+    updateEquipmentCategory: async (equipmentId, data) => {
+        try {
+            const response = await apiClient.patch(`/api/equipment/category/${equipmentId}`, data);
             return response;
         } catch (error) {
             throw error.response || error;

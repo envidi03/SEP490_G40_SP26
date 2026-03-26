@@ -5,8 +5,9 @@ const notificationService = require("../../notification/service/notification.ser
 /**
  * Lấy danh sách thuốc có phân trang, tìm kiếm và lọc theo danh mục
  */
-exports.getMedicines = async ({ page = 1, limit = 10, search, category }) => {
+exports.getMedicines = async ({ page = 1, limit = 10, search, category, statusFilter }) => {
     const query = {};
+    const now = new Date();
 
     // Tìm kiếm theo tên thuốc hoặc nhà sản xuất
     if (search && search.trim()) {
@@ -17,21 +18,62 @@ exports.getMedicines = async ({ page = 1, limit = 10, search, category }) => {
         ];
     }
 
-    if (category && category.trim()) {
+    // Lọc theo danh mục (category id)
+    if (category && category.trim() && category !== "all") {
         query.category = category.trim();
+    }
+
+    // Lọc theo trạng thái (Business Logic)
+    if (statusFilter && statusFilter !== 'all') {
+        switch (statusFilter) {
+            case 'EXPIRED':
+                query.$or = [
+                    { status: 'EXPIRED' },
+                    { expiry_date: { $lt: now } }
+                ];
+                break;
+            case 'EXPIRING_SOON':
+                const startOfToday = new Date(now.setHours(0, 0, 0, 0));
+                const sixtyDaysLater = new Date(startOfToday);
+                sixtyDaysLater.setDate(startOfToday.getDate() + 60);
+                query.expiry_date = { $gte: startOfToday, $lte: sixtyDaysLater };
+                break;
+            case 'LOW_STOCK':
+                // Đảm bảo min_quantity tồn tại, nếu không có thì mặc định là 10 hoặc dùng $exists
+                query.$and = [
+                    { quantity: { $gt: 0 } },
+                    { 
+                        $expr: { 
+                            $lte: ["$quantity", { $ifNull: ["$min_quantity", 10] }] 
+                        } 
+                    }
+                ];
+                break;
+            case 'OUT_OF_STOCK':
+                query.quantity = { $lte: 0 };
+                break;
+            case 'AVAILABLE':
+                query.status = 'AVAILABLE';
+                query.quantity = { $gt: 0 };
+                query.expiry_date = { $gt: now };
+                break;
+            default:
+                // Nếu là các status enum khác
+                query.status = statusFilter;
+        }
     }
 
     const skip = (parseInt(page) - 1) * parseInt(limit);
     const limitNum = parseInt(limit);
 
     const [medicines, totalCount] = await Promise.all([
-        Medicine.find(query)
-            .select("medicine_name category manufacturer price quantity expiry_date unit dosage_form status")
+        model.Medicine.find(query)
+            .select("medicine_name category manufacturer price quantity expiry_date selling_unit base_unit dosage_form status")
             .populate("category", "name")
             .sort({ createdAt: -1 })
             .skip(skip)
             .limit(limitNum),
-        Medicine.countDocuments(query)
+        model.Medicine.countDocuments(query)
     ]);
 
     return {
@@ -55,21 +97,32 @@ exports.getCategories = async () => {
 };
 
 /**
- * Lấy danh sách dạng bào chế thuốc
+ * Lấy danh sách dạng bào chế thuốc (thuần túy dược học, không bao gồm dạng đóng gói)
  */
 exports.getDosageForms = () => {
     return [
-        "Viên", "Viên nén", "Viên nang", "Dung dịch", "Siro", 
-        "Kem", "Bột", "Gói", "Tuýp", "Chai", "Ống", "Hỗn dịch"
+        "Viên nén", "Viên nang", "Viên sủi", "Viên ngậm",
+        "Dung dịch", "Siro", "Hỗn dịch",
+        "Kem", "Gel", "Bột", "Nhỏ giọt"
     ];
 };
 
 /**
- * Lấy danh sách đơn vị tính thuốc
+ * Lấy danh sách đơn vị BÁN (đơn vị quản lý tồn kho, bán cho bệnh nhân)
  */
-exports.getUnits = () => {
-    return ['Viên', 'Chai', 'Lọ', 'Tuýp', 'Hộp', 'Bộ', 'Gói', 'Vỉ', 'Ống', 'ml', 'mg'];
+exports.getSellingUnits = () => {
+    return ['Viên', 'Vỉ', 'Hộp', 'Chai', 'Lọ', 'Tuýp', 'Gói', 'Ống', 'Bộ'];
 };
+
+/**
+ * Lấy danh sách đơn vị CƠ BẢN (dùng khi kê đơn thuốc)
+ */
+exports.getBaseUnits = () => {
+    return ['Viên', 'ml', 'mg', 'Gói', 'Ống', 'Giọt'];
+};
+
+// Giữ lại để backward compatibility (có thể có các endpoint cũ gọi getUnits)
+exports.getUnits = exports.getSellingUnits;
 
 /**
  * Thêm thuốc mới
@@ -78,12 +131,14 @@ exports.createMedicine = async (data) => {
     const requiredFields = [
         { field: "medicine_name", label: "Tên thuốc" },
         { field: "category", label: "Danh mục" },
-        { field: "unit", label: "Đơn vị" },
+        { field: "selling_unit", label: "Đơn vị bán" },
+        { field: "base_unit", label: "Đơn vị cơ bản (kê đơn)" },
         { field: "manufacturer", label: "Nhà sản xuất" },
         { field: "price", label: "Giá" },
         { field: "quantity", label: "Số lượng tồn kho" },
         { field: "min_quantity", label: "Tồn kho tối thiểu" },
-        { field: "expiry_date", label: "Hạn sử dụng" }
+        { field: "expiry_date", label: "Hạn sử dụng" },
+        { field: "units_per_selling_unit", label: "Hệ số quy đổi" }
     ];
 
     const missingFields = requiredFields.filter(
@@ -130,7 +185,7 @@ exports.createMedicine = async (data) => {
     }
 
     if (data.dosage_form) {
-        const validDosageForms = ["Viên", "Viên nén", "Viên nang", "Dung dịch", "Siro", "Kem", "Bột", "Gói", "Tuýp", "Chai", "Ống", "Hỗn dịch"];
+        const validDosageForms = ["Viên nén", "Viên nang", "Viên sủi", "Viên ngậm", "Dung dịch", "Siro", "Hỗn dịch", "Kem", "Gel", "Bột", "Nhỏ giọt"];
         if (!validDosageForms.includes(data.dosage_form.trim())) {
             const error = new Error("Dạng bào chế không hợp lệ");
             error.statusCode = 400;
@@ -138,10 +193,19 @@ exports.createMedicine = async (data) => {
         }
     }
 
-    if (data.unit) {
-        const validUnits = ['Viên', 'Chai', 'Lọ', 'Tuýp', 'Hộp', 'Bộ', 'Gói', 'Vỉ', 'Ống', 'ml', 'mg'];
-        if (!validUnits.includes(data.unit.trim())) {
-            const error = new Error("Đơn vị tính không hợp lệ");
+    if (data.selling_unit) {
+        const validSellingUnits = ['Viên', 'Vỉ', 'Hộp', 'Chai', 'Lọ', 'Tuýp', 'Gói', 'Ống', 'Bộ'];
+        if (!validSellingUnits.includes(data.selling_unit.trim())) {
+            const error = new Error("Đơn vị bán không hợp lệ");
+            error.statusCode = 400;
+            throw error;
+        }
+    }
+
+    if (data.base_unit) {
+        const validBaseUnits = ['Viên', 'ml', 'mg', 'Gói', 'Ống', 'Giọt'];
+        if (!validBaseUnits.includes(data.base_unit.trim())) {
+            const error = new Error("Đơn vị cơ bản không hợp lệ");
             error.statusCode = 400;
             throw error;
         }
@@ -297,7 +361,11 @@ exports.createRestockRequest = async (medicineId, data) => {
         quantity_requested: Number(data.quantity_requested),
         priority: data.priority || "medium",
         reason: data.reason.trim(),
-        note: data.note || null
+        note: data.note || null,
+        selling_unit: data.selling_unit,
+        base_unit: data.base_unit,
+        units_per_selling_unit: Number(data.units_per_selling_unit) || 1,
+        manufacturer: data.manufacturer
     });
 
     await medicine.save();
@@ -324,80 +392,137 @@ exports.createRestockRequest = async (medicineId, data) => {
 };
 
 /**
- * Lấy danh sách tất cả yêu cầu bổ sung thuốc (across all medicines)
+ * Lấy danh sách tất cả yêu cầu bổ sung thuốc (Across all medicines)
+ * Hỗ trợ tìm kiếm, lọc theo trạng thái, mức độ ưu tiên và phân trang
  */
-exports.getRestockRequests = async ({ status, page = 1, limit = 10 }) => {
-    const pipeline = [
+exports.getRestockRequests = async ({ status, priority, search, page = 1, limit = 10 }) => {
+    // 1. Phân nhánh Thống kê (Global - không bị ảnh hưởng bởi search/filter)
+    const statsPipeline = [
         { $unwind: "$medicine_restock_requests" },
+        {
+            $group: {
+                _id: null,
+                total: { $sum: 1 },
+                pending: { $sum: { $cond: [{ $eq: ["$medicine_restock_requests.status", "pending"] }, 1, 0] } },
+                highPriority: { 
+                    $sum: { 
+                        $cond: [
+                            { $and: [
+                                { $eq: ["$medicine_restock_requests.priority", "high"] },
+                                { $eq: ["$medicine_restock_requests.status", "pending"] }
+                            ]}, 
+                            1, 0
+                        ] 
+                    } 
+                },
+                completed: { $sum: { $cond: [{ $in: ["$medicine_restock_requests.status", ["completed", "accept"]] }, 1, 0] } }
+            }
+        }
     ];
 
-    // Filter theo status
-    if (status && status.trim()) {
-        pipeline.push({
-            $match: { "medicine_restock_requests.status": status.trim() }
-        });
+    // 2. Phân nhánh Dữ liệu (Có lọc search/status/priority)
+    const matchCondition = {};
+    if (status && status !== 'all') {
+        matchCondition["medicine_restock_requests.status"] = status;
+    }
+    if (priority && priority !== 'all') {
+        matchCondition["medicine_restock_requests.priority"] = priority;
     }
 
-    // Sort theo ngày tạo mới nhất
-    pipeline.push({ $sort: { "medicine_restock_requests.created_at": -1 } });
+    const basePipeline = [
+        { $unwind: "$medicine_restock_requests" }
+    ];
 
-    // Đếm tổng
-    const countPipeline = [...pipeline, { $count: "total" }];
-    const countResult = await Medicine.aggregate(countPipeline);
-    const totalCount = countResult[0]?.total || 0;
+    // Bước này cần lookup trước khi lọc search nếu muốn search theo tên nhân viên
+    const dataPipeline = [
+        { $match: matchCondition },
+        // Lookup thông tin nhân viên
+        {
+            $lookup: {
+                from: "staffs",
+                localField: "medicine_restock_requests.request_by",
+                foreignField: "_id",
+                as: "staff_info"
+            }
+        },
+        {
+            $lookup: {
+                from: "profiles",
+                localField: "staff_info.profile_id",
+                foreignField: "_id",
+                as: "profile_info"
+            }
+        }
+    ];
+
+    // Search theo tên thuốc hoặc tên nhân viên
+    if (search && search.trim()) {
+        const searchRegex = new RegExp(search.trim(), "i");
+        dataPipeline.push({
+            $match: {
+                $or: [
+                    { "medicine_name": searchRegex },
+                    { "profile_info.full_name": searchRegex }
+                ]
+            }
+        });
+    }
 
     const skip = (parseInt(page) - 1) * parseInt(limit);
     const limitNum = parseInt(limit);
 
-    pipeline.push({ $skip: skip });
-    pipeline.push({ $limit: limitNum });
-
-    // Lookup staff info
-    pipeline.push({
-        $lookup: {
-            from: "staffs",
-            localField: "medicine_restock_requests.request_by",
-            foreignField: "_id",
-            as: "staff_info"
+    // Final result facets
+    const result = await Medicine.aggregate([
+        ...basePipeline,
+        {
+            $facet: {
+                data: [
+                    ...dataPipeline,
+                    { $sort: { "medicine_restock_requests.created_at": -1 } },
+                    { $skip: skip },
+                    { $limit: limitNum },
+                    {
+                        $project: {
+                            _id: "$medicine_restock_requests._id",
+                            medicine_id: "$_id",
+                            medicine_name: 1,
+                            current_quantity: "$quantity",
+                            quantity_requested: "$medicine_restock_requests.quantity_requested",
+                            priority: "$medicine_restock_requests.priority",
+                            status: "$medicine_restock_requests.status",
+                            reason: "$medicine_restock_requests.reason",
+                            note: "$medicine_restock_requests.note",
+                            created_at: "$medicine_restock_requests.created_at",
+                            request_by_name: { $arrayElemAt: ["$profile_info.full_name", 0] }
+                        }
+                    }
+                ],
+                totalCount: [
+                    ...dataPipeline,
+                    { $count: "total" }
+                ],
+                overallStats: statsPipeline
+            }
         }
-    });
+    ]);
 
-    // Lookup profile info
-    pipeline.push({
-        $lookup: {
-            from: "profiles",
-            localField: "staff_info.profile_id",
-            foreignField: "_id",
-            as: "profile_info"
-        }
-    });
-
-    // Project kết quả
-    pipeline.push({
-        $project: {
-            _id: "$medicine_restock_requests._id",
-            medicine_id: "$_id",
-            medicine_name: 1,
-            current_quantity: "$quantity",
-            quantity_requested: "$medicine_restock_requests.quantity_requested",
-            priority: "$medicine_restock_requests.priority",
-            status: "$medicine_restock_requests.status",
-            reason: "$medicine_restock_requests.reason",
-            note: "$medicine_restock_requests.note",
-            created_at: "$medicine_restock_requests.created_at",
-            request_by_name: { $arrayElemAt: ["$profile_info.full_name", 0] }
-        }
-    });
-
-    const requests = await Medicine.aggregate(pipeline);
+    const requests = result[0]?.data || [];
+    const totalItems = result[0]?.totalCount[0]?.total || 0;
+    const stats = result[0]?.overallStats[0] || { total: 0, pending: 0, highPriority: 0, completed: 0 };
 
     return {
         requests,
         pagination: {
             currentPage: parseInt(page),
-            totalPages: Math.ceil(totalCount / limitNum),
-            totalItems: totalCount,
+            totalPages: Math.ceil(totalItems / limitNum),
+            totalItems: totalItems,
             itemsPerPage: limitNum
+        },
+        statistics: {
+            total: stats.total,
+            pending: stats.pending,
+            highPriority: stats.highPriority,
+            completed: stats.completed
         }
     };
 };

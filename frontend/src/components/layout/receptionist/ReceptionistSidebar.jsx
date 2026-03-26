@@ -9,7 +9,8 @@ import {
     LogOut,
     Menu,
     Clock,
-    UserCheck
+    UserCheck,
+    CalendarSync
 } from 'lucide-react';
 import clsx from 'clsx';
 import { useAuth } from '../../../contexts/AuthContext';
@@ -23,11 +24,11 @@ const ReceptionistSidebar = () => {
         { path: '/receptionist/check-in', icon: UserCheck, label: 'Tiếp đón' },
         { path: '/receptionist/patients', icon: Users, label: 'Bệnh nhân' },
         { path: '/receptionist/appointments', icon: Calendar, label: 'Lịch hẹn' },
+        { path: '/receptionist/re-examination', icon: CalendarSync, label: 'Tái khám' },
         { path: '/receptionist/invoices', icon: DollarSign, label: 'Hóa đơn' },
         { path: '/receptionist/services', icon: ClipboardList, label: 'Dịch vụ' },
         { path: '/receptionist/equipment', icon: Wrench, label: 'Thiết bị' },
         { path: '/receptionist/leave', icon: Clock, label: 'Nghỉ phép' },
-        { path: '/receptionist/payment', icon: DollarSign, label: 'Thanh toán' },
     ];
 
     return (

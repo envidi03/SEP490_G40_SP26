@@ -422,7 +422,8 @@ router.post('/logout', authenticate, authController.logout);
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.post('/refresh-token', authenticate, authController.refreshToken);
+// Không dùng authenticate ở đây vì access_token đã hết hạn khi gọi route này
+router.post('/refresh-token', authController.refreshToken);
 
 /**
  * @swagger
@@ -472,5 +473,36 @@ router.post('/refresh-token', authenticate, authController.refreshToken);
  *               $ref: '#/components/schemas/Error'
  */
 router.post('/change-password', authenticate, authController.changePassword);
+
+/**
+ * @swagger
+ * /api/auth/setup-password:
+ *   post:
+ *     summary: Set initial password for Google Login accounts
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - token
+ *               - newPassword
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *               token:
+ *                 type: string
+ *               newPassword:
+ *                 type: string
+ *                 minLength: 8
+ *     responses:
+ *       200:
+ *         description: Password setup successful
+ */
+router.post('/setup-password', authController.setupPassword);
 
 module.exports = router;
