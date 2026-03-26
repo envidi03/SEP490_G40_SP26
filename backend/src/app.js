@@ -52,6 +52,11 @@ if (process.env.NODE_ENV !== 'production') {
 const swaggerDocs = require('./config/swagger');
 swaggerDocs(app);
 
+// Zalo Domain Verification
+app.get(['/zalo_verifierOitaTxVXOIj7xxigiju9TMJ1fd-8jt8eD3Ou.html', '/zalo_verifierOitaTxVXOIj7xxigiju9TMJ1fd-8jt8eD3Ou'], (req, res) => {
+    res.send(`<!DOCTYPE html>\n<html lang="en">\n<head>\n    <meta property="zalo-platform-site-verification" content="OitaTxVXOIj7xxigiju9TMJ1fd-8jt8eD3Ou" />\n</head>\n<body>\nThere Is No Limit To What You Can Accomplish Using Zalo!\n</body>\n</html>`);
+});
+
 /**
  * @swagger
  * /health:
