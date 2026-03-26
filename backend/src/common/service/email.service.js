@@ -463,6 +463,57 @@ class EmailService {
         return this.sendEmail(email, subject, html);
     }
 
+    // Email thông báo Lễ tân/Phòng khám chủ động ĐỔI LỊCH của bệnh nhân
+    async sendAppointmentRescheduledByClinicEmail(email, patientName, oldDate, oldTime, newDate, newTime) {
+        if (!email) return;
+        const subject = 'Thông báo: Thay đổi lịch hẹn khám - Dental Clinic Management System';
+        const clinicName = process.env.SMTP_FROM_NAME || 'Dental CMS';
+        const html = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <style>
+                    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+                    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+                    .header { background: linear-gradient(135deg, #f6d365 0%, #fda085 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+                    .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+                    .info-box { background: white; border-left: 4px solid #f6d365; padding: 20px; margin: 20px 0; border-radius: 4px; }
+                    .info-table { width: 100%; border-collapse: collapse; }
+                    .info-table td { padding: 10px 0; border-bottom: 1px solid #eee; }
+                    .footer { text-align: center; margin-top: 20px; color: #666; font-size: 12px; }
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <div class="header">
+                        <h1 style="margin: 0;">Thay đổi lịch hẹn</h1>
+                    </div>
+                    <div class="content">
+                        <p>Xin chào <strong>${patientName}</strong>,</p>
+                        <p>Phòng khám <strong>${clinicName}</strong> xin thông báo lịch hẹn của bạn đã được dời sang thời gian mới.</p>
+                        <div class="info-box">
+                            <table class="info-table">
+                                <tr>
+                                    <td><strong>Lịch hẹn cũ:</strong></td>
+                                    <td style="text-align: right; color: #999; text-decoration: line-through;">${oldDate} - ${oldTime}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Lịch hẹn MỚI:</strong></td>
+                                    <td style="text-align: right; color: #221f15ff; font-weight: bold;">${newDate} - ${newTime}</td>
+                                </tr>
+                            </table>
+                        </div>
+                        <p>Chúng tôi rất xin lỗi nếu sự thay đổi này gây bất tiện cho bạn. Nếu bạn không thể đến vào khung giờ mới, vui lòng liên hệ lại với phòng khám để được hỗ trợ sắp xếp lịch khác phù hợp hơn.</p>
+                        <p>Xin cảm ơn và hẹn gặp lại!</p>
+                        <div class="footer"><p>© 2026 ${clinicName}. All rights reserved.</p></div>
+                    </div>
+                </div>
+            </body>
+            </html>
+        `;
+        return this.sendEmail(email, subject, html);
+    }
+
     // Email thông báo lịch hẹn đã bị HỦY (trường hợp thông thường)
     async sendAppointmentCancelledEmail(email, patientName, date, time) {
         if (!email) return;

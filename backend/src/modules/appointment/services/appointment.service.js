@@ -1022,6 +1022,44 @@ const updateService = async (id, data) => {
                     }).catch(err => logger.error("Lỗi gửi thông báo xác nhận cho bệnh nhân:", err.message));
                 }
             }
+        } else if (userRole !== "PATIENT" && updatedAppt && updatedAppt.patient_id) {
+            // LỄ TÂN/PHÒNG KHÁM CẬP NHẬT TRỰC TIẾP
+            // Kiểm tra xem có thực sự đổi ngày giờ không
+            if (allowedUpdates.appointment_date || allowedUpdates.appointment_time) {
+                try {
+                    const patient = await PatientModel.findById(updatedAppt.patient_id).select('account_id email').lean();
+                    const account = patient?.account_id
+                       ? await AuthModel.Account.findById(patient.account_id).select('email').lean()
+                       : null;
+                    const patientEmail = account?.email || updatedAppt.email || patient?.email;
+                    
+                    const oldDateStr = new Date(existingAppt.appointment_date).toLocaleDateString('vi-VN');
+                    const newDateStr = new Date(updatedAppt.appointment_date).toLocaleDateString('vi-VN');
+
+                    // 1. Gửi Email thông báo dời lịch
+                    emailService.sendAppointmentRescheduledByClinicEmail(
+                        patientEmail, 
+                        updatedAppt.full_name, 
+                        oldDateStr, 
+                        existingAppt.appointment_time, 
+                        newDateStr, 
+                        updatedAppt.appointment_time
+                    ).catch(err => logger.error('Lỗi gửi email đổi lịch:', err.message));
+
+                    // 2. Gửi thông báo In-app
+                    if (patient?.account_id) {
+                        notificationService.sendToUser(patient.account_id.toString(), {
+                            type: 'APPOINTMENT_RESCHEDULED_BY_CLINIC',
+                            title: 'Lịch hẹn đã được thay đổi',
+                            message: `Lịch hẹn của bạn tại phòng khám đã được dời sang ${updatedAppt.appointment_time} ngày ${newDateStr}.`,
+                            action_url: '/appointments',
+                            metadata: { entity_id: updatedAppt._id, entity_type: 'APPOINTMENT' }
+                        }).catch(err => logger.error('Lỗi gửi thông báo đổi lịch cho bệnh nhân:', err.message));
+                    }
+                } catch (notifyErr) {
+                    logger.error('Lỗi xử lý thông báo dời lịch của phòng khám:', notifyErr);
+                }
+            }
         }
 
         return updatedAppt;

@@ -1,6 +1,9 @@
+import { useState } from 'react';
 import { X, Calendar as CalendarIcon, Clock, AlertTriangle } from 'lucide-react';
 
 const RescheduleAppointmentModal = ({ appointment, isOpen, onClose, onReschedule }) => {
+    const [errors, setErrors] = useState({});
+
     if (!isOpen || !appointment) return null;
 
     const handleSubmit = (e) => {
@@ -11,10 +14,28 @@ const RescheduleAppointmentModal = ({ appointment, isOpen, onClose, onReschedule
             appointment_time: formData.get('time'),
             reason: formData.get('reason')
         };
+
+        // Manual Validation
+        const newErrors = {};
+        if (!data.appointment_date) newErrors.date = 'Vui lòng chọn ngày mới';
+        if (!data.appointment_time) newErrors.time = 'Vui lòng chọn giờ mới';
+        if (!data.reason || !data.reason.trim()) newErrors.reason = 'Vui lòng nhập lý do đổi lịch';
+
+        if (Object.keys(newErrors).length > 0) {
+            setErrors(newErrors);
+            return;
+        }
+
+        setErrors({});
         // Call API to reschedule
         if (onReschedule) {
             onReschedule(appointment._id, data);
         }
+        onClose();
+    };
+
+    const handleClose = () => {
+        setErrors({});
         onClose();
     };
 
@@ -26,7 +47,7 @@ const RescheduleAppointmentModal = ({ appointment, isOpen, onClose, onReschedule
                         <h2 className="text-xl font-bold text-gray-900">Đổi Lịch Hẹn</h2>
                         <p className="text-sm text-gray-500 mt-1">Thay đổi ngày giờ khám</p>
                     </div>
-                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+                    <button onClick={handleClose} className="text-gray-400 hover:text-gray-600">
                         <X size={20} />
                     </button>
                 </div>
@@ -40,58 +61,65 @@ const RescheduleAppointmentModal = ({ appointment, isOpen, onClose, onReschedule
                     </p>
                 </div>
 
-                <form onSubmit={handleSubmit} className="space-y-4">
+                <form onSubmit={handleSubmit} className="space-y-4" noValidate>
                     <div className="grid grid-cols-2 gap-3">
                         <div>
                             <label className="flex items-center text-sm font-medium text-gray-700 mb-1">
                                 <CalendarIcon size={14} className="mr-1" />
-                                Ngày mới
+                                Ngày mới <span className="text-red-500 ml-0.5">*</span>
                             </label>
                             <input
                                 type="date"
                                 name="date"
-                                required
                                 min={new Date().toISOString().split('T')[0]}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 outline-none transition-all ${
+                                    errors.date ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                                }`}
                             />
+                            {errors.date && <p className="text-xs text-red-500 mt-1">{errors.date}</p>}
                         </div>
                         <div>
                             <label className="flex items-center text-sm font-medium text-gray-700 mb-1">
                                 <Clock size={14} className="mr-1" />
-                                Giờ mới
+                                Giờ mới <span className="text-red-500 ml-0.5">*</span>
                             </label>
                             <input
                                 type="time"
                                 name="time"
-                                required
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 outline-none transition-all ${
+                                    errors.time ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                                }`}
                             />
+                            {errors.time && <p className="text-xs text-red-500 mt-1">{errors.time}</p>}
                         </div>
                     </div>
 
                     <div>
                         <label className="text-sm font-medium text-gray-700 mb-1 block">
-                            Lý do đổi lịch
+                            Lý do đổi lịch <span className="text-red-500">*</span>
                         </label>
                         <textarea
                             name="reason"
-                            rows={2}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                            placeholder="Nhập lý do..."
+                            rows={3}
+                            className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 outline-none transition-all resize-none ${
+                                errors.reason ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                            }`}
+                            placeholder="Nhập lý do đổi lịch..."
                         />
+                        {errors.reason && <p className="text-xs text-red-500 mt-1">{errors.reason}</p>}
                     </div>
 
                     <div className="flex justify-end gap-2 pt-4 border-t">
                         <button
                             type="button"
-                            onClick={onClose}
-                            className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                            onClick={handleClose}
+                            className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
                         >
                             Hủy
                         </button>
                         <button
                             type="submit"
-                            className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
+                            className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors shadow-sm font-medium"
                         >
                             Xác nhận đổi lịch
                         </button>

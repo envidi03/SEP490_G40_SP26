@@ -67,13 +67,13 @@ exports.getMedicines = async ({ page = 1, limit = 10, search, category, statusFi
     const limitNum = parseInt(limit);
 
     const [medicines, totalCount] = await Promise.all([
-        model.Medicine.find(query)
+        Medicine.find(query)
             .select("medicine_name category manufacturer price quantity expiry_date selling_unit base_unit dosage_form status")
             .populate("category", "name")
             .sort({ createdAt: -1 })
             .skip(skip)
             .limit(limitNum),
-        model.Medicine.countDocuments(query)
+        Medicine.countDocuments(query)
     ]);
 
     return {
