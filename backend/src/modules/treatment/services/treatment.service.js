@@ -27,6 +27,7 @@ const getByIdService = async (id) => {
 
         const treatment = await model.Treatment.findById(id)
             .populate("medicine_usage.medicine_id")
+            .populate("record_id")
             .lean();
 
         if (!treatment) {
@@ -227,14 +228,16 @@ const getListTreatementWithAppointmentNull = async (query) => {
         // 1. Chuẩn hóa tham số query
         const search = query.search?.trim();
         const filterDate = query.filter_date;
-        const sortOrder = query.sort === "asc" ? 1 : -1; 
+        const filterStatus = query.status || "PLANNED";
+        const sortOrder = query.sort === "desc" ? -1 : 1; 
         const page = Math.max(1, parseInt(query.page || 1));
         const limit = Math.max(1, parseInt(query.limit || 10));
         const skip = (page - 1) * limit;
 
         // 2. Điều kiện Match ở vòng 1 (Lọc ngay trên bảng Treatment)
         const initialMatch = {
-            appointment_id: null
+            appointment_id: null,
+            status: filterStatus
         };
 
         if (filterDate) {

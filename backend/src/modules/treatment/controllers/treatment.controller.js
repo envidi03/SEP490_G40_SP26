@@ -311,7 +311,7 @@ const getListTreatementWithAppointmentNull = async (req, res) => {
     // if null, default get 3 days later
     if (!queryParams.filter_date) {
       const targetDate = new Date();
-      targetDate.setDate(targetDate.getDate() + 3); 
+      targetDate.setDate(targetDate.getDate() + 6); 
       
       queryParams.filter_date = targetDate;
     }
