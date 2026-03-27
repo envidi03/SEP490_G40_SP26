@@ -27,6 +27,7 @@ const getByIdService = async (id) => {
 
         const treatment = await model.Treatment.findById(id)
             .populate("medicine_usage.medicine_id")
+            .populate("record_id")
             .lean();
 
         if (!treatment) {
@@ -227,20 +228,29 @@ const getListTreatementWithAppointmentNull = async (query) => {
         // 1. Chuẩn hóa tham số query
         const search = query.search?.trim();
         const filterDate = query.filter_date;
-        const sortOrder = query.sort === "asc" ? 1 : -1; 
+        const filterStatus = query.status || "PLANNED";
+        const sortOrder = query.sort === "desc" ? -1 : 1; 
         const page = Math.max(1, parseInt(query.page || 1));
         const limit = Math.max(1, parseInt(query.limit || 10));
         const skip = (page - 1) * limit;
 
         // 2. Điều kiện Match ở vòng 1 (Lọc ngay trên bảng Treatment)
         const initialMatch = {
-            appointment_id: null
+            appointment_id: null,
+            status: filterStatus
         };
 
         if (filterDate) {
+            const startOfToday = new Date(); 
+            startOfToday.setUTCHours(0, 0, 0, 0);
+
             const endOfDay = new Date(filterDate);
             endOfDay.setUTCHours(23, 59, 59, 999);
-            initialMatch.planned_date = { $lte: endOfDay };
+
+            initialMatch.planned_date = { 
+                $gte: startOfToday, 
+                $lte: endOfDay 
+            };
         }
 
         // 3. Xây dựng Aggregation Pipeline
@@ -370,10 +380,40 @@ const getListTreatementWithAppointmentNull = async (query) => {
     }
 };
 
+const addAppointmentIdOnTreatment = async (treatmentId, appointmentId, session) => {
+    const context = "TreatmentService.AddAppointmentIdOnTreatment";
+    try {
+        const treatmentUpdate = await model.Treatment.findByIdAndUpdate(
+            treatmentId,
+            { appointment_id: appointmentId, phase: 'SESSION' },
+            { new: true, session: session } 
+        );
+        
+        if (!treatmentUpdate) {
+            throw new errorRes.NotFoundError("Can't find treatment by id to update.");
+        }
+        
+        return treatmentUpdate;
+    } catch (error) {
+        logger.error("Error cannot add appointment_id into treatment", {
+            context: context,
+            treatmentId: treatmentId,
+            appointmentId: appointmentId,
+            error: error.message,
+            stack: error.stack
+        });
+        if (error.statusCode) {
+            throw error;
+        }
+        throw new errorRes.InternalServerError("Error cannot add appointment_id on treatment.");
+    }
+}
+
 module.exports = {
     getByIdService,
     createService,
     updateService,
     updateStatusOnly,
     getListTreatementWithAppointmentNull,
+    addAppointmentIdOnTreatment
 };

@@ -4,7 +4,8 @@ const mongoose = require("mongoose");
 
 const PatientModel = require("../../../modules/patient/model/patient.model");
 const AppointmentModel = require("./../models/appointment.model");
-const { model: ServiceModel } = require("../../service/index")
+const { model: ServiceModel } = require("../../service/index");
+const {service: DentisService} = require ("../../treatment/index")
 
 const emailService = require("../../../common/service/email.service");
 const notificationService = require("../../notification/service/notification.service");
@@ -780,16 +781,21 @@ const getListOfPatientServiceWithDate = async (query, account_id) => {
 };
 
 const createService = async (dataCreate, account_id) => {
+    // 1. KHỞI TẠO TRANSACTION SESSION
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
     try {
         logger.debug("raw data to create", {
             context: "appointmentService.createService",
             dataCreate: dataCreate,
-            account_id, account_id
+            account_id: account_id // Sửa lại lỗi type account_id ở đây
         });
+
         // Tìm Patient profile từ account_id của user đang đăng nhập
-        const patient = await PatientModel.findOne({ account_id: account_id });
+        const patient = await PatientModel.findOne({ account_id: account_id }).session(session);
         if (!patient) {
-            logger.warn("Pation notfound", {
+            logger.warn("Patient not found", {
                 context: "appointmentService.createService",
                 account_id: account_id,
                 patient: patient
@@ -797,47 +803,58 @@ const createService = async (dataCreate, account_id) => {
             throw new errorRes.NotFoundError("No patient records were found linked to this account. Please update your records.");
         }
         dataCreate.patient_id = patient._id;
-        // check duplicate appointment by 'full_name', 'phone', 'email',  'appointment_date', 'appointment_time'
+
+        // check duplicate appointment
         const duplicateQuery = {
             full_name: dataCreate.full_name,
             phone: dataCreate.phone,
             email: dataCreate.email,
             appointment_date: dataCreate.appointment_date,
             appointment_time: dataCreate.appointment_time,
-            status: { $nin: ['CANCELLED', 'NO_SHOW'] } // Bỏ qua lịch đã hủy
+            status: { $nin: ['CANCELLED', 'NO_SHOW'] } 
         };
-        const isDuplicatePatient = await AppointmentModel.findOne(duplicateQuery);
+        const isDuplicatePatient = await AppointmentModel.findOne(duplicateQuery).session(session);
         if (isDuplicatePatient) {
             throw new Error(`Patient ${dataCreate.full_name} already has an appointment scheduled for ${dataCreate.appointment_time}. Please do not book a duplicate appointment.`);
         }
+
         // check id service
         if (dataCreate.book_service && Array.isArray(dataCreate.book_service)) {
             for (const service of dataCreate.book_service) {
                 const [serviceExist, subServiceExist] = await Promise.all([
-                    ServiceModel.findById(service.service_id),
-                    service.sub_service_id ? mongoose.model("SubService").findById(service.sub_service_id) : Promise.resolve(true)
+                    ServiceModel.findById(service.service_id).session(session),
+                    service.sub_service_id ? mongoose.model("SubService").findById(service.sub_service_id).session(session) : Promise.resolve(true)
                 ]);
 
                 if (!serviceExist) {
-                    logger.warn(`ID service not found: ${service.service_id}`, {
-                        context: "AppointmentService.createService",
-                        account_id: account_id,
-                        service_id: service.service_id
-                    });
                     throw new errorRes.NotFoundError(`Service not found! ID: ${service.service_id}`);
                 }
-
                 if (!subServiceExist) {
-                    logger.warn(`ID sub-service not found: ${service.sub_service_id}`, {
-                        context: "AppointmentService.createService",
-                        sub_service_id: service.sub_service_id
-                    });
                     throw new errorRes.NotFoundError(`Sub-service not found! ID: ${service.sub_service_id}`);
                 }
             }
         }
-        // Tạo lịch hẹn mới
-        const newAppointment = await AppointmentModel.create(dataCreate);
+
+        // 2. TẠO LỊCH HẸN MỚI (TRONG TRANSACTION)
+        const {treatment_id, ...rest} = dataCreate;
+        
+        // Lưu ý: Dùng create với session yêu cầu truyền vào mảng []
+        const [newAppointment] = await AppointmentModel.create([rest], { session });
+
+        // 3. CẬP NHẬT TREATMENT (TRONG TRANSACTION)
+        if (treatment_id) {
+            // Truyền `session` vào hàm này để đảm bảo cùng 1 transaction
+            await DentisService.treatment.addAppointmentIdOnTreatment(treatment_id, newAppointment._id, session);
+        }
+
+        // 4. CHỐT GIAO DỊCH (Lưu vĩnh viễn vào DB)
+        await session.commitTransaction();
+        session.endSession();
+
+        // ==========================================================
+        // CHỈ GỬI EMAIL VÀ THÔNG BÁO SAU KHI GIAO DỊCH ĐÃ THÀNH CÔNG
+        // ==========================================================
+
         // --- 5. GỬI EMAIL XÁC NHẬN ĐẶT LỊCH (Fire and Forget) ---
         if (newAppointment.email) {
             const formattedDate = new Date(newAppointment.appointment_date).toLocaleDateString('vi-VN');
@@ -850,7 +867,7 @@ const createService = async (dataCreate, account_id) => {
         }
 
         // --- 6. GỬI THÔNG BÁO NỘI BỘ (In-app Notification) ---
-        const formattedDate = new Date(newAppointment.appointment_date).toLocaleDateString('vi-VN');
+        const formattedDateNoti = new Date(newAppointment.appointment_date).toLocaleDateString('vi-VN');
         const appointmentTime = newAppointment.appointment_time;
         const patientName = newAppointment.full_name;
 
@@ -858,7 +875,7 @@ const createService = async (dataCreate, account_id) => {
         notificationService.sendToRole(['receptionist', 'admin'], {
             type: 'NEW_APPOINTMENT',
             title: 'Lịch hẹn mới',
-            message: `Lịch hẹn mới: ${patientName} vào lúc ${appointmentTime} ngày ${formattedDate}`,
+            message: `Lịch hẹn mới: ${patientName} vào lúc ${appointmentTime} ngày ${formattedDateNoti}`,
             action_url: `/receptionist/appointments?id=${newAppointment._id}`,
             metadata: {
                 entity_id: newAppointment._id,
@@ -870,24 +887,34 @@ const createService = async (dataCreate, account_id) => {
         notificationService.sendToUser(account_id, {
             type: 'NEW_APPOINTMENT',
             title: 'Đặt lịch thành công',
-            message: `Đặt lịch thành công! Lịch hẹn của bạn vào lúc ${appointmentTime} ngày ${formattedDate} đã được ghi nhận.`,
+            message: `Đặt lịch thành công! Lịch hẹn của bạn vào lúc ${appointmentTime} ngày ${formattedDateNoti} đã được ghi nhận.`,
             action_url: `/patient/appointments`,
             metadata: {
                 entity_id: newAppointment._id,
                 entity_type: 'APPOINTMENT'
             }
         }).catch(err => logger.error("Lỗi gửi thông báo cho bệnh nhân:", err.message));
+
         return newAppointment;
+
     } catch (error) {
+        await session.abortTransaction();
+        session.endSession();
         logger.error("Error at create new appointment.", {
             message: error.message,
             stack: error.stack,
         });
+        if (error.statusCode) {
+            throw error;
+        }
         throw new errorRes.InternalServerError(`Error: ${error.message}`);
     }
 };
 
 const staffCreateService = async (dataCreate) => {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
     try {
         logger.debug("Raw data to create", {
             context: "AppointmentService.staffCreateService",
@@ -902,7 +929,7 @@ const staffCreateService = async (dataCreate) => {
             appointment_time: dataCreate.appointment_time,
             status: { $nin: ['CANCELLED', 'NO_SHOW', 'COMPLETED'] }
         };
-        const isDuplicatePatient = await AppointmentModel.findOne(duplicateQuery);
+        const isDuplicatePatient = await AppointmentModel.findOne(duplicateQuery).session(session);
         if (isDuplicatePatient) {
             throw new errorRes.ConflictError(`Patient ${dataCreate.full_name} already has an appointment scheduled for ${dataCreate.appointment_time}.`);
         }
@@ -911,8 +938,8 @@ const staffCreateService = async (dataCreate) => {
         if (dataCreate.book_service && Array.isArray(dataCreate.book_service)) {
             for (const service of dataCreate.book_service) {
                 const [serviceExist, subServiceExist] = await Promise.all([
-                    ServiceModel.findById(service.service_id),
-                    service.sub_service_id ? mongoose.model("SubService").findById(service.sub_service_id) : Promise.resolve(true)
+                    ServiceModel.findById(service.service_id).session(session),
+                    service.sub_service_id ? mongoose.model("SubService").findById(service.sub_service_id).session(session) : Promise.resolve(true)
                 ]);
 
                 if (!serviceExist) {
@@ -933,17 +960,38 @@ const staffCreateService = async (dataCreate) => {
             }
         }
 
-        // 3. (Quan trọng) Hỗ trợ cấp STT nếu lễ tân tạo lịch hẹn đến thẳng phòng khám
+        // 3. Hỗ trợ cấp STT nếu lễ tân tạo lịch hẹn đến thẳng phòng khám
         if (dataCreate.status === "CHECKED_IN") {
             const nextNumber = await AppointmentModel.getNextQueueNumber(dataCreate.appointment_date);
             dataCreate.queue_number = nextNumber;
         }
 
-        // 4. Tạo lịch hẹn mới
-        const newAppointment = await AppointmentModel.create(dataCreate);
+        const {treatment_id, ...rest} = dataCreate;
+        if (treatment_id) {
+            rest.status = "SCHEDULED";
+        }
+        logger.debug("data create appointment", {
+            contex: "AppointmentService.staffCreateService",
+            data: rest,
+        })
+        const [newAppointment] = await AppointmentModel.create([rest], { session });
+        logger.debug("data after create appointment", {
+            contex: "AppointmentService.staffCreateService",
+            data: newAppointment,
+        })
+        if (treatment_id) {
+            await DentisService.treatment.addAppointmentIdOnTreatment(treatment_id, newAppointment._id, session);
+        }
+
+        await session.commitTransaction();
+        session.endSession();
+
         return newAppointment;
 
     } catch (error) {
+        await session.abortTransaction();
+        session.endSession();
+
         logger.error("Error at staff create new appointment.", {
             context: "AppointmentService.staffCreateService",
             message: error.message,
