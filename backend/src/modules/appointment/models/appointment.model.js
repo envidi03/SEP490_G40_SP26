@@ -76,7 +76,11 @@ const appointmentSchema = new Schema(
                     min: 0
                 }
             }
-        ]
+        ], 
+        priority: {
+            type: Number,
+            default: 2, // 1: Cao, 2: Bình thường, 3: Thấp
+        }
     },
     {
         timestamps: true,
