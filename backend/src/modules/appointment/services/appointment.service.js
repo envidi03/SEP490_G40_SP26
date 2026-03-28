@@ -1153,17 +1153,6 @@ const updateStatusOnly = async (id, status, doctorId = null) => {
                 { new: true }
             );
 
-            // TỰ ĐỘNG: Tạo hóa đơn khi hoàn thành lịch hẹn
-            if (status === "COMPLETED" && oldAppt.status !== "COMPLETED" && newData) {
-                try {
-                    const InvoiceService = require('../../billing/service/invoice.service');
-                    InvoiceService.autoCreateInvoiceFromAppointment(id).catch(err => 
-                        logger.error("Error auto-creating invoice on completion:", { message: err.message })
-                    );
-                } catch (invoiceErr) {
-                    logger.error("Failed to trigger auto-invoice creation:", { message: invoiceErr.message });
-                }
-            }
 
             // Gửi thông báo In-App nếu Lịch hẹn bị Khách hàng hoặc Lễ tân hủy / Bệnh nhân không đến
             if ((status === "CANCELLED" || status === "NO_SHOW") && newData) {

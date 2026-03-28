@@ -6,6 +6,7 @@ import Toast from '../../components/ui/Toast';
 import InvoiceDetailModal from './components/modals/InvoiceDetailModal';
 import CreateInvoiceModal from './components/modals/CreateInvoiceModal';
 import PaymentModal from './components/modals/PaymentModal';
+import PaymentMethodModal from './components/modals/PaymentMethodModal';
 import billingService from '../../services/billingService';
 
 const ReceptionistInvoices = () => {
@@ -23,6 +24,7 @@ const ReceptionistInvoices = () => {
     const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+    const [isMethodModalOpen, setIsMethodModalOpen] = useState(false);
     const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
 
     const fetchData = async () => {
@@ -87,17 +89,26 @@ const ReceptionistInvoices = () => {
         }
     };
 
-    const handlePayment = async (invoice) => {
-        if (invoice.payment_method === 'TRANSFER') {
-            setSelectedInvoice(invoice);
+    const handlePayment = (invoice) => {
+        setSelectedInvoice(invoice);
+        setIsMethodModalOpen(true);
+    };
+
+    const handleMethodSelect = async (method) => {
+        setIsMethodModalOpen(false);
+        const invoice = selectedInvoice;
+        if (!invoice) return;
+
+        if (method === 'TRANSFER') {
             setIsPaymentModalOpen(true);
             return;
         }
 
-        // CASH flow (keep existing simple update or add more confirmation)
+        // CASH flow
         try {
             await billingService.updateInvoiceStatus(invoice._id || invoice.id, { 
                 status: 'COMPLETED', 
+                payment_method: 'CASH',
                 note: 'Thanh toán tiền mặt' 
             });
             setToast({ 
@@ -351,6 +362,14 @@ const ReceptionistInvoices = () => {
                     setToast({ show: true, message: 'Thanh toán qua QR đã được xác nhận!', type: 'success' });
                     fetchData();
                 }}
+            />
+
+            {/* Modal Chọn phương thức thanh toán */}
+            <PaymentMethodModal
+                isOpen={isMethodModalOpen}
+                invoice={selectedInvoice}
+                onClose={() => setIsMethodModalOpen(false)}
+                onSelect={handleMethodSelect}
             />
 
             <Toast

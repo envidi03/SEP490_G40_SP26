@@ -9,7 +9,7 @@ const debugLog = (msg) => {
         const logPath = path.join(__dirname, "../../../../debug.log");
         const timestamp = new Date().toISOString();
         fs.appendFileSync(logPath, `[${timestamp}] ${msg}\n`);
-    } catch (e) {}
+    } catch (e) { }
 };
 
 const model = require("../models/index.model");
@@ -156,7 +156,7 @@ const updateService = async (treatmentId, data) => {
                 if (targetAppointmentId) {
                     debugLog(`Attempting to complete appt: ${targetAppointmentId}`);
                     console.log('[DEBUG-HARD] Found targetAppointmentId:', targetAppointmentId);
-                    
+
                     // Dùng trực tiếp Model để tránh circular dependency với AppointmentService
                     const updatedAppt = await AppointmentModel.findOneAndUpdate(
                         {
@@ -174,20 +174,8 @@ const updateService = async (treatmentId, data) => {
                     } else {
                         debugLog(`SUCCESS! Appt ${targetAppointmentId} is now COMPLETED.`);
                         console.log('[DEBUG-HARD] Auto-complete appointment SUCCESS. Status:', updatedAppt.status);
-                        
-                        // Tự động tạo hóa đơn nháp (PENDING) nếu appointment vừa được hoàn thành
-                        try {
-                            const InvoiceService = require('../../billing/service/invoice.service');
-                            InvoiceService.autoCreateInvoiceFromAppointment(targetAppointmentId).catch(err => {
-                                debugLog(`Auto-invoice error: ${err.message}`);
-                                logger.error("Auto-invoice creation failed:", { message: err.message });
-                            });
-                        } catch (invErr) {
-                            debugLog(`Failed to load InvoiceService: ${invErr.message}`);
-                            logger.error("Failed to require InvoiceService:", { message: invErr.message });
-                        }
                     }
-                    
+
                     logger.info("Auto-complete appointment result", {
                         context,
                         treatmentId,

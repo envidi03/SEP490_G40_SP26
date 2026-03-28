@@ -96,9 +96,28 @@ const CreateInvoiceModal = ({ isOpen, onClose, onSuccess, initialPatient }) => {
             setServices(servicesRes?.data?.data || servicesRes?.data || []);
 
             const aptList = aptRes?.data?.data || aptRes?.data || [];
-            // Preference for COMPLETED or IN_CONSULTATION appointments, as they are likely to be billed
-            setAppointments(aptList);
-            setFilteredAppointments(aptList.slice(0, 10));
+            const today = new Date().toISOString().split('T')[0];
+            
+            // Lọc các lịch hẹn: 
+            // 1. Phải là Đang khám hoặc Hoàn thành (hoặc Đã check-in)
+            // 2. Ưu tiên ngày hôm nay
+            const billableApts = aptList.filter(apt => {
+                const isStatusMatch = ['IN_CONSULTATION', 'COMPLETED', 'CHECKED_IN'].includes(apt.status);
+                return isStatusMatch;
+            }).sort((a, b) => {
+                const dateA = a.appointment_date.split('T')[0];
+                const dateB = b.appointment_date.split('T')[0];
+                
+                // Nếu là ngày hôm nay, cho lên đầu
+                if (dateA === today && dateB !== today) return -1;
+                if (dateA !== today && dateB === today) return 1;
+                
+                // Sau đó mới đến ngày gần nhất
+                return new Date(b.appointment_date) - new Date(a.appointment_date);
+            });
+
+            setAppointments(billableApts);
+            setFilteredAppointments(billableApts.slice(0, 10));
         } catch (err) {
             console.error('Error fetching data for invoice modal:', err);
             setError('Không thể tải dữ liệu dịch vụ hoặc lịch hẹn.');
@@ -276,20 +295,39 @@ const CreateInvoiceModal = ({ isOpen, onClose, onSuccess, initialPatient }) => {
 
                                         {/* Dropdown Results */}
                                         {filteredAppointments.length > 0 && (
-                                            <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                                            <div className="absolute z-[70] mt-1 w-full bg-white border border-slate-200 rounded-2xl shadow-2xl max-h-72 overflow-y-auto animate-in fade-in slide-in-from-top-2 duration-200 custom-scrollbar">
                                                 {filteredAppointments.map(apt => (
                                                     <div
                                                         key={apt._id}
                                                         onClick={() => setSelectedApt(apt)}
-                                                        className="p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-50 last:border-0 flex justify-between items-center"
+                                                        className="p-4 hover:bg-blue-50 cursor-pointer border-b border-slate-50 last:border-0 flex justify-between items-center transition-colors group"
                                                     >
-                                                        <div>
-                                                            <p className="font-medium text-gray-900 text-sm">{apt.full_name}</p>
-                                                            <p className="text-xs text-gray-500">{apt.phone}</p>
+                                                        <div className="flex items-center gap-3">
+                                                            <div className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-400 group-hover:bg-blue-600 group-hover:text-white transition-colors font-bold text-sm">
+                                                                {apt.full_name?.charAt(0) || 'U'}
+                                                            </div>
+                                                            <div>
+                                                                <p className="font-black text-slate-800 text-sm group-hover:text-blue-700">{apt.full_name}</p>
+                                                                <p className="text-[11px] font-bold text-slate-400">{apt.phone}</p>
+                                                            </div>
                                                         </div>
-                                                        <div className="text-right text-xs text-gray-500">
-                                                            <p>{new Date(apt.appointment_date).toLocaleDateString('vi-VN')}</p>
-                                                            <p className="text-primary-600 font-medium">{apt.status}</p>
+                                                        <div className="text-right">
+                                                            <p className={`text-[11px] font-black px-2 py-0.5 rounded-md inline-block mb-1 ${
+                                                                apt.appointment_date.split('T')[0] === new Date().toISOString().split('T')[0]
+                                                                ? 'bg-blue-600 text-white' 
+                                                                : 'bg-slate-100 text-slate-500'
+                                                            }`}>
+                                                                {apt.appointment_date.split('T')[0] === new Date().toISOString().split('T')[0] ? 'Hôm nay' : new Date(apt.appointment_date).toLocaleDateString('vi-VN')}
+                                                            </p>
+                                                            <div className={`text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md ${
+                                                                apt.status === 'COMPLETED' ? 'bg-green-100 text-green-600' : 
+                                                                apt.status === 'IN_CONSULTATION' ? 'bg-blue-100 text-blue-600' :
+                                                                'bg-amber-100 text-amber-600'
+                                                            }`}>
+                                                                {apt.status === 'COMPLETED' ? 'Hoàn thành' : 
+                                                                 apt.status === 'IN_CONSULTATION' ? 'Đang khám' :
+                                                                 'Đã check-in'}
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 ))}

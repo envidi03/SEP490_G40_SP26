@@ -220,7 +220,7 @@ const createInvoice = async (data) => {
     }
 };
 
-const updateInvoiceStatus = async (id, status, note, updated_by) => {
+const updateInvoiceStatus = async (id, status, note, updated_by, payment_method) => {
     try {
         if (!['COMPLETED', 'CANCELLED'].includes(status)) {
             throw new errorRes.BadRequestError('Status must be COMPLETED or CANCELLED');
@@ -237,8 +237,10 @@ const updateInvoiceStatus = async (id, status, note, updated_by) => {
 
         // Cập nhật trạng thái
         invoice.status = status;
+        if (payment_method) {
+            invoice.payment_method = payment_method;
+        }
         if (note !== undefined) invoice.note = note;
-        // Có thể lưu thêm người cập nhật nếu sau này model Invoice có field updated_by
 
         await invoice.save();
 
@@ -366,9 +368,9 @@ const autoCreateInvoiceFromAppointment = async (appointmentId) => {
         };
 
         const newInvoice = await createInvoice(invoiceData);
-        logger.info('Auto-created invoice successfully', { 
-            context, 
-            appointmentId, 
+        logger.info('Auto-created invoice successfully', {
+            context,
+            appointmentId,
             invoiceId: newInvoice._id,
             invoiceCode: newInvoice.invoice_code
         });
@@ -386,11 +388,11 @@ const autoCreateInvoiceFromAppointment = async (appointmentId) => {
     }
 };
 
-module.exports = { 
-    getListInvoice, 
-    getInvoiceById, 
-    createInvoice, 
-    updateInvoiceStatus, 
+module.exports = {
+    getListInvoice,
+    getInvoiceById,
+    createInvoice,
+    updateInvoiceStatus,
     getInvoiceStats,
-    autoCreateInvoiceFromAppointment 
+    autoCreateInvoiceFromAppointment
 };
