@@ -5,7 +5,6 @@ const { cleanObjectData } = require("../../../common/utils/cleanObjectData");
 
 const ServiceProcess = require("../services/treatment.service");
 const dentalService = require("../services/dental.record.service");
-const appointmentService = require("../../appointment/services/appointment.service");
 const { checkRequiredFields } = require("../../../utils/checkRequiredFields");
 const mongoose = require("mongoose");
 
@@ -61,13 +60,6 @@ const createController = async (req, res) => {
     const { id: dentalRecordId } = req.params;
 
     const cleanedData = cleanObjectData(req.body || {});
-
-    logger.debug("Create new treatment request received", {
-      context: context,
-      dentalRecordId: dentalRecordId,
-      bodyData: cleanedData,
-    });
-
     if (!dentalRecordId) {
       throw new errorRes.BadRequestError("Dental record ID is required in URL");
     }
@@ -106,10 +98,16 @@ const createController = async (req, res) => {
       - Nếu appointment tồn tại nhưng patient_id của appointment không khớp với patient_id của dental record, 
       trả về lỗi BadRequest (vì treatment phải liên quan đến một cuộc hẹn của cùng một bệnh nhân)
     */
+    const requiredFields = ["record_id", "patient_id", "doctor_id", "phase"];
     if (cleanedData.phase === "SESSION") {
-      const appointment = await appointmentService.findById(
-        cleanedData.appointment_id ? cleanedData.appointment_id : dental.appointment_id
-      );
+      const appointmentService = require("../../appointment/services/appointment.service");
+      const appointmentId = cleanedData.appointment_id || dental.appointment_id;
+      const appointment = await appointmentService.findById(appointmentId);
+      logger.debug("Fetched appointment for treatment creation", {
+        context,
+        appointmentId,
+        appointment,
+      });
       if (!appointment) {
         logger.warn("Appointment not found for given ID", {
           context,
@@ -132,12 +130,16 @@ const createController = async (req, res) => {
         );
       }
       cleanedData.doctor_id = appointment.doctor_id;
-    }
-
-    const requiredFields = ["record_id", "patient_id", "doctor_id", "phase"];
-    if (cleanedData.phase === "SESSION") {
+      cleanedData.appointment_id = appointment._id;
       requiredFields.push("appointment_id");
     }
+
+    logger.debug("Create new treatment request received", {
+      context: context,
+      requiredFields: requiredFields,
+      dentalRecordId: dentalRecordId,
+      bodyData: cleanedData,
+    });
 
     checkRequiredFields(requiredFields, cleanedData, this, "createController");
     const newTreatment = await ServiceProcess.createService(cleanedData);

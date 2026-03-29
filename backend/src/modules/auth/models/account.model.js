@@ -66,6 +66,15 @@ const accountSchema = new Schema(
                 message: 'Số điện thoại không hợp lệ (phải là 10 số bắt đầu bằng 0 hoặc +84)'
             }
         },
+
+        // Zalo User ID — lấy tự động qua Webhook khi người dùng Follow OA
+        // Dùng để gửi tin nhắn OA thông thường (không cần OA xác thực như ZNS)
+        zalo_user_id: {
+            type: String,
+            default: null,
+            sparse: true,
+            index: true,
+        },
     },
     { timestamps: true, collection: "accounts" }
 );
