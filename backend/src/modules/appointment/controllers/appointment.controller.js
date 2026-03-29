@@ -585,6 +585,35 @@ const checkinController = async (req, res) => {
   }
 };
 
+const getListAppointmentToPaymentController = async (req, res) => {
+  const context = "AppointmentController.getListAppointmentToPaymentController";
+  try {
+    const queryParams = req.query;
+    logger.debug("Get list appointment to payment request received", {
+      context: context,
+      query: queryParams,
+    });
+    const { data, pagination } = await ServiceProcess.getListAppointmentToPayment(queryParams);
+    const paginationData = new Pagination({
+      page: pagination.page,
+      size: pagination.size,
+      totalItems: pagination.totalItems,
+    });
+    return new successRes.GetListSuccess(
+      data,
+      paginationData,
+      "Appointments for payment retrieved successfully",
+    ).send(res);
+  } catch (error) {
+    logger.error("Error get list appointment to payment", {
+      context: context,
+      message: error.message,
+      stack: error.stack,
+    });
+    throw error;
+  }
+};
+
 module.exports = {
   getListOfPatientController,
   getListController,
@@ -597,4 +626,5 @@ module.exports = {
   getListOfPatientControllerWithDate,
   getListOfDoctorController,
   calculateTotalAmountFromAppointment,
+  getListAppointmentToPaymentController
 };

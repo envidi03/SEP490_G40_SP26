@@ -1,18 +1,11 @@
 import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { createDentalRecord } from '../../../services/dentalRecordService';
+import appointmentService from '../../../services/appointmentService';
 
 /**
  * CreateDentalRecordModal
  * POST /api/dentist/dental-record/:patientId
- *
- * Props:
- *   isOpen        – bool
- *   onClose       – callback
- *   onSuccess(record) – callback khi tạo thành công
- *   patientId     – string  (ID bệnh nhân đã chọn)
- *   patientName   – string
- *   patientPhone  – string
  */
 const CreateDentalRecordModal = ({
     isOpen,
@@ -41,11 +34,13 @@ const CreateDentalRecordModal = ({
         end_date: '',
     });
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isLoadingAmount, setIsLoadingAmount] = useState(false);
     const [error, setError] = useState(null);
 
-    // Reset form với thông tin bệnh nhân mỗi khi modal mở
+    // Reset form và fetch total_amount mỗi khi modal mở
     useEffect(() => {
         if (isOpen) {
+            // 1. Khởi tạo form với thông tin bệnh nhân có sẵn
             setForm({
                 appointment_id: appointmentId,
                 full_name: patientName,
@@ -56,13 +51,38 @@ const CreateDentalRecordModal = ({
                 record_name: '',
                 diagnosis: '',
                 tooth_status: '',
-                total_amount: '',
+                total_amount: '', // Sẽ được update sau khi gọi API
                 start_date: new Date().toISOString().split('T')[0],
                 end_date: '',
             });
             setError(null);
+
+            // 2. Fetch total_amount nếu có appointmentId
+            if (appointmentId) {
+                const fetchTotalAmount = async () => {
+                    setIsLoadingAmount(true);
+                    try {
+                        const res = await appointmentService.calculatorTotalAmount(appointmentId);
+                        // Xử lý mapping dựa theo format JSON được cung cấp
+                        // Giả sử dùng Axios: res.data sẽ là body response JSON
+                        const amount = res?.data?.data?.totalAmount || 0;
+                        
+                        setForm(prev => ({
+                            ...prev,
+                            total_amount: amount
+                        }));
+                    } catch (err) {
+                        console.error('Lỗi khi tính tổng tiền:', err);
+                        // Có thể hiển thị error hoặc giữ nguyên field trống cho user tự điền
+                    } finally {
+                        setIsLoadingAmount(false);
+                    }
+                };
+
+                fetchTotalAmount();
+            }
         }
-    }, [isOpen, patientId, patientName, patientPhone, patientEmail, patientGender, patientDateOfBirth]);
+    }, [isOpen, appointmentId, patientId, patientName, patientPhone, patientEmail, patientGender, patientDateOfBirth]);
 
     if (!isOpen) return null;
 
@@ -80,7 +100,6 @@ const CreateDentalRecordModal = ({
                 full_name: form.full_name.trim(),
                 phone: form.phone.trim() || undefined,
                 email: form.email.trim() || undefined,
-                // DB stores gender as boolean: true = Nam (MALE), false = Nữ (FEMALE)
                 gender: form.gender === 'MALE' ? true : form.gender === 'FEMALE' ? false : undefined,
                 dob: form.dob || undefined,
                 record_name: form.record_name.trim(),
@@ -90,7 +109,7 @@ const CreateDentalRecordModal = ({
                 start_date: form.start_date || undefined,
                 end_date: form.end_date || undefined,
             };
-            // POST /api/dentist/dental-record/:patientId
+            
             const res = await createDentalRecord(patientId, body);
             onSuccess?.(res.data);
             onClose();
@@ -117,10 +136,9 @@ const CreateDentalRecordModal = ({
                     </button>
                 </div>
 
-                {/* Form body (scrollable) */}
+                {/* Form body */}
                 <form id="create-record-form" onSubmit={handleSubmit} className="overflow-y-auto flex-1 px-6 py-5 space-y-5">
-
-                    {/* Section: Thông tin bệnh nhân */}
+                    {/* ... (Phần UI Thông tin bệnh nhân giữ nguyên) ... */}
                     <div>
                         <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
                             Thông tin bệnh nhân
@@ -251,15 +269,21 @@ const CreateDentalRecordModal = ({
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Tổng tiền (VNĐ)</label>
-                                    <input
-                                        type="number"
-                                        name="total_amount"
-                                        min="0"
-                                        value={form.total_amount}
-                                        onChange={handleChange}
-                                        placeholder="0"
-                                        className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-400 focus:bg-white transition"
-                                    />
+                                    <div className="relative">
+                                        <input
+                                            type="number"
+                                            name="total_amount"
+                                            min="0"
+                                            value={form.total_amount}
+                                            onChange={handleChange}
+                                            placeholder={isLoadingAmount ? "Đang tính..." : "0"}
+                                            disabled={isLoadingAmount}
+                                            className={`w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-400 focus:bg-white transition ${isLoadingAmount ? 'opacity-60' : ''}`}
+                                        />
+                                        {isLoadingAmount && (
+                                            <div className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 border-2 border-gray-300 border-t-teal-500 rounded-full animate-spin" />
+                                        )}
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -285,7 +309,7 @@ const CreateDentalRecordModal = ({
                     <button
                         type="submit"
                         form="create-record-form"
-                        disabled={isSubmitting}
+                        disabled={isSubmitting || isLoadingAmount}
                         className="px-6 py-2 rounded-xl bg-teal-500 text-white text-sm font-medium hover:bg-teal-600 disabled:opacity-50 transition"
                     >
                         {isSubmitting ? 'Đang tạo...' : 'Tạo hồ sơ'}

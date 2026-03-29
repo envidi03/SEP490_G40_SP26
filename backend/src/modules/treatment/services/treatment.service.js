@@ -415,5 +415,5 @@ module.exports = {
     updateService,
     updateStatusOnly,
     getListTreatementWithAppointmentNull,
-    addAppointmentIdOnTreatment
+    addAppointmentIdOnTreatment,
 };

@@ -1475,6 +1475,168 @@ const checkDuplicateFullNameAndPhoneAndAppointDateAndAppointTime = async(full_na
     }
 }
 
+/**
+ * to get list appointment to payment with conditions treatment with price > 0 and No have appointment_id on invoices Modal || if have then only get with status invoice is PENDING with filter:
+ * - date_filter: get treatment by planned_date lte date_filter
+ * - status: status of appointment is COMPLETED
+ * - search: search by full_name or phone 
+ * - limit: default 10
+ * - page: default 1
+ * @param {Object} query Object to filter
+ */
+const getListAppointmentToPayment = async (query) => {
+    const context = "AppointmentService.getListAppointmentToPayment";
+    try {
+        logger.debug("Getting list appointment to payment with query", {
+            context,
+            query
+        });
+
+        const { date_filter, search } = query;
+        
+        const page = parseInt(query.page, 10) || 1;
+        const limit = parseInt(query.limit, 10) || 10;
+        const skip = (page - 1) * limit;
+
+        const appointmentMatch = {
+            status: "COMPLETED" 
+        };
+        
+        if (search) {
+            const searchRegex = new RegExp(search, "i");
+            appointmentMatch.$or = [
+                { full_name: searchRegex },
+                { phone: searchRegex }
+            ];
+        }
+
+        const treatmentMatch = {
+            $expr: { $eq: ["$appointment_id", "$$apptId"] }, 
+            price: { $gt: 0 } 
+        };
+        
+        if (date_filter) {
+            const dateStart = new Date();
+            dateStart.setHours(0, 0, 0, 0);
+            
+            const dateEnd = new Date(date_filter);
+            dateEnd.setHours(23, 59, 59, 999);
+            
+            treatmentMatch.planned_date = { 
+                $gte: dateStart, 
+                $lte: dateEnd 
+            };
+        }
+
+        const pipeline = [
+            // B1: Lọc các Appointment thỏa mãn điều kiện cơ bản
+            { $match: appointmentMatch },
+
+            // B2: Lookup toàn bộ hóa đơn của lịch hẹn này
+            {
+                $lookup: {
+                    from: "invoices", 
+                    localField: "_id",
+                    foreignField: "appointment_id",
+                    as: "existing_invoices"
+                }
+            },
+
+            // B3: Xử lý logic TRẠNG THÁI HÓA ĐƠN
+            {
+                $match: {
+                    // 1. Tuyệt đối loại bỏ nếu đã có hóa đơn COMPLETED (đã thanh toán)
+                    "existing_invoices.status": { $ne: "COMPLETED" },
+                    // 2. Thỏa mãn 1 trong 2 điều kiện sau:
+                    $or: [
+                        { "existing_invoices.0": { $exists: false } }, // Chưa có hóa đơn nào (mảng rỗng)
+                        { "existing_invoices.status": "PENDING" }      // Có hóa đơn và trạng thái là PENDING
+                    ]
+                }
+            },
+
+            // B4: Lookup sang bảng treatments với pipeline tùy chỉnh
+            {
+                $lookup: {
+                    from: "treatments", 
+                    let: { apptId: "$_id" },
+                    pipeline: [
+                        { $match: treatmentMatch }
+                    ],
+                    as: "treatments_to_pay"
+                }
+            },
+
+            // B5: Chỉ giữ lại những Appointment CÓ ÍT NHẤT 1 treatment thỏa mãn điều kiện
+            {
+                $match: {
+                    "treatments_to_pay.0": { $exists: true }
+                }
+            },
+
+            // B6: Tính tổng số tiền cần thanh toán
+            {
+                $addFields: {
+                    total_payment_amount: { $sum: "$treatments_to_pay.price" }
+                }
+            },
+
+            // B7: Dọn dẹp payload
+            {
+                $project: {
+                    existing_invoices: 0, // Xóa mảng này đi cho nhẹ payload
+                    __v: 0,
+                    priority: 0,
+                    updatedAt: 0,
+                    "treatments_to_pay.__v": 0,
+                    "treatments_to_pay.createdAt": 0,
+                    "treatments_to_pay.updatedAt": 0
+                }
+            },
+
+            // B8: Sắp xếp theo ngày lịch hẹn giảm dần
+            { $sort: { appointment_date: -1 } },
+
+            // B9: Phân trang sử dụng $facet
+            {
+                $facet: {
+                    metadata: [
+                        { $count: "total" }
+                    ],
+                    data: [
+                        { $skip: skip },
+                        { $limit: limit }
+                    ]
+                }
+            }
+        ];
+
+        const result = await AppointmentModel.aggregate(pipeline);
+
+        const totalItems = result[0].metadata.length > 0 ? result[0].metadata[0].total : 0;
+        const totalPages = Math.ceil(totalItems / limit);
+        const data = result[0].data;
+
+        return {
+            data,
+            pagination: {
+                total_items: totalItems,
+                total_pages: totalPages,
+                current_page: page,
+                limit: limit
+            }
+        };
+
+    } catch (error) {
+        logger.error("Error get list appointment to payment", {
+            context,
+            query,
+            error
+        });
+        throw new errorRes.InternalServerError(`Error get list appointment to payment: ${error.message}`);
+    }
+};
+
 module.exports = {
     getListService,
     getByIdService,
@@ -1488,5 +1650,6 @@ module.exports = {
     findByTreatmentId,
     getListOfPatientServiceWithDate,
     calculateTotalAmount,
-    checkDuplicateFullNameAndPhoneAndAppointDateAndAppointTime
+    checkDuplicateFullNameAndPhoneAndAppointDateAndAppointTime,
+    getListAppointmentToPayment
 };

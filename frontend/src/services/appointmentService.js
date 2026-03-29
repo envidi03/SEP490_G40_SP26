@@ -92,7 +92,18 @@ const appointmentService = {
         } catch (error) {
             throw error;
         }
-    }
+    },
+
+    // Calculator total amount
+    calculatorTotalAmount: async (appointmentId) => {
+        return await apiClient.get(`/api/appointment/amount/${appointmentId}`);
+    },
+
+    // Lấy danh sách cuộc hẹn cần thanh toán (dành cho nhân viên thu ngân)
+    getAppointmentsToPayment: async (params) => {
+        return await apiClient.get('/api/appointment/staff/appointment/payment', { params });
+    },
+    
 };
 
 export default appointmentService;
