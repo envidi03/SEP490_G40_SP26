@@ -647,9 +647,9 @@ const getListAppointmentToPaymentController = async (req, res) => {
     });
     const { data, pagination } = await ServiceProcess.getListAppointmentToPayment(queryParams);
     const paginationData = new Pagination({
-      page: pagination.page,
-      size: pagination.size,
-      totalItems: pagination.totalItems,
+      page: pagination.current_page,
+      size: pagination.limit,
+      totalItems: pagination.total_items,
     });
     return new successRes.GetListSuccess(
       data,

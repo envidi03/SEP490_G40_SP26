@@ -6,7 +6,6 @@ import Toast from '../../components/ui/Toast';
 import InvoiceDetailModal from './components/modals/InvoiceDetailModal';
 import CreateInvoiceModal from './components/modals/CreateInvoiceModal';
 import PaymentModal from './components/modals/PaymentModal';
-import PaymentMethodModal from './components/modals/PaymentMethodModal';
 import billingService from '../../services/billingService';
 import appointmentService from '../../services/appointmentService';
 
@@ -32,7 +31,6 @@ const ReceptionistInvoices = () => {
     const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
-    const [isMethodModalOpen, setIsMethodModalOpen] = useState(false);
     const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
 
     // --- Gọi API lấy dữ liệu ---
@@ -49,12 +47,11 @@ const ReceptionistInvoices = () => {
 
             // 1. Gọi API danh sách lịch hẹn chờ thanh toán
             const res = await appointmentService.getAppointmentsToPayment(params);
-            const responseData = res?.data?.data || res?.data;
-
-            if (responseData) {
-                setAppointmentsToPay(responseData.data || []);
-                if (responseData.pagination) {
-                    setPagination(responseData.pagination);
+            console.log('Danh sách lịch hẹn chờ thanh toán:', res);
+            if (res) {
+                setAppointmentsToPay(res.data || []);
+                if (res.pagination) {
+                    setPagination(res.pagination);
                 }
             }
 
