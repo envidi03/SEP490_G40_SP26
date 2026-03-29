@@ -6,39 +6,9 @@
     "auditLog": "D:\\Respositories\\SEP490_G40_SP26\\backend\\src\\logs\\.f35182cbf82fc176271bae6a5a1329550be868e0-audit.json",
     "files": [
         {
-            "date": 1772627969597,
-            "name": "D:\\Respositories\\SEP490_G40_SP26\\backend\\src\\logs\\application-2026-03-04.log",
-            "hash": "043d0e05d985bf444782b00aea0d7a4fdcf83072609e2210ba9260fcba107d1c"
-        },
-        {
-            "date": 1772700032610,
-            "name": "D:\\Respositories\\SEP490_G40_SP26\\backend\\src\\logs\\application-2026-03-05.log",
-            "hash": "1a0790cd98229d7785fb1c0839f7654808b9284234f8ba4a119497aa0342defb"
-        },
-        {
-            "date": 1772886999725,
-            "name": "D:\\Respositories\\SEP490_G40_SP26\\backend\\src\\logs\\application-2026-03-07.log",
-            "hash": "a3caf2bdcc18edbdfdc41af42bf713c80d6c50de9635a8c2885d3a936f17e1fb"
-        },
-        {
-            "date": 1773017739310,
-            "name": "D:\\Respositories\\SEP490_G40_SP26\\backend\\src\\logs\\application-2026-03-09.log",
-            "hash": "b8043b44ae2f287310ff8eb85c7eacd0e063b993a7a1b608f6c04b3e2f2fda95"
-        },
-        {
-            "date": 1773237599192,
-            "name": "D:\\Respositories\\SEP490_G40_SP26\\backend\\src\\logs\\application-2026-03-11.log",
-            "hash": "274498fc2fd0a545aa63c61a83e83d2df63439668676394d267aaf0dfb432afb"
-        },
-        {
-            "date": 1773497459086,
-            "name": "D:\\Respositories\\SEP490_G40_SP26\\backend\\src\\logs\\application-2026-03-14.log",
-            "hash": "8e6ccc833b51ff6050d0a1b0e68b8a2215a4be561cc471c3c0f6a8229f60d02d"
-        },
-        {
-            "date": 1773538484270,
-            "name": "D:\\Respositories\\SEP490_G40_SP26\\backend\\src\\logs\\application-2026-03-15.log",
-            "hash": "3f54b5a5c65b63c62fba3e6bc42629b7d2a5174d0806c76c04da3f963575cd8e"
+            "date": 1774770071509,
+            "name": "D:\\Respositories\\SEP490_G40_SP26\\backend\\src\\logs\\application-2026-03-29.log",
+            "hash": "74f5e6842b5c9c00df33c1341b2065bc148d559c3cf357ff65abae2a48fbeedc"
         }
     ],
     "hashType": "sha256"
