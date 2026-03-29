@@ -5,7 +5,7 @@ const mongoose = require("mongoose");
 const PatientModel = require("../../../modules/patient/model/patient.model");
 const AppointmentModel = require("./../models/appointment.model");
 const { model: ServiceModel } = require("../../service/index");
-const {service: DentisService} = require ("../../treatment/index")
+const { service: DentisService } = require("../../treatment/index")
 
 const emailService = require("../../../common/service/email.service");
 const notificationService = require("../../notification/service/notification.service");
@@ -35,9 +35,9 @@ const getListService = async (query, doctor_id, lte_date) => {
         // 1. Lấy và chuẩn hóa các tham số
         const search = query.search?.trim();
         const statusFilter = query.status ? query.status.toUpperCase() : null;
-        const filterDoctorId = doctor_id || query.doctor_id; 
-        const filterLteDate = lte_date || query.lte_date;    
-        
+        const filterDoctorId = doctor_id || query.doctor_id;
+        const filterLteDate = lte_date || query.lte_date;
+
         const sortOrder = query.sort === "desc" ? -1 : 1;
         const page = Math.max(1, parseInt(query.page || 1));
         const limit = Math.max(1, parseInt(query.limit || 5));
@@ -59,7 +59,7 @@ const getListService = async (query, doctor_id, lte_date) => {
         // Lọc theo khoảng thời gian <= lte_date
         if (filterLteDate) {
             const endOfDay = new Date(filterLteDate);
-            endOfDay.setUTCHours(23, 59, 59, 999); 
+            endOfDay.setUTCHours(23, 59, 59, 999);
 
             matchCondition.appointment_date = {
                 $lte: endOfDay
@@ -811,7 +811,7 @@ const createService = async (dataCreate, account_id) => {
             email: dataCreate.email,
             appointment_date: dataCreate.appointment_date,
             appointment_time: dataCreate.appointment_time,
-            status: { $nin: ['CANCELLED', 'NO_SHOW'] } 
+            status: { $nin: ['CANCELLED', 'NO_SHOW'] }
         };
         const isDuplicatePatient = await AppointmentModel.findOne(duplicateQuery).session(session);
         if (isDuplicatePatient) {
@@ -836,8 +836,8 @@ const createService = async (dataCreate, account_id) => {
         }
 
         // 2. TẠO LỊCH HẸN MỚI (TRONG TRANSACTION)
-        const {treatment_id, ...rest} = dataCreate;
-        
+        const { treatment_id, ...rest } = dataCreate;
+
         // Lưu ý: Dùng create với session yêu cầu truyền vào mảng []
         const [newAppointment] = await AppointmentModel.create([rest], { session });
 
@@ -883,7 +883,7 @@ const createService = async (dataCreate, account_id) => {
             }
         }).catch(err => logger.error("Lỗi gửi thông báo cho nhân viên:", err.message));
 
-        // Gửi cho Bệnh nhân
+        // Gửi cho Bệnh nhân (in_app + zalo)
         notificationService.sendToUser(account_id, {
             type: 'NEW_APPOINTMENT',
             title: 'Đặt lịch thành công',
@@ -892,6 +892,11 @@ const createService = async (dataCreate, account_id) => {
             metadata: {
                 entity_id: newAppointment._id,
                 entity_type: 'APPOINTMENT'
+            },
+            channels: {
+                in_app: { enabled: true },
+                zalo: { enabled: true },
+                email: { enabled: true }
             }
         }).catch(err => logger.error("Lỗi gửi thông báo cho bệnh nhân:", err.message));
 
@@ -966,7 +971,7 @@ const staffCreateService = async (dataCreate) => {
             dataCreate.queue_number = nextNumber;
         }
 
-        const {treatment_id, ...rest} = dataCreate;
+        const { treatment_id, ...rest } = dataCreate;
         if (treatment_id) {
             rest.status = "SCHEDULED";
         }
@@ -1234,7 +1239,11 @@ const updateStatusOnly = async (id, status, doctorId = null) => {
                             title: 'Lịch hẹn đã được xác nhận',
                             message: `Yêu cầu đổi lịch sang ${newData.appointment_time} ngày ${formattedDate} đã được phòng khám xác nhận.`,
                             action_url: '/appointments',
-                            metadata: { entity_id: newData._id, entity_type: 'APPOINTMENT' }
+                            metadata: { entity_id: newData._id, entity_type: 'APPOINTMENT' },
+                            channels: {
+                                in_app: { enabled: true },
+                                zalo: { enabled: true }
+                            }
                         }).catch(err => logger.error('Lỗi gửi thông báo xác nhận cho bệnh nhân:', err.message));
                     }
                 } else if (isGeneralCancel) {
@@ -1253,7 +1262,11 @@ const updateStatusOnly = async (id, status, doctorId = null) => {
                             title: notifyTitle,
                             message: notifyMsg,
                             action_url: '/appointments',
-                            metadata: { entity_id: newData._id, entity_type: 'APPOINTMENT' }
+                            metadata: { entity_id: newData._id, entity_type: 'APPOINTMENT' },
+                            channels: {
+                                in_app: { enabled: true },
+                                zalo: { enabled: true }
+                            }
                         }).catch(err => logger.error('Lỗi gửi thông báo hủy cho bệnh nhân:', err.message));
                     }
                 }
@@ -1397,10 +1410,10 @@ const findByTreatmentId = async (treatmentId) => {
  */
 const calculateTotalAmount = async (appointmentId) => {
     const context = "AppointmentService.calculateTotalAmount";
-    
+
     try {
         const appointment = await AppointmentModel.findById(appointmentId).lean();
-        
+
         if (!appointment) {
             logger.error("Could not find appointment by id.", {
                 context,
@@ -1409,7 +1422,7 @@ const calculateTotalAmount = async (appointmentId) => {
             return 0;
         }
         const serviceBooking = appointment.book_service || [];
-        
+
         logger.debug("Services found.", {
             context,
             serviceCount: serviceBooking.length,
@@ -1418,7 +1431,7 @@ const calculateTotalAmount = async (appointmentId) => {
 
         const totalAmount = serviceBooking.reduce((total, service) => {
             const price = service.unit_price || 0;
-            return total + price; 
+            return total + price;
         }, 0);
 
         logger.debug("Final total amount calculated.", {
@@ -1444,7 +1457,7 @@ const calculateTotalAmount = async (appointmentId) => {
  * @param {String} appointment_date date booking
  * @param {String} appointment_time time booing
  */
-const checkDuplicateFullNameAndPhoneAndAppointDateAndAppointTime = async(full_name, phone, appointment_date, appointment_time) => {
+const checkDuplicateFullNameAndPhoneAndAppointDateAndAppointTime = async (full_name, phone, appointment_date, appointment_time) => {
     const contex = "AppointmentService.CheckDuplicateFullNameAndPhoneAndAppointDateAndAppointTime";
     try {
         const appointment = await AppointmentModel.findOne({
@@ -1455,9 +1468,9 @@ const checkDuplicateFullNameAndPhoneAndAppointDateAndAppointTime = async(full_na
         });
         logger.debug("Finding appointment.", {
             context: contex,
-            full_name: full_name, 
-            phone: phone, 
-            appointment_date: appointment_date, 
+            full_name: full_name,
+            phone: phone,
+            appointment_date: appointment_date,
             appointment_time: appointment_time,
             appointment: appointment
         });
@@ -1465,9 +1478,9 @@ const checkDuplicateFullNameAndPhoneAndAppointDateAndAppointTime = async(full_na
     } catch (error) {
         logger.error("Erro check duplicate", {
             contex: contex,
-            full_name: full_name, 
-            phone: phone, 
-            appointment_date: appointment_date, 
+            full_name: full_name,
+            phone: phone,
+            appointment_date: appointment_date,
             appointment_time: appointment_time,
             error: error
         });
