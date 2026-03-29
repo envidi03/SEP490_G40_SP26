@@ -36,7 +36,6 @@ const AppointmentFilters = ({
                     >
                         <option value="all">Tất cả</option>
                         <option value="SCHEDULED">Chờ khám</option>
-                        <option value="PENDING_CONFIRMATION">Chờ xác nhận lại</option>
                         <option value="CHECKED_IN">Đã đến</option>
                         <option value="IN_CONSULTATION">Đang khám</option>
                         <option value="COMPLETED">Hoàn thành</option>

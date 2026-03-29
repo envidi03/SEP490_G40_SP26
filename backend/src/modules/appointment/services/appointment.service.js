@@ -34,9 +34,11 @@ const getListService = async (query, doctor_id, lte_date) => {
 
         // 1. Lấy và chuẩn hóa các tham số
         const search = query.search?.trim();
-        const statusFilter = query.status ? query.status.toUpperCase() : null;
-        const filterDoctorId = doctor_id || query.doctor_id;
+        const statusFilter = query.status && query.status !== "all" ? query.status.toUpperCase() : null;
+        const excludeStatus = query.exclude_status ? query.exclude_status.toUpperCase() : null;
+        const filterDoctorId = doctor_id || (query.doctor_id && query.doctor_id !== "all" ? query.doctor_id : null);
         const filterLteDate = lte_date || query.lte_date;
+        const filterSpecificDate = query.appointment_date;
 
         const sortOrder = query.sort === "desc" ? -1 : 1;
         const page = Math.max(1, parseInt(query.page || 1));
@@ -49,6 +51,8 @@ const getListService = async (query, doctor_id, lte_date) => {
         // Lọc theo trạng thái (status)
         if (statusFilter) {
             matchCondition.status = statusFilter;
+        } else if (excludeStatus) {
+            matchCondition.status = { $ne: excludeStatus };
         }
 
         // Lọc theo doctor_id (Ép kiểu về ObjectId)
@@ -63,6 +67,21 @@ const getListService = async (query, doctor_id, lte_date) => {
 
             matchCondition.appointment_date = {
                 $lte: endOfDay
+            };
+        }
+
+        // --- BỔ SUNG: Lọc theo ngày cụ thể (appointment_date) ---
+        if (filterSpecificDate) {
+            const start = new Date(filterSpecificDate);
+            start.setUTCHours(0, 0, 0, 0);
+            const end = new Date(filterSpecificDate);
+            end.setUTCHours(23, 59, 59, 999);
+
+            // Nếu dùng cả lte_date và appointment_date thì logic này sẽ ghi đè $lte của lte_date
+            // Tuy nhiên trong thực tế trang Phụ tá sẽ dùng appointment_date.
+            matchCondition.appointment_date = {
+                $gte: start,
+                $lte: end
             };
         }
 
@@ -1074,6 +1093,44 @@ const updateService = async (id, data) => {
                     }).catch(err => logger.error("Lỗi gửi thông báo xác nhận cho bệnh nhân:", err.message));
                 }
             }
+        } else if (userRole !== "PATIENT" && updatedAppt && updatedAppt.patient_id) {
+            // LỄ TÂN/PHÒNG KHÁM CẬP NHẬT TRỰC TIẾP
+            // Kiểm tra xem có thực sự đổi ngày giờ không
+            if (allowedUpdates.appointment_date || allowedUpdates.appointment_time) {
+                try {
+                    const patient = await PatientModel.findById(updatedAppt.patient_id).select('account_id email').lean();
+                    const account = patient?.account_id
+                        ? await AuthModel.Account.findById(patient.account_id).select('email').lean()
+                        : null;
+                    const patientEmail = account?.email || updatedAppt.email || patient?.email;
+
+                    const oldDateStr = new Date(existingAppt.appointment_date).toLocaleDateString('vi-VN');
+                    const newDateStr = new Date(updatedAppt.appointment_date).toLocaleDateString('vi-VN');
+
+                    // 1. Gửi Email thông báo dời lịch
+                    emailService.sendAppointmentRescheduledByClinicEmail(
+                        patientEmail,
+                        updatedAppt.full_name,
+                        oldDateStr,
+                        existingAppt.appointment_time,
+                        newDateStr,
+                        updatedAppt.appointment_time
+                    ).catch(err => logger.error('Lỗi gửi email đổi lịch:', err.message));
+
+                    // 2. Gửi thông báo In-app
+                    if (patient?.account_id) {
+                        notificationService.sendToUser(patient.account_id.toString(), {
+                            type: 'APPOINTMENT_RESCHEDULED_BY_CLINIC',
+                            title: 'Lịch hẹn đã được thay đổi',
+                            message: `Lịch hẹn của bạn tại phòng khám đã được dời sang ${updatedAppt.appointment_time} ngày ${newDateStr}.`,
+                            action_url: '/appointments',
+                            metadata: { entity_id: updatedAppt._id, entity_type: 'APPOINTMENT' }
+                        }).catch(err => logger.error('Lỗi gửi thông báo đổi lịch cho bệnh nhân:', err.message));
+                    }
+                } catch (notifyErr) {
+                    logger.error('Lỗi xử lý thông báo dời lịch của phòng khám:', notifyErr);
+                }
+            }
         }
 
         return updatedAppt;
@@ -1151,6 +1208,7 @@ const updateStatusOnly = async (id, status, doctorId = null) => {
                 { new: true }
             );
 
+
             // Gửi thông báo In-App nếu Lịch hẹn bị Khách hàng hoặc Lễ tân hủy / Bệnh nhân không đến
             if ((status === "CANCELLED" || status === "NO_SHOW") && newData) {
                 try {
@@ -1209,7 +1267,7 @@ const updateStatusOnly = async (id, status, doctorId = null) => {
         }
 
         // --- GỬI EMAIL + THÔNG BÁO KHI LỄ TÂN XỬ LÝ YÊU CẦU ĐỔI LỊCH ---
-        // Duyệt: PENDING_CONFIRMATION -> SCHEDULED
+        // Duyệt: PENDING_CONFIRMATION -> SCHEDULED 
         const isApproved = oldAppt.status === 'PENDING_CONFIRMATION' && status === 'SCHEDULED';
         // Từ chối: PENDING_CONFIRMATION -> CANCELLED (hoặc bất kỳ ai hủy lịch)
         const isRejected = oldAppt.status === 'PENDING_CONFIRMATION' && status === 'CANCELLED';
@@ -1247,9 +1305,16 @@ const updateStatusOnly = async (id, status, doctorId = null) => {
                         }).catch(err => logger.error('Lỗi gửi thông báo xác nhận cho bệnh nhân:', err.message));
                     }
                 } else if (isGeneralCancel) {
-                    // Gửi Email từ chối/hủy
-                    emailService.sendAppointmentUpdateRejectedEmail(patientEmail, newData.full_name, formattedDate, newData.appointment_time)
-                        .catch(err => logger.error('Lỗi gửi email hủy/từ chối lịch:', err.message));
+                    // GỬI EMAIL THÔNG BÁO HỦY/TỪ CHỐI
+                    if (isRejected) {
+                        // Trường hợp đặc biệt: Từ chối yêu cầu đổi lịch
+                        emailService.sendAppointmentUpdateRejectedEmail(patientEmail, newData.full_name, formattedDate, newData.appointment_time)
+                            .catch(err => logger.error('Lỗi gửi email từ chối đổi lịch:', err.message));
+                    } else {
+                        // Trường hợp hủy lịch thông thường
+                        emailService.sendAppointmentCancelledEmail(patientEmail, newData.full_name, formattedDate, newData.appointment_time)
+                            .catch(err => logger.error('Lỗi gửi email hủy lịch:', err.message));
+                    }
 
                     if (patient?.account_id) {
                         const notifyTitle = isRejected ? 'Yêu cầu đổi lịch không được chấp nhận' : 'Lịch hẹn đã bị hủy';
@@ -1388,15 +1453,20 @@ const findById = async (id) => {
 
 const findByTreatmentId = async (treatmentId) => {
     try {
-        logger.debug("Finding appointment by id", {
-            context: "AppointmentService.findById",
+        logger.debug("Finding appointment by treatmentId", {
+            context: "AppointmentService.findByTreatmentId",
             treatmentId: treatmentId,
         });
         if (!treatmentId) return null;
-        return await AppointmentModel.findOne({ treatmentId: treatmentId }).lean();
+        // Treatment lưu appointment_id (không phải ngược lại)
+        // Nên cần tìm Treatment trước, sau đó lấy appointment_id từ đó
+        const TreatmentModel = require('../../treatment/models/treatment.model');
+        const treatment = await TreatmentModel.findById(treatmentId).lean();
+        if (!treatment || !treatment.appointment_id) return null;
+        return await AppointmentModel.findById(treatment.appointment_id).lean();
     } catch (error) {
-        logger.error("Error get appointment by id", {
-            context: "AppointmentService.findById",
+        logger.error("Error finding appointment by treatmentId", {
+            context: "AppointmentService.findByTreatmentId",
             error: error
         });
         return null;
@@ -1488,6 +1558,179 @@ const checkDuplicateFullNameAndPhoneAndAppointDateAndAppointTime = async (full_n
     }
 }
 
+/**
+ * to get list appointment to payment with conditions treatment with price > 0 and No have appointment_id on invoices Modal || if have then only get with status invoice is PENDING with filter:
+ * - date_filter: get treatment by planned_date lte date_filter
+ * - status: status of appointment is COMPLETED
+ * - search: search by full_name or phone 
+ * - limit: default 10
+ * - page: default 1
+ * @param {Object} query Object to filter
+ */
+const getListAppointmentToPayment = async (query) => {
+    const context = "AppointmentService.getListAppointmentToPayment";
+    try {
+        logger.debug("Getting list appointment to payment with query", {
+            context,
+            query
+        });
+
+        const { date_filter, search } = query;
+
+        const page = parseInt(query.page, 10) || 1;
+        const limit = parseInt(query.limit, 10) || 10;
+        const skip = (page - 1) * limit;
+
+        const appointmentMatch = {
+            status: "COMPLETED"
+        };
+
+        if (search) {
+            const searchRegex = new RegExp(search, "i");
+            appointmentMatch.$or = [
+                { full_name: searchRegex },
+                { phone: searchRegex }
+            ];
+        }
+
+        const treatmentMatch = {
+            $expr: { $eq: ["$appointment_id", "$$apptId"] },
+            price: { $gt: 0 }
+        };
+
+        const dateNow = new Date();
+        const dateEnd = new Date(date_filter || dateNow);
+        dateEnd.setHours(23, 59, 59, 999);
+        dateNow.setHours(0, 0, 0, 0);
+
+        logger.debug("Fillter Date", {
+            context: context,
+            date_filter: date_filter,
+            dateNow: dateNow,
+            dateEnd: dateEnd
+        });
+        treatmentMatch.planned_date = {
+            $gte: dateNow,
+            $lte: dateEnd
+        };
+
+        const pipeline = [
+            // B1: Lọc các Appointment thỏa mãn điều kiện cơ bản
+            { $match: appointmentMatch },
+
+            // B2: Lookup toàn bộ hóa đơn của lịch hẹn này
+            {
+                $lookup: {
+                    from: "invoices",
+                    localField: "_id",
+                    foreignField: "appointment_id",
+                    as: "existing_invoices"
+                }
+            },
+
+            // B3: Xử lý logic TRẠNG THÁI HÓA ĐƠN
+            {
+                $match: {
+                    // 1. Tuyệt đối loại bỏ nếu đã có hóa đơn COMPLETED (đã thanh toán)
+                    "existing_invoices.status": { $ne: "COMPLETED" },
+                    // 2. Thỏa mãn 1 trong 2 điều kiện sau:
+                    $or: [
+                        { "existing_invoices.0": { $exists: false } }, // Chưa có hóa đơn nào (mảng rỗng)
+                        { "existing_invoices.status": "PENDING" }      // Có hóa đơn và trạng thái là PENDING
+                    ]
+                }
+            },
+
+            // B4: Lookup sang bảng treatments với pipeline tùy chỉnh
+            {
+                $lookup: {
+                    from: "treatments",
+                    let: { apptId: "$_id" },
+                    pipeline: [
+                        { $match: treatmentMatch }
+                    ],
+                    as: "treatments_to_pay"
+                }
+            },
+
+            // B5: Chỉ giữ lại những Appointment CÓ ÍT NHẤT 1 treatment thỏa mãn điều kiện
+            {
+                $match: {
+                    "treatments_to_pay.0": { $exists: true }
+                }
+            },
+
+            // B6: Tính tổng số tiền cần thanh toán
+            {
+                $addFields: {
+                    total_payment_amount: { $sum: "$treatments_to_pay.price" }
+                }
+            },
+
+            // B7: Dọn dẹp payload
+            {
+                $project: {
+                    existing_invoices: 0, // Xóa mảng này đi cho nhẹ payload
+                    __v: 0,
+                    priority: 0,
+                    updatedAt: 0,
+                    "treatments_to_pay.__v": 0,
+                    "treatments_to_pay.createdAt": 0,
+                    "treatments_to_pay.updatedAt": 0
+                }
+            },
+
+            // B8: Sắp xếp theo ngày lịch hẹn giảm dần
+            { $sort: { appointment_date: -1 } },
+
+            // B9: Phân trang sử dụng $facet
+            {
+                $facet: {
+                    metadata: [
+                        { $count: "total" }
+                    ],
+                    data: [
+                        { $skip: skip },
+                        { $limit: limit }
+                    ]
+                }
+            }
+        ];
+        const result = await AppointmentModel.aggregate(pipeline);
+
+        const totalItems = result[0].metadata.length > 0 ? result[0].metadata[0].total : 0;
+        const totalPages = Math.ceil(totalItems / limit);
+        const data = result[0].data;
+        logger.debug("List appointment to payment result", {
+            context: context,
+            data: data,
+            pagination: {
+                total_items: totalItems,
+                total_pages: totalPages,
+                current_page: page,
+                limit: limit
+            }
+        })
+        return {
+            data,
+            pagination: {
+                total_items: totalItems,
+                total_pages: totalPages,
+                current_page: page,
+                limit: limit
+            }
+        };
+
+    } catch (error) {
+        logger.error("Error get list appointment to payment", {
+            context,
+            query,
+            error
+        });
+        throw new errorRes.InternalServerError(`Error get list appointment to payment: ${error.message}`);
+    }
+};
+
 module.exports = {
     getListService,
     getByIdService,
@@ -1501,5 +1744,6 @@ module.exports = {
     findByTreatmentId,
     getListOfPatientServiceWithDate,
     calculateTotalAmount,
-    checkDuplicateFullNameAndPhoneAndAppointDateAndAppointTime
+    checkDuplicateFullNameAndPhoneAndAppointDateAndAppointTime,
+    getListAppointmentToPayment
 };

@@ -8,6 +8,7 @@ const NOTIFICATION_TYPES = [
     'APPOINTMENT_UPDATE_REQUESTED',   // Bệnh nhân yêu cầu đổi lịch
     'APPOINTMENT_UPDATE_CONFIRMED',   // Xác nhận yêu cầu đổi lịch cho bệnh nhân
     'APPOINTMENT_UPDATE_REJECTED',    // Từ chối yêu cầu đổi lịch cho bệnh nhân
+    'APPOINTMENT_RESCHEDULED_BY_CLINIC', // Bộ phận y tế chủ động dời lịch bệnh nhân
     'APPOINTMENT_NO_SHOW',            // Bệnh nhân vắng mặt - hệ thống tự động
     'INVOICE_READY',
     // Doctor

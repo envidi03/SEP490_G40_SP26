@@ -6,6 +6,7 @@ const Input = ({
     error,
     className,
     type = 'text',
+    suffix,
     ...props
 }) => {
     return (
@@ -15,15 +16,23 @@ const Input = ({
                     {label}
                 </label>
             )}
-            <input
-                type={type}
-                className={clsx(
-                    'w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 transition-colors',
-                    error ? 'border-red-500 focus:ring-red-500' : 'border-gray-300',
-                    className
+            <div className="relative">
+                <input
+                    type={type}
+                    className={clsx(
+                        'w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 transition-colors',
+                        error ? 'border-red-500 focus:ring-red-500' : 'border-gray-300',
+                        suffix ? 'pr-10' : '',
+                        className
+                    )}
+                    {...props}
+                />
+                {suffix && (
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center">
+                        {suffix}
+                    </div>
                 )}
-                {...props}
-            />
+            </div>
             {error && (
                 <p className="mt-1 text-sm text-red-600">{error}</p>
             )}

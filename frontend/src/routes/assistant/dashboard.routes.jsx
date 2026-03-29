@@ -6,7 +6,7 @@ const dashboardRoutes = [
     {
         path: '/assistant/dashboard',
         element: (
-            <ProtectedRoute allowedRoles={['ASSISTANT', 'ADMIN_CLINIC']}>
+            <ProtectedRoute allowedRoles={['ASSISTANT']}>
                 <AssistantLayout>
                     <AssistantDashboard />
                 </AssistantLayout>

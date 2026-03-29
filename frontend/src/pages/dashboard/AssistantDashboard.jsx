@@ -333,7 +333,7 @@ const AssistantDashboard = () => {
                             todayAppointments.slice(0, 8).map((apt, idx) => {
                                 const time = apt.appointment_time || apt.time || '—';
                                 const patientName = apt.full_name || apt.patient?.full_name || apt.patient_name || 'Bệnh nhân';
-                                const doctorName = apt.doctor_info?.profile?.full_name || apt.doctor_name || 'Lỗi hiển thị bác sĩ phụ trách';
+                                const doctorName = apt.doctor_info?.profile?.full_name || apt.doctor_name || 'Chưa có bác sĩ phụ trách';
                                 return (
                                     <div
                                         key={apt._id || idx}

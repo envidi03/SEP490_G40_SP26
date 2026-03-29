@@ -160,6 +160,9 @@ exports.dispensePrescription = async (treatmentId) => {
     for (const item of treatment.medicine_usage) {
         if (item.dispensed) continue;
 
+        const medicine = await Medicine.findById(item.medicine_id._id || item.medicine_id);
+        if (!medicine) continue;
+
         const factor = medicine.units_per_selling_unit || 1;
         const deduction = item.quantity / factor;
 
