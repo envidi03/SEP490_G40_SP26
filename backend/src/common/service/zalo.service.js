@@ -204,6 +204,54 @@ class ZaloService {
             return { error: -500, message: error.message };
         }
     }
+    // ─────────────────────────────────────────────────────────────────────────
+    // BƯỚC 2E — Gửi tin nhắn OA thông thường (không cần OA xác thực)
+    // Điều kiện: người dùng phải đã FOLLOW OA
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /**
+     * Gửi tin nhắn OA Message thông thường đến người đã Follow OA.
+     * Không cần OA xác thực — dùng được với Tài khoản phổ thông.
+     * @param {string} zaloUserId - Zalo User ID của người nhận (lấy qua Webhook)
+     * @param {string} text - Nội dung tin nhắn (plain text, tối đa 2000 ký tự)
+     * @returns {Promise<object>} - Kết quả từ Zalo API
+     */
+    async sendOAMessage(zaloUserId, text) {
+        try {
+            const accessToken = await this.getValidAccessToken();
+            if (!accessToken) {
+                logger.warn('[ZaloService] No valid Access Token. OA Message not sent.');
+                return { error: -1, message: 'No valid Access Token' };
+            }
+
+            const body = {
+                recipient: { user_id: zaloUserId },
+                message: { text }
+            };
+
+            const response = await fetch('https://openapi.zalo.me/v2.0/oa/message', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'access_token': accessToken
+                },
+                body: JSON.stringify(body)
+            });
+
+            const result = await response.json();
+
+            if (result.error !== 0) {
+                logger.warn(`[ZaloService] OA Message failed for user ${zaloUserId}:`, result);
+            } else {
+                logger.info(`[ZaloService] ✅ OA Message sent to Zalo user ${zaloUserId}`);
+            }
+
+            return result;
+        } catch (error) {
+            logger.error('[ZaloService] Error sending OA Message:', { message: error.message });
+            return { error: -500, message: error.message };
+        }
+    }
 }
 
 module.exports = new ZaloService();

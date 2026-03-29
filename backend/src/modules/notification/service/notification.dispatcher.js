@@ -1,8 +1,8 @@
-const zaloService = require('../../../common/service/zalo.service');
 const Notification = require('../model/notification.model');
 const Account = require('../../auth/models/account.model');
 const Role = require('../../auth/models/role.model');
 const emailService = require('../../../common/service/email.service');
+const zaloService = require('../../../common/service/zalo.service');
 const logger = require('../../../common/utils/logger');
 
 const dispatchEmail = async (notification) => {
@@ -93,7 +93,7 @@ const dispatchEmail = async (notification) => {
             </html>
         `;
 
-        // 3. Gửi email (Gửi Bcc để ẩn danh sách người nhận)
+        // 3. Gửi email
         await emailService.sendEmail(
             emails.join(', '),
             title || 'Thông báo từ hệ thống Dental CMS',
@@ -122,52 +122,39 @@ const dispatchEmail = async (notification) => {
 
 const dispatchZalo = async (notification) => {
     try {
-        const { scope, recipient_id, recipient_ids, target_roles, title, message, metadata } = notification;
-        let phoneNumbers = [];
+        const { scope, recipient_id, recipient_ids, target_roles, title, message } = notification;
 
-        // 1. Thu thập danh sách số điện thoại
+        // Thu thập Account objects (cần cả phone_number lẫn zalo_user_id)
+        let accounts = [];
+
         if (scope === 'INDIVIDUAL' && recipient_id) {
-            const acc = await Account.findById(recipient_id).select('phone_number status');
-            if (acc && acc.status === 'ACTIVE' && acc.phone_number) {
-                phoneNumbers.push(acc.phone_number);
-            }
-        } 
+            const acc = await Account.findById(recipient_id).select('phone_number zalo_user_id status');
+            if (acc && acc.status === 'ACTIVE') accounts.push(acc);
+        }
         else if (scope === 'GROUP') {
             const orConditions = [];
-            
+
             if (target_roles && target_roles.length > 0) {
                 const roles = await Role.find({ name: { $in: target_roles } }).select('_id');
                 const roleIds = roles.map(r => r._id);
-                if (roleIds.length > 0) {
-                    orConditions.push({ role_id: { $in: roleIds } });
-                }
+                if (roleIds.length > 0) orConditions.push({ role_id: { $in: roleIds } });
             }
-            
             if (recipient_ids && recipient_ids.length > 0) {
                 orConditions.push({ _id: { $in: recipient_ids } });
             }
-
             if (orConditions.length > 0) {
-                const accounts = await Account.find({
+                accounts = await Account.find({
                     $or: orConditions,
-                    status: 'ACTIVE',
-                    phone_number: { $exists: true, $ne: null, $ne: '' }
-                }).select('phone_number');
-                phoneNumbers = accounts.map(a => a.phone_number);
+                    status: 'ACTIVE'
+                }).select('phone_number zalo_user_id');
             }
-        } 
+        }
         else if (scope === 'GLOBAL') {
-            const accounts = await Account.find({
-                status: 'ACTIVE',
-                phone_number: { $exists: true, $ne: null, $ne: '' }
-            }).select('phone_number');
-            phoneNumbers = accounts.map(a => a.phone_number);
+            accounts = await Account.find({ status: 'ACTIVE' }).select('phone_number zalo_user_id');
         }
 
-        // Lọc trùng lặp số điện thoại
-        phoneNumbers = [...new Set(phoneNumbers)];
-
-        if (phoneNumbers.length === 0) {
+        if (accounts.length === 0) {
+            logger.warn('[Notification] Zalo dispatch skipped: no accounts found.');
             await Notification.updateOne(
                 { _id: notification._id },
                 { $set: { 'channels.zalo.status': 'FAILED' } }
@@ -175,35 +162,38 @@ const dispatchZalo = async (notification) => {
             return;
         }
 
-        // 2. Chuẩn bị dữ liệu Template ZNS
-        // Mapper dữ liệu thô sang Template Data theo quy định của Zalo (Cần update template_id thật vào .env)
-        const templateId = process.env.ZALO_ZNS_TEMPLATE_ID || 'mock_template_id';
-        const templateData = {
-            customer_name: metadata?.customer_name || 'Quý khách',
-            appointment_date: metadata?.appointment_date || 'N/A',
-            appointment_time: metadata?.appointment_time || 'N/A',
-            clinic_name: 'DCMS Dental Care',
-            message: message.substring(0, 200) // Giới hạn ký tự tin nhắn Zalo
-        };
+        // Nội dung tin nhắn OA thông thường
+        const textMessage = `🔔 ${title}\n\n${message}`;
 
-        // 3. Gửi Zalo ZNS API thật
-        logger.info('[Zalo ZNS] Dispatching ZNS to phones:', { count: phoneNumbers.length, title });
-        
-        const sendResults = await Promise.all(
-            phoneNumbers.map(phone => zaloService.sendZNS(phone, templateId, templateData))
-        );
+        let sentCount = 0;
+        let failCount = 0;
 
-        // Kiểm tra xem có bất kỳ tin nhắn nào gửi thành công không
-        const succeeded = sendResults.some(r => r.error === 0);
+        for (const acc of accounts) {
+            // Ưu tiên OA Message (dùng zalo_user_id nếu user đã Follow OA)
+            if (acc.zalo_user_id) {
+                const result = await zaloService.sendOAMessage(acc.zalo_user_id, textMessage);
+                if (result.error === 0) {
+                    sentCount++;
+                } else {
+                    failCount++;
+                    logger.warn(`[Notification] OA Message failed for zalo_user ${acc.zalo_user_id}:`, result);
+                }
+            } else {
+                // Không có zalo_user_id = chưa follow OA, bỏ qua
+                logger.info(`[Notification] Account ${acc._id} has no zalo_user_id (not following OA). Skipping Zalo.`);
+                failCount++;
+            }
+        }
+
+        logger.info(`[Notification] Zalo dispatch done. Sent: ${sentCount}, Failed/Skipped: ${failCount}`);
 
         await Notification.updateOne(
             { _id: notification._id },
-            { 
-                $set: { 
-                    'channels.zalo.status': succeeded ? 'SENT' : 'FAILED',
-                    'channels.zalo.sent_at': succeeded ? new Date() : null,
-                    'channels.zalo.api_response': sendResults // Lưu lại log phản hồi từ Zalo
-                } 
+            {
+                $set: {
+                    'channels.zalo.status': sentCount > 0 ? 'SENT' : 'FAILED',
+                    'channels.zalo.sent_at': new Date()
+                }
             }
         );
 
