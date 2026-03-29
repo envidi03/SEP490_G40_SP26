@@ -182,8 +182,8 @@ const PatientAppointments = () => {
         try {
             const appointmentId = selectedAppointment._id || selectedAppointment.id;
 
-            // Gọi API cập nhật lịch khám
-            await appointmentService.updateAppointment(appointmentId, {
+            // Gọi API cập nhật lịch khám (Gửi lên API dành riêng cho bệnh nhân)
+            await appointmentService.updatePatientAppointment(appointmentId, {
                 appointment_date: updateForm.date,
                 appointment_time: updateForm.time,
                 reason: updateForm.reason,

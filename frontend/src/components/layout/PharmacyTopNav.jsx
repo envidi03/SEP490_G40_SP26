@@ -1,4 +1,4 @@
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
     LayoutDashboard,
     Pill,
@@ -16,7 +16,25 @@ import NotificationBell from '../features/notifications/NotificationBell';
 
 const PharmacyTopNav = () => {
     const location = useLocation();
+    const navigate = useNavigate();
     const { logout, user } = useAuth();
+
+    const handleLogout = () => {
+        const logoutToast = {
+            message: 'Đăng xuất thành công. Hẹn gặp lại bạn!',
+            type: 'success',
+            duration: 3000
+        };
+
+        // 1. Set toast in BOTH sessionStorage and navigate state for reliability
+        sessionStorage.setItem('pendingToast', JSON.stringify(logoutToast));
+
+        // 2. Perform logout
+        logout();
+        
+        // 3. Navigate to login (or /) with state
+        navigate('/login', { state: { toast: logoutToast } });
+    };
 
     const menuItems = [
         { path: '/pharmacy/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
@@ -84,7 +102,7 @@ const PharmacyTopNav = () => {
                     </Link>
 
                     <button
-                        onClick={logout}
+                        onClick={handleLogout}
                         className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors"
                         title="Đăng xuất"
                     >

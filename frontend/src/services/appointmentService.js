@@ -41,10 +41,20 @@ const appointmentService = {
         }
     },
 
-    // Cập nhật thông tin cuộc hẹn (ngày, giờ, lý do)
+    // Cập nhật thông tin cuộc hẹn (ngày, giờ, lý do) - Dành cho Lễ tân/Admin
     updateAppointment: async (id, data) => {
         try {
             const response = await apiClient.patch(`/api/appointment/${id}`, data);
+            return response;
+        } catch (error) {
+            throw error;
+        }
+    },
+
+    // Bệnh nhân yêu cầu đổi lịch khám
+    updatePatientAppointment: async (id, data) => {
+        try {
+            const response = await apiClient.patch(`/api/appointment/request-update/${id}`, data);
             return response;
         } catch (error) {
             throw error;

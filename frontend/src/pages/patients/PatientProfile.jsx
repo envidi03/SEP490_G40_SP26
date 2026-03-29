@@ -57,8 +57,13 @@ const PatientProfile = () => {
     address: "",
   });
 
-  // Password data state
   const [passwordData, setPasswordData] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+  });
+
+  const [passwordErrors, setPasswordErrors] = useState({
     currentPassword: "",
     newPassword: "",
     confirmPassword: "",
@@ -86,7 +91,9 @@ const PatientProfile = () => {
 
         // Đồng bộ với AuthContext
         updateUser({
+          name: profileData.name,
           full_name: profileData.name,
+          email: profileData.email,
           phone: profileData.phone,
           address: profileData.address,
           gender: profileData.gender,
@@ -195,7 +202,9 @@ const PatientProfile = () => {
 
       // Đồng bộ với AuthContext
       updateUser({
+        name: formData.name,
         full_name: formData.name,
+        email: formData.email,
         phone: formData.phone,
         address: formData.address,
         gender: formData.gender,
@@ -226,12 +235,47 @@ const PatientProfile = () => {
   const handlePasswordUpdate = async (e) => {
     e.preventDefault();
 
-    // Validation
+    // Reset errors
+    const newErrors = {
+      currentPassword: "",
+      newPassword: "",
+      confirmPassword: "",
+    };
+    setPasswordErrors(newErrors);
+
+    let hasError = false;
+
+    // Validation for empty fields
+    if (!passwordData.currentPassword.trim()) {
+      newErrors.currentPassword = "Vui lòng nhập mật khẩu hiện tại. (Please enter current password.)";
+      hasError = true;
+    }
+    if (!passwordData.newPassword.trim()) {
+      newErrors.newPassword = "Vui lòng nhập mật khẩu mới. (Please enter new password.)";
+      hasError = true;
+    }
+    if (!passwordData.confirmPassword.trim()) {
+      newErrors.confirmPassword = "Vui lòng xác nhận mật khẩu mới. (Please confirm new password.)";
+      hasError = true;
+    }
+
+    if (hasError) {
+      setPasswordErrors(newErrors);
+      return;
+    }
+
+    if (passwordData.newPassword.length < 8) {
+      setPasswordErrors({
+        ...newErrors,
+        newPassword: "Mật khẩu mới phải có ít nhất 8 ký tự. (Must be at least 8 characters.)"
+      });
+      return;
+    }
+
     if (passwordData.newPassword !== passwordData.confirmPassword) {
-      setToast({
-        show: true,
-        type: "error",
-        message: "❌ Mật khẩu xác nhận không khớp!",
+      setPasswordErrors({
+        ...newErrors,
+        confirmPassword: "Mật khẩu xác nhận không khớp. (Passwords do not match.)"
       });
       return;
     }
@@ -249,18 +293,60 @@ const PatientProfile = () => {
         newPassword: "",
         confirmPassword: "",
       });
+      setPasswordErrors({
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+      });
       setShowPasswordSection(false);
       setToast({
         show: true,
         type: "success",
-        message: "✅ Đổi mật khẩu thành công!",
+        message: "Đổi mật khẩu thành công! (Password changed successfully!)",
       });
     } catch (error) {
-      setToast({
-        show: true,
-        type: "error",
-        message: error.response?.data?.message || error.message || "❌ Đổi mật khẩu thất bại!",
-      });
+      console.error("DEBUG - Lỗi đổi mật khẩu (Full Error Object):", error);
+      
+      // Extremely robust extraction to avoid empty backendMessage
+      const backendMessage = 
+        error?.data?.message || 
+        error?.response?.data?.message || 
+        (typeof error?.data === 'string' ? error.data : null) ||
+        error?.message || 
+        error?.statusText ||
+        "";
+
+      console.log("DEBUG - Extracted backendMessage:", backendMessage);
+
+      const newErrors = {
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+      };
+
+      // Map common backend error messages to fields
+      const lowerMsg = backendMessage.toLowerCase();
+      if (lowerMsg.includes("current password") || 
+          lowerMsg.includes("old password") ||
+          backendMessage.includes("mật khẩu hiện tại")) {
+        newErrors.currentPassword = "Mật khẩu hiện tại không chính xác. (Incorrect current password.)";
+        setPasswordErrors(newErrors);
+      } else if (lowerMsg.includes("same as old") || 
+                 backendMessage.includes("mật khẩu mới trùng")) {
+        newErrors.newPassword = "Mật khẩu mới không được trùng mật khẩu cũ. (New password cannot be same as old.)";
+        setPasswordErrors(newErrors);
+      } else if (lowerMsg.includes("8 characters") || 
+                 lowerMsg.includes("at least 8")) {
+        newErrors.newPassword = "Mật khẩu phải có ít nhất 8 ký tự và đủ độ phức tạp. (Must be at least 8 characters.)";
+        setPasswordErrors(newErrors);
+      } else {
+        // Fallback for generic errors
+        setToast({
+          show: true,
+          type: "error",
+          message: `❌ ${backendMessage || "Đổi mật khẩu thất bại! (Change password failed!)"}`,
+        });
+      }
     } finally {
       setLoading(false);
     }
@@ -270,14 +356,17 @@ const PatientProfile = () => {
    * Handler: Toggle password section
    */
   const handleTogglePasswordSection = () => {
-    if (showPasswordSection) {
-      // Reset password form khi đóng
-      setPasswordData({
-        currentPassword: "",
-        newPassword: "",
-        confirmPassword: "",
-      });
-    }
+    // Reset password form và errors khi đóng/mở
+    setPasswordData({
+      currentPassword: "",
+      newPassword: "",
+      confirmPassword: "",
+    });
+    setPasswordErrors({
+      currentPassword: "",
+      newPassword: "",
+      confirmPassword: "",
+    });
     setShowPasswordSection(!showPasswordSection);
   };
 
@@ -371,6 +460,7 @@ const PatientProfile = () => {
             isOpen={showPasswordSection}
             onToggle={handleTogglePasswordSection}
             passwordData={passwordData}
+            errors={passwordErrors}
             onChange={handlePasswordChange}
             onSubmit={handlePasswordUpdate}
             loading={loading}

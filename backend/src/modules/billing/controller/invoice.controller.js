@@ -81,17 +81,17 @@ const createController = async (req, res) => {
 const updateStatusController = async (req, res) => {
     try {
         const { id } = req.params;
-        const { status, note } = req.body;
+        const { status, note, payment_method } = req.body;
         
         // Sẽ lấy user ID từ token sau khi có middleware auth
         const updated_by = req.user?.id;
 
         logger.debug('Update invoice status request', {
             context: 'InvoiceController.updateStatusController',
-            id, status
+            id, status, payment_method
         });
 
-        const invoice = await InvoiceService.updateInvoiceStatus(id, status, note, updated_by);
+        const invoice = await InvoiceService.updateInvoiceStatus(id, status, note, updated_by, payment_method);
 
         return new successRes.UpdateSuccess(
             invoice,

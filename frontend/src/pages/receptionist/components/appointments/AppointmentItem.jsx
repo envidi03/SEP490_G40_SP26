@@ -9,7 +9,6 @@ const AppointmentItem = ({
     onContact,
     onReschedule,
     onViewDetails,
-    onConfirmNew
 }) => {
     return (
         <Card className="hover:shadow-lg transition-shadow">
@@ -61,13 +60,22 @@ const AppointmentItem = ({
                     )}
 
                     {appointment.status === 'PENDING_CONFIRMATION' && (
-                        <button
-                            onClick={() => onConfirmNew(appointment._id, 'SCHEDULED')}
-                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                            title="Xác nhận lịch hẹn mới"
-                        >
-                            <CheckCircle size={20} />
-                        </button>
+                        <>
+                            <button
+                                onClick={() => onConfirm(appointment)}
+                                className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg transition-colors font-medium border border-blue-200"
+                                title="Xác nhận lịch hẹn mới"
+                            >
+                                <span className="text-sm">Xác nhận lịch hẹn</span>
+                            </button>
+                            <button
+                                onClick={() => onCancel(appointment)}
+                                className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                title="Từ chối/Hủy"
+                            >
+                                <span className="text-sm"> Từ chối lịch hẹn</span>
+                            </button>
+                        </>
                     )}
                     <button
                         onClick={() => onContact(appointment)}

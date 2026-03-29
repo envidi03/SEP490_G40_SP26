@@ -12,6 +12,20 @@ const BookingFormStep = ({ bookingData, onSubmit, user }) => {
     const [email, setEmail] = useState(initialEmail);
     const [reason, setReason] = useState('');
 
+    // Error states
+    const [errors, setErrors] = useState({
+        fullName: '',
+        phone: '',
+        email: ''
+    });
+
+    // Validation Regex
+    const regex = {
+        fullName: /^[a-zA-ZÀ-ỹ\s]{2,50}$/,
+        phone: /(84|0[3|5|7|8|9])+([0-9]{8})\b/,
+        email: /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    };
+
     // Pre-fill if user object loads asynchronously later
     useEffect(() => {
         if (user) {
@@ -21,9 +35,44 @@ const BookingFormStep = ({ bookingData, onSubmit, user }) => {
         }
     }, [user]);
 
+    const validateField = (name, value) => {
+        let error = '';
+        if (!value.trim()) {
+            error = 'Vui lòng không để trống trường này.';
+        } else if (name === 'fullName' && !regex.fullName.test(value)) {
+            error = 'Họ tên không hợp lệ (không chứa số, tối thiểu 2 ký tự).';
+        } else if (name === 'phone' && !regex.phone.test(value)) {
+            error = 'Số điện thoại không đúng định dạng (VD: 0912345678).';
+        } else if (name === 'email' && !regex.email.test(value)) {
+            error = 'Email không đúng định dạng (VD: user@example.com).';
+        }
+        return error;
+    };
+
+    const handleFieldChange = (setter, fieldName) => (e) => {
+        const value = e.target.value;
+        setter(value);
+        setErrors(prev => ({
+            ...prev,
+            [fieldName]: validateField(fieldName, value)
+        }));
+    };
+
     const handleSubmit = (e) => {
         e.preventDefault();
-        if (reason.trim() && fullName.trim() && phone.trim() && email.trim()) {
+
+        // Final validation check
+        const newErrors = {
+            fullName: validateField('fullName', fullName),
+            phone: validateField('phone', phone),
+            email: validateField('email', email)
+        };
+
+        setErrors(newErrors);
+
+        const hasErrors = Object.values(newErrors).some(err => err !== '');
+
+        if (!hasErrors && reason.trim()) {
             onSubmit({
                 reason: reason.trim(),
                 full_name: fullName.trim(),
@@ -48,6 +97,18 @@ const BookingFormStep = ({ bookingData, onSubmit, user }) => {
             month: 'long',
             day: 'numeric'
         });
+    };
+
+    const isFormValid = () => {
+        return (
+            fullName.trim() &&
+            phone.trim() &&
+            email.trim() &&
+            reason.trim() &&
+            !errors.fullName &&
+            !errors.phone &&
+            !errors.email
+        );
     };
 
     return (
@@ -110,11 +171,11 @@ const BookingFormStep = ({ bookingData, onSubmit, user }) => {
                         <input
                             type="text"
                             value={fullName}
-                            onChange={(e) => setFullName(e.target.value)}
-                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                            onChange={handleFieldChange(setFullName, 'fullName')}
+                            className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors ${errors.fullName ? 'border-red-500 bg-red-50' : 'border-gray-300'}`}
                             placeholder="Nhập họ tên người khám bệnh"
-                            required
                         />
+                        {errors.fullName && <p className="mt-1 text-xs text-red-500 font-medium">{errors.fullName}</p>}
                     </div>
 
                     <div>
@@ -125,11 +186,11 @@ const BookingFormStep = ({ bookingData, onSubmit, user }) => {
                         <input
                             type="tel"
                             value={phone}
-                            onChange={(e) => setPhone(e.target.value)}
-                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                            onChange={handleFieldChange(setPhone, 'phone')}
+                            className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors ${errors.phone ? 'border-red-500 bg-red-50' : 'border-gray-300'}`}
                             placeholder="Số điện thoại liên hệ"
-                            required
                         />
+                        {errors.phone && <p className="mt-1 text-xs text-red-500 font-medium">{errors.phone}</p>}
                     </div>
 
                     <div>
@@ -140,11 +201,11 @@ const BookingFormStep = ({ bookingData, onSubmit, user }) => {
                         <input
                             type="email"
                             value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                            onChange={handleFieldChange(setEmail, 'email')}
+                            className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors ${errors.email ? 'border-red-500 bg-red-50' : 'border-gray-300'}`}
                             placeholder="Email nhận thông báo"
-                            required
                         />
+                        {errors.email && <p className="mt-1 text-xs text-red-500 font-medium">{errors.email}</p>}
                     </div>
                     <div className="md:col-span-2 mt-1">
                         <p className="text-sm text-gray-500 italic">
@@ -164,7 +225,6 @@ const BookingFormStep = ({ bookingData, onSubmit, user }) => {
                         onChange={(e) => setReason(e.target.value)}
                         placeholder="Vui lòng mô tả triệu chứng hoặc lý do khám..."
                         rows={4}
-                        required
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 resize-none"
                     />
                     <p className="mt-1 text-sm text-gray-500">
@@ -176,8 +236,8 @@ const BookingFormStep = ({ bookingData, onSubmit, user }) => {
                 {/* Submit Button */}
                 <button
                     type="submit"
-                    disabled={!reason.trim() || !fullName.trim() || !phone.trim() || !email.trim()}
-                    className="w-full px-6 py-4 bg-gradient-to-r from-primary-600 to-primary-700 text-white rounded-lg font-semibold hover:shadow-lg disabled:bg-gray-300 disabled:cursor-not-allowed transition-all text-lg"
+                    disabled={!isFormValid()}
+                    className="w-full px-6 py-4 bg-gradient-to-r from-primary-600 to-primary-700 text-white rounded-lg font-semibold hover:shadow-lg disabled:bg-gray-300 disabled:cursor-not-allowed transition-all text-lg shadow-md"
                 >
                     Xác nhận đặt lịch
                 </button>

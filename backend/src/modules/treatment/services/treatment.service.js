@@ -1,6 +1,16 @@
 const logger = require("../../../common/utils/logger");
 const errorRes = require("../../../common/errors");
 const mongoose = require("mongoose");
+const fs = require("fs");
+const path = require("path");
+
+const debugLog = (msg) => {
+    try {
+        const logPath = path.join(__dirname, "../../../../debug.log");
+        const timestamp = new Date().toISOString();
+        fs.appendFileSync(logPath, `[${timestamp}] ${msg}\n`);
+    } catch (e) { }
+};
 
 const model = require("../models/index.model");
 const { service: AppointmentService } = require("./../../appointment/index");
@@ -103,6 +113,90 @@ const updateService = async (treatmentId, data) => {
             data,
             { new: true, runValidators: true }
         );
+
+        // --- TỰ ĐỘNG: Khi Phụ tá hoàn thành → WAITING_APPROVAL ---
+        // - SESSION phase: có appointment_id riêng → dùng trực tiếp
+        // - PLAN phase: không có appointment_id riêng → fallback qua DentalRecord
+        if (data.status === 'WAITING_APPROVAL') {
+            debugLog(`WAITING_APPROVAL block reached. Phase: ${existingTreatment.phase}, ID: ${treatmentId}`);
+            console.log('[DEBUG-HARD] WAITING_APPROVAL block reached. phase =', existingTreatment.phase, '| appointment_id =', existingTreatment.appointment_id, '| record_id =', existingTreatment.record_id);
+            try {
+                const AppointmentModel = require('../../appointment/models/appointment.model');
+                let targetAppointmentId = existingTreatment.appointment_id;
+
+                // Nếu PLAN phase (không có appointment_id riêng) → tìm lịch khám ĐANG KHÁM của bệnh nhân
+                if (!targetAppointmentId) {
+                    debugLog(`PLAN phase: searching active appt for patient ${existingTreatment.patient_id}`);
+                    const activeAppt = await AppointmentModel.findOne({
+                        patient_id: existingTreatment.patient_id,
+                        status: 'IN_CONSULTATION'
+                    }).select('_id').lean();
+
+                    if (activeAppt) {
+                        targetAppointmentId = activeAppt._id;
+                        debugLog(`Found active appt: ${targetAppointmentId}`);
+                        logger.debug("PLAN phase: found active IN_CONSULTATION appointment", {
+                            context,
+                            patientId: existingTreatment.patient_id?.toString(),
+                            foundAppointmentId: targetAppointmentId?.toString(),
+                        });
+                    } else if (existingTreatment.record_id) {
+                        // Fallback dự phòng: lấy từ DentalRecord
+                        const DentalRecord = require('../models/dental-record.model');
+                        const record = await DentalRecord.findById(existingTreatment.record_id).lean();
+                        targetAppointmentId = record?.appointment_id;
+                        debugLog(`Fallback to record.appointment_id: ${targetAppointmentId}`);
+                        logger.debug("PLAN phase: fallback to DentalRecord.appointment_id", {
+                            context,
+                            recordId: existingTreatment.record_id?.toString(),
+                            foundAppointmentId: targetAppointmentId?.toString(),
+                        });
+                    }
+                }
+
+                if (targetAppointmentId) {
+                    debugLog(`Attempting to complete appt: ${targetAppointmentId}`);
+                    console.log('[DEBUG-HARD] Found targetAppointmentId:', targetAppointmentId);
+
+                    // Dùng trực tiếp Model để tránh circular dependency với AppointmentService
+                    const updatedAppt = await AppointmentModel.findOneAndUpdate(
+                        {
+                            _id: targetAppointmentId,
+                            status: { $in: ['SCHEDULED', 'CHECKED_IN', 'IN_CONSULTATION'] }
+                        },
+                        { $set: { status: 'COMPLETED' } },
+                        { new: true }
+                    );
+
+                    if (!updatedAppt) {
+                        const checkAppt = await AppointmentModel.findById(targetAppointmentId).lean();
+                        debugLog(`FAILED TO UPDATE. Current Status: ${checkAppt?.status}`);
+                        console.log('[DEBUG-HARD] FAILED TO UPDATE. Current Appt status:', checkAppt?.status);
+                    } else {
+                        debugLog(`SUCCESS! Appt ${targetAppointmentId} is now COMPLETED.`);
+                        console.log('[DEBUG-HARD] Auto-complete appointment SUCCESS. Status:', updatedAppt.status);
+                    }
+
+                    logger.info("Auto-complete appointment result", {
+                        context,
+                        treatmentId,
+                        phase: existingTreatment.phase,
+                        appointmentId: targetAppointmentId?.toString(),
+                        result: updatedAppt ? updatedAppt.status : 'NOT_FOUND_OR_WRONG_STATUS',
+                    });
+                } else {
+                    debugLog("No targetAppointmentId resolved.");
+                    logger.warn("No appointment_id found to auto-complete", {
+                        context, treatmentId, phase: existingTreatment.phase,
+                    });
+                }
+            } catch (aptErr) {
+                debugLog(`CRITICAL ERROR in completion flow: ${aptErr.message}`);
+                logger.error("Failed to auto-complete appointment", {
+                    context, treatmentId, message: aptErr.message,
+                });
+            }
+        }
 
         return dataUpdate;
 

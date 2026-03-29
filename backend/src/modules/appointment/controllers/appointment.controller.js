@@ -293,6 +293,23 @@ const createController = async (req, res) => {
 
     // Kiểm tra validation cơ bản
     checkRequiredFields(requiredFields, cleanedData, this, "createController");
+
+    // Regex validation
+    const regex = {
+      fullName: /^[a-zA-ZÀ-ỹ\s]{2,50}$/,
+      phone: /(84|0[3|5|7|8|9])+([0-9]{8})\b/,
+      email: /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    };
+
+    if (!regex.fullName.test(cleanedData.full_name)) {
+      throw new errorRes.BadRequestError("Full name is invalid (2-50 characters, no numbers)");
+    }
+    if (!regex.phone.test(cleanedData.phone)) {
+      throw new errorRes.BadRequestError("Phone number is invalid (Vietnamese format)");
+    }
+    if (!regex.email.test(cleanedData.email)) {
+      throw new errorRes.BadRequestError("Email format is invalid");
+    }
     // Validate mảng book_service nếu client có gửi kèm dịch vụ
     if (cleanedData.book_service && Array.isArray(cleanedData.book_service)) {
       cleanedData.book_service.forEach((item, index) => {
@@ -421,6 +438,41 @@ const updateController = async (req, res) => {
     // Logging lỗi chi tiết để debug
     logger.error("Error update appointment controller", {
       context: "AppointmentController.updateController",
+      message: error.message,
+      stack: error.stack,
+    });
+    throw error;
+  }
+};
+
+// Bệnh nhân yêu cầu dời lịch
+const patientRequestUpdateController = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const dataUpdate = req.body || {};
+
+    const { appointment_date, appointment_time, reason } = dataUpdate;
+
+    if (!appointment_date && !appointment_time && reason === undefined) {
+      throw new errorRes.BadRequestError("No data provided for update");
+    }
+
+    const updateData = {
+      appointment_date,
+      appointment_time,
+      reason,
+      userRole: "PATIENT", // Ép Role để service tự động đổi thành PENDING_CONFIRMATION và báo lễ tân
+    };
+
+    const updated = await ServiceProcess.updateService(id, updateData);
+
+    return new successRes.UpdateSuccess(
+      updated,
+      "Appointment update requested successfully",
+    ).send(res);
+  } catch (error) {
+    logger.error("Error patient update appointment controller", {
+      context: "AppointmentController.patientRequestUpdateController",
       message: error.message,
       stack: error.stack,
     });
@@ -620,6 +672,7 @@ module.exports = {
   getByIdController,
   createController,
   updateController,
+  patientRequestUpdateController,
   updateStatusController,
   checkinController,
   staffCreateController,

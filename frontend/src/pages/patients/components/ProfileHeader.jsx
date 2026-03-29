@@ -80,7 +80,9 @@ const ProfileHeader = ({ user, isEditing, onEdit, avatarUrl, onAvatarChange, ava
 
                 {/* User Info */}
                 <div className="flex-1">
-                    <h2 className="text-2xl font-bold text-white mb-1">{user?.name}</h2>
+                    <h2 className="text-2xl font-bold text-white mb-1">
+                        {user?.full_name || user?.name}
+                    </h2>
                     <p className="text-white/90 flex items-center gap-2">
                         <Mail size={16} />
                         {user?.email}

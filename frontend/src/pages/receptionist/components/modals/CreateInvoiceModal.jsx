@@ -12,7 +12,7 @@ const CreateInvoiceModal = ({ isOpen, onClose, onSuccess, appointmentData }) => 
     const BANK_BIN = 'MB'; // Tên viết tắt hoặc BIN của ngân hàng (VD: MB, VCB, TCB)
     const BANK_ACCOUNT = '0123456789'; // Số tài khoản
     const ACCOUNT_NAME = 'NHA KHOA CLINIC'; // Tên chủ tài khoản
- 
+
     useEffect(() => {
         // Kích hoạt tự động tạo hóa đơn khi Modal mở và có dữ liệu
         if (isOpen && appointmentData && status === 'IDLE') {
@@ -53,10 +53,10 @@ const CreateInvoiceModal = ({ isOpen, onClose, onSuccess, appointmentData }) => 
             // Gọi API
             const response = await billingService.createInvoice(payload);
             const newInvoice = response?.data?.data || response?.data;
-            
+
             setCreatedInvoice(newInvoice);
             setStatus('SUCCESS');
-            
+
             // Báo cho component cha biết để load lại bảng dữ liệu ngầm ở dưới
             if (onSuccess) onSuccess(newInvoice);
 
@@ -73,7 +73,7 @@ const CreateInvoiceModal = ({ isOpen, onClose, onSuccess, appointmentData }) => 
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-sm" onClick={status !== 'CREATING' ? onClose : undefined}></div>
             <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden flex flex-col transform transition-all">
-                
+
                 {/* --- TRẠNG THÁI 1: ĐANG TẠO HÓA ĐƠN --- */}
                 {status === 'CREATING' && (
                     <div className="p-10 flex flex-col items-center justify-center text-center">

@@ -6,6 +6,7 @@ import Toast from '../../components/ui/Toast';
 import InvoiceDetailModal from './components/modals/InvoiceDetailModal';
 import CreateInvoiceModal from './components/modals/CreateInvoiceModal';
 import PaymentModal from './components/modals/PaymentModal';
+import PaymentMethodModal from './components/modals/PaymentMethodModal';
 import billingService from '../../services/billingService';
 import appointmentService from '../../services/appointmentService';
 
@@ -31,6 +32,7 @@ const ReceptionistInvoices = () => {
     const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+    const [isMethodModalOpen, setIsMethodModalOpen] = useState(false);
     const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
 
     // --- Gọi API lấy dữ liệu ---
@@ -41,14 +43,14 @@ const ReceptionistInvoices = () => {
                 page: page,
                 limit: pagination.limit
             };
-            
+
             if (appliedSearch) params.search = appliedSearch;
             if (dateFilter) params.date_filter = dateFilter;
 
             // 1. Gọi API danh sách lịch hẹn chờ thanh toán
             const res = await appointmentService.getAppointmentsToPayment(params);
-            const responseData = res?.data?.data || res?.data; 
-            
+            const responseData = res?.data?.data || res?.data;
+
             if (responseData) {
                 setAppointmentsToPay(responseData.data || []);
                 if (responseData.pagination) {
@@ -113,7 +115,7 @@ const ReceptionistInvoices = () => {
     const handleCreateInvoiceClick = (appointmentItem) => {
         // Gán thông tin cuộc hẹn vào selectedInvoice để truyền sang modal Tạo hóa đơn
         setSelectedInvoice(appointmentItem);
-        setIsCreateModalOpen(true); 
+        setIsCreateModalOpen(true);
     };
 
     const handlePayment = async (invoice) => {
@@ -125,14 +127,15 @@ const ReceptionistInvoices = () => {
         }
 
         try {
-            await billingService.updateInvoiceStatus(invoice._id || invoice.id, { 
-                status: 'COMPLETED', 
-                note: 'Thanh toán tiền mặt' 
+            await billingService.updateInvoiceStatus(invoice._id || invoice.id, {
+                status: 'COMPLETED',
+                payment_method: 'CASH',
+                note: 'Thanh toán tiền mặt'
             });
-            setToast({ 
-                show: true, 
-                message: `Thanh toán thành công!`, 
-                type: 'success' 
+            setToast({
+                show: true,
+                message: `Thanh toán thành công!`,
+                type: 'success'
             });
             fetchData(pagination.current_page);
             setIsDetailModalOpen(false);
@@ -300,7 +303,7 @@ const ReceptionistInvoices = () => {
                         </tbody>
                     </table>
                 </div>
-                
+
                 {/* Pagination Controls */}
                 {!loading && appointmentsToPay.length > 0 && pagination.total_pages > 1 && (
                     <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between bg-gray-50 rounded-b-xl">
@@ -308,7 +311,7 @@ const ReceptionistInvoices = () => {
                             Hiển thị {(pagination.current_page - 1) * pagination.limit + 1} - {Math.min(pagination.current_page * pagination.limit, pagination.total_items)} trên tổng số <span className="font-medium text-gray-900">{pagination.total_items}</span> bản ghi
                         </div>
                         <div className="flex gap-2">
-                            <button 
+                            <button
                                 onClick={() => handlePageChange(pagination.current_page - 1)}
                                 disabled={pagination.current_page === 1}
                                 className="p-2 border border-gray-300 rounded hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed bg-transparent transition-colors"
@@ -318,7 +321,7 @@ const ReceptionistInvoices = () => {
                             <span className="py-2 px-4 text-sm font-medium border border-gray-300 rounded bg-white text-gray-700">
                                 Trang {pagination.current_page} / {pagination.total_pages}
                             </span>
-                            <button 
+                            <button
                                 onClick={() => handlePageChange(pagination.current_page + 1)}
                                 disabled={pagination.current_page === pagination.total_pages}
                                 className="p-2 border border-gray-300 rounded hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed bg-transparent transition-colors"
@@ -331,7 +334,7 @@ const ReceptionistInvoices = () => {
             </Card>
 
             {/* --- Danh sách các Modal --- */}
-            
+
             {/* Modal Chi tiết hóa đơn */}
             <InvoiceDetailModal
                 invoice={selectedInvoice}
@@ -348,7 +351,7 @@ const ReceptionistInvoices = () => {
                 onSuccess={(newInvoice) => {
                     setToast({ show: true, message: 'Tạo hóa đơn thành công!', type: 'success' });
                     fetchData(pagination.current_page); // Tải lại danh sách
-                    
+
                     // Nếu phương thức là Chuyển khoản, tự động mở modal quét mã QR
                     if (newInvoice?.payment_method === 'TRANSFER') {
                         setSelectedInvoice(newInvoice);
