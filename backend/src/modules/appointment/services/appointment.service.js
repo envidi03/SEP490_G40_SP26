@@ -1731,6 +1731,34 @@ const getListAppointmentToPayment = async (query) => {
     }
 };
 
+/**
+ * get first appointment of patient at now with status checkin
+ * @param {ObjectId} patientId id patient to get appointment
+ * @returns Object appointment || null if not found
+ */
+const getFirstAppointmentOfPatientAtNowWithStatusCheckin = async (patientId) => {
+    try {
+        const today = new Date();
+        const startOfDay = new Date(today.setHours(0, 0, 0, 0));
+        const endOfDay = new Date(today.setHours(23, 59, 59, 999));
+        const appointment = await AppointmentModel.findOne({
+            patient: patientId,
+            appointment_date: { $gte: startOfDay, $lte: endOfDay },
+            status: 'CHECKED_IN'
+        }).sort({ appointment_date: 1 });
+
+        return appointment || null;
+    } catch (error) {
+        logger.error("Error get first appointment of patient at now with status checkin", {
+            context,
+            patientId,
+            error
+        });
+        return null;
+    }
+};
+
+
 module.exports = {
     getListService,
     getByIdService,
@@ -1745,5 +1773,6 @@ module.exports = {
     getListOfPatientServiceWithDate,
     calculateTotalAmount,
     checkDuplicateFullNameAndPhoneAndAppointDateAndAppointTime,
-    getListAppointmentToPayment
+    getListAppointmentToPayment,
+    getFirstAppointmentOfPatientAtNowWithStatusCheckin
 };
