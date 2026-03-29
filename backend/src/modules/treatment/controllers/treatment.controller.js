@@ -298,7 +298,7 @@ const updateStatusController = async (req, res) => {
  * (
  * search: search by full_name, phone, email;
  * status: filter by status;
- * lte_date: less than eq by date, default 3 day later;
+ * filter_date: less than eq by date, default 3 day later;
  * sort: sort by appointment_date;
  * page
  * limit
@@ -309,12 +309,16 @@ const getListTreatementWithAppointmentNull = async (req, res) => {
   try {
     const queryParams = req.query;
     // if null, default get 3 days later
-    if (!queryParams.lte_date) {
+    if (!queryParams.filter_date) {
       const targetDate = new Date();
-      targetDate.setDate(targetDate.getDate() + 3); 
+      targetDate.setDate(targetDate.getDate() + 6); 
       
-      queryParams.lte_date = targetDate;
+      queryParams.filter_date = targetDate;
     }
+    logger.debug("Query filter.", {
+      context: context,
+      query: queryParams
+    })
     const { data, pagination } = await ServiceProcess.getListTreatementWithAppointmentNull(queryParams);
     logger.debug("List treatment.", {
       context: context, 

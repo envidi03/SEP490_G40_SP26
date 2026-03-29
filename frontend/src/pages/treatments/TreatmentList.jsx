@@ -2,11 +2,13 @@ import { useState, useEffect } from 'react';
 import { getAllDentalRecords } from '../../services/dentalRecordService';
 import TreatmentListStats from './components/TreatmentListStats';
 import RecordTreatmentCard from './components/RecordTreatmentCard';
+import TreatmentDetailModal from './components/TreatmentDetailModal';
 
 /**
  * TreatmentList – Danh Sách Phiếu Điều Trị (Minimalist Teal UI)
- * 
+ *
  * Sử dụng API getAllDentalRecords, trả về các record kèm treatments (qua $lookup)
+ * Hiển thị phiếu điều trị mới nhất của mỗi hồ sơ và cho phép xem chi tiết (kể cả đơn thuốc).
  */
 const TreatmentList = () => {
     const [records, setRecords] = useState([]);
@@ -16,12 +18,15 @@ const TreatmentList = () => {
     // Filters
     const [searchTerm, setSearchTerm] = useState('');
     const [debouncedSearch, setDebouncedSearch] = useState('');
-    const [statusFilter, setStatusFilter] = useState('ALL'); // ALL, PENDING, APPROVED, REJECTED
+    const [statusFilter, setStatusFilter] = useState('ALL');
 
     // Pagination
     const [page] = useState(1);
     const [limit] = useState(5);
     const [totalRecords, setTotalRecords] = useState(0);
+
+    // Modal state
+    const [selectedTreatment, setSelectedTreatment] = useState(null);
 
     // Debounce search
     useEffect(() => {
@@ -56,8 +61,24 @@ const TreatmentList = () => {
         fetchTreatments();
     }, [debouncedSearch, statusFilter, page, limit]);
 
+    const handleViewDetail = (treatment) => {
+        setSelectedTreatment(treatment);
+    };
+
+    const handleCloseModal = () => {
+        setSelectedTreatment(null);
+    };
+
     return (
         <div className="space-y-6">
+            {/* Detail Modal */}
+            {selectedTreatment && (
+                <TreatmentDetailModal
+                    treatment={selectedTreatment}
+                    onClose={handleCloseModal}
+                />
+            )}
+
             {/* Header */}
             <div>
                 <h1 className="text-2xl font-bold text-gray-800 tracking-tight">Danh Sách Phiếu Điều Trị</h1>
@@ -72,10 +93,9 @@ const TreatmentList = () => {
                 onFilterChange={setStatusFilter}
             />
 
-            {/* Tim kiem & Tong so */}
+            {/* Tìm kiếm & Tổng số */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="relative w-full md:w-96">
-                    {/* Fake text icon instead of lucide-react */}
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm opacity-60">
                         🔍
                     </span>
@@ -133,6 +153,7 @@ const TreatmentList = () => {
                             key={record._id || record.id}
                             record={record}
                             defaultExpanded={records.length === 1}
+                            onViewDetail={handleViewDetail}
                         />
                     ))}
 

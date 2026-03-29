@@ -67,6 +67,8 @@ const PatientRecordSearch = () => {
                 const list = Array.isArray(res.data) ? res.data : (Array.isArray(res) ? res : []);
                 setPatients(list);
 
+                console.log(list);
+
                 // Cải tiến: Nếu truyền phone từ màn Lịch hẹn sang sang và trả ra ĐÚNG 1 bệnh nhân, tự động chọn bệnh nhân đó để bác sĩ không phải mất công bấm
                 if (list.length === 1 && !selectedPatient) {
                     setSelectedPatient(list[0]);

@@ -17,27 +17,30 @@ const formatDate = (iso) => {
  * RecordTreatmentCard
  *
  * Card hiển thị 1 hồ sơ nha khoa, click vào để expand/collapse danh sách phiếu bên trong.
- * (Sử dụng dữ liệu từ API getListOfPatientService trả về có sẵn treatments)
+ * Hiển thị badge "Mới nhất" trên phiếu điều trị mới nhất.
+ * Truyền onViewDetail để mở modal xem chi tiết phiếu.
  */
-const RecordTreatmentCard = ({ record, defaultExpanded = false }) => {
+const RecordTreatmentCard = ({ record, defaultExpanded = false, onViewDetail }) => {
     const navigate = useNavigate();
     const [isExpanded, setIsExpanded] = useState(defaultExpanded);
 
-    // Phiếu điều trị từ API (gắn sẵn trong record)
     const treatments = record.treatments || [];
 
-    // Tính toán mini-stats
-    const pendingCount = treatments.filter(t => t.status === 'PENDING').length;
+    // API trả về treatments được sort theo createdAt asc → item cuối cùng là mới nhất
+    const latestTreatmentId = treatments.length > 0
+        ? (treatments[treatments.length - 1]._id || treatments[treatments.length - 1].id)
+        : null;
+
+    // Tính toán mini-stats với đúng trạng thái backend
+    const waitingCount = treatments.filter(t => t.status === 'WAITING_APPROVAL').length;
     const approvedCount = treatments.filter(t => t.status === 'APPROVED').length;
     const rejectedCount = treatments.filter(t => t.status === 'REJECTED').length;
+    const doneCount = treatments.filter(t => t.status === 'DONE').length;
 
-    // Tính tổng tiền dựa trên treatments API (tùy thuộc API schema, ví dụ unit_price * quantity, 
-    // bên backend schema Treatment có price, quantity, total)
-    const totalCost = treatments.reduce((sum, t) => sum + (t.total || (t.cost * (t.quantity || 1)) || 0), 0);
+    const totalCost = treatments.reduce((sum, t) => sum + ((t.planned_price || 0) * (t.quantity || 1)), 0);
 
     const rStatus = statusConfig[record.status] || { label: record.status, style: 'bg-gray-100 text-gray-500 border-gray-200' };
 
-    // Màu viền và title hover
     const activeBorderClass = record.status === 'IN_PROGRESS'
         ? 'hover:border-teal-300'
         : 'hover:border-emerald-300';
@@ -70,21 +73,23 @@ const RecordTreatmentCard = ({ record, defaultExpanded = false }) => {
                         {record.patient_id && record.patient_id.full_name && (
                             <span className="font-medium text-gray-700">{record.patient_id.full_name}</span>
                         )}
-                        {/* Nếu API trả về patient_id là string thay vì object thì dùng record.full_name nếu có */}
                         {(!record.patient_id || typeof record.patient_id === 'string') && record.patient_name && (
                             <span className="font-medium text-gray-700">{record.patient_name}</span>
+                        )}
+                        {record.full_name && !record.patient_id?.full_name && (
+                            <span className="font-medium text-gray-700">{record.full_name}</span>
                         )}
 
                         {record.doctor_info?.profile?.full_name && (
                             <>
-                                <span className="w-1 h-1 rounded-full bg-gray-300"></span>
+                                <span className="w-1 h-1 rounded-full bg-gray-300" />
                                 <span>BS {record.doctor_info.profile.full_name}</span>
                             </>
                         )}
 
                         {(record.start_date || record.end_date) && (
                             <>
-                                <span className="w-1 h-1 rounded-full bg-gray-300"></span>
+                                <span className="w-1 h-1 rounded-full bg-gray-300" />
                                 <span>
                                     {formatDate(record.start_date) || '?'} {'→'} {formatDate(record.end_date) || 'Nay'}
                                 </span>
@@ -92,25 +97,35 @@ const RecordTreatmentCard = ({ record, defaultExpanded = false }) => {
                         )}
                     </div>
 
-                    {/* Mini badges đếm trạng thái phiếu */}
+                    {/* Mini badges */}
                     <div className="flex flex-wrap gap-2 text-xs pt-1">
-                        {pendingCount > 0 && (
+                        {waitingCount > 0 && (
                             <span className="bg-amber-50 text-amber-700 border border-amber-100 px-2.5 py-1 rounded-lg font-medium">
-                                {pendingCount} phiếu chờ duyệt
+                                {waitingCount} chờ phê duyệt
                             </span>
                         )}
                         {approvedCount > 0 && (
                             <span className="bg-teal-50 text-teal-700 border border-teal-100 px-2.5 py-1 rounded-lg font-medium">
-                                {approvedCount} phiếu đã duyệt
+                                {approvedCount} đã duyệt
+                            </span>
+                        )}
+                        {doneCount > 0 && (
+                            <span className="bg-emerald-50 text-emerald-700 border border-emerald-100 px-2.5 py-1 rounded-lg font-medium">
+                                {doneCount} hoàn thành
                             </span>
                         )}
                         {rejectedCount > 0 && (
                             <span className="bg-red-50 text-red-600 border border-red-100 px-2.5 py-1 rounded-lg font-medium">
-                                {rejectedCount} phiếu từ chối
+                                {rejectedCount} từ chối
                             </span>
                         )}
                         {treatments.length === 0 && (
                             <span className="text-gray-400 italic">Chưa có phiếu điều trị</span>
+                        )}
+                        {treatments.length > 0 && (
+                            <span className="bg-gray-50 text-gray-500 border border-gray-100 px-2.5 py-1 rounded-lg">
+                                {treatments.length} phiếu
+                            </span>
                         )}
                     </div>
                 </div>
@@ -124,10 +139,9 @@ const RecordTreatmentCard = ({ record, defaultExpanded = false }) => {
                         }}
                         className="px-4 py-1.5 rounded-xl border border-teal-500 text-teal-600 text-[13px] font-medium hover:bg-teal-500 hover:text-white transition-all duration-200"
                     >
-                        Xem chi tiết
+                        Hồ sơ
                     </div>
 
-                    {/* Fake Chevron built without icons */}
                     <div className="w-6 h-6 flex items-center justify-center text-gray-400 group-hover:text-gray-600">
                         {isExpanded ? (
                             <span className="text-sm font-bold opacity-70 rotate-180 transform">▼</span>
@@ -148,14 +162,20 @@ const RecordTreatmentCard = ({ record, defaultExpanded = false }) => {
                     ) : (
                         <div className="space-y-1">
                             {treatments.map((t, idx) => (
-                                <TreatmentRow key={t._id || t.id || idx} treatment={t} index={idx} />
+                                <TreatmentRow
+                                    key={t._id || t.id || idx}
+                                    treatment={t}
+                                    index={idx}
+                                    isLatest={(t._id || t.id) === latestTreatmentId}
+                                    onViewDetail={onViewDetail}
+                                />
                             ))}
 
                             {/* Tổng giá trị */}
                             {totalCost > 0 && (
                                 <div className="flex justify-end pt-5 border-t border-gray-200 mt-4 mr-2">
                                     <div className="text-[13px] font-medium text-gray-500">
-                                        Tổng thiết tính:{' '}
+                                        Tổng dự kiến:{' '}
                                         <span className="text-base font-bold text-teal-700 ml-2">
                                             {totalCost.toLocaleString('vi-VN')}đ
                                         </span>

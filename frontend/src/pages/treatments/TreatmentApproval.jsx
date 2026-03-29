@@ -1,5 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
-import { useAuth } from '../../contexts/AuthContext';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { getAllDentalRecords, updateTreatmentStatus } from '../../services/dentalRecordService';
 
 import ApprovalStats from './components/ApprovalStats';
@@ -7,69 +6,54 @@ import RecordApprovalCard from './components/RecordApprovalCard';
 import Toast from '../../components/ui/Toast';
 
 const TreatmentApproval = () => {
-    const { user } = useAuth();
-
     const [records, setRecords] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
-
-    // Manage processing state for individual treatments to show loading on buttons
     const [processingIds, setProcessingIds] = useState([]);
-
-    // Toast states
     const [toast, setToast] = useState({ show: false, type: 'success', message: '' });
 
-    // Filter - defaulting to WAITING_APPROVAL
+    // Mặc định hiển thị WAITING_APPROVAL
     const [statusFilter, setStatusFilter] = useState('WAITING_APPROVAL');
-
-    // Mặc định tải nhiều một chút cho bác sĩ dễ duyệt
-    const [page] = useState(1);
-    const [limit] = useState(50);
 
     const showToast = (type, message) => setToast({ show: true, type, message });
     const closeToast = () => setToast(prev => ({ ...prev, show: false }));
 
-    const fetchRecords = async () => {
+    // ── Fetch ────────────────────────────────────────────────────────
+    const fetchRecords = useCallback(async () => {
         setIsLoading(true);
         setError(null);
         try {
+            // Luôn fetch với filter WAITING_APPROVAL từ backend để chỉ lấy
+            // những hồ sơ có ít nhất 1 phiếu đang chờ duyệt
             const params = {
-                page,
-                limit,
-                filter_treatment: statusFilter !== 'ALL' ? statusFilter : undefined
+                page: 1,
+                limit: 50,
+                filter_treatment: 'WAITING_APPROVAL',
             };
             const res = await getAllDentalRecords(params);
-
-            // API return form { data: [...], pagination }
-            let fetchedRecords = res.data || [];
-
-            // Nếu filter là ALL, ta có thể muốn tự lọc bớt những hồ sơ không có phiếu chờ duyệt nào
-            // (Tuỳ logic nghiệp vụ, giả sử trang này chủ yếu là để phê duyệt)
-            // Tạm thời nếu ALL thì giữ nguyên API trả về.
-
-            setRecords(fetchedRecords);
+            setRecords(res.data || []);
         } catch (err) {
             console.error('Lỗi khi tải dữ liệu phê duyệt:', err);
             setError('Không thể tải dữ liệu phiếu điều trị. Vui lòng thử lại sau.');
         } finally {
             setIsLoading(false);
         }
-    };
+    }, []);
 
     useEffect(() => {
         fetchRecords();
-    }, [statusFilter, page, limit]);
+    }, [fetchRecords]);
 
-    // ── Handlers ────────────────────────────────────────────────────
+    // ── Handlers ─────────────────────────────────────────────────────
     const processTreatmentAction = async (treatmentId, newStatus) => {
         setProcessingIds(prev => [...prev, treatmentId]);
         try {
             await updateTreatmentStatus(treatmentId, newStatus);
             showToast('success', `Đã ${newStatus === 'APPROVED' ? 'phê duyệt' : 'từ chối'} phiếu điều trị!`);
 
-            // Optimistic update: Cập nhật state nội bộ để list phản hồi ngay lập tức
-            setRecords(prevRecords => {
-                return prevRecords.map(record => {
+            // Optimistic update: cập nhật status ngay lập tức
+            setRecords(prevRecords =>
+                prevRecords.map(record => {
                     if (!record.treatments) return record;
                     const updatedTreatments = record.treatments.map(t =>
                         (t._id === treatmentId || t.id === treatmentId)
@@ -77,65 +61,46 @@ const TreatmentApproval = () => {
                             : t
                     );
                     return { ...record, treatments: updatedTreatments };
-                });
-            });
-
-            // Nếu muốn reload lại thật từ backend để loại bỏ phiếu khỏi danh sách 'WAITING_APPROVAL':
-            // await fetchRecords(); 
-            // Nhưng reload sẽ làm sập accordion. Vậy Optimistic update là tốt nhất.
-
+                })
+            );
         } catch (err) {
             console.error(`Lỗi khi ${newStatus} phiếu ${treatmentId}:`, err);
-            showToast('error', `Không thể xử lý yêu cầu. Vui lòng thử lại!`);
+            showToast('error', 'Không thể xử lý yêu cầu. Vui lòng thử lại!');
         } finally {
             setProcessingIds(prev => prev.filter(id => id !== treatmentId));
         }
     };
 
-    const handleApprove = (treatmentId) => {
-        processTreatmentAction(treatmentId, 'APPROVED');
-    };
-
+    const handleApprove = (treatmentId) => processTreatmentAction(treatmentId, 'APPROVED');
     const handleReject = (treatmentId) => {
         if (window.confirm('Bạn có chắc chắn muốn từ chối phiếu điều trị này?')) {
             processTreatmentAction(treatmentId, 'REJECTED');
         }
     };
 
-    // ── Stats Calculation ───────────────────────────────────────────
+    // ── Stats (tính từ toàn bộ records đã fetch) ─────────────────────
     const stats = useMemo(() => {
-        let WAITING_APPROVAL = 0;
-        let APPROVED = 0;
-        let REJECTED = 0;
-        let ALL = 0;
-
-        // Tính dựa trên những records hiện có trên màn hình.
+        let WAITING_APPROVAL = 0, APPROVED = 0, REJECTED = 0;
         records.forEach(r => {
-            if (r.treatments) {
-                r.treatments.forEach(t => {
-                    ALL++;
-                    if (t.status === 'WAITING_APPROVAL') WAITING_APPROVAL++;
-                    if (t.status === 'APPROVED') APPROVED++;
-                    if (t.status === 'REJECTED') REJECTED++;
-                });
-            }
+            (r.treatments || []).forEach(t => {
+                if (t.status === 'WAITING_APPROVAL') WAITING_APPROVAL++;
+                if (t.status === 'APPROVED') APPROVED++;
+                if (t.status === 'REJECTED') REJECTED++;
+            });
         });
-
-        return { ALL, WAITING_APPROVAL, APPROVED, REJECTED };
+        return { WAITING_APPROVAL, APPROVED, REJECTED };
     }, [records]);
 
-    // ── Pre-process for rendering ───────────────────────────────────
-    // Nếu màn hình đang ở tab WAITING_APPROVAL, tự động ẩn những record không còn phiếu chờ duyệt 
-    // (do optimistic update đã đổi status thành APPROVED/REJECTED làm count WAITING_APPROVAL = 0)
+    // ── Records hiển thị dựa theo filter tab đang chọn ───────────────
+    // Khi chọn WAITING_APPROVAL → ẩn các record không còn phiếu nào chờ duyệt (do optimistic update)
     const displayRecords = useMemo(() => {
         return records.filter(r => {
-            if (!r.treatments) return false;
-            if (statusFilter === 'ALL') return true;
+            if (!r.treatments || r.treatments.length === 0) return false;
             return r.treatments.some(t => t.status === statusFilter);
         });
     }, [records, statusFilter]);
 
-    // ── Render ───────────────────────────────────────────────────────
+    // ── Render ────────────────────────────────────────────────────────
     return (
         <div className="space-y-6">
             <Toast
@@ -146,28 +111,48 @@ const TreatmentApproval = () => {
             />
 
             {/* Page header */}
-            <div>
-                <h1 className="text-2xl font-bold text-gray-800 tracking-tight">Phê Duyệt Phiếu Điều Trị</h1>
-                <p className="text-xs text-gray-400 mt-0.5">
-                    Kiểm tra và quyết định phê duyệt các dịch vụ điều trị được đề xuất
-                </p>
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                <div>
+                    <h1 className="text-2xl font-bold text-gray-800 tracking-tight">Phê Duyệt Phiếu Điều Trị</h1>
+                    <p className="text-xs text-gray-400 mt-0.5">
+                        Kiểm tra và quyết định phê duyệt các dịch vụ điều trị được đề xuất
+                    </p>
+                </div>
+
+                {/* Refresh button */}
+                <button
+                    onClick={fetchRecords}
+                    disabled={isLoading}
+                    className="self-start md:self-auto flex items-center gap-2 px-4 py-2 rounded-xl border border-gray-200 bg-white text-sm font-medium text-gray-600 hover:border-teal-300 hover:text-teal-600 transition-all duration-200 disabled:opacity-50"
+                >
+                    <span className={isLoading ? 'animate-spin' : ''}>↻</span>
+                    Làm mới
+                </button>
             </div>
 
-            {/* Filter & Summary Stats */}
+            {/* Stats & filter tabs */}
             <ApprovalStats
                 stats={stats}
                 activeFilter={statusFilter}
                 onFilterChange={setStatusFilter}
             />
 
-            {/* Record count indicator */}
-            <div className="flex items-center gap-2">
-                <h2 className="text-sm font-semibold text-gray-700">
-                    Danh sách hiển thị <span className="text-teal-600 font-bold">{displayRecords.length}</span> hồ sơ
-                </h2>
+            {/* Count & info */}
+            <div className="flex items-center justify-between">
+                <p className="text-sm font-medium text-gray-600">
+                    {statusFilter === 'WAITING_APPROVAL' && (
+                        <>Đang hiển thị <span className="text-amber-600 font-bold">{displayRecords.length}</span> hồ sơ có phiếu chờ duyệt</>
+                    )}
+                    {statusFilter === 'APPROVED' && (
+                        <>Đang hiển thị <span className="text-teal-600 font-bold">{displayRecords.length}</span> hồ sơ có phiếu đã duyệt</>
+                    )}
+                    {statusFilter === 'REJECTED' && (
+                        <>Đang hiển thị <span className="text-red-600 font-bold">{displayRecords.length}</span> hồ sơ có phiếu từ chối</>
+                    )}
+                </p>
             </div>
 
-            {/* Error Message */}
+            {/* Error */}
             {error && (
                 <div className="bg-red-50 text-red-600 p-4 rounded-xl border border-red-100 text-sm">
                     {error}
@@ -177,18 +162,28 @@ const TreatmentApproval = () => {
             {/* List */}
             {isLoading ? (
                 <div className="space-y-4 animate-pulse pt-2">
-                    {[1, 2].map(i => (
-                        <div key={i} className="bg-white rounded-2xl h-40 border border-gray-100" />
+                    {[1, 2, 3].map(i => (
+                        <div key={i} className="bg-white rounded-2xl h-32 border-2 border-gray-100" />
                     ))}
                 </div>
             ) : displayRecords.length === 0 ? (
-                <div className="bg-white rounded-2xl border border-dashed border-gray-200 py-24 text-center mt-6">
-                    <div className="text-4xl mb-4 opacity-50">✅</div>
-                    <p className="text-sm font-medium text-gray-500">Tất cả phiếu đã được xử lý!</p>
-                    <p className="text-xs text-gray-400 mt-1">Không còn hồ sơ nào có phiếu điều trị phù hợp với bộ lọc hiện tại</p>
+                <div className="bg-white rounded-2xl border border-dashed border-gray-200 py-24 text-center mt-4">
+                    <div className="text-4xl mb-4 opacity-40">
+                        {statusFilter === 'WAITING_APPROVAL'}
+                    </div>
+                    <p className="text-sm font-semibold text-gray-500">
+                        {statusFilter === 'WAITING_APPROVAL'
+                            ? 'Không còn phiếu nào chờ phê duyệt!'
+                            : 'Không có hồ sơ nào khớp với bộ lọc hiện tại'}
+                    </p>
+                    <p className="text-xs text-gray-400 mt-1">
+                        {statusFilter === 'WAITING_APPROVAL'
+                            ? 'Tất cả phiếu điều trị đã được xử lý'
+                            : 'Thử chọn bộ lọc khác bên trên'}
+                    </p>
                 </div>
             ) : (
-                <div className="space-y-4 pt-2">
+                <div className="space-y-4 pt-1">
                     {displayRecords.map(record => (
                         <RecordApprovalCard
                             key={record._id || record.id}
@@ -197,7 +192,6 @@ const TreatmentApproval = () => {
                             onApprove={handleApprove}
                             onReject={handleReject}
                             processingIds={processingIds}
-                            defaultExpanded={displayRecords.length === 1}
                         />
                     ))}
                 </div>

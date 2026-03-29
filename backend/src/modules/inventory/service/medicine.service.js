@@ -42,10 +42,10 @@ exports.getMedicines = async ({ page = 1, limit = 10, search, category, statusFi
                 // Đảm bảo min_quantity tồn tại, nếu không có thì mặc định là 10 hoặc dùng $exists
                 query.$and = [
                     { quantity: { $gt: 0 } },
-                    { 
-                        $expr: { 
-                            $lte: ["$quantity", { $ifNull: ["$min_quantity", 10] }] 
-                        } 
+                    {
+                        $expr: {
+                            $lte: ["$quantity", { $ifNull: ["$min_quantity", 10] }]
+                        }
                     }
                 ];
                 break;
@@ -404,16 +404,18 @@ exports.getRestockRequests = async ({ status, priority, search, page = 1, limit 
                 _id: null,
                 total: { $sum: 1 },
                 pending: { $sum: { $cond: [{ $eq: ["$medicine_restock_requests.status", "pending"] }, 1, 0] } },
-                highPriority: { 
-                    $sum: { 
+                highPriority: {
+                    $sum: {
                         $cond: [
-                            { $and: [
-                                { $eq: ["$medicine_restock_requests.priority", "high"] },
-                                { $eq: ["$medicine_restock_requests.status", "pending"] }
-                            ]}, 
+                            {
+                                $and: [
+                                    { $eq: ["$medicine_restock_requests.priority", "high"] },
+                                    { $eq: ["$medicine_restock_requests.status", "pending"] }
+                                ]
+                            },
                             1, 0
-                        ] 
-                    } 
+                        ]
+                    }
                 },
                 completed: { $sum: { $cond: [{ $in: ["$medicine_restock_requests.status", ["completed", "accept"]] }, 1, 0] } }
             }

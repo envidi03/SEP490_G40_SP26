@@ -57,6 +57,11 @@ const treatmentSchema = new Schema(
             type: String,
             trim: true
         },
+        price: {
+            type: Number,
+            min: [0, "Price cannot be negative"],
+            default: 0
+        },
 
         // --- SỬ DỤNG THUỐC (MẢNG LỒNG NHAU) ---
         medicine_usage: [

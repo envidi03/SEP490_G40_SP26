@@ -273,6 +273,7 @@ const getByIdController = async (req, res) => {
   }
 };
 
+// create new appointment by patient (có token)
 const createController = async (req, res) => {
   try {
     const dataCreate = req.body || {};
@@ -303,6 +304,7 @@ const createController = async (req, res) => {
       });
     }
     // 2. Chuyển dữ liệu sang Service để xử lý logic nghiệp vụ
+    cleanedData.priority = 1;
     const newAppointment = await ServiceProcess.createService(
       cleanedData,
       account_id,
