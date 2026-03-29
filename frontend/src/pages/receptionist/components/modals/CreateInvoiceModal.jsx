@@ -3,6 +3,7 @@ import { X, Loader2, CheckCircle, AlertCircle, CreditCard } from 'lucide-react';
 import billingService from '../../../../services/billingService';
 
 const CreateInvoiceModal = ({ isOpen, onClose, onSuccess, appointmentData }) => {
+    console.log('CreateInvoiceModal received appointmentData:', appointmentData);
     // Trạng thái của Modal: 'IDLE' | 'CREATING' | 'SUCCESS' | 'ERROR'
     const [status, setStatus] = useState('IDLE');
     const [createdInvoice, setCreatedInvoice] = useState(null);
@@ -13,51 +14,35 @@ const CreateInvoiceModal = ({ isOpen, onClose, onSuccess, appointmentData }) => 
     const BANK_ACCOUNT = '0123456789'; // Số tài khoản
     const ACCOUNT_NAME = 'NHA KHOA CLINIC'; // Tên chủ tài khoản
 
-    useEffect(() => {
-        // Kích hoạt tự động tạo hóa đơn khi Modal mở và có dữ liệu
-        if (isOpen && appointmentData && status === 'IDLE') {
-            autoCreateInvoice();
-        }
-
-        // Reset state khi đóng Modal
-        if (!isOpen) {
-            setStatus('IDLE');
-            setCreatedInvoice(null);
-            setError(null);
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isOpen, appointmentData]);
-
     const autoCreateInvoice = async () => {
         setStatus('CREATING');
         setError(null);
 
         try {
-            // Map dữ liệu từ appointmentData sang payload hóa đơn
-            // LƯU Ý: Bạn cần điều chỉnh phần map 'items' này sao cho khớp chính xác với Schema backend của bạn
             const payload = {
-                patient_id: appointmentData.patient_id?._id || appointmentData.patient_id,
+                patient_id: appointmentData.patient_id,
                 appointment_id: appointmentData._id,
-                items: appointmentData.treatments_to_pay?.map(t => ({
-                    service_id: t.service_id || t._id, // Giả định ID dịch vụ
-                    service_name: `Điều trị ${t.tooth_position || 'nha khoa'}`, // Tên hiển thị trong HĐ
-                    unit_price: t.price || 0,
-                    quantity: t.quantity || 1,
-                    amount: t.price || 0
-                })) || [],
-                total_amount: appointmentData.total_payment_amount || 0,
+                items: appointmentData.treatments_to_pay?.map(t => {
+                    const fallbackServiceId = appointmentData.book_service?.[0]?.service_id;
+                    const fallbackSubServiceId = appointmentData.book_service?.[0]?.sub_service_id;
+
+                    return {
+                        service_id: t.service_id || fallbackServiceId, 
+                        sub_service_id: t.sub_service_id || fallbackSubServiceId || null,
+                        quantity: t.quantity || 1,
+                        price: t.price || 0 
+                    };
+                }) || [],
                 note: 'Tự động tạo hóa đơn chuyển khoản (QR)',
-                payment_method: 'TRANSFER' // Mặc định là chuyển khoản để lấy mã QR
+                payment_method: 'TRANSFER'
             };
 
-            // Gọi API
             const response = await billingService.createInvoice(payload);
             const newInvoice = response?.data?.data || response?.data;
 
             setCreatedInvoice(newInvoice);
             setStatus('SUCCESS');
 
-            // Báo cho component cha biết để load lại bảng dữ liệu ngầm ở dưới
             if (onSuccess) onSuccess(newInvoice);
 
         } catch (err) {
@@ -66,6 +51,21 @@ const CreateInvoiceModal = ({ isOpen, onClose, onSuccess, appointmentData }) => 
             setStatus('ERROR');
         }
     };
+
+    useEffect(() => {
+        // Kích hoạt tự động tạo hóa đơn khi Modal mở và có dữ liệu
+        if (isOpen && appointmentData && status === 'IDLE') {
+            autoCreateInvoice();
+        }
+
+        if (!isOpen) {
+            setStatus('IDLE');
+            setCreatedInvoice(null);
+            setError(null);
+        }
+    }, [isOpen, appointmentData]);
+
+    
 
     if (!isOpen) return null;
 

@@ -36,7 +36,6 @@ const CreateDentalRecordModal = ({
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isLoadingAmount, setIsLoadingAmount] = useState(false);
     const [error, setError] = useState(null);
-
     // Reset form và fetch total_amount mỗi khi modal mở
     useEffect(() => {
         if (isOpen) {
@@ -63,9 +62,8 @@ const CreateDentalRecordModal = ({
                     setIsLoadingAmount(true);
                     try {
                         const res = await appointmentService.calculatorTotalAmount(appointmentId);
-                        // Xử lý mapping dựa theo format JSON được cung cấp
-                        // Giả sử dùng Axios: res.data sẽ là body response JSON
-                        const amount = res?.data?.data?.totalAmount || 0;
+                        console.log('Tổng tiền từ API:', res);
+                        const amount = res?.data?.totalAmount || 0;
                         
                         setForm(prev => ({
                             ...prev,
@@ -268,21 +266,43 @@ const CreateDentalRecordModal = ({
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Tổng tiền (VNĐ)</label>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Tổng tiền</label>
                                     <div className="relative">
                                         <input
-                                            type="number"
+                                            type="text" // Chuyển sang text để hiển thị được format (1.000.000)
                                             name="total_amount"
-                                            min="0"
-                                            value={form.total_amount}
-                                            onChange={handleChange}
+                                            // Format số thành chuẩn Việt Nam khi hiển thị
+                                            value={form.total_amount ? new Intl.NumberFormat('vi-VN').format(form.total_amount) : ''}
+                                            onChange={(e) => {
+                                                // Lọc bỏ tất cả ký tự không phải là số (dấu chấm, chữ cái, v.v.)
+                                                const rawValue = e.target.value.replace(/\D/g, '');
+                                                
+                                                // Gọi hàm handleChange gốc với object mô phỏng event
+                                                if (handleChange) {
+                                                    handleChange({
+                                                        target: {
+                                                            name: "total_amount",
+                                                            value: rawValue ? Number(rawValue) : ""
+                                                        }
+                                                    });
+                                                }
+                                            }}
                                             placeholder={isLoadingAmount ? "Đang tính..." : "0"}
                                             disabled={isLoadingAmount}
-                                            className={`w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-400 focus:bg-white transition ${isLoadingAmount ? 'opacity-60' : ''}`}
+                                            // Thêm text-right, font-bold, đổi màu chữ và padding-right (pr-14) để chừa chỗ cho chữ VNĐ
+                                            className={`w-full pl-3 pr-14 py-2 bg-gray-50 border border-gray-200 rounded-xl text-base font-bold text-teal-600 text-right focus:outline-none focus:ring-2 focus:ring-teal-400 focus:bg-white transition ${isLoadingAmount ? 'opacity-60' : ''}`}
                                         />
-                                        {isLoadingAmount && (
-                                            <div className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 border-2 border-gray-300 border-t-teal-500 rounded-full animate-spin" />
-                                        )}
+                                        
+                                        {/* Khu vực icon loading hoặc text VNĐ ở góc phải */}
+                                        <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center justify-center">
+                                            {isLoadingAmount ? (
+                                                <div className="w-4 h-4 border-2 border-gray-300 border-t-teal-500 rounded-full animate-spin" />
+                                            ) : (
+                                                <span className="text-sm font-medium text-gray-400 select-none pointer-events-none">
+                                                    VNĐ
+                                                </span>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                             </div>

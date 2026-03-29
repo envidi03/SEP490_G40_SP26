@@ -67,7 +67,7 @@ const appointmentService = {
     // Calculator total amount
     calculatorTotalAmount: async (appointmentId) => {
         console.log('Gọi API calculatorTotalAmount với appointmentId:', appointmentId);
-        const response = await apiClient.get(`/api/appointment/calculator-amount/${appointmentId}`);
+        const response = await apiClient.get(`/api/appointment/amount/${appointmentId}`);
         console.log('Response từ API calculatorTotalAmount:', response);
         return response;
     },
