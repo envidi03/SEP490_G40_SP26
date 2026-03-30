@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
     LayoutDashboard,
@@ -7,10 +8,11 @@ import {
     ClipboardList,
     Wrench,
     LogOut,
-    Menu,
     Clock,
     UserCheck,
-    CalendarSync
+    CalendarSync,
+    CalendarPlus,
+    ChevronDown
 } from 'lucide-react';
 import clsx from 'clsx';
 import { useAuth } from '../../../contexts/AuthContext';
@@ -19,11 +21,27 @@ const ReceptionistSidebar = () => {
     const location = useLocation();
     const { logout, user } = useAuth();
 
+    const [expandedMenus, setExpandedMenus] = useState({
+        'appointments': false
+    });
+
+    const toggleMenu = (key) => {
+        setExpandedMenus(prev => ({ ...prev, [key]: !prev[key] }));
+    };
+
     const menuItems = [
         { path: '/receptionist/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
         { path: '/receptionist/check-in', icon: UserCheck, label: 'Tiếp đón' },
         { path: '/receptionist/patients', icon: Users, label: 'Bệnh nhân' },
-        { path: '/receptionist/appointments', icon: Calendar, label: 'Lịch hẹn' },
+        {
+            key: 'appointments',
+            icon: Calendar,
+            label: 'Lịch hẹn',
+            children: [
+                { path: '/receptionist/appointments', icon: ClipboardList, label: 'Lịch hẹn' },
+                { path: '/receptionist/booking', icon: CalendarPlus, label: 'Đặt lịch' },
+            ]
+        },
         { path: '/receptionist/re-examination', icon: CalendarSync, label: 'Tái khám' },
         { path: '/receptionist/invoices', icon: DollarSign, label: 'Hóa đơn' },
         { path: '/receptionist/services', icon: ClipboardList, label: 'Dịch vụ' },
@@ -81,11 +99,70 @@ const ReceptionistSidebar = () => {
             <nav className="flex-1 px-4 space-y-1.5 overflow-y-auto custom-scrollbar relative z-10 py-2">
                 {menuItems.map((item) => {
                     const Icon = item.icon;
-                    const isActive = location.pathname === item.path;
 
+                    // Nếu có menu con (children)
+                    if (item.children) {
+                        const isExpanded = expandedMenus[item.key];
+                        // Kiểm tra xem có route con nào đang active không để highlight menu cha
+                        const isChildActive = item.children.some(child => location.pathname === child.path);
+
+                        return (
+                            <div key={item.key} className="flex flex-col space-y-1">
+                                <button
+                                    onClick={() => toggleMenu(item.key)}
+                                    className={clsx(
+                                        'flex items-center justify-between px-4 py-3.5 rounded-xl text-sm font-medium transition-all duration-300 group w-full',
+                                        isChildActive
+                                            ? 'text-teal-700 bg-teal-50/80 shadow-sm'
+                                            : 'text-gray-500 hover:bg-teal-50/80 hover:text-teal-600'
+                                    )}
+                                >
+                                    <div className="flex items-center">
+                                        <Icon size={20} className={clsx("mr-3 transition-transform duration-300", isChildActive ? "" : "group-hover:scale-110 group-hover:rotate-3")} strokeWidth={isChildActive ? 2.5 : 2} />
+                                        <span>{item.label}</span>
+                                    </div>
+                                    <ChevronDown size={16} className={clsx("transition-transform duration-300", isExpanded && "rotate-180")} />
+                                </button>
+
+                                {/* Render các menu con */}
+                                <div
+                                    className={clsx(
+                                        "overflow-hidden transition-all duration-300 ease-in-out",
+                                        isExpanded ? "max-h-40 opacity-100 mt-1" : "max-h-0 opacity-0"
+                                    )}
+                                >
+                                    <div className="flex flex-col space-y-1 pl-4 ml-5 border-l-2 border-teal-100/60">
+                                        {item.children.map(child => {
+                                            const ChildIcon = child.icon;
+                                            const isChildActive = location.pathname === child.path;
+                                            return (
+                                                <Link
+                                                    key={child.path}
+                                                    to={child.path}
+                                                    className={clsx(
+                                                        'flex items-center px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 group relative overflow-hidden',
+                                                        isChildActive
+                                                            ? 'text-white bg-gradient-to-r from-teal-500 to-emerald-500 shadow-md shadow-teal-500/25'
+                                                            : 'text-gray-500 hover:bg-teal-50/80 hover:text-teal-600'
+                                                    )}
+                                                >
+                                                    <ChildIcon size={18} className={clsx("mr-3 transition-transform duration-300 relative z-10", isChildActive ? "scale-110" : "group-hover:scale-110 group-hover:rotate-3")} strokeWidth={isChildActive ? 2.5 : 2} />
+                                                    <span className="relative z-10">{child.label}</span>
+                                                    {isChildActive && <div className="absolute right-4 w-1.5 h-1.5 rounded-full bg-white animate-pulse z-10" />}
+                                                </Link>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    }
+
+                    // Nếu không có menu con, giữ nguyên logic cũ
+                    const isActive = location.pathname === item.path;
                     return (
                         <Link
-                            key={item.path}
+                            key={item.path || item.label}
                             to={item.path}
                             className={clsx(
                                 'flex items-center px-4 py-3.5 rounded-xl text-sm font-medium transition-all duration-300 group relative overflow-hidden',
