@@ -42,7 +42,11 @@ const treatmentService = {
 
     changeStatusTreatment: (treatmentId, status) => {
         return apiClient.patch(`${BASE_API_DENTIST}/treatment/status/${treatmentId}`, status)
-    }
+    },
+
+    getListTreatementWithAppointmentNull: (params) => {
+        return apiClient.get(`${BASE_API_DENTIST}/treatmen/plan/null/appointment`, { params });
+    },
 };
 
 export default treatmentService;

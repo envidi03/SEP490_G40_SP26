@@ -10,8 +10,21 @@ const Header = () => {
     const [showProfileMenu, setShowProfileMenu] = useState(false);
 
     const handleLogout = () => {
+        const logoutToast = {
+            message: 'Đăng xuất thành công. Hẹn gặp lại bạn!',
+            type: 'success',
+            duration: 3000
+        };
+
+        // 1. Set toast in BOTH sessionStorage and navigate state for reliability
+        sessionStorage.setItem('pendingToast', JSON.stringify(logoutToast));
+
+        // 2. Perform logout (might trigger immediate guard redirect)
         logout();
-        navigate('/login');
+        setShowProfileMenu(false);
+        
+        // 3. Navigate to login (or /) with state
+        navigate('/login', { state: { toast: logoutToast } });
     };
 
     const getProfilePath = () => {

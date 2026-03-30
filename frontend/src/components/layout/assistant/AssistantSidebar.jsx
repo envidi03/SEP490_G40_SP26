@@ -1,4 +1,4 @@
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
     LayoutDashboard,
     Calendar,
@@ -13,7 +13,25 @@ import { useAuth } from '../../../contexts/AuthContext';
 
 const AssistantSidebar = () => {
     const location = useLocation();
+    const navigate = useNavigate();
     const { logout, user } = useAuth();
+
+    const handleLogout = () => {
+        const logoutToast = {
+            message: 'Đăng xuất thành công. Hẹn gặp lại bạn!',
+            type: 'success',
+            duration: 3000
+        };
+
+        // 1. Set toast in BOTH sessionStorage and navigate state for reliability
+        sessionStorage.setItem('pendingToast', JSON.stringify(logoutToast));
+
+        // 2. Perform logout
+        logout();
+        
+        // 3. Navigate to login (or /) with state
+        navigate('/login', { state: { toast: logoutToast } });
+    };
 
     const menuItems = [
         { path: '/assistant/dashboard', icon: LayoutDashboard, label: 'Tổng Quan' },
@@ -99,7 +117,7 @@ const AssistantSidebar = () => {
             {/* Footer / Logout */}
             <div className="p-4 mt-auto">
                 <button
-                    onClick={logout}
+                    onClick={handleLogout}
                     className="w-full flex items-center justify-center gap-2 px-4 py-3.5 rounded-2xl text-sm font-medium text-red-500 hover:bg-red-50 hover:text-red-600 transition-all duration-200 border border-transparent hover:border-red-100"
                 >
                     <LogOut size={18} />

@@ -50,10 +50,22 @@ const MainNavigation = () => {
         fetchData();
     }, []);
 
-    const handleLogout = async () => {
-        await logout();
+    const handleLogout = () => {
+        const logoutToast = {
+            message: 'Đăng xuất thành công. Hẹn gặp lại bạn!',
+            type: 'success',
+            duration: 3000
+        };
+
+        // 1. Set toast in BOTH sessionStorage and navigate state for reliability
+        sessionStorage.setItem('pendingToast', JSON.stringify(logoutToast));
+
+        // 2. Perform logout (might trigger immediate guard redirect)
+        logout();
         setShowProfileMenu(false);
-        navigate('/');
+        
+        // 3. Fallback navigate
+        navigate('/', { state: { toast: logoutToast } });
     };
 
     const handleBookingClick = () => {

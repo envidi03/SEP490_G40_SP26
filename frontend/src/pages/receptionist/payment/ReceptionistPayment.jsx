@@ -23,11 +23,7 @@ const Payment = ({
     const interval = setInterval(async () => {
       try {
         const response = await billingService.checkPaymentStatus(invoiceCode);
-
-        // Assuming backend returns status in response.data or response directly depending on interceptor
-        // Based on common patterns in this project, response.data.status might be mapped to response.status
         const status = response?.status || response?.data?.status;
-
         if (status === "PAID") {
           setIsPaid(true);
           if (onSuccess) onSuccess();
@@ -35,7 +31,6 @@ const Payment = ({
         }
       } catch (error) {
         console.error("Error checking payment status:", error);
-        // Don't stop polling on error unless it's critical
       }
     }, 3000);
 

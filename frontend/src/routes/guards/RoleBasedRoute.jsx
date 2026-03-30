@@ -1,9 +1,9 @@
-import React from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 
 const RoleBasedRoute = ({ children, allowedRoles = [] }) => {
     const { user, isAuthenticated, loading } = useAuth();
+    const location = useLocation();
 
     if (loading) {
         return (
@@ -17,11 +17,12 @@ const RoleBasedRoute = ({ children, allowedRoles = [] }) => {
     }
 
     if (!isAuthenticated) {
-        return <Navigate to="/" replace />;
+        // Forward location state if present (especially for toasts during logout)
+        return <Navigate to="/" state={location.state} replace />;
     }
 
     if (allowedRoles.length > 0 && !allowedRoles.includes(user?.role)) {
-        return <Navigate to="/dashboard" replace />;
+        return <Navigate to="/dashboard" state={location.state} replace />;
     }
 
     return children;

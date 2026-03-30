@@ -2,6 +2,7 @@ const Notification = require('../model/notification.model');
 const Account = require('../../auth/models/account.model');
 const Role = require('../../auth/models/role.model');
 const emailService = require('../../../common/service/email.service');
+const zaloService = require('../../../common/service/zalo.service');
 const logger = require('../../../common/utils/logger');
 
 const dispatchEmail = async (notification) => {
@@ -92,7 +93,7 @@ const dispatchEmail = async (notification) => {
             </html>
         `;
 
-        // 3. Gửi email (Gửi Bcc để ẩn danh sách người nhận)
+        // 3. Gửi email
         await emailService.sendEmail(
             emails.join(', '),
             title || 'Thông báo từ hệ thống Dental CMS',
@@ -122,51 +123,38 @@ const dispatchEmail = async (notification) => {
 const dispatchZalo = async (notification) => {
     try {
         const { scope, recipient_id, recipient_ids, target_roles, title, message } = notification;
-        let phoneNumbers = [];
 
-        // 1. Thu thập danh sách số điện thoại
+        // Thu thập Account objects (cần cả phone_number lẫn zalo_user_id)
+        let accounts = [];
+
         if (scope === 'INDIVIDUAL' && recipient_id) {
-            const acc = await Account.findById(recipient_id).select('phone_number status');
-            if (acc && acc.status === 'ACTIVE' && acc.phone_number) {
-                phoneNumbers.push(acc.phone_number);
-            }
-        } 
+            const acc = await Account.findById(recipient_id).select('phone_number zalo_user_id status');
+            if (acc && acc.status === 'ACTIVE') accounts.push(acc);
+        }
         else if (scope === 'GROUP') {
             const orConditions = [];
-            
+
             if (target_roles && target_roles.length > 0) {
                 const roles = await Role.find({ name: { $in: target_roles } }).select('_id');
                 const roleIds = roles.map(r => r._id);
-                if (roleIds.length > 0) {
-                    orConditions.push({ role_id: { $in: roleIds } });
-                }
+                if (roleIds.length > 0) orConditions.push({ role_id: { $in: roleIds } });
             }
-            
             if (recipient_ids && recipient_ids.length > 0) {
                 orConditions.push({ _id: { $in: recipient_ids } });
             }
-
             if (orConditions.length > 0) {
-                const accounts = await Account.find({
+                accounts = await Account.find({
                     $or: orConditions,
-                    status: 'ACTIVE',
-                    phone_number: { $exists: true, $ne: null, $ne: '' }
-                }).select('phone_number');
-                phoneNumbers = accounts.map(a => a.phone_number);
+                    status: 'ACTIVE'
+                }).select('phone_number zalo_user_id');
             }
-        } 
+        }
         else if (scope === 'GLOBAL') {
-            const accounts = await Account.find({
-                status: 'ACTIVE',
-                phone_number: { $exists: true, $ne: null, $ne: '' }
-            }).select('phone_number');
-            phoneNumbers = accounts.map(a => a.phone_number);
+            accounts = await Account.find({ status: 'ACTIVE' }).select('phone_number zalo_user_id');
         }
 
-        // Lọc trùng lặp số điện thoại
-        phoneNumbers = [...new Set(phoneNumbers)];
-
-        if (phoneNumbers.length === 0) {
+        if (accounts.length === 0) {
+            logger.warn('[Notification] Zalo dispatch skipped: no accounts found.');
             await Notification.updateOne(
                 { _id: notification._id },
                 { $set: { 'channels.zalo.status': 'FAILED' } }
@@ -174,18 +162,38 @@ const dispatchZalo = async (notification) => {
             return;
         }
 
-        // 2. Gửi Zalo ZNS (Mocking/Logging)
-        // Trong thực tế, bạn sẽ gọi Zalo API ở đây.
-        logger.info('[Zalo ZNS] Sending notification to:', { phoneNumbers, title });
+        // Nội dung tin nhắn OA thông thường
+        const textMessage = `🔔 ${title}\n\n${message}`;
 
-        // Giả sử gửi thành công 100% trong Mock mode
+        let sentCount = 0;
+        let failCount = 0;
+
+        for (const acc of accounts) {
+            // Ưu tiên OA Message (dùng zalo_user_id nếu user đã Follow OA)
+            if (acc.zalo_user_id) {
+                const result = await zaloService.sendOAMessage(acc.zalo_user_id, textMessage);
+                if (result.error === 0) {
+                    sentCount++;
+                } else {
+                    failCount++;
+                    logger.warn(`[Notification] OA Message failed for zalo_user ${acc.zalo_user_id}:`, result);
+                }
+            } else {
+                // Không có zalo_user_id = chưa follow OA, bỏ qua
+                logger.info(`[Notification] Account ${acc._id} has no zalo_user_id (not following OA). Skipping Zalo.`);
+                failCount++;
+            }
+        }
+
+        logger.info(`[Notification] Zalo dispatch done. Sent: ${sentCount}, Failed/Skipped: ${failCount}`);
+
         await Notification.updateOne(
             { _id: notification._id },
-            { 
-                $set: { 
-                    'channels.zalo.status': 'SENT',
+            {
+                $set: {
+                    'channels.zalo.status': sentCount > 0 ? 'SENT' : 'FAILED',
                     'channels.zalo.sent_at': new Date()
-                } 
+                }
             }
         );
 

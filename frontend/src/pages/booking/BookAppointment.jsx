@@ -32,9 +32,17 @@ const BookAppointment = () => {
     // Effect: Kiểm tra nếu có service truyền qua từ trang ServiceDetail
     useEffect(() => {
         // 1. Phục hồi dữ liệu sau khi đăng nhập thành công
-        if (location.state?.recoveredBookingData && currentStep === 1) {
-            setBookingData(location.state.recoveredBookingData);
+        const recoveredData = location.state?.bookingData || location.state?.recoveredBookingData;
+        if (recoveredData && currentStep === 1) {
+            setBookingData(recoveredData);
             setCurrentStep(2); // Nhảy thẳng sang bước xác nhận vì đã chọn xong ở bước 1 trước đó
+            
+            // Xóa state để người dùng có thể quay lại bước 1 mà không bị ép nhảy lại bước 2
+            const newState = { ...location.state };
+            delete newState.bookingData;
+            delete newState.recoveredBookingData;
+            navigate(location.pathname, { state: newState, replace: true });
+            
             return;
         }
 

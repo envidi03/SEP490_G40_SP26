@@ -236,6 +236,7 @@ const DentistAppointmentList = () => {
         patientEmail={patientData.email || appointmentForRecord?.email || ''}
         patientGender={patientData.gender === true ? 'MALE' : patientData.gender === false ? 'FEMALE' : ''}
         patientDateOfBirth={patientData.dob || ''}
+        appointmentId={appointmentForRecord?._id}
       />
     </div>
   )

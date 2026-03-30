@@ -5,7 +5,6 @@ import { useAuth } from '../../contexts/AuthContext';
 import authService from '../../services/authService';
 import { getDashboardRoute } from '../../utils/roleConfig';
 import Input from '../../components/ui/Input';
-import Toast from '../../components/ui/Toast';
 import PublicLayout from '../../components/layout/PublicLayout';
 import { LogIn, User, Lock, Eye, EyeOff, ArrowLeft } from 'lucide-react';
 
@@ -18,7 +17,6 @@ const Login = () => {
     const [showPassword, setShowPassword] = React.useState(false);
     const [focusedField, setFocusedField] = React.useState(null);
     const [fieldErrors, setFieldErrors] = React.useState({ username: '', password: '' });
-    const [showToast, setShowToast] = React.useState(false);
     const { login } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
@@ -64,30 +62,28 @@ const Login = () => {
                 targetStorage.setItem('refresh_token', JSON.stringify(refreshToken));
             }
 
-            // Show success toast
-            setShowToast(true);
+            // Save username if remember me is checked
+            if (rememberMe) {
+                localStorage.setItem('remembered_username', username);
+            } else {
+                localStorage.removeItem('remembered_username');
+            }
 
-            // Redirect after showing toast based on role
-            setTimeout(() => {
-                // Save username if remember me is checked
-                if (rememberMe) {
-                    localStorage.setItem('remembered_username', username);
-                } else {
-                    localStorage.removeItem('remembered_username');
-                }
+            const from = location.state?.from;
+            const bookingData = location.state?.bookingData;
 
-                const from = location.state?.from;
-                const bookingData = location.state?.bookingData;
+            // Define the success toast object
+            const successToast = {
+                message: 'Đăng nhập thành công! Chào mừng bạn trở lại.',
+                type: 'success',
+                duration: 5000
+            };
 
-                if (from) {
-                    // Nếu đi từ trang đặt lịch, quay lại đó kèm data đã chọn
-                    navigate(from, { state: { recoveredBookingData: bookingData } });
-                } else {
-                    // Mặc định về dashboard
-                    const dashboardRoute = getDashboardRoute(role.name);
-                    navigate(dashboardRoute);
-                }
-            }, 1500);
+            // Bulletproof delivery via sessionStorage
+            sessionStorage.setItem('pendingToast', JSON.stringify(successToast));
+
+            // Update auth context with user data (this triggers PublicRoute redirect)
+            login(userData, rememberMe);
         } else {
             setError('Không thể lấy thông tin người dùng');
         }
@@ -186,16 +182,6 @@ const Login = () => {
 
     return (
         <PublicLayout>
-            {/* Success Toast */}
-            {showToast && (
-                <Toast
-                    type="success"
-                    message="Đăng nhập thành công! Chào mừng bạn trở lại."
-                    onClose={() => setShowToast(false)}
-                    duration={3000}
-                />
-            )}
-
             <div className="min-h-[calc(100vh-160px)] bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex items-center justify-center p-4 py-12">
                 {/* Main Container */}
                 <div className="max-w-md w-full">
@@ -227,7 +213,7 @@ const Login = () => {
                             <form onSubmit={handleSubmit} className="space-y-6">
                                 {/* Username field */}
                                 <div className="relative group">
-                                    <div className={`absolute left-3 transition-all duration-300 ${username || focusedField === 'username' ? '-top-2 text-xs bg-white px-1 text-primary-600' : 'top-3 text-gray-500'}`}>
+                                    <div className={`absolute left-3 transition-all duration-300 z-10 ${username || focusedField === 'username' ? '-top-2 text-xs bg-white px-1 text-primary-600' : 'top-3 text-gray-500'}`}>
                                         <User size={username || focusedField === 'username' ? 14 : 16} className="inline mr-1" />
                                         <span className="font-medium">Email / Tên đăng nhập</span>
                                     </div>

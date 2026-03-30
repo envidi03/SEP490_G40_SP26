@@ -9,6 +9,8 @@ router.get('/date/patient', auth.authenticate, auth.authorize("PATIENT"), contro
 
 router.get('/staff', controller.getListController);
 
+router.get('/staff/appointment/payment', controller.getListAppointmentToPaymentController);
+
 router.get('/doctor/appointment', auth.authenticate, auth.authorize("DOCTOR"), controller.getListOfDoctorController);
 
 module.exports = router;

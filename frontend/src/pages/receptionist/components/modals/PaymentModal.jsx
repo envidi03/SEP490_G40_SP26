@@ -1,12 +1,56 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import Payment from '../../payment/ReceptionistPayment';
+import billingService from '../../../../services/billingService';
 
-const PaymentModal = ({ isOpen, onClose, invoice, onSuccess }) => {
+const PaymentModal = ({ isOpen, onClose, invoice, onSuccess, autoPoll = true }) => {
+    const [isPaid, setIsPaid] = useState(false);
+
+    console.log('PaymentModal received invoice:', invoice);
+    
+    // Parse thông tin invoice
+    const amount = invoice?.total_amount || invoice?.total || 0;
+    const invoiceCode = invoice?.invoice_code || (invoice?._id && invoice._id.substring(invoice._id.length - 6).toUpperCase()) || invoice?.code;
+
+    // KỸ THUẬT: Lưu lại props của lần render trước để so sánh
+    const [prevTracked, setPrevTracked] = useState({ isOpen: false, invoiceCode: null });
+
+    // Cập nhật state trực tiếp trong lúc render nếu props thay đổi (không dùng useEffect)
+    if (isOpen !== prevTracked.isOpen || invoiceCode !== prevTracked.invoiceCode) {
+        setPrevTracked({ isOpen, invoiceCode });
+        if (isOpen) {
+            setIsPaid(false); // Chỉ reset về false khi modal được mở lên
+        }
+    }
+
+    useEffect(() => {
+        if (isPaid || !autoPoll || !invoiceCode || !isOpen) return;
+
+        const interval = setInterval(async () => {
+            try {
+                const response = await billingService.checkPaymentStatus(invoiceCode);
+                const status = response?.status || response?.data?.status;
+                
+                if (status === "PAID") {
+                    setIsPaid(true);
+                    if (onSuccess) onSuccess();
+                    clearInterval(interval);
+                    
+                    // Delay logic
+                    setTimeout(() => {
+                        // Thêm check isOpen để tránh gọi onClose nếu modal đã bị đóng bởi user
+                        onClose();
+                    }, 2000);
+                }
+            } catch (error) {
+                console.error("Error checking payment status:", error);
+            }
+        }, 3000);
+
+        return () => clearInterval(interval);
+    }, [isPaid, autoPoll, invoiceCode, onSuccess, isOpen, onClose]);
+
     if (!isOpen || !invoice) return null;
-
-    const amount = invoice.total_amount || invoice.total || 0;
-    const invoiceCode = invoice.invoice_code || (invoice._id && invoice._id.substring(invoice._id.length - 6).toUpperCase()) || invoice.code;
 
     return (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
@@ -35,11 +79,7 @@ const PaymentModal = ({ isOpen, onClose, invoice, onSuccess }) => {
                     <Payment
                         amount={amount}
                         invoiceCode={invoiceCode}
-                        onSuccess={() => {
-                            if (onSuccess) onSuccess();
-                            // Optional: delay closing to show success state
-                            setTimeout(onClose, 2000);
-                        }}
+                        isPaid={isPaid}
                     />
                 </div>
 

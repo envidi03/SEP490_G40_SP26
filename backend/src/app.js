@@ -138,6 +138,9 @@ app.use('/api/notification', notificationRoute);
 const { route: routePayment} = require('./modules/payment/index');
 app.use('/api/payment', routePayment);
 
+const zaloWebhookRoute = require('./common/routes/zalo.webhook.route');
+app.use('/api/zalo', zaloWebhookRoute);
+
 
 // 404 Handler - Must be after all routes
 app.use((req, res, next) => {

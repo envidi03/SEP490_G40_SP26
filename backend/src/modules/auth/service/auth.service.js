@@ -398,7 +398,7 @@ exports.refreshToken = async (refreshToken) => {
         throw new ForbiddenError('Session expired');
     }
 
-    const account = await Account.findById(session.account_id);
+    const account = await Account.findById(session.account_id).populate('role_id');
     if (!account) {
         throw new NotFoundError('Account not found');
     }
@@ -415,7 +415,7 @@ exports.refreshToken = async (refreshToken) => {
     const newAccessToken = signToken({
         account_id: account._id,
         user_id: user._id,
-        role: account.role_id.name
+        role: account.role_id?.name
     });
 
     return {
