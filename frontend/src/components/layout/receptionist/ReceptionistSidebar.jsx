@@ -1,6 +1,5 @@
-import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
     LayoutDashboard,
     Users,
@@ -11,8 +10,6 @@ import {
     LogOut,
     Clock,
     UserCheck,
-    CalendarSync,
-    Bell,
     CalendarSync,
     CalendarPlus,
     ChevronDown
@@ -54,8 +51,6 @@ const ReceptionistSidebar = () => {
         { path: '/receptionist/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
         { path: '/receptionist/patients', icon: Users, label: 'Bệnh nhân' },
         { path: '/receptionist/check-in', icon: UserCheck, label: 'Tiếp đón' },
-        { path: '/receptionist/appointments', icon: Calendar, label: 'Lịch hẹn' },
-        { path: '/receptionist/patients', icon: Users, label: 'Bệnh nhân' },
         {
             key: 'appointments',
             icon: Calendar,
