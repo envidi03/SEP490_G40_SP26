@@ -17,16 +17,18 @@ const ReceptionistCheckIn = () => {
     const fetchTodayAppointments = async () => {
         setLoading(true);
         try {
-            // Fetch appointments with status SCHEDULED for today
+            // Lấy danh sách những người chưa Check-in (Sẽ lấy được cả SCHEDULED và NO_SHOW)
             const response = await appointmentService.getStaffAppointments({
                 page: 1,
                 limit: 100,
-                status: 'SCHEDULED'
+                exclude_status: 'CHECKED_IN,IN_CONSULTATION,COMPLETED,CANCELLED',
+                lte_date: todayStr,
+                gte_date: todayStr,
             });
             const data = response.data?.data || response.data || [];
             const list = Array.isArray(data) ? data : data.data || [];
 
-            // Filter by today locally as well to be sure
+            // Filter lại lần nữa ở frontend để chắc chắn là ngày hôm nay
             const todayList = list.filter(apt => {
                 const aptDate = new Date(apt.appointment_date).toISOString().split('T')[0];
                 return aptDate === todayStr;
@@ -147,16 +149,25 @@ const ReceptionistCheckIn = () => {
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <div className="flex items-center text-sm text-gray-900 font-semibold">
-                                                <Clock size={16} className="mr-2 text-gray-400" />
-                                                {apt.appointment_time}
+                                                <Clock size={16} className={`mr-2 ${apt.status === 'NO_SHOW' ? 'text-red-500' : 'text-gray-400'}`} />
+                                                <span className={apt.status === 'NO_SHOW' ? 'text-red-600' : ''}>
+                                                    {apt.appointment_time}
+                                                </span>
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                                            {apt.doctorId?.profile?.full_name || apt.doctorId?.name || 'Chưa chỉ định'}
+                                            {apt.doctor_info?.profile?.full_name || apt.doctorId?.name || 'Chưa chỉ định'}
                                         </td>
+                                        
+                                        {/* --- CỘT TRẠNG THÁI (ĐÃ SỬA LẠI ĐỂ HIỂN THỊ ĐỘNG) --- */}
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            <Badge variant="warning">Chờ khám</Badge>
+                                            {apt.status === 'NO_SHOW' ? (
+                                                <Badge variant="danger" className="bg-red-100 text-red-700">Đến muộn</Badge>
+                                            ) : (
+                                                <Badge variant="warning">Chờ khám</Badge>
+                                            )}
                                         </td>
+
                                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                             <button
                                                 onClick={() => handleCheckIn(apt._id)}
