@@ -24,8 +24,10 @@ import appointmentService from "../../services/appointmentService";
 import staffService from "../../services/staffService";
 import equipmentService from "../../services/equipmentService";
 import SharedPagination from "../../components/ui/SharedPagination";
+import { useNavigate } from "react-router-dom";
 
 const AssistantAppointments = () => {
+  const navigate = useNavigate();
   const todayStr = new Date().toISOString().split("T")[0];
   const [selectedDate, setSelectedDate] = useState(todayStr);
   const [filterDoctor, setFilterDoctor] = useState("all");
@@ -185,7 +187,10 @@ const AssistantAppointments = () => {
   };
 
   const handleViewProfile = (appointment) => {
-    console.log("app: ", appointment);
+    // Chuyển hướng sang trang Quản lý Hồ sơ, truyền theo SĐT để ô tìm kiếm tự động lọc
+    navigate("/assistant/medical-records", { 
+      state: { phone: appointment.phone } 
+    });
   };
 
   const handleUpdateStatus = async (appointmentId, newStatus, doctorId) => {
