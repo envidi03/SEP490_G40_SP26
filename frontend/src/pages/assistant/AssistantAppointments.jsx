@@ -71,12 +71,12 @@ const AssistantAppointments = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      // Luôn lọc trạng thái CHECKED_IN — hàng đợi chính của phụ tá
+      // Luôn hiển thị trạng thái Đã đến (chờ khám) và Đang khám
       const apptParams = {
         appointment_date: selectedDate,
         page: currentPage,
         limit: 6,
-        status: "CHECKED_IN",
+        status: "CHECKED_IN,IN_CONSULTATION",
       };
       if (filterDoctor !== "all") {
         apptParams.doctor_id = filterDoctor;
