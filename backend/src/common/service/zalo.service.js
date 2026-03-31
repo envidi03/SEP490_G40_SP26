@@ -17,10 +17,6 @@ class ZaloService {
         this.tokenApiUrl = 'https://oauth.zaloapp.com/v4/oa/access_token';
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // BƯỚC 2A — Seed token ban đầu từ .env vào DB (chỉ nếu chưa có trong DB)
-    // ─────────────────────────────────────────────────────────────────────────
-
     /**
      * Gọi 1 lần khi server khởi động (trong server.js).
      * Nếu DB chưa có token => lấy từ .env và lưu vào.
@@ -55,10 +51,6 @@ class ZaloService {
         }
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // BƯỚC 2B — Tự động lấy Access Token hợp lệ (refresh nếu cần)
-    // ─────────────────────────────────────────────────────────────────────────
-
     /**
      * Lấy Access Token hợp lệ từ DB.
      * Nếu token sắp hết hạn hoặc đã hết hạn => tự động refresh trước.
@@ -88,10 +80,6 @@ class ZaloService {
             return null;
         }
     }
-
-    // ─────────────────────────────────────────────────────────────────────────
-    // BƯỚC 2C — Gọi Zalo API để refresh token, lưu kết quả vào MongoDB
-    // ─────────────────────────────────────────────────────────────────────────
 
     /**
      * Dùng Refresh Token để xin Access Token mới từ Zalo.
@@ -144,10 +132,6 @@ class ZaloService {
             return null;
         }
     }
-
-    // ─────────────────────────────────────────────────────────────────────────
-    // BƯỚC 2D — Gửi tin nhắn ZNS thật qua Zalo API
-    // ─────────────────────────────────────────────────────────────────────────
 
     /**
      * Gửi ZNS Message via Zalo Official Account.
@@ -204,10 +188,6 @@ class ZaloService {
             return { error: -500, message: error.message };
         }
     }
-    // ─────────────────────────────────────────────────────────────────────────
-    // BƯỚC 2E — Gửi tin nhắn OA thông thường (không cần OA xác thực)
-    // Điều kiện: người dùng phải đã FOLLOW OA
-    // ─────────────────────────────────────────────────────────────────────────
 
     /**
      * Gửi tin nhắn OA Message thông thường đến người đã Follow OA.
@@ -229,7 +209,7 @@ class ZaloService {
                 message: { text }
             };
 
-            const response = await fetch('https://openapi.zalo.me/v2.0/oa/message', {
+            const response = await fetch('https://openapi.zalo.me/v3.0/oa/message/cs', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

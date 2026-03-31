@@ -26,7 +26,7 @@ async function startServer() {
         console.log('✅ MongoDB connected successfully');
 
         // Khởi tạo Zalo Token — Seed từ .env vào DB lần đầu (nếu chưa có)
-        zaloService.initTokens().catch(err => console.error('⚠️ Zalo token init failed:', err.message));
+        zaloService.initTokens().catch(err => console.error('Zalo token init failed:', err.message));
 
         // Tạo HTTP server bọc Express app (cần thiết để Socket.IO dùng chung port)
         const httpServer = http.createServer(app);
