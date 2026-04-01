@@ -146,7 +146,7 @@ const ClinicInfo = () => {
             setToast({
                 show: true,
                 type: 'error',
-                message: '❌ Không xác định được ID phòng khám để cập nhật'
+                message: 'Không xác định được ID phòng khám để cập nhật'
             });
             return;
         }
@@ -176,24 +176,28 @@ const ClinicInfo = () => {
 
             const response = await clinicService.updateClinic(targetClinicId, data);
 
-            // Backend returns: { success: true, statusCode: 200, message: "...", data: updatedClinicObj }
-            // api.js interceptor unwraps response.data, so we get the whole object
-            if (response && response.data) {
-                setClinicData(response.data);
-                setFormData(response.data);
+            // Dữ liệu có thể nằm trong response.data hoặc chính là response
+            const updatedData = response?.data || (response?.clinic_name ? response : null);
+
+            if (updatedData) {
+                setClinicData(updatedData);
+                setFormData(updatedData);
                 setSelectedFile(null);
                 setPreviewUrl(null);
+                setIsEditMode(false);
+
+                setToast({
+                    show: true,
+                    type: 'success',
+                    message: 'Cập nhật thông tin phòng khám thành công!'
+                });
+            } else {
+                // Nếu không có dữ liệu trả về nhưng cũng không lỗi (hiếm gặp)
                 setIsEditMode(false);
                 setToast({
                     show: true,
                     type: 'success',
-                    message: '✅ Cập nhật thông tin phòng khám thành công!'
-                });
-            } else {
-                setToast({
-                    show: true,
-                    type: 'error',
-                    message: '❌ Cập nhật thất bại: Không có dữ liệu trả về'
+                    message: 'Đã lưu thay đổi!'
                 });
             }
         } catch (err) {
@@ -201,7 +205,7 @@ const ClinicInfo = () => {
             setToast({
                 show: true,
                 type: 'error',
-                message: `❌ ${err.message || 'Lỗi khi cập nhật thông tin'} `
+                message: `${err.message || 'Lỗi khi cập nhật thông tin'}`
             });
         } finally {
             setLoading(false);
@@ -580,14 +584,13 @@ const ClinicInfo = () => {
             </div>
 
             {/* Toast Notification */}
-            {toast.show && (
-                <Toast
-                    type={toast.type}
-                    message={toast.message}
-                    onClose={() => setToast({ ...toast, show: false })}
-                    duration={3000}
-                />
-            )}
+            <Toast
+                show={toast.show}
+                type={toast.type}
+                message={toast.message}
+                onClose={() => setToast(prev => ({ ...prev, show: false }))}
+                duration={3000}
+            />
         </div>
     );
 };
