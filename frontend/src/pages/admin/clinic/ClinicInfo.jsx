@@ -16,7 +16,8 @@ import {
     X,
     Image as ImageIcon,
     CheckCircle,
-    AlertCircle
+    AlertCircle,
+    ArrowLeft
 } from 'lucide-react';
 
 /**
@@ -239,14 +240,23 @@ const ClinicInfo = () => {
             <div className="max-w-6xl mx-auto">
                 {/* Header */}
                 <div className="mb-8 flex items-center justify-between">
-                    <div>
-                        <h1 className="text-4xl font-bold text-gray-900 mb-2 flex items-center gap-3">
-                            <Building2 className="text-blue-600" size={40} />
-                            Thông tin Phòng khám
-                        </h1>
-                        <p className="text-gray-600 text-lg">
-                            Quản lý thông tin phòng khám nha khoa
-                        </p>
+                    <div className="flex items-center gap-4">
+                        <button
+                            onClick={() => navigate('/admin/clinics')}
+                            className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-600 hover:text-blue-600"
+                            title="Quay lại danh sách"
+                        >
+                            <ArrowLeft size={28} />
+                        </button>
+                        <div>
+                            <h1 className="text-4xl font-bold text-gray-900 mb-2 flex items-center gap-3">
+                                <Building2 className="text-blue-600" size={40} />
+                                Thông tin Phòng khám
+                            </h1>
+                            <p className="text-gray-600 text-lg">
+                                Quản lý thông tin phòng khám nha khoa
+                            </p>
+                        </div>
                     </div>
 
                     {/* Action Buttons */}
