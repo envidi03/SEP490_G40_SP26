@@ -41,6 +41,7 @@ const ClinicInfo = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [toast, setToast] = useState({ show: false, type: 'success', message: '' });
+    const [formErrors, setFormErrors] = useState({});
     const [selectedFile, setSelectedFile] = useState(null);
     const [previewUrl, setPreviewUrl] = useState(null);
     const [imageError, setImageError] = useState(false);
@@ -92,6 +93,7 @@ const ClinicInfo = () => {
     const handleCancel = () => {
         setFormData(clinicData);
         setIsEditMode(false);
+        setFormErrors({}); // Xóa lỗi khi hủy
     };
 
     /**
@@ -102,6 +104,13 @@ const ClinicInfo = () => {
             ...prev,
             [field]: value
         }));
+        // Xóa lỗi cho trường này khi người dùng thay đổi dữ liệu
+        if (formErrors[field]) {
+            setFormErrors(prev => ({
+                ...prev,
+                [field]: ''
+            }));
+        }
     };
 
     /**
@@ -110,6 +119,7 @@ const ClinicInfo = () => {
     const handleFileChange = (e) => {
         const file = e.target.files[0];
         if (file) {
+            // Validation for file size (5MB)
             if (file.size > 5 * 1024 * 1024) {
                 setToast({
                     show: true,
@@ -118,6 +128,20 @@ const ClinicInfo = () => {
                 });
                 return;
             }
+
+            // [VALIDATION] Check for allowed file formats (images)
+            const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+            if (!allowedTypes.includes(file.type)) {
+                setToast({
+                    show: true,
+                    type: 'error',
+                    message: 'Định dạng file không được hỗ trợ!'
+                });
+                // Reset input value to allow selecting the same file again (after fixing)
+                e.target.value = null;
+                return;
+            }
+
             setSelectedFile(file);
             setImageError(false); // Reset error when new file is selected
             const reader = new FileReader();
@@ -152,40 +176,69 @@ const ClinicInfo = () => {
         }
 
         try {
-            // ========== FRONTEND VALIDATION ==========
-            if (!formData.clinic_name?.trim()) throw new Error('Tên phòng khám không được để trống');
-            if (!formData.clinic_address?.trim()) throw new Error('Địa chỉ không được để trống');
-            
-            // Validate Phone (10 digits starting with 0 or +84)
+            // ========== FRONTEND VALIDATION (INLINE ERRORS) ==========
+            const errors = {};
+
+            if (!formData.clinic_name?.trim()) errors.clinic_name = 'Tên phòng khám không được để trống';
+            if (!formData.clinic_address?.trim()) errors.clinic_address = 'Địa chỉ không được để trống';
+            if (!formData.phone?.trim()) errors.phone = 'Số điện thoại không được để trống';
+            if (!formData.email?.trim()) errors.email = 'Email không được để trống';
+            if (!formData.working_house?.trim()) errors.working_house = 'Giờ làm việc không được để trống';
+            if (!formData.tax_code?.trim()) errors.tax_code = 'Mã số thuế không được để trống';
+            if (!formData.license_number?.trim()) errors.license_number = 'Số giấy phép không được để trống';
+
+            // Validate Phone format (10 digits starting with 0 or +84)
             const phoneRegex = /^(0|\+84)[0-9]{9}$/;
             if (formData.phone && !phoneRegex.test(formData.phone)) {
-                throw new Error('Số điện thoại không hợp lệ (phải đủ 10 số bắt đầu bằng 0 hoặc +84)');
+                errors.phone = 'Số điện thoại không hợp lệ (phải đủ 10 số bắt đầu bằng 0 hoặc +84)';
             }
 
-            // Validate Email
+            // Validate Email format
             const emailRegex = /^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/;
             if (formData.email && !emailRegex.test(formData.email)) {
-                throw new Error('Email không hợp lệ');
+                errors.email = 'Email không đúng định dạng';
             }
 
-            // Validate Tax Code (10-13 digits)
+            // Validate Tax Code format (10-13 digits)
             const taxRegex = /^[0-9]{10,13}$/;
             if (formData.tax_code && !taxRegex.test(formData.tax_code)) {
-                throw new Error('Mã số thuế không hợp lệ (phải từ 10 đến 13 chữ số)');
+                errors.tax_code = 'Mã số thuế không hợp lệ (phải từ 10 đến 13 chữ số)';
             }
 
-            // Validate License Number
+            // Validate License Number format
             const licenseRegex = /^[A-Z0-9]{5,50}$/;
             if (formData.license_number && !licenseRegex.test(formData.license_number)) {
-                throw new Error('Số giấy phép không hợp lệ (5-50 ký tự in hoa và chữ số)');
+                errors.license_number = 'Số giấy phép không hợp lệ (5-50 ký tự in hoa và chữ số)';
+            }
+
+            // Nếu có lỗi, cập nhật state và dừng lại
+            if (Object.keys(errors).length > 0) {
+                setFormErrors(errors);
+                setToast({
+                    show: true,
+                    type: 'error',
+                    message: 'Vui lòng kiểm tra lại các thông tin bị lỗi!'
+                });
+                return;
+            }
+
+            // [VALIDATION] Final check for file format before sending to server
+            if (selectedFile) {
+                const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+                if (!allowedTypes.includes(selectedFile.type)) {
+                    setToast({
+                        show: true,
+                        type: 'error',
+                        message: 'Định dạng file không được hỗ trợ!'
+                    });
+                    return;
+                }
             }
 
             setLoading(true);
 
             // Sử dụng FormData để gửi cả text và file
             const data = new FormData();
-
-            // Các trường hợp lệ để gửi đi
             const allowedFields = [
                 'clinic_name', 'clinic_address', 'phone', 'email',
                 'working_house', 'tax_code', 'license_number',
@@ -203,8 +256,6 @@ const ClinicInfo = () => {
             }
 
             const response = await clinicService.updateClinic(targetClinicId, data);
-
-            // Dữ liệu có thể nằm trong response.data hoặc chính là response
             const updatedData = response?.data || (response?.clinic_name ? response : null);
 
             if (updatedData) {
@@ -213,6 +264,7 @@ const ClinicInfo = () => {
                 setSelectedFile(null);
                 setPreviewUrl(null);
                 setIsEditMode(false);
+                setFormErrors({});
 
                 setToast({
                     show: true,
@@ -220,7 +272,6 @@ const ClinicInfo = () => {
                     message: 'Cập nhật thông tin phòng khám thành công!'
                 });
             } else {
-                // Nếu không có dữ liệu trả về nhưng cũng không lỗi (hiếm gặp)
                 setIsEditMode(false);
                 setToast({
                     show: true,
@@ -231,8 +282,17 @@ const ClinicInfo = () => {
         } catch (err) {
             console.error('Error updating clinic:', err);
             
-            // Lấy thông báo lỗi cụ thể từ Backend hoặc Error object
-            const errorMessage = err.data?.message || err.message || 'Lỗi khi cập nhật thông tin';
+            // Xử lý thông báo lỗi từ backend
+            let errorMessage = err.data?.message || err.message || 'Lỗi khi cập nhật thông tin';
+            
+            // [TRANSLATE] Map generic backend error to user-friendly Vietnamese
+            if (errorMessage === 'An error occurred while updating the clinic') {
+                if (selectedFile) {
+                    errorMessage = 'Định dạng file không được hỗ trợ hoặc có lỗi khi tải ảnh lên!';
+                } else {
+                    errorMessage = 'Có lỗi xảy ra khi cập nhật thông tin phòng khám. Vui lòng thử lại sau.';
+                }
+            }
             
             setToast({
                 show: true,
@@ -347,13 +407,16 @@ const ClinicInfo = () => {
                                         Tên phòng khám <span className="text-red-500">*</span>
                                     </label>
                                     {isEditMode ? (
-                                        <input
-                                            type="text"
-                                            value={formData.clinic_name || ''}
-                                            onChange={(e) => handleChange('clinic_name', e.target.value)}
-                                            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
-                                            placeholder="Tên phòng khám"
-                                        />
+                                        <>
+                                            <input
+                                                type="text"
+                                                value={formData.clinic_name || ''}
+                                                onChange={(e) => handleChange('clinic_name', e.target.value)}
+                                                className={`w-full px-4 py-3 border ${formErrors.clinic_name ? 'border-red-500' : 'border-gray-300'} rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all`}
+                                                placeholder="Tên phòng khám"
+                                            />
+                                            {formErrors.clinic_name && <p className="text-red-500 text-xs mt-1 ml-1">{formErrors.clinic_name}</p>}
+                                        </>
                                     ) : (
                                         <p className="text-2xl font-bold text-gray-900">{formData.clinic_name}</p>
                                     )}
@@ -366,13 +429,16 @@ const ClinicInfo = () => {
                                         Địa chỉ <span className="text-red-500">*</span>
                                     </label>
                                     {isEditMode ? (
-                                        <textarea
-                                            value={formData.clinic_address || ''}
-                                            onChange={(e) => handleChange('clinic_address', e.target.value)}
-                                            rows={3}
-                                            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all resize-none"
-                                            placeholder="Địa chỉ phòng khám"
-                                        />
+                                        <>
+                                            <textarea
+                                                value={formData.clinic_address || ''}
+                                                onChange={(e) => handleChange('clinic_address', e.target.value)}
+                                                rows={3}
+                                                className={`w-full px-4 py-3 border ${formErrors.clinic_address ? 'border-red-500' : 'border-gray-300'} rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all resize-none`}
+                                                placeholder="Địa chỉ phòng khám"
+                                            />
+                                            {formErrors.clinic_address && <p className="text-red-500 text-xs mt-1 ml-1">{formErrors.clinic_address}</p>}
+                                        </>
                                     ) : (
                                         <p className="text-gray-900 font-medium">{formData.clinic_address}</p>
                                     )}
@@ -431,13 +497,16 @@ const ClinicInfo = () => {
                                         Số điện thoại <span className="text-red-500">*</span>
                                     </label>
                                     {isEditMode ? (
-                                        <input
-                                            type="tel"
-                                            value={formData.phone || ''}
-                                            onChange={(e) => handleChange('phone', e.target.value)}
-                                            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
-                                            placeholder="028-3822-1234"
-                                        />
+                                        <>
+                                            <input
+                                                type="tel"
+                                                value={formData.phone || ''}
+                                                onChange={(e) => handleChange('phone', e.target.value)}
+                                                className={`w-full px-4 py-3 border ${formErrors.phone ? 'border-red-500' : 'border-gray-300'} rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all`}
+                                                placeholder="028-3822-1234"
+                                            />
+                                            {formErrors.phone && <p className="text-red-500 text-xs mt-1 ml-1">{formErrors.phone}</p>}
+                                        </>
                                     ) : (
                                         <p className="text-gray-900 font-medium">{formData.phone}</p>
                                     )}
@@ -450,13 +519,16 @@ const ClinicInfo = () => {
                                         Email <span className="text-red-500">*</span>
                                     </label>
                                     {isEditMode ? (
-                                        <input
-                                            type="email"
-                                            value={formData.email || ''}
-                                            onChange={(e) => handleChange('email', e.target.value)}
-                                            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
-                                            placeholder="contact@dcms.vn"
-                                        />
+                                        <>
+                                            <input
+                                                type="email"
+                                                value={formData.email || ''}
+                                                onChange={(e) => handleChange('email', e.target.value)}
+                                                className={`w-full px-4 py-3 border ${formErrors.email ? 'border-red-500' : 'border-gray-300'} rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all`}
+                                                placeholder="contact@dcms.vn"
+                                            />
+                                            {formErrors.email && <p className="text-red-500 text-xs mt-1 ml-1">{formErrors.email}</p>}
+                                        </>
                                     ) : (
                                         <p className="text-gray-900 font-medium">{formData.email}</p>
                                     )}
@@ -469,13 +541,16 @@ const ClinicInfo = () => {
                                         Giờ làm việc <span className="text-red-500">*</span>
                                     </label>
                                     {isEditMode ? (
-                                        <input
-                                            type="text"
-                                            value={formData.working_house || ''} // Backend uses working_house
-                                            onChange={(e) => handleChange('working_house', e.target.value)}
-                                            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
-                                            placeholder="T2-T7: 8:00-20:00, CN: 8:00-17:00"
-                                        />
+                                        <>
+                                            <input
+                                                type="text"
+                                                value={formData.working_house || ''} // Backend uses working_house
+                                                onChange={(e) => handleChange('working_house', e.target.value)}
+                                                className={`w-full px-4 py-3 border ${formErrors.working_house ? 'border-red-500' : 'border-gray-300'} rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all`}
+                                                placeholder="T2-T7: 8:00-20:00, CN: 8:00-17:00"
+                                            />
+                                            {formErrors.working_house && <p className="text-red-500 text-xs mt-1 ml-1">{formErrors.working_house}</p>}
+                                        </>
                                     ) : (
                                         <p className="text-gray-900 font-medium">{formData.working_house}</p>
                                     )}
@@ -498,13 +573,16 @@ const ClinicInfo = () => {
                                         Mã số thuế <span className="text-red-500">*</span>
                                     </label>
                                     {isEditMode ? (
-                                        <input
-                                            type="text"
-                                            value={formData.tax_code || ''}
-                                            onChange={(e) => handleChange('tax_code', e.target.value)}
-                                            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
-                                            placeholder="0123456789"
-                                        />
+                                        <>
+                                            <input
+                                                type="text"
+                                                value={formData.tax_code || ''}
+                                                onChange={(e) => handleChange('tax_code', e.target.value)}
+                                                className={`w-full px-4 py-3 border ${formErrors.tax_code ? 'border-red-500' : 'border-gray-300'} rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all`}
+                                                placeholder="0123456789"
+                                            />
+                                            {formErrors.tax_code && <p className="text-red-500 text-xs mt-1 ml-1">{formErrors.tax_code}</p>}
+                                        </>
                                     ) : (
                                         <p className="text-gray-900 font-medium font-mono">{formData.tax_code}</p>
                                     )}
@@ -517,13 +595,16 @@ const ClinicInfo = () => {
                                         Số giấy phép <span className="text-red-500">*</span>
                                     </label>
                                     {isEditMode ? (
-                                        <input
-                                            type="text"
-                                            value={formData.license_number || ''}
-                                            onChange={(e) => handleChange('license_number', e.target.value)}
-                                            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
-                                            placeholder="BYT-Q1-2020-001"
-                                        />
+                                        <>
+                                            <input
+                                                type="text"
+                                                value={formData.license_number || ''}
+                                                onChange={(e) => handleChange('license_number', e.target.value)}
+                                                className={`w-full px-4 py-3 border ${formErrors.license_number ? 'border-red-500' : 'border-gray-300'} rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all`}
+                                                placeholder="BYT-Q1-2020-001"
+                                            />
+                                            {formErrors.license_number && <p className="text-red-500 text-xs mt-1 ml-1">{formErrors.license_number}</p>}
+                                        </>
                                     ) : (
                                         <p className="text-gray-900 font-medium font-mono">{formData.license_number}</p>
                                     )}
