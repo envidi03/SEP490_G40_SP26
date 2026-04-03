@@ -8,12 +8,23 @@ const ServiceFormModal = ({
     isEditMode,
     serviceForm,
     setServiceForm,
+    errors,
+    setErrors,
     categories,
     onSave,
     onClose,
     loading
 }) => {
     if (!show) return null;
+
+    const handleInputChange = (field, value) => {
+        setServiceForm({ ...serviceForm, [field]: value });
+        if (errors[field]) {
+            const newErrors = { ...errors };
+            delete newErrors[field];
+            setErrors(newErrors);
+        }
+    };
 
     return (
         <div className="fixed inset-0 z-50 overflow-y-auto">
@@ -38,10 +49,18 @@ const ServiceFormModal = ({
                             <input
                                 type="text"
                                 value={serviceForm.service_name}
-                                onChange={(e) => setServiceForm({ ...serviceForm, service_name: e.target.value })}
-                                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                                onChange={(e) => handleInputChange('service_name', e.target.value)}
+                                className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all ${
+                                    errors.service_name ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                                }`}
                                 placeholder="Khám tổng quát"
                             />
+                            {errors.service_name && (
+                                <p className="text-red-500 text-xs mt-1.5 font-medium flex items-center gap-1 animate-in fade-in slide-in-from-top-1">
+                                    <span className="w-1 h-1 rounded-full bg-red-500" />
+                                    {errors.service_name}
+                                </p>
+                            )}
                         </div>
 
                         {/* Description */}

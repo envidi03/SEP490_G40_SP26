@@ -50,6 +50,7 @@ const ServiceList = () => {
     const [selectedService, setSelectedService] = useState(null);
     const [selectedDetailService, setSelectedDetailService] = useState(null);
     const [isEditMode, setIsEditMode] = useState(false);
+    const [errors, setErrors] = useState({});
 
 
     // Form data
@@ -170,6 +171,7 @@ const ServiceList = () => {
      */
     const handleAddService = () => {
         setIsEditMode(false);
+        setErrors({});
         setServiceForm({
             service_name: '',
             description: '',
@@ -189,6 +191,7 @@ const ServiceList = () => {
     const handleEditService = async (service) => {
         setIsEditMode(true);
         setSelectedService(service);
+        setErrors({});
 
         // Fetch đầy đủ detail để lấy equipment_service (list API exclude trường này)
         let fullService = service;
@@ -218,14 +221,17 @@ const ServiceList = () => {
      */
     const handleSaveService = async () => {
         // Validation
+        const newErrors = {};
         if (!serviceForm.service_name.trim()) {
-            setToast({
-                show: true,
-                type: 'error',
-                message: 'Vui lòng nhập tên dịch vụ!'
-            });
+            newErrors.service_name = 'Vui lòng nhập tên dịch vụ!';
+        }
+
+        if (Object.keys(newErrors).length > 0) {
+            setErrors(newErrors);
             return;
         }
+
+        setErrors({});
 
         try {
             setSaving(true);
@@ -258,11 +264,21 @@ const ServiceList = () => {
             fetchServices(pagination.page);
         } catch (error) {
             console.error('Error saving service:', error);
-            setToast({
-                show: true,
-                type: 'error',
-                message: error.response?.data?.message || 'Có lỗi xảy ra khi lưu dịch vụ.'
-            });
+            
+            const message = error.response?.data?.message || 'Có lỗi xảy ra khi lưu dịch vụ.';
+            
+            // Map backend error to field if possible
+            if (message.toLowerCase().includes('name already exists')) {
+                setErrors({ service_name: 'Tên dịch vụ đã tồn tại!' });
+            } else if (message.toLowerCase().includes('at least 1000')) {
+                setErrors({ price: 'Giá dịch vụ tối thiểu là 1,000 VNĐ' });
+            } else {
+                setToast({
+                    show: true,
+                    type: 'error',
+                    message: message
+                });
+            }
         } finally {
             setSaving(false);
         }
@@ -430,6 +446,8 @@ const ServiceList = () => {
                 isEditMode={isEditMode}
                 serviceForm={serviceForm}
                 setServiceForm={setServiceForm}
+                errors={errors}
+                setErrors={setErrors}
                 categories={[]} // No categories
                 onSave={handleSaveService}
                 onClose={() => setShowServiceModal(false)}
