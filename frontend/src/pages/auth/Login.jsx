@@ -52,15 +52,8 @@ const Login = () => {
             // Update auth context with user data
             login(userData, rememberMe);
 
-            // Save tokens
-            if (responseData.token) {
-                const accessToken = responseData.token;
-                const refreshToken = responseData.refreshToken;
-
-                const targetStorage = rememberMe ? localStorage : sessionStorage;
-                targetStorage.setItem('access_token', JSON.stringify(accessToken));
-                targetStorage.setItem('refresh_token', JSON.stringify(refreshToken));
-            }
+            // NOTE: Tokens are already saved by authService.login() via StorageService.
+            // Do NOT save tokens here again to avoid double-stringification.
 
             // Save username if remember me is checked
             if (rememberMe) {
