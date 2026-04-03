@@ -33,9 +33,13 @@ const getListService = async (query, doctor_id, lte_date, gte_date) => {
             gte_date: gte_date
         });
 
-        // 1. Lấy và chuẩn hóa các tham số
+        // Lấy và chuẩn hóa các tham số
         const search = query.search?.trim();
-        const statusFilter = query.status && query.status !== "all" ? query.status.toUpperCase() : null;
+
+        // Lấy và chuẩn hóa status — hỗ trợ cả đơn lẻ ("CHECKED_IN") lẫn nhiều trạng thái ("CHECKED_IN,IN_CONSULTATION")
+        const rawStatus = query.status && query.status !== "all" ? query.status.toUpperCase() : null;
+        const statusList = rawStatus ? rawStatus.split(',').map(s => s.trim()).filter(Boolean) : [];
+
         const excludeStatuses = query.exclude_status
             ? query.exclude_status.toUpperCase().split(',')
             : [];
@@ -52,9 +56,11 @@ const getListService = async (query, doctor_id, lte_date, gte_date) => {
         // 2. Xây dựng điều kiện lọc (Match Condition)
         const matchCondition = {};
 
-        // Lọc theo trạng thái (status)
-        if (statusFilter) {
-            matchCondition.status = statusFilter;
+        // Lọc theo trạng thái (status) — hỗ trợ $in cho nhiều giá trị
+        if (statusList.length === 1) {
+            matchCondition.status = statusList[0];
+        } else if (statusList.length > 1) {
+            matchCondition.status = { $in: statusList };
         } else if (excludeStatuses.length > 0) {
             matchCondition.status = { $nin: excludeStatuses };
         }
