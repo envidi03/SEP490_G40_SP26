@@ -97,7 +97,6 @@ const ServiceList = () => {
                 status: 'AVAILABLE'
             });
             setShowServiceModal(true);
-            
             // Clean up param
             const newParams = new URLSearchParams(searchParams);
             newParams.delete('add');
@@ -127,7 +126,7 @@ const ServiceList = () => {
             setToast({
                 show: true,
                 type: 'error',
-                message: '❌ Không thể tải danh sách dịch vụ.'
+                message: 'Không thể tải danh sách dịch vụ.'
             });
         } finally {
             setLoading(false);
@@ -223,7 +222,7 @@ const ServiceList = () => {
             setToast({
                 show: true,
                 type: 'error',
-                message: '❌ Vui lòng nhập tên dịch vụ!'
+                message: 'Vui lòng nhập tên dịch vụ!'
             });
             return;
         }
@@ -252,7 +251,7 @@ const ServiceList = () => {
             setToast({
                 show: true,
                 type: 'success',
-                message: isEditMode ? '✅ Cập nhật dịch vụ thành công!' : '✅ Thêm dịch vụ mới thành công!'
+                message: isEditMode ? 'Cập nhật dịch vụ thành công!' : 'Thêm dịch vụ mới thành công!'
             });
 
             // Refresh list
@@ -262,7 +261,7 @@ const ServiceList = () => {
             setToast({
                 show: true,
                 type: 'error',
-                message: error.response?.data?.message || '❌ Có lỗi xảy ra khi lưu dịch vụ.'
+                message: error.response?.data?.message || 'Có lỗi xảy ra khi lưu dịch vụ.'
             });
         } finally {
             setSaving(false);
@@ -280,7 +279,7 @@ const ServiceList = () => {
                 setToast({
                     show: true,
                     type: 'success',
-                    message: '✅ Đã xóa dịch vụ (chuyển sang ngừng hoạt động)!'
+                    message: 'Đã xóa dịch vụ (chuyển sang ngừng hoạt động)!'
                 });
                 fetchServices(pagination.page); // Refresh list
             } catch (error) {
@@ -288,7 +287,7 @@ const ServiceList = () => {
                 setToast({
                     show: true,
                     type: 'error',
-                    message: error.response?.data?.message || '❌ Có lỗi xảy ra khi xóa dịch vụ.'
+                    message: error.response?.data?.message || 'Có lỗi xảy ra khi xóa dịch vụ.'
                 });
             }
         }
@@ -313,7 +312,7 @@ const ServiceList = () => {
             setToast({
                 show: true,
                 type: 'error',
-                message: '❌ Vui lòng nhập giá hợp lệ!'
+                message: 'Vui lòng nhập giá hợp lệ!'
             });
             return;
         }
@@ -331,7 +330,7 @@ const ServiceList = () => {
             setToast({
                 show: true,
                 type: 'success',
-                message: '✅ Cập nhật giá dịch vụ thành công!'
+                message: 'Cập nhật giá dịch vụ thành công!'
             });
 
             // Refresh list
@@ -341,7 +340,7 @@ const ServiceList = () => {
             setToast({
                 show: true,
                 type: 'error',
-                message: error.response?.data?.message || '❌ Có lỗi xảy ra khi cập nhật giá.'
+                message: error.response?.data?.message || 'Có lỗi xảy ra khi cập nhật giá.'
             });
         }
     };
@@ -388,9 +387,6 @@ const ServiceList = () => {
                         {/* Statistics Component */}
                         <ServiceStatistics
                             totalServices={pagination.totalItems} // Use total items from server
-                            activeServices={activeServices} // Note: This is only for current page execution
-                            avgPrice={avgPrice}
-                            formatCurrency={formatCurrency}
                         />
 
                         {/* Filters Component */}
