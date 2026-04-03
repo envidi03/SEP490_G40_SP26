@@ -84,6 +84,16 @@ const createSubService = async (parentId, data) => {
             throw new errorRes.NotFoundError("Parent service not found");
         }
 
+        // Kiểm tra trùng tên (không phân biệt hoa thường) trong cùng một parent_id
+        const existing = await SubServiceModel.findOne({
+            parent_id: parentId,
+            sub_service_name: { $regex: new RegExp(`^${data.sub_service_name.trim()}$`, "i") }
+        }).lean();
+
+        if (existing) {
+            throw new errorRes.BadRequestError("Tên gói dịch vụ này đã tồn tại trong dịch vụ này!");
+        }
+
         const newSubService = new SubServiceModel({
             ...data,
             parent_id: parentId
@@ -118,6 +128,24 @@ const updateSubService = async (id, data) => {
 
         // Không cho phép thay đổi parent_id qua update
         delete data.parent_id;
+
+        // Nếu có cập nhật tên, kiểm tra trùng
+        if (data.sub_service_name) {
+            const currentSubService = await SubServiceModel.findById(id).lean();
+            if (!currentSubService) {
+                throw new errorRes.NotFoundError("Sub-service not found");
+            }
+
+            const existing = await SubServiceModel.findOne({
+                parent_id: currentSubService.parent_id,
+                _id: { $ne: id },
+                sub_service_name: { $regex: new RegExp(`^${data.sub_service_name.trim()}$`, "i") }
+            }).lean();
+
+            if (existing) {
+                throw new errorRes.BadRequestError("Tên gói dịch vụ này đã tồn tại!");
+            }
+        }
 
         const updated = await SubServiceModel.findByIdAndUpdate(
             id,
