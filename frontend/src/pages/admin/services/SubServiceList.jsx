@@ -19,6 +19,7 @@ const SubServiceList = () => {
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState('');
     const [modalError, setModalError] = useState('');
+    const [errors, setErrors] = useState({});
     const [success, setSuccess] = useState('');
 
     // SubService form modal state
@@ -65,6 +66,7 @@ const SubServiceList = () => {
         setSelectedSubService(null);
         setFormData({ ...EMPTY_FORM });
         setModalError('');
+        setErrors({});
         setShowForm(true);
     };
 
@@ -83,23 +85,35 @@ const SubServiceList = () => {
             status: sub.status || 'AVAILABLE'
         });
         setModalError('');
+        setErrors({});
         setShowForm(true);
     };
 
     // Lưu (tạo mới hoặc cập nhật)
     const handleSave = async () => {
+        const newErrors = {};
+        
         if (!formData.sub_service_name?.trim()) {
-            setModalError('Vui lòng nhập tên gói dịch vụ!');
-            return;
+            newErrors.sub_service_name = 'Vui lòng nhập tên gói dịch vụ!';
         }
-        if (!formData.min_price || Number(formData.min_price) < 0) {
-            setModalError('Vui lòng nhập giá thấp nhất hợp lệ!');
+        
+        if (!formData.duration || Number(formData.duration) <= 0) {
+            newErrors.duration = 'Vui lòng nhập thời gian thực hiện (phút)!';
+        }
+        
+        if (!formData.min_price || Number(formData.min_price) < 1000) {
+            newErrors.min_price = 'Vui lòng nhập giá thấp nhất hợp lệ (mặc định tối thiểu 1,000 VNĐ)!';
+        }
+
+        if (Object.keys(newErrors).length > 0) {
+            setErrors(newErrors);
             return;
         }
 
         try {
             setSaving(true);
             setModalError('');
+            setErrors({});
             const payload = {
                 ...formData,
                 min_price: Number(formData.min_price),
@@ -331,6 +345,8 @@ const SubServiceList = () => {
                 onClose={() => setShowForm(false)}
                 loading={saving}
                 error={modalError}
+                errors={errors}
+                setErrors={setErrors}
             />
         </div>
     );
