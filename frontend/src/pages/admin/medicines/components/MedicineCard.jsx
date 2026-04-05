@@ -14,15 +14,17 @@ const MedicineCard = ({
     const expiringSoon = isExpiringSoon(medicine.expiry_date);
     const expired = isExpired(medicine.expiry_date);
     const daysLeft = getDaysUntilExpiry(medicine.expiry_date);
-    const lowStock = medicine.quantity < 50;
+    const lowStock = medicine.quantity > 0 && medicine.quantity < 50;
+    const outOfStock = medicine.quantity === 0;
 
     return (
         <div
-            className={`bg-white rounded-2xl shadow-lg border overflow-hidden hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 group ${expired ? 'border-red-300' : expiringSoon ? 'border-yellow-300' : 'border-gray-100'
+            className={`bg-white rounded-2xl shadow-lg border overflow-hidden hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 group ${expired ? 'border-red-300' : outOfStock ? 'border-gray-300' : expiringSoon ? 'border-yellow-300' : 'border-gray-100'
                 }`}
         >
             {/* Header */}
             <div className={`relative text-white p-6 ${expired ? 'bg-gradient-to-br from-red-600 to-pink-700' :
+                outOfStock ? 'bg-gradient-to-br from-gray-500 to-gray-700' :
                 expiringSoon ? 'bg-gradient-to-br from-yellow-600 to-orange-700' :
                     'bg-gradient-to-br from-blue-600 to-indigo-700'
                 }`}>
@@ -48,12 +50,16 @@ const MedicineCard = ({
             {/* Body */}
             <div className="p-6 space-y-3">
                 {/* Expiry Warning */}
-                {(expiringSoon || expired) && (
-                    <div className={`p-3 rounded-lg ${expired ? 'bg-red-50 border border-red-200' : 'bg-yellow-50 border border-yellow-200'}`}>
+                {(expiringSoon || expired || outOfStock) && (
+                    <div className={`p-3 rounded-lg ${
+                        expired ? 'bg-red-50 border border-red-200' : 
+                        outOfStock ? 'bg-gray-50 border border-gray-200' : 
+                        'bg-yellow-50 border border-yellow-200'
+                    }`}>
                         <div className="flex items-center gap-2">
-                            <AlertTriangle size={16} className={expired ? 'text-red-600' : 'text-yellow-600'} />
-                            <p className={`text-sm font-bold ${expired ? 'text-red-700' : 'text-yellow-700'}`}>
-                                {expired ? 'ĐÃ HẾT HẠN' : `Hết hạn trong ${daysLeft} ngày`}
+                            <AlertTriangle size={16} className={expired ? 'text-red-600' : outOfStock ? 'text-gray-600' : 'text-yellow-600'} />
+                            <p className={`text-sm font-bold ${expired ? 'text-red-700' : outOfStock ? 'text-gray-700' : 'text-yellow-700'}`}>
+                                {expired ? 'ĐÃ HẾT HẠN' : outOfStock ? 'ĐÃ HẾT HÀNG' : `Hết hạn trong ${daysLeft} ngày`}
                             </p>
                         </div>
                     </div>
