@@ -22,21 +22,26 @@ const notificationService = require("../../notification/service/notification.ser
  * limit
  * )
  */
-const getListService = async (query, doctor_id, lte_date) => {
+const getListService = async (query, doctor_id, lte_date, gte_date) => {
     const context = "AppointmentService.getListService";
     try {
         logger.debug("Fetching list of appointments with query", {
             context: context,
             query: query,
             doctor_id: doctor_id,
-            lte_date: lte_date
+            lte_date: lte_date,
+            gte_date: gte_date
         });
 
         // 1. Lấy và chuẩn hóa các tham số
         const search = query.search?.trim();
-        const excludeStatus = query.exclude_status ? query.exclude_status.toUpperCase() : null;
+        const statusFilter = query.status && query.status !== "all" ? query.status.toUpperCase() : null;
+        const excludeStatuses = query.exclude_status
+            ? query.exclude_status.toUpperCase().split(',')
+            : [];
         const filterDoctorId = doctor_id || (query.doctor_id && query.doctor_id !== "all" ? query.doctor_id : null);
         const filterLteDate = lte_date || query.lte_date;
+        const filterGteDate = gte_date || query.gte_date;
         const filterSpecificDate = query.appointment_date;
 
         const sortOrder = query.sort === "desc" ? -1 : 1;
@@ -48,16 +53,10 @@ const getListService = async (query, doctor_id, lte_date) => {
         const matchCondition = {};
 
         // Lọc theo trạng thái (status)
-        // Hỗ trợ lọc nhiều trạng thái bằng cách truyền chuỗi cách nhau dấu phẩy (vd: "CHECKED_IN,IN_CONSULTATION")
-        if (query.status && query.status !== "all") {
-            const statusList = query.status.split(',').map(s => s.trim().toUpperCase()).filter(Boolean);
-            if (statusList.length === 1) {
-                matchCondition.status = statusList[0];
-            } else if (statusList.length > 1) {
-                matchCondition.status = { $in: statusList };
-            }
-        } else if (excludeStatus) {
-            matchCondition.status = { $ne: excludeStatus };
+        if (statusFilter) {
+            matchCondition.status = statusFilter;
+        } else if (excludeStatuses.length > 0) {
+            matchCondition.status = { $nin: excludeStatuses };
         }
 
         // Lọc theo doctor_id (Ép kiểu về ObjectId)
@@ -65,14 +64,23 @@ const getListService = async (query, doctor_id, lte_date) => {
             matchCondition.doctor_id = new mongoose.Types.ObjectId(filterDoctorId);
         }
 
-        // Lọc theo khoảng thời gian <= lte_date
-        if (filterLteDate) {
-            const endOfDay = new Date(filterLteDate);
-            endOfDay.setUTCHours(23, 59, 59, 999);
+        // Nếu người dùng có truyền ít nhất 1 trong 2 tham số ngày
+        if (filterLteDate || filterGteDate) {
+            matchCondition.appointment_date = {}; // Khởi tạo object rỗng trước
 
-            matchCondition.appointment_date = {
-                $lte: endOfDay
-            };
+            // 1. Xử lý ngày bắt đầu (Nếu có)
+            if (filterGteDate) {
+                const startOfDay = new Date(filterGteDate);
+                startOfDay.setUTCHours(0, 0, 0, 0);
+                matchCondition.appointment_date.$gte = startOfDay;
+            }
+
+            // 2. Xử lý ngày kết thúc (Nếu có)
+            if (filterLteDate) {
+                const endOfDay = new Date(filterLteDate);
+                endOfDay.setUTCHours(23, 59, 59, 999);
+                matchCondition.appointment_date.$lte = endOfDay;
+            }
         }
 
         // --- BỔ SUNG: Lọc theo ngày cụ thể (appointment_date) ---
@@ -1736,6 +1744,34 @@ const getListAppointmentToPayment = async (query) => {
     }
 };
 
+/**
+ * get first appointment of patient at now with status checkin
+ * @param {ObjectId} patientId id patient to get appointment
+ * @returns Object appointment || null if not found
+ */
+const getFirstAppointmentOfPatientAtNowWithStatusCheckin = async (patientId) => {
+    try {
+        const today = new Date();
+        const startOfDay = new Date(today.setHours(0, 0, 0, 0));
+        const endOfDay = new Date(today.setHours(23, 59, 59, 999));
+        const appointment = await AppointmentModel.findOne({
+            patient: patientId,
+            appointment_date: { $gte: startOfDay, $lte: endOfDay },
+            status: 'CHECKED_IN'
+        }).sort({ appointment_date: 1 });
+
+        return appointment || null;
+    } catch (error) {
+        logger.error("Error get first appointment of patient at now with status checkin", {
+            context,
+            patientId,
+            error
+        });
+        return null;
+    }
+};
+
+
 module.exports = {
     getListService,
     getByIdService,
@@ -1750,5 +1786,6 @@ module.exports = {
     getListOfPatientServiceWithDate,
     calculateTotalAmount,
     checkDuplicateFullNameAndPhoneAndAppointDateAndAppointTime,
-    getListAppointmentToPayment
+    getListAppointmentToPayment,
+    getFirstAppointmentOfPatientAtNowWithStatusCheckin
 };
