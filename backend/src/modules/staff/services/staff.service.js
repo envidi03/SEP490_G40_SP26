@@ -662,18 +662,57 @@ const createLeaveRequestService = async (accountId, payload) => {
     return leave;
 };
 
-// View leave request
-const getLeaveRequestService = async (accountId) => {
+// View leave request with filtering and statistics
+const getLeaveRequestService = async (accountId, query = {}) => {
+    const { status } = query;
     // 1. Lấy staff theo account_id
     const staff = await StaffModel.Staff.findOne({ account_id: accountId });
     if (!staff) throw new errorRes.NotFoundError("Staff not found");
 
-    const filter = { staff_id: staff._id };
+    const staffId = staff._id;
+    const matchCondition = { staff_id: staffId };
 
-    const data = await leaveRequestModel.find(filter)
-        .sort({ createdAt: -1 })
+    // Lọc theo status nếu được cung cấp và không phải 'all'
+    if (status && status !== 'all') {
+        matchCondition.status = status.toUpperCase();
+    }
 
-    return data;
+    // Sử dụng aggregate để lấy cả data (theo filter) và statistics (toàn bộ của staff này)
+    const result = await leaveRequestModel.aggregate([
+        {
+            $facet: {
+                data: [
+                    { $match: matchCondition },
+                    { $sort: { createdAt: -1 } }
+                ],
+                statistics: [
+                    { $match: { staff_id: staffId } },
+                    {
+                        $group: {
+                            _id: null,
+                            total: { $sum: 1 },
+                            pending: { $sum: { $cond: [{ $eq: ["$status", "PENDING"] }, 1, 0] } },
+                            approved: { $sum: { $cond: [{ $eq: ["$status", "APPROVED"] }, 1, 0] } },
+                            rejected: { $sum: { $cond: [{ $eq: ["$status", "REJECTED"] }, 1, 0] } }
+                        }
+                    }
+                ]
+            }
+        }
+    ]);
+
+    const data = result[0]?.data || [];
+    const stats = result[0]?.statistics[0] || { total: 0, pending: 0, approved: 0, rejected: 0 };
+
+    return {
+        data,
+        statistics: {
+            total: stats.total,
+            pending: stats.pending,
+            approved: stats.approved,
+            rejected: stats.rejected
+        }
+    };
 };
 
 // Edit leave request (chỉ cho phép sửa khi còn PENDING)

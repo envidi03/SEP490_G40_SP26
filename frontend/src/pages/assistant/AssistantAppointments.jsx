@@ -188,8 +188,8 @@ const AssistantAppointments = () => {
 
   const handleViewProfile = (appointment) => {
     // Chuyển hướng sang trang Quản lý Hồ sơ, truyền theo SĐT để ô tìm kiếm tự động lọc
-    navigate("/assistant/medical-records", { 
-      state: { phone: appointment.phone } 
+    navigate("/assistant/medical-records", {
+      state: { phone: appointment.phone }
     });
   };
 
