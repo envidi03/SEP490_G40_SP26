@@ -60,8 +60,6 @@ const logger = winston.createLogger({
 });
 
 // Nếu là Production, thêm transport ghi file
-if (env !== 'development') {
-  logger.add(fileRotateTransport);
-}
+logger.add(fileRotateTransport);
 
 module.exports = logger;
