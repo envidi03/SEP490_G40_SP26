@@ -19,10 +19,8 @@ const AssistantLeaveRequests = () => {
         try {
             setLoading(true);
             const response = await staffService.getLeaveRequests({ status });
-            console.log("Dữ liệu: ", response);
             // API trả về cấu trúc { success, data, statistics } trực tiếp qua interceptor
             const leaveData = response.data || [];
-            console.log("leaveData", leaveData);
             const leaveStats = response.statistics || { total: 0, pending: 0, approved: 0, rejected: 0 };
 
             setRequests(leaveData);
