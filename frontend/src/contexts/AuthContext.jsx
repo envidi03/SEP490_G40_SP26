@@ -12,19 +12,18 @@ export const AuthProvider = ({ children }) => {
     useEffect(() => {
         // Check both storages for saved user
         // Priority: localStorage (remembered) -> sessionStorage (current session)
-        const savedUser = storage.get('dcms_user') || sessionStorage.getItem('dcms_user');
+        const savedUser = storage.get('dcms_user') || sessionStorageService.get('dcms_user');
 
         if (savedUser) {
             try {
-                // If from sessionStorage, it's a string. If from storage wrapper, it might be object depending on implementation.
-                // storage.get returns parsed object. sessionStorage.getItem returns string.
+                // storage.get / sessionStorageService.get đã trả về parsed object
                 const userObj = typeof savedUser === 'string' ? JSON.parse(savedUser) : savedUser;
                 setUser(userObj);
                 setIsAuthenticated(true);
             } catch (error) {
                 console.error('Error parsing saved user:', error);
                 storage.remove('dcms_user');
-                sessionStorage.removeItem('dcms_user');
+                sessionStorageService.remove('dcms_user');
             }
         }
         setLoading(false);
@@ -36,7 +35,7 @@ export const AuthProvider = ({ children }) => {
         if (remember) {
             storage.set('dcms_user', userData);
         } else {
-            sessionStorage.setItem('dcms_user', JSON.stringify(userData));
+            sessionStorageService.set('dcms_user', userData);
         }
     };
 
@@ -70,8 +69,8 @@ export const AuthProvider = ({ children }) => {
         if (storage.get('dcms_user')) {
             storage.set('dcms_user', newUserData);
         }
-        if (sessionStorage.getItem('dcms_user')) {
-            sessionStorage.setItem('dcms_user', JSON.stringify(newUserData));
+        if (sessionStorageService.get('dcms_user')) {
+            sessionStorageService.set('dcms_user', newUserData);
         }
     };
 
