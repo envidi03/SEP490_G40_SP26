@@ -121,10 +121,10 @@ const AddTreatmentModal = ({ isOpen, onClose, record, onSuccess }) => {
           errors.push(`Phiếu #${i + 1}: Vui lòng nhập vị trí răng.`);
         }
 
-        // KIỂM TRA GIÁ TIỀN (BẮT BUỘC)
+        // KIỂM TRA GIÁ TIỀN (BẮT BUỘC) -> Đã sửa cho phép giá = 0
         const priceValue = Number(form.price);
-        if (form.price === "" || isNaN(priceValue) || priceValue <= 0) {
-          errors.push(`Phiếu #${i + 1}: Vui lòng nhập đơn giá hợp lệ (lớn hơn 0).`);
+        if (form.price === "" || isNaN(priceValue) || priceValue < 0) {
+          errors.push(`Phiếu #${i + 1}: Vui lòng nhập đơn giá hợp lệ (lớn hơn hoặc bằng 0).`);
         }
 
         // Kiểm tra thuốc nếu có kê đơn
