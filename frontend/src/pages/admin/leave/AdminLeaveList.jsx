@@ -106,7 +106,23 @@ const AdminLeaveList = () => {
             });
             fetchLeaveRequests();
         } catch (error) {
-            setToast({ show: true, message: error?.response?.data?.message || 'Thao tác thất bại.', type: 'error' });
+            const apiMessage = error?.response?.data?.message || '';
+            
+            if (apiMessage.includes('Only PENDING requests can be approved or rejected')) {
+                setToast({ 
+                    show: true, 
+                    message: 'Đơn này đã được xử lý hoặc hủy bởi người khác. Danh sách đang được làm mới...', 
+                    type: 'error' 
+                });
+                // Auto refresh to sync UI
+                fetchLeaveRequests();
+            } else {
+                setToast({ 
+                    show: true, 
+                    message: apiMessage || 'Thao tác thất bại. Vui lòng thử lại.', 
+                    type: 'error' 
+                });
+            }
         } finally {
             setApprovingId(null);
             setConfirmAction(null);

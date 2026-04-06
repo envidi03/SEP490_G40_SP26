@@ -20,6 +20,10 @@ const NOTIFICATION_TYPES = [
     // Admin / System
     'SYSTEM_ALERT',
     'SYSTEM_MAINTENANCE',
+    // Leave Management
+    'LEAVE_REQUESTED',
+    'LEAVE_APPROVED',
+    'LEAVE_REJECTED',
     // --- THÊM DÒNG NÀY ---
     'APPOINTMENT_REMINDER' 
 ];

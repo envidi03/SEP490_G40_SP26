@@ -1,9 +1,9 @@
 import React from 'react';
-import { ClipboardList, CheckCircle, TrendingUp } from 'lucide-react';
+import { ClipboardList } from 'lucide-react';
 
-const ServiceStatistics = ({ totalServices, activeServices, avgPrice, formatCurrency }) => {
+const ServiceStatistics = ({ totalServices }) => {
     return (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-12 mb-6">
             <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
                 <div className="flex items-center gap-4">
                     <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg">
@@ -16,17 +16,6 @@ const ServiceStatistics = ({ totalServices, activeServices, avgPrice, formatCurr
                 </div>
             </div>
 
-            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
-                <div className="flex items-center gap-4">
-                    <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center shadow-lg">
-                        <TrendingUp className="text-white" size={28} />
-                    </div>
-                    <div>
-                        <p className="text-sm font-medium text-gray-600">Giá trung bình</p>
-                        <p className="text-2xl font-bold text-purple-600">{formatCurrency(avgPrice)}</p>
-                    </div>
-                </div>
-            </div>
         </div>
     );
 };

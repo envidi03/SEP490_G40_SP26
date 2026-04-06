@@ -31,6 +31,7 @@ import RoomDetailModal from './modals/RoomDetailModal';
 const RoomList = () => {
     // ========== STATE MANAGEMENT ==========
     const [rooms, setRooms] = useState([]);
+    const [errors, setErrors] = useState({});
     const [toast, setToast] = useState({ show: false, type: 'success', message: '' });
     const [loading, setLoading] = useState(false);
     const [pagination, setPagination] = useState({
@@ -138,6 +139,7 @@ const RoomList = () => {
             room_service: [],
             note: ''
         });
+        setErrors({});
         setShowRoomModal(true);
     };
 
@@ -151,17 +153,24 @@ const RoomList = () => {
             room_service: room.room_service || [],
             note: room.note || ''
         });
+        setErrors({});
         setShowRoomModal(true);
     };
 
     const handleSaveRoom = async () => {
-        if (!roomForm.room_number.trim()) {
-            setToast({ show: true, type: 'error', message: '❌ Vui lòng nhập số phòng!' });
+        const newErrors = {};
+        if (!roomForm.room_number?.trim()) {
+            newErrors.room_number = 'Vui lòng nhập số phòng!';
+        }
+
+        if (Object.keys(newErrors).length > 0) {
+            setErrors(newErrors);
             return;
         }
 
         try {
             setLoading(true);
+            setErrors({});
             const roomId = selectedRoom?.id || selectedRoom?._id;
 
             if (isEditMode) {
@@ -183,14 +192,19 @@ const RoomList = () => {
             setToast({
                 show: true,
                 type: 'success',
-                message: isEditMode ? '✅ Cập nhật phòng khám thành công!' : '✅ Thêm phòng khám mới thành công!'
+                message: isEditMode ? 'Cập nhật phòng khám thành công!' : 'Thêm phòng khám mới thành công!'
             });
 
         } catch (error) {
-            console.error('Save room error:', error);
-            const errData = error?.data || error?.response?.data || error;
-            const errorMsg = errData?.message || error?.message || 'Có lỗi xảy ra!';
-            setToast({ show: true, type: 'error', message: `❌ ${errorMsg}` });
+            // Handle both standard Axios error and "unpacked" error (error.response) thrown by roomService
+            const errorMsg = error.data?.message || error.response?.data?.message || error.message || 'Có lỗi xảy ra!';
+
+            const lowerMsg = errorMsg.toLowerCase();
+            if (lowerMsg.includes('tồn tại') || lowerMsg.includes('exists')) {
+                setErrors({ room_number: 'Số phòng này đã tồn tại!' });
+            } else {
+                setToast({ show: true, type: 'error', message: `${errorMsg}` });
+            }
         } finally {
             setLoading(false);
             // Luôn fetch lại dù thành công hay thất bại — ngoài try/catch để không ảnh hưởng toast
@@ -322,6 +336,8 @@ const RoomList = () => {
                 setRoomForm={setRoomForm}
                 onClose={() => setShowRoomModal(false)}
                 onSave={handleSaveRoom}
+                errors={errors}
+                setErrors={setErrors}
             />
 
             {/* Room Detail Modal */}
@@ -345,6 +361,7 @@ const RoomList = () => {
             {/* Toast Notification */}
             {toast.show && (
                 <Toast
+                    show={toast.show}
                     type={toast.type}
                     message={toast.message}
                     onClose={() => setToast(prev => ({ ...prev, show: false }))}

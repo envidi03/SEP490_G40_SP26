@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
-
-import { useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
+import clsx from 'clsx';
 import Input from '../../../components/ui/Input';
 import Select from '../../../components/ui/Select';
 import Button from '../../../components/ui/Button';
 
 const LeaveRequestForm = ({ onSubmit, onCancel, initialData, isSubmitting }) => {
+    const [errors, setErrors] = useState({});
     const [formData, setFormData] = useState({
         startedDate: '',
         endDate: '',
@@ -29,6 +29,7 @@ const LeaveRequestForm = ({ onSubmit, onCancel, initialData, isSubmitting }) => 
                 reason: ''
             });
         }
+        setErrors({});
     }, [initialData]);
 
     const handleChange = (e) => {
@@ -37,15 +38,40 @@ const LeaveRequestForm = ({ onSubmit, onCancel, initialData, isSubmitting }) => 
             ...prev,
             [name]: value
         }));
+        // Clear error when user types
+        if (errors[name]) {
+            setErrors(prev => ({
+                ...prev,
+                [name]: null
+            }));
+        }
+    };
+
+    const validate = () => {
+        const newErrors = {};
+        if (!formData.startedDate) newErrors.startedDate = 'Vui lòng chọn ngày bắt đầu';
+        if (!formData.endDate) newErrors.endDate = 'Vui lòng chọn ngày kết thúc';
+        if (!formData.reason || !formData.reason.trim()) newErrors.reason = 'Vui lòng nhập lý do xin nghỉ';
+        
+        if (formData.startedDate && formData.endDate) {
+            if (new Date(formData.startedDate) > new Date(formData.endDate)) {
+                newErrors.endDate = 'Ngày kết thúc không được trước ngày bắt đầu';
+            }
+        }
+
+        setErrors(newErrors);
+        return Object.keys(newErrors).length === 0;
     };
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        onSubmit(formData);
+        if (validate()) {
+            onSubmit(formData);
+        }
     };
 
     return (
-        <form onSubmit={handleSubmit} className="space-y-5 mt-2">
+        <form onSubmit={handleSubmit} noValidate className="space-y-5 mt-2">
             <div className="grid grid-cols-2 gap-4">
                 <Input
                     label="Từ ngày"
@@ -53,7 +79,7 @@ const LeaveRequestForm = ({ onSubmit, onCancel, initialData, isSubmitting }) => 
                     name="startedDate"
                     value={formData.startedDate}
                     onChange={handleChange}
-                    required
+                    error={errors.startedDate}
                 />
                 <Input
                     label="Đến ngày"
@@ -61,7 +87,7 @@ const LeaveRequestForm = ({ onSubmit, onCancel, initialData, isSubmitting }) => 
                     name="endDate"
                     value={formData.endDate}
                     onChange={handleChange}
-                    required
+                    error={errors.endDate}
                 />
             </div>
 
@@ -78,6 +104,7 @@ const LeaveRequestForm = ({ onSubmit, onCancel, initialData, isSubmitting }) => 
                     { value: 'BEREAVEMENT', label: 'Tang chế (Bereavement)' },
                     { value: 'EMERGENCY', label: 'Khẩn cấp (Emergency)' }
                 ]}
+                error={errors.type}
             />
 
             <div>
@@ -87,12 +114,19 @@ const LeaveRequestForm = ({ onSubmit, onCancel, initialData, isSubmitting }) => 
                 <textarea
                     name="reason"
                     rows="3"
-                    className="w-full px-3 py-2 text-[13px] border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-colors resize-none"
+                    className={clsx(
+                        "w-full px-3 py-2 text-[13px] border rounded-xl focus:outline-none transition-colors resize-none",
+                        errors.reason 
+                            ? "border-red-500 focus:ring-2 focus:ring-red-500/20 focus:border-red-500" 
+                            : "border-gray-200 focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                    )}
                     value={formData.reason}
                     onChange={handleChange}
-                    required
                     placeholder="Vui lòng nhập lý do cụ thể..."
                 ></textarea>
+                {errors.reason && (
+                    <p className="mt-1 text-sm text-red-600">{errors.reason}</p>
+                )}
             </div>
 
             <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
@@ -100,7 +134,7 @@ const LeaveRequestForm = ({ onSubmit, onCancel, initialData, isSubmitting }) => 
                     type="button"
                     onClick={onCancel}
                     disabled={isSubmitting}
-                    className="px-4 py-2 text-[13px] font-medium text-gray-600 bg-gray-50 border border-gray-200 rounded-xl hover:bg-gray-100 transition-colors"
+                    className="px-4 py-2 text-[13px] font-medium text-gray-700 bg-gray-50 border border-gray-200 rounded-xl hover:bg-gray-100 transition-colors"
                 >
                     Hủy bỏ
                 </Button>
