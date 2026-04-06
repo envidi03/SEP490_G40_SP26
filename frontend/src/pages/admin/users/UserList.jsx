@@ -56,6 +56,12 @@ const normalizeStaff = (staff) => ({
     avatarUrl: staff.profile?.avatar_url,
     // Role - staff list không join role name, cần xử lý từ account.role_id nếu có
     role: staff.account?.role_id?.name || '',
+    // Staff fields
+    degree: staff.degree || '',
+    education: staff.education || '',
+    note: staff.note || '',
+    workStart: staff.work_start,
+    workEnd: staff.work_end,
     // License (chỉ có ở getById)
     licenses: staff.licenses || [],
 });

@@ -1,5 +1,5 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
-import { storage } from '../services/storage';
+import { storage, sessionStorage as sessionStorageService } from '../services/storage';
 import authService from '../services/authService';
 
 const AuthContext = createContext();
@@ -12,19 +12,18 @@ export const AuthProvider = ({ children }) => {
     useEffect(() => {
         // Check both storages for saved user
         // Priority: localStorage (remembered) -> sessionStorage (current session)
-        const savedUser = storage.get('dcms_user') || sessionStorage.getItem('dcms_user');
+        const savedUser = storage.get('dcms_user') || sessionStorageService.get('dcms_user');
 
         if (savedUser) {
             try {
-                // If from sessionStorage, it's a string. If from storage wrapper, it might be object depending on implementation.
-                // storage.get returns parsed object. sessionStorage.getItem returns string.
+                // storage.get / sessionStorageService.get đã trả về parsed object
                 const userObj = typeof savedUser === 'string' ? JSON.parse(savedUser) : savedUser;
                 setUser(userObj);
                 setIsAuthenticated(true);
             } catch (error) {
                 console.error('Error parsing saved user:', error);
                 storage.remove('dcms_user');
-                sessionStorage.removeItem('dcms_user');
+                sessionStorageService.remove('dcms_user');
             }
         }
         setLoading(false);
@@ -36,15 +35,30 @@ export const AuthProvider = ({ children }) => {
         if (remember) {
             storage.set('dcms_user', userData);
         } else {
-            sessionStorage.setItem('dcms_user', JSON.stringify(userData));
+            sessionStorageService.set('dcms_user', userData);
         }
     };
 
-    const logout = () => {
+    const logout = async () => {
+        // Lấy refresh token từ storage (ưu tiên localStorage, sau đó sessionStorage)
+        const refreshToken = storage.get('refresh_token') || sessionStorageService.get('refresh_token');
+
+        // Xóa token & user info ở frontend trước (đảm bảo UI cập nhật ngay)
         setUser(null);
         setIsAuthenticated(false);
+        storage.remove('access_token');
+        storage.remove('refresh_token');
         storage.remove('dcms_user');
-        sessionStorage.removeItem('dcms_user');
+        sessionStorageService.remove('access_token');
+        sessionStorageService.remove('refresh_token');
+        sessionStorageService.remove('dcms_user');
+
+        // Gọi API invalidate session trên server (fire & forget)
+        if (refreshToken) {
+            authService.logout(refreshToken).catch(() => {
+                // Bỏ qua lỗi - user đã logout ở client rồi
+            });
+        }
     };
 
     const updateUser = (updatedData) => {
@@ -55,8 +69,8 @@ export const AuthProvider = ({ children }) => {
         if (storage.get('dcms_user')) {
             storage.set('dcms_user', newUserData);
         }
-        if (sessionStorage.getItem('dcms_user')) {
-            sessionStorage.setItem('dcms_user', JSON.stringify(newUserData));
+        if (sessionStorageService.get('dcms_user')) {
+            sessionStorageService.set('dcms_user', newUserData);
         }
     };
 

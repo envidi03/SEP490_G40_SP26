@@ -362,7 +362,10 @@ const createService = async (dataCreate) => {
             account_id: accountSaved._id,
             profile_id: profileSaved._id,
             status: "ACTIVE",
-            work_start: Date.now()
+            work_start: dataCreate.work_start || Date.now(),
+            degree: dataCreate.degree || null,
+            education: dataCreate.education || null,
+            note: dataCreate.note || null
         });
         const staffSaved = await newStaff.save({ session });
 
@@ -446,6 +449,9 @@ const updateService = async (accountId, data) => {
         // Mapping Staff
         if (data.work_start) staffUpdate.work_start = data.work_start;
         if (data.work_end) staffUpdate.work_end = data.work_end;
+        if (data.degree !== undefined) staffUpdate.degree = data.degree;
+        if (data.education !== undefined) staffUpdate.education = data.education;
+        if (data.note !== undefined) staffUpdate.note = data.note;
 
         // Mapping License
         if (data.license_number) licenseUpdate.license_number = data.license_number;

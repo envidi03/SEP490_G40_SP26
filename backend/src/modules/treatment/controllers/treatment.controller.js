@@ -176,6 +176,11 @@ const updateController = async (req, res) => {
   try {
     const { id: treatmentId } = req.params;
     const dataUpdate = req.body || {};
+    logger.debug("Update treatment request received", {
+      context: context,
+      treatmentId: treatmentId,
+      bodyData: dataUpdate,
+    });
     // 1. Kiểm tra định dạng ID
     if (!mongoose.Types.ObjectId.isValid(treatmentId)) {
       throw new errorRes.BadRequestError("Invalid Treatment ID format");
@@ -192,7 +197,8 @@ const updateController = async (req, res) => {
       "result",
       "note",
       "medicine_usage",
-      "status"
+      "status",
+      "price",
     ];
     const safeData = {};
     for (const field of allowedFields) {
@@ -313,8 +319,8 @@ const getListTreatementWithAppointmentNull = async (req, res) => {
     // if null, default get 3 days later
     if (!queryParams.filter_date) {
       const targetDate = new Date();
-      targetDate.setDate(targetDate.getDate() + 6); 
-      
+      targetDate.setDate(targetDate.getDate() + 6);
+
       queryParams.filter_date = targetDate;
     }
     logger.debug("Query filter.", {
@@ -323,7 +329,7 @@ const getListTreatementWithAppointmentNull = async (req, res) => {
     })
     const { data, pagination } = await ServiceProcess.getListTreatementWithAppointmentNull(queryParams);
     logger.debug("List treatment.", {
-      context: context, 
+      context: context,
       data: data,
       pagination: pagination
     });

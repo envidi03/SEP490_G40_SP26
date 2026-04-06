@@ -40,6 +40,10 @@ const UserFormModal = ({ isOpen, onClose, onSubmit, user, mode }) => {
         certificate: null,
         certificateUrl: '',
         avatar: null,
+        degree: '',
+        education: '',
+        note: '',
+        work_start: '',
         license_number: '',
         issued_by: '',
         issued_date: '',
@@ -50,7 +54,6 @@ const UserFormModal = ({ isOpen, onClose, onSubmit, user, mode }) => {
     const [showPassword, setShowPassword] = useState(false);
     const [copied, setCopied] = useState(false);
     const [certificatePreview, setCertificatePreview] = useState(null);
-    const [avatarPreview, setAvatarPreview] = useState(null);
 
     // Fetch roles khi mở form
     useEffect(() => {
@@ -60,65 +63,80 @@ const UserFormModal = ({ isOpen, onClose, onSubmit, user, mode }) => {
                     const data = res?.data || [];
                     setRoles(data);
                 })
-                .catch(() => setRoles([])); // fallback nếu API chưa có
+                .catch(() => setRoles([]));
         }
     }, [isOpen]);
 
     // Reset/Load form data when opening
     useEffect(() => {
-        if (isOpen) {
-            if (mode === 'edit' && user) {
-                setFormData({
-                    fullName: user.full_name || '',
-                    username: user.username || '',
-                    email: user.email || '',
-                    phone: user.phone || '',
-                    role_id: roles.find(r => r.name === user.role)?._id || '',
-                    password: '', // Không cần password khi edit
-                    certificate: null,
-                    certificateUrl: user.licenses?.[0]?.document_url || '',
-                    avatar: null,
-                    license_number: user.licenses?.[0]?.license_number || '',
-                    issued_by: user.licenses?.[0]?.issued_by || '',
-                    issued_date: user.licenses?.[0]?.issued_date ? new Date(user.licenses[0].issued_date).toISOString().split('T')[0] : '',
-                });
-                setCertificatePreview(user.licenses?.[0]?.document_url || null);
-            } else {
-                setFormData({
-                    fullName: '',
-                    username: '',
-                    email: '',
-                    phone: '',
-                    role_id: '',
-                    password: generatePassword(),
-                    certificate: null,
-                    certificateUrl: '',
-                    avatar: null,
-                    license_number: '',
-                    issued_by: '',
-                    issued_date: '',
-                });
-                setCertificatePreview(null);
-            }
-            setErrors({});
-            setShowPassword(false);
-            setCopied(false);
-            setLoading(false);
+        if (!isOpen) return;
+
+        if (mode === 'edit' && user) {
+            setFormData({
+                fullName: user.full_name || '',
+                username: user.username || '',
+                email: user.email || '',
+                phone: user.phone || '',
+                role_id: roles.find(r => r.name === user.role)?._id || '',
+                gender: user.gender || 'OTHER',
+                dob: user.dob ? new Date(user.dob).toISOString().split('T')[0] : '',
+                address: user.address || '',
+                password: '',
+                certificate: null,
+                certificateUrl: user.licenses?.[0]?.document_url || '',
+                avatar: null,
+                degree: user.degree || '',
+                education: user.education || '',
+                note: user.note || '',
+                work_start: user.work_start ? new Date(user.work_start).toISOString().split('T')[0] : '',
+                license_number: user.licenses?.[0]?.license_number || '',
+                issued_by: user.licenses?.[0]?.issued_by || '',
+                issued_date: user.licenses?.[0]?.issued_date
+                    ? new Date(user.licenses[0].issued_date).toISOString().split('T')[0]
+                    : '',
+            });
+            setCertificatePreview(user.licenses?.[0]?.document_url || null);
+        } else {
+            setFormData({
+                fullName: '',
+                username: '',
+                email: '',
+                phone: '',
+                role_id: '',
+                gender: 'OTHER',
+                dob: '',
+                address: '',
+                password: generatePassword(),
+                certificate: null,
+                certificateUrl: '',
+                avatar: null,
+                degree: '',
+                education: '',
+                note: '',
+                work_start: '',
+                license_number: '',
+                issued_by: '',
+                issued_date: '',
+            });
+            setCertificatePreview(null);
         }
+
+        setErrors({});
+        setShowPassword(false);
+        setCopied(false);
+        setLoading(false);
     }, [isOpen, mode, user, roles]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         const newErrors = {};
 
-        // Client-side mandatory field checks
         if (!formData.fullName?.trim()) newErrors.fullName = 'Vui lòng nhập họ và tên';
         if (!formData.username?.trim()) newErrors.username = 'Vui lòng nhập tên đăng nhập';
         if (!formData.email?.trim()) newErrors.email = 'Vui lòng nhập email';
         if (!formData.phone?.trim()) newErrors.phone = 'Vui lòng nhập số điện thoại';
         if (!formData.role_id) newErrors.role_id = 'Vui lòng chọn vai trò';
 
-        // Doctor specific validation
         if (roles.find(r => r._id === formData.role_id)?.name === 'DOCTOR') {
             if (!formData.license_number?.trim()) newErrors.license_number = 'Vui lòng nhập số chứng chỉ';
             if (!formData.issued_by?.trim()) newErrors.issued_by = 'Vui lòng nhập nơi cấp';
@@ -129,20 +147,17 @@ const UserFormModal = ({ isOpen, onClose, onSubmit, user, mode }) => {
 
         if (Object.keys(newErrors).length > 0) {
             setErrors(newErrors);
-            // Scroll to top of form if there are many fields
             return;
         }
 
         try {
             setLoading(true);
             await onSubmit(formData);
-            // Parent handles closing on success
         } catch (err) {
             console.error('Form error:', err);
             const apiMessage = err.response?.data?.message || err.message || '';
             const fieldErrors = {};
 
-            // Map common backend errors to fields
             if (apiMessage.includes('Email already exists')) {
                 fieldErrors.email = 'Email này đã tồn tại trong hệ thống';
             } else if (apiMessage.includes('Username already exists')) {
@@ -152,7 +167,6 @@ const UserFormModal = ({ isOpen, onClose, onSubmit, user, mode }) => {
             } else if (apiMessage.includes('license number must not contain special characters')) {
                 fieldErrors.license_number = 'Số chứng chỉ không được chứa ký tự đặc biệt';
             } else if (apiMessage.includes('Validation failed')) {
-                // If backend returns structured errors
                 const backendErrors = err.response?.data?.errors;
                 if (backendErrors && typeof backendErrors === 'object') {
                     Object.keys(backendErrors).forEach(key => {
@@ -173,32 +187,17 @@ const UserFormModal = ({ isOpen, onClose, onSubmit, user, mode }) => {
 
     const handleChange = (e) => {
         const { name, value } = e.target;
-        setFormData(prev => ({
-            ...prev,
-            [name]: value
-        }));
-        // Clear error for this field
+        setFormData(prev => ({ ...prev, [name]: value }));
         if (errors[name]) {
-            setErrors(prev => {
-                const updated = { ...prev };
-                delete updated[name];
-                return updated;
-            });
+            setErrors(prev => { const u = { ...prev }; delete u[name]; return u; });
         }
         if (errors.general) {
-            setErrors(prev => {
-                const updated = { ...prev };
-                delete updated.general;
-                return updated;
-            });
+            setErrors(prev => { const u = { ...prev }; delete u.general; return u; });
         }
     };
 
     const handleRegeneratePassword = () => {
-        setFormData({
-            ...formData,
-            password: generatePassword()
-        });
+        setFormData(prev => ({ ...prev, password: generatePassword() }));
         setCopied(false);
     };
 
@@ -212,44 +211,22 @@ const UserFormModal = ({ isOpen, onClose, onSubmit, user, mode }) => {
         const file = e.target.files[0];
         if (!file) return;
 
-        // Validate file type
         const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf'];
         if (!allowedTypes.includes(file.type)) {
-            setErrors({
-                ...errors,
-                certificate: 'Chỉ chấp nhận file ảnh (JPG, PNG) hoặc PDF'
-            });
+            setErrors(prev => ({ ...prev, certificate: 'Chỉ chấp nhận file ảnh (JPG, PNG) hoặc PDF' }));
             return;
         }
-
-        // Validate file size (max 5MB)
         if (file.size > 5 * 1024 * 1024) {
-            setErrors({
-                ...errors,
-                certificate: 'File không được vượt quá 5MB'
-            });
+            setErrors(prev => ({ ...prev, certificate: 'File không được vượt quá 5MB' }));
             return;
         }
 
-        // Clear error
-        if (errors.certificate) {
-            const newErrors = { ...errors };
-            delete newErrors.certificate;
-            setErrors(newErrors);
-        }
+        setErrors(prev => { const u = { ...prev }; delete u.certificate; return u; });
+        setFormData(prev => ({ ...prev, certificate: file }));
 
-        // Set file to formData
-        setFormData({
-            ...formData,
-            certificate: file
-        });
-
-        // Create preview for images
         if (file.type.startsWith('image/')) {
             const reader = new FileReader();
-            reader.onloadend = () => {
-                setCertificatePreview(reader.result);
-            };
+            reader.onloadend = () => setCertificatePreview(reader.result);
             reader.readAsDataURL(file);
         } else {
             setCertificatePreview('PDF');
@@ -257,31 +234,32 @@ const UserFormModal = ({ isOpen, onClose, onSubmit, user, mode }) => {
     };
 
     const handleRemoveCertificate = () => {
-        setFormData({
-            ...formData,
-            certificate: null,
-            certificateUrl: ''
-        });
+        setFormData(prev => ({ ...prev, certificate: null, certificateUrl: '' }));
         setCertificatePreview(null);
     };
 
     const getInputClass = (fieldName) => {
-        const baseClass = "w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all";
-        return `${baseClass} ${errors[fieldName] ? 'border-red-500 bg-red-50' : 'border-gray-300 bg-white'}`;
+        const base = 'w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all';
+        return `${base} ${errors[fieldName] ? 'border-red-500 bg-red-50' : 'border-gray-300 bg-white'}`;
     };
 
     if (!isOpen) return null;
 
+    const isDoctor = roles.find(r => r._id === formData.role_id)?.name === 'DOCTOR';
+
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
             <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-hidden flex flex-col">
+
                 {/* Header */}
                 <div className="flex items-center justify-between p-6 border-b border-gray-100 bg-gray-50/50">
                     <div>
                         <h2 className="text-2xl font-bold text-gray-900">
                             {mode === 'edit' ? 'Chỉnh sửa thông tin' : 'Thêm người dùng mới'}
                         </h2>
-                        {mode === 'edit' && <p className="text-sm text-gray-500 mt-1">Username: {formData.username}</p>}
+                        {mode === 'edit' && (
+                            <p className="text-sm text-gray-500 mt-1">Username: {formData.username}</p>
+                        )}
                     </div>
                     <button
                         onClick={onClose}
@@ -291,9 +269,11 @@ const UserFormModal = ({ isOpen, onClose, onSubmit, user, mode }) => {
                     </button>
                 </div>
 
-                {/* Form Body - Scrollable */}
+                {/* Form Body */}
                 <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto" noValidate>
                     <div className="p-6 space-y-6">
+
+                        {/* General Error */}
                         {errors.general && (
                             <div className="p-3 bg-red-100 border border-red-200 text-red-700 rounded-lg text-sm font-medium">
                                 {errors.general}
@@ -333,7 +313,7 @@ const UserFormModal = ({ isOpen, onClose, onSubmit, user, mode }) => {
                             {errors.username && <p className="text-xs text-red-500 mt-1.5 ml-1 font-medium">{errors.username}</p>}
                         </div>
 
-                        {/* Role Selector */}
+                        {/* Role */}
                         <div>
                             <label className="block text-sm font-semibold text-gray-700 mb-1.5 ml-1">
                                 Vai trò <span className="text-red-500">*</span>
@@ -351,13 +331,7 @@ const UserFormModal = ({ isOpen, onClose, onSubmit, user, mode }) => {
                                         .filter(role => role.name !== 'ADMIN_CLINIC')
                                         .map(role => (
                                             <option key={role._id} value={role._id}>
-                                                {{
-                                                    'DOCTOR': 'Bác sĩ',
-                                                    'RECEPTIONIST': 'Lễ tân',
-                                                    'PHARMACIST': 'Dược sĩ',
-                                                    'PHARMACY': 'Dược sĩ',
-                                                    'ASSISTANT': 'Trợ lý'
-                                                }[role.name] || role.name}
+                                                {{'DOCTOR': 'Bác sĩ', 'RECEPTIONIST': 'Lễ tân', 'PHARMACIST': 'Dược sĩ', 'PHARMACY': 'Dược sĩ', 'ASSISTANT': 'Trợ lý'}[role.name] || role.name}
                                             </option>
                                         ))
                                 ) : (
@@ -367,7 +341,7 @@ const UserFormModal = ({ isOpen, onClose, onSubmit, user, mode }) => {
                             {errors.role_id && <p className="text-xs text-red-500 mt-1.5 ml-1 font-medium">{errors.role_id}</p>}
                         </div>
 
-                        {/* Password Section (Only Add Mode) */}
+                        {/* Password (Add Mode Only) */}
                         {mode === 'add' && (
                             <div className="bg-blue-50/50 border border-blue-100 rounded-xl p-5">
                                 <label className="block text-sm font-bold text-blue-900 mb-2">
@@ -376,11 +350,10 @@ const UserFormModal = ({ isOpen, onClose, onSubmit, user, mode }) => {
                                 <p className="text-xs text-blue-700/80 mb-4 font-medium leading-relaxed">
                                     Hệ thống đã tạo mật khẩu mạnh. Vui lòng copy và gửi cho nhân viên.
                                 </p>
-
                                 <div className="flex gap-2 items-center">
                                     <div className="flex-1 relative">
                                         <input
-                                            type={showPassword ? "text" : "password"}
+                                            type={showPassword ? 'text' : 'password'}
                                             value={formData.password}
                                             readOnly
                                             className="w-full px-4 py-3 pr-12 bg-white border border-blue-200 rounded-lg font-mono text-base focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm"
@@ -393,28 +366,13 @@ const UserFormModal = ({ isOpen, onClose, onSubmit, user, mode }) => {
                                             {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                                         </button>
                                     </div>
-
                                     <button
                                         type="button"
                                         onClick={handleCopyPassword}
-                                        className={`inline-flex items-center gap-2 px-4 py-3 rounded-lg font-semibold transition-all shadow-sm ${copied
-                                            ? 'bg-green-500 text-white border-transparent'
-                                            : 'bg-white text-blue-600 border border-blue-200 hover:bg-blue-50'
-                                            }`}
+                                        className={`inline-flex items-center gap-2 px-4 py-3 rounded-lg font-semibold transition-all shadow-sm ${copied ? 'bg-green-500 text-white' : 'bg-white text-blue-600 border border-blue-200 hover:bg-blue-50'}`}
                                     >
-                                        {copied ? (
-                                            <>
-                                                <CheckCircle size={18} />
-                                                <span>Đã copy</span>
-                                            </>
-                                        ) : (
-                                            <>
-                                                <Copy size={18} />
-                                                <span>Copy</span>
-                                            </>
-                                        )}
+                                        {copied ? <><CheckCircle size={18} /><span>Đã copy</span></> : <><Copy size={18} /><span>Copy</span></>}
                                     </button>
-
                                     <button
                                         type="button"
                                         onClick={handleRegeneratePassword}
@@ -426,7 +384,6 @@ const UserFormModal = ({ isOpen, onClose, onSubmit, user, mode }) => {
                                     </button>
                                 </div>
                                 {errors.password && <p className="text-xs text-red-500 mt-2 ml-1 font-medium">{errors.password}</p>}
-
                                 <div className="mt-4 p-3 bg-white/80 border border-blue-100 rounded-lg">
                                     <p className="text-xs text-blue-800 font-semibold flex items-center gap-2 italic">
                                         <span className="text-base">⚠️</span> Lưu ý: Nhân viên sẽ được yêu cầu đổi mật khẩu khi đăng nhập lần đầu.
@@ -451,7 +408,6 @@ const UserFormModal = ({ isOpen, onClose, onSubmit, user, mode }) => {
                                 />
                                 {errors.email && <p className="text-xs text-red-500 mt-1.5 ml-1 font-medium">{errors.email}</p>}
                             </div>
-
                             <div>
                                 <label className="block text-sm font-semibold text-gray-700 mb-1.5 ml-1">
                                     Số điện thoại <span className="text-red-500">*</span>
@@ -468,12 +424,69 @@ const UserFormModal = ({ isOpen, onClose, onSubmit, user, mode }) => {
                             </div>
                         </div>
 
+                        {/* Additional Info */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-semibold text-gray-700 mb-1.5 ml-1">
+                                    Bằng cấp
+                                </label>
+                                <input
+                                    type="text"
+                                    name="degree"
+                                    value={formData.degree}
+                                    onChange={handleChange}
+                                    className={getInputClass('degree')}
+                                    placeholder="Vd: Thạc sĩ, Tiến sĩ..."
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-semibold text-gray-700 mb-1.5 ml-1">
+                                    Trường đào tạo
+                                </label>
+                                <input
+                                    type="text"
+                                    name="education"
+                                    value={formData.education}
+                                    onChange={handleChange}
+                                    className={getInputClass('education')}
+                                    placeholder="Vd: Đại học Y Dược..."
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-semibold text-gray-700 mb-1.5 ml-1">
+                                    Ngày bắt đầu làm việc
+                                </label>
+                                <input
+                                    type="date"
+                                    name="work_start"
+                                    value={formData.work_start}
+                                    onChange={handleChange}
+                                    className={getInputClass('work_start')}
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-semibold text-gray-700 mb-1.5 ml-1">
+                                    Ghi chú
+                                </label>
+                                <input
+                                    type="text"
+                                    name="note"
+                                    value={formData.note}
+                                    onChange={handleChange}
+                                    className={getInputClass('note')}
+                                    placeholder="Thông tin thêm..."
+                                />
+                            </div>
+                        </div>
+
                         {/* Doctor License Section */}
-                        {roles.find(r => r._id === formData.role_id)?.name === 'DOCTOR' && (
+                        {isDoctor && (
                             <div className="bg-purple-50/50 border border-purple-100 rounded-xl p-5 space-y-5">
                                 <div className="flex items-center gap-2 mb-1">
                                     <FileText size={18} className="text-purple-600" />
-                                    <h3 className="text-sm font-bold text-purple-900 uppercase tracking-wider">Thông tin chứng chỉ hành nghề</h3>
+                                    <h3 className="text-sm font-bold text-purple-900 uppercase tracking-wider">
+                                        Thông tin chứng chỉ hành nghề
+                                    </h3>
                                 </div>
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -491,7 +504,6 @@ const UserFormModal = ({ isOpen, onClose, onSubmit, user, mode }) => {
                                         />
                                         {errors.license_number && <p className="text-[10px] text-red-500 mt-1 ml-1 font-semibold">{errors.license_number}</p>}
                                     </div>
-
                                     <div>
                                         <label className="block text-[11px] font-bold text-purple-700 uppercase mb-1 ml-1">
                                             Ngày cấp <span className="text-red-500">*</span>
@@ -553,10 +565,7 @@ const UserFormModal = ({ isOpen, onClose, onSubmit, user, mode }) => {
                                                             src={certificatePreview || formData.certificateUrl}
                                                             alt="Preview"
                                                             className="w-full h-full object-cover rounded-lg"
-                                                            onError={(e) => {
-                                                                e.target.onerror = null;
-                                                                e.target.src = 'placeholder-image-url';
-                                                            }}
+                                                            onError={(e) => { e.target.onerror = null; e.target.src = ''; }}
                                                         />
                                                     )}
                                                 </div>

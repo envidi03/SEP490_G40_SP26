@@ -202,7 +202,12 @@ const createInvoice = async (data) => {
                 type: 'INVOICE_READY',
                 title: 'Hóa đơn chờ thanh toán',
                 message: `Bác sĩ vừa chỉ định xong cho bệnh nhân ${patientName}. Vui lòng hỗ trợ bệnh nhân thanh toán hóa đơn.`,
-                action_url: `/invoices/${invoice._id}`
+                action_url: `/invoices/${invoice._id}`,
+                channels: {
+                    in_app: { enabled: true },
+                    zalo: { enabled: true },
+                    sms: { enabled: true }
+                }
             });
         } catch (err) {
             logger.error('Lỗi gửi thông báo cho Lễ tân chờ thanh toán:', { message: err.message });

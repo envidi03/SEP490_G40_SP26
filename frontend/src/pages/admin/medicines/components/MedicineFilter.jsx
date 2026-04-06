@@ -47,6 +47,15 @@ const MedicineFilter = ({ searchTerm, onSearchChange, statusFilter, onStatusFilt
                         Sắp hết hàng
                     </button>
                     <button
+                        onClick={() => onStatusFilterChange('OUT_OF_STOCK')}
+                        className={`px-4 py-2 rounded-lg font-medium transition-all ${statusFilter === 'OUT_OF_STOCK'
+                            ? 'bg-gray-600 text-white shadow-md'
+                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                            }`}
+                    >
+                        Hết hàng
+                    </button>
+                    <button
                         onClick={() => onStatusFilterChange('EXPIRED')}
                         className={`px-4 py-2 rounded-lg font-medium transition-all ${statusFilter === 'EXPIRED'
                             ? 'bg-red-600 text-white shadow-md'

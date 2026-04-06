@@ -34,6 +34,7 @@ const PatientInvoices = () => {
     const [selectedInvoice, setSelectedInvoice] = useState(null);
     const [showDetail, setShowDetail] = useState(false);
     const [showQR, setShowQR] = useState(false);
+    const [qrPaid, setQrPaid] = useState(false); // Track nếu đã thanh toán xong trước khi đóng
     const [toast, setToast] = useState({ show: false, type: 'success', message: '' });
 
     /* ─── 2. Lifecycle & Effects ────────────────────────────────────── */
@@ -136,6 +137,7 @@ const PatientInvoices = () => {
     const handlePay = (invoice) => {
         setShowDetail(false);
         setSelectedInvoice(invoice);
+        setQrPaid(false); // Reset trạng thái mỗi lần mở QR mới
         setShowQR(true);
     };
 
@@ -232,7 +234,19 @@ const PatientInvoices = () => {
             {showQR && (
                 <QRPaymentModal
                     invoice={selectedInvoice}
-                    onClose={() => { setShowQR(false); fetchInvoices(currentPage); }}
+                    onPaid={() => {
+                        // Chỉ đánh dấu đã thanh toán, CHƯA reload ngay
+                        setQrPaid(true);
+                        setToast({ show: true, type: 'success', message: 'Thanh toán thành công!' });
+                    }}
+                    onClose={() => {
+                        setShowQR(false);
+                        // Chỉ reload nếu đã thanh toán xong, tránh false-positive khi click ra ngoài
+                        if (qrPaid) {
+                            fetchInvoices(currentPage);
+                            setQrPaid(false);
+                        }
+                    }}
                 />
             )}
 

@@ -132,6 +132,12 @@ const notificationSchema = new Schema(
                 enabled: { type: Boolean, default: false },
                 status:  { type: String, enum: ['PENDING', 'SENT', 'FAILED'], default: 'PENDING' },
                 sent_at: { type: Date, default: null }
+            },
+            // Gửi SMS qua ESMS
+            sms: {
+                enabled: { type: Boolean, default: false },
+                status:  { type: String, enum: ['PENDING', 'SENT', 'FAILED'], default: 'PENDING' },
+                sent_at: { type: Date, default: null }
             }
         },
 

@@ -3,7 +3,7 @@ import { CheckCircle } from 'lucide-react';
 import billingService from '../../../../services/billingService';
 import { formatMoney } from '../../utils/invoiceUtils';
 
-const QRPaymentModal = ({ invoice, onClose }) => {
+const QRPaymentModal = ({ invoice, onClose, onPaid }) => {
     const [checking, setChecking] = useState(false);
     const [paid, setPaid] = useState(false);
 
@@ -12,8 +12,11 @@ const QRPaymentModal = ({ invoice, onClose }) => {
         setChecking(true);
         try {
             const res = await billingService.checkPaymentStatus(invoice.invoice_code);
-            if (res?.data?.data?.status === 'COMPLETED' || res?.data?.status === 'COMPLETED') {
+            // Backend trả về { status: 'PAID' } khi thanh toán thành công
+            const status = res?.data?.status || res?.data?.data?.status;
+            if (status === 'PAID' || status === 'COMPLETED') {
                 setPaid(true);
+                if (onPaid) onPaid(); // Thông báo cho component cha
             }
         } catch {
             // ignore

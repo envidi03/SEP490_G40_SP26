@@ -557,6 +557,7 @@ exports.googleAuth = async (googleToken, ip_address = 'unknown', user_agent = 'u
 
     const { sub: googleId, email, name, picture } = payload;
 
+    let account;
     // Check if this Google ID is already linked to another account
     const existingGoogleProvider = await AuthProvider.findOne({
         provider: 'google',

@@ -97,6 +97,48 @@ const UserDetailModal = ({ isOpen, onClose, user, roleConfig, statusConfig }) =>
                         )}
                     </div>
 
+                    {/* Staff Work & Academic Info */}
+                    {(user.degree || user.education || user.workStart || user.note) && (
+                        <div className="border-t border-gray-200 pt-6">
+                            <label className="text-sm font-semibold text-gray-700 flex items-center gap-2 mb-3">
+                                <FileText size={16} className="text-blue-600" />
+                                Thông tin Học Vấn & Công Tác
+                            </label>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-blue-50/50 p-4 rounded-lg border border-blue-100">
+                                {user.degree && (
+                                    <div>
+                                        <label className="text-xs font-medium text-gray-500">Bằng cấp</label>
+                                        <p className="mt-1 text-sm font-medium text-gray-900">{user.degree}</p>
+                                    </div>
+                                )}
+                                {user.education && (
+                                    <div>
+                                        <label className="text-xs font-medium text-gray-500">Nơi đào tạo</label>
+                                        <p className="mt-1 text-sm font-medium text-gray-900">{user.education}</p>
+                                    </div>
+                                )}
+                                {user.workStart && (
+                                    <div>
+                                        <label className="text-xs font-medium text-gray-500">Ngày bắt đầu</label>
+                                        <p className="mt-1 text-sm text-gray-900">{formatDate(user.workStart)}</p>
+                                    </div>
+                                )}
+                                {user.workEnd && (
+                                    <div>
+                                        <label className="text-xs font-medium text-gray-500">Ngày kết thúc/Nghỉ</label>
+                                        <p className="mt-1 text-sm text-gray-900">{formatDate(user.workEnd)}</p>
+                                    </div>
+                                )}
+                                {user.note && (
+                                    <div className="md:col-span-2">
+                                        <label className="text-xs font-medium text-gray-500">Ghi chú</label>
+                                        <p className="mt-1 text-sm text-gray-900 whitespace-pre-wrap">{user.note}</p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
                     {/* Doctor Licenses */}
                     {user.licenses && user.licenses.length > 0 && (
                         <div className="border-t border-gray-200 pt-6">

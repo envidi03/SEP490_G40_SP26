@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { X, Save, Edit, Pill, Plus, AlertCircle, CheckCircle, Ban, HelpCircle } from "lucide-react";
+import { X, Save, Edit, Pill, Plus, AlertCircle, CheckCircle, Ban, HelpCircle, DollarSign, Activity } from "lucide-react";
 import treatmentApi from "../../../../services/treatmentService";
 import MedicineModal from "./medicineModal";
 
@@ -17,8 +17,8 @@ const UpdateTreatmentModal = ({ isOpen, onClose, treatment, onSuccess }) => {
   const [error, setError] = useState("");
   const [isFetchingDetail, setIsFetchingDetail] = useState(false);
 
-  // State thông tin cơ bản (Đã bỏ status)
-  const [formData, setFormData] = useState({ note: "" });
+  // State thông tin cơ bản - Thêm phase vào formData
+  const [formData, setFormData] = useState({ note: "", price: "", phase: "PLAN" });
   const [medicines, setMedicines] = useState([]);
 
   // --- STATE QUẢN LÝ POPUP CONFIRM ---
@@ -31,7 +31,7 @@ const UpdateTreatmentModal = ({ isOpen, onClose, treatment, onSuccess }) => {
     btnColor: ""
   });
 
-  // Khi mở modal: fetch chi tiết treatment để lấy medicine_id đã populate (có tên thuốc)
+  // Khi mở modal: fetch chi tiết treatment
   useEffect(() => {
     if (!isOpen || !treatment) return;
 
@@ -44,7 +44,13 @@ const UpdateTreatmentModal = ({ isOpen, onClose, treatment, onSuccess }) => {
       try {
         const response = await treatmentApi.viewTreatmentDetail(treatment._id);
         const detail = response?.data?.data || response?.data || response;
-        setFormData({ note: detail.note || treatment.note || "" });
+        
+        // Cập nhật formData bao gồm note, price và phase
+        setFormData({ 
+          note: detail.note || treatment.note || "",
+          price: detail.price !== undefined ? detail.price : (treatment.price || 0),
+          phase: detail.phase || treatment.phase || "PLAN"
+        });
 
         if (detail.medicine_usage && detail.medicine_usage.length > 0) {
           const loadedMedicines = detail.medicine_usage.map((med) => ({
@@ -61,8 +67,12 @@ const UpdateTreatmentModal = ({ isOpen, onClose, treatment, onSuccess }) => {
           setMedicines([]);
         }
       } catch {
-        // Fallback: dùng dữ liệu từ prop nếu API thất bại
-        setFormData({ note: treatment.note || "" });
+        // Fallback
+        setFormData({ 
+          note: treatment.note || "", 
+          price: treatment.price !== undefined ? treatment.price : 0,
+          phase: treatment.phase || "PLAN"
+        });
         if (treatment.medicine_usage && treatment.medicine_usage.length > 0) {
           setMedicines(
             treatment.medicine_usage.map((med) => ({
@@ -97,7 +107,6 @@ const UpdateTreatmentModal = ({ isOpen, onClose, treatment, onSuccess }) => {
     setMedicines((prev) => prev.map((med) => med._localId === localId ? { ...med, [field]: value } : med));
   };
 
-  // --- 1. MỞ POPUP XÁC NHẬN TRƯỚC KHI CHẠY LOGIC ---
   const openConfirm = (type) => {
     let config = {};
     switch (type) {
@@ -108,10 +117,10 @@ const UpdateTreatmentModal = ({ isOpen, onClose, treatment, onSuccess }) => {
         config = { title: "Hủy bỏ điều trị", message: "Bạn có chắc chắn muốn HỦY đợt điều trị này? Trạng thái sẽ được đổi thành Đã hủy (CANCELLED).", btnText: "Xác nhận Hủy", btnColor: "bg-red-500 hover:bg-red-600" };
         break;
       case 'UPDATE':
-        config = { title: "Lưu cập nhật", message: "Xác nhận lưu lại các thông tin ghi chú và đơn thuốc? (Trạng thái vẫn là Đang điều trị).", btnText: "Xác nhận Lưu", btnColor: "bg-blue-600 hover:bg-blue-700" };
+        config = { title: "Lưu cập nhật", message: "Xác nhận lưu lại các thông tin hình thức, ghi chú, đơn thuốc và đơn giá?", btnText: "Xác nhận Lưu", btnColor: "bg-blue-600 hover:bg-blue-700" };
         break;
       case 'COMPLETE':
-        config = { title: "Hoàn thành điều trị", message: "Xác nhận hoàn thành đợt điều trị này? Hồ sơ sẽ được chuyển sang trạng thái Chờ duyệt (WAITING_APPROVAL).", btnText: "Xác nhận Hoàn thành", btnColor: "bg-orange-500 hover:bg-orange-600" };
+        config = { title: "Hoàn thành điều trị", message: "Xác nhận hoàn thành đợt điều trị này? Hồ sơ sẽ được chuyển sang trạng thái Chờ duyệt.", btnText: "Xác nhận Hoàn thành", btnColor: "bg-orange-500 hover:bg-orange-600" };
         break;
       default:
         return;
@@ -119,11 +128,9 @@ const UpdateTreatmentModal = ({ isOpen, onClose, treatment, onSuccess }) => {
     setConfirmPopup({ isOpen: true, type, ...config });
   };
 
-  // --- 2. XỬ LÝ SAU KHI NGƯỜI DÙNG BẤM "ĐỒNG Ý" TRONG CONFIRM POPUP ---
   const handleConfirmYes = () => {
     const type = confirmPopup.type;
-    setConfirmPopup({ ...confirmPopup, isOpen: false }); // Đóng popup confirm
-
+    setConfirmPopup({ ...confirmPopup, isOpen: false });
     if (type === 'CLOSE') {
       onClose();
     } else {
@@ -131,13 +138,18 @@ const UpdateTreatmentModal = ({ isOpen, onClose, treatment, onSuccess }) => {
     }
   };
 
-  // --- 3. GỌI API THỰC TẾ ---
   const executeSubmit = async (type) => {
     setSubmitType(type);
     setError("");
 
     try {
-      // Validate: Trống tên thuốc
+      // 1. Validate đơn giá (Giá >= 0)
+      const priceValue = Number(formData.price);
+      if (formData.price === "" || isNaN(priceValue) || priceValue < 0) {
+        throw new Error("Vui lòng nhập đơn giá hợp lệ (không được để trống).");
+      }
+
+      // 2. Validate thuốc
       for (let i = 0; i < medicines.length; i++) {
         if (!medicines[i].medicine_id) throw new Error(`Thuốc #${i + 1}: Vui lòng chọn loại thuốc.`);
       }
@@ -147,14 +159,22 @@ const UpdateTreatmentModal = ({ isOpen, onClose, treatment, onSuccess }) => {
         return { ...rest, quantity: Number(rest.quantity) };
       });
 
-      // Xác định trạng thái sẽ gửi đi dựa vào Nút bấm
-      let finalStatus = treatment.status === "PLANNED" ? "IN_PROGRESS" : treatment.status;
-      if (type === "COMPLETE") finalStatus = "WAITING_APPROVAL";
-      if (type === "CANCEL_TREATMENT") finalStatus = "CANCELLED";
+      // 3. Logic điều hướng trạng thái
+      let finalStatus = treatment.status;
+      if (type === "COMPLETE") {
+        finalStatus = "WAITING_APPROVAL";
+      } else if (type === "CANCEL_TREATMENT") {
+        finalStatus = "CANCELLED";
+      } else if (type === "UPDATE") {
+        // Tự động map status dựa theo phase
+        finalStatus = formData.phase === "PLAN" ? "PLANNED" : "IN_PROGRESS";
+      }
 
       const payload = {
         status: finalStatus,
+        phase: formData.phase, // Gửi cả phase về body
         note: formData.note,
+        price: priceValue,
         medicine_usage: cleanMedicineUsage,
       };
 
@@ -178,7 +198,7 @@ const UpdateTreatmentModal = ({ isOpen, onClose, treatment, onSuccess }) => {
       <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-200">
         <div className="bg-white rounded-3xl w-full max-w-4xl shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200 max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
 
-          {/* --- Header --- */}
+          {/* Header */}
           <div className="flex items-center justify-between p-6 border-b border-slate-100 bg-orange-50/50">
             <div className="flex items-center gap-4">
               <div className="p-3 bg-orange-500 text-white rounded-2xl shadow-md shadow-orange-200">
@@ -186,15 +206,14 @@ const UpdateTreatmentModal = ({ isOpen, onClose, treatment, onSuccess }) => {
               </div>
               <div>
                 <h2 className="text-xl font-black text-slate-800 tracking-tight">Cập nhật phiếu điều trị</h2>
-                <p className="text-sm font-bold text-slate-500 mt-0.5">Răng: <span className="text-orange-600">{treatment.tooth_position}</span></p>
+                <p className="text-sm font-bold text-slate-500 mt-0.5">Vị trí: <span className="text-orange-600">{treatment.tooth_position}</span></p>
               </div>
             </div>
-            <button onClick={() => openConfirm('CLOSE')} className="p-2 text-slate-400 hover:bg-slate-200 hover:text-slate-700 rounded-xl transition-all active:scale-95">
+            <button onClick={() => openConfirm('CLOSE')} className="p-2 text-slate-400 hover:bg-slate-200 rounded-xl transition-all">
               <X size={24} />
             </button>
           </div>
 
-          {/* --- Báo lỗi --- */}
           {error && (
             <div className="mx-6 mt-6 p-4 bg-red-50 border border-red-100 rounded-2xl flex items-start gap-3">
               <AlertCircle size={20} className="text-red-500 shrink-0 mt-0.5" />
@@ -202,30 +221,64 @@ const UpdateTreatmentModal = ({ isOpen, onClose, treatment, onSuccess }) => {
             </div>
           )}
 
-          {/* --- Body (Scrollable) --- */}
           <div className="p-6 overflow-y-auto custom-scrollbar space-y-8 flex-1">
             {isFetchingDetail ? (
               <div className="flex items-center justify-center gap-3 py-6">
                 <div className="w-5 h-5 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
-                <p className="text-sm font-bold text-slate-400">Đang tải dữ liệu thuốc...</p>
+                <p className="text-sm font-bold text-slate-400">Đang tải dữ liệu chi tiết...</p>
               </div>
             ) : (
               <>
-                {/* PHẦN 1: GHI CHÚ */}
+                {/* PHẦN 1: THÔNG TIN CHUNG */}
                 <div className="space-y-4">
                   <h3 className="text-sm font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 border-b border-slate-100 pb-2">
-                    <AlertCircle size={16} /> Thông tin điều trị
+                    <AlertCircle size={16} /> Thông tin điều trị & Chi phí
                   </h3>
-                  <div className="space-y-2">
-                    <label className="text-xs font-black text-slate-600 ml-1">Ghi chú của bác sĩ</label>
-                    <textarea
-                      name="note"
-                      value={formData.note}
-                      onChange={handleChange}
-                      rows="2"
-                      placeholder="Ghi nhận tình trạng bệnh nhân sau điều trị..."
-                      className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-100 rounded-2xl focus:bg-white focus:border-orange-500 outline-none font-medium text-slate-700 transition-colors resize-y min-h-[60px]"
-                    ></textarea>
+                  
+                  {/* Cập nhật lại Grid: 2 cột để chứa Phase và Price cân đối */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    {/* TRƯỜNG PHASE MỚI */}
+                    <div className="space-y-2">
+                      <label className="text-xs font-black text-slate-600 ml-1 flex items-center gap-1">
+                        <Activity size={12} /> Hình thức điều trị
+                      </label>
+                      <select
+                        name="phase"
+                        value={formData.phase}
+                        onChange={handleChange}
+                        className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-100 rounded-2xl focus:bg-white focus:border-blue-500 outline-none font-bold text-slate-700 transition-colors cursor-pointer"
+                      >
+                        <option value="PLAN">Lên kế hoạch</option>
+                        <option value="SESSION">Thực thi (Làm ngay)</option>
+                      </select>
+                    </div>
+
+                    {/* TRƯỜNG PRICE */}
+                    <div className="space-y-2">
+                      <label className="text-xs font-black text-slate-600 ml-1 flex items-center gap-1">
+                         <DollarSign size={12} /> Đơn giá (VNĐ) <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="number"
+                        name="price"
+                        value={formData.price}
+                        onChange={handleChange}
+                        placeholder="Nhập giá tiền..."
+                        className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-100 rounded-2xl focus:bg-white focus:border-blue-500 outline-none font-bold text-blue-600 transition-colors"
+                      />
+                    </div>
+
+                    <div className="md:col-span-2 space-y-2">
+                      <label className="text-xs font-black text-slate-600 ml-1">Ghi chú của bác sĩ</label>
+                      <textarea
+                        name="note"
+                        value={formData.note}
+                        onChange={handleChange}
+                        rows="2"
+                        placeholder="Ghi nhận tình trạng bệnh nhân..."
+                        className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-100 rounded-2xl focus:bg-white focus:border-orange-500 outline-none font-medium text-slate-700 transition-colors resize-none"
+                      ></textarea>
+                    </div>
                   </div>
                 </div>
 
@@ -241,11 +294,8 @@ const UpdateTreatmentModal = ({ isOpen, onClose, treatment, onSuccess }) => {
                   </div>
 
                   {medicines.length === 0 ? (
-                    <div className="p-8 border-2 border-dashed border-slate-200 rounded-2xl text-center">
-                      <p className="text-sm font-bold text-slate-400 mb-2">Chưa kê loại thuốc nào.</p>
-                      <button type="button" onClick={handleAddMedicine} className="text-blue-600 text-sm font-bold hover:underline">
-                        Bấm vào đây để thêm thuốc
-                      </button>
+                    <div className="p-8 border-2 border-dashed border-slate-200 rounded-2xl text-center text-sm font-bold text-slate-400">
+                      Chưa kê loại thuốc nào.
                     </div>
                   ) : (
                     <div className="space-y-4">
@@ -259,59 +309,44 @@ const UpdateTreatmentModal = ({ isOpen, onClose, treatment, onSuccess }) => {
             )}
           </div>
 
-          {/* --- FOOTER: 4 NÚT BẤM (CÓ CONFIRM) --- */}
+          {/* Footer Buttons */}
           <div className="p-6 border-t border-slate-100 bg-slate-50 flex flex-col md:flex-row items-center justify-between gap-4 rounded-b-3xl shrink-0">
-
-            {/* Nút 1: Đóng */}
-            <button onClick={() => openConfirm('CLOSE')} disabled={submitType !== null} className="w-full md:w-auto px-6 py-3 rounded-2xl font-bold text-slate-500 hover:bg-slate-200 transition-colors active:scale-95 disabled:opacity-50">
+            <button onClick={() => openConfirm('CLOSE')} disabled={submitType !== null} className="w-full md:w-auto px-6 py-3 rounded-2xl font-bold text-slate-500 hover:bg-slate-200 transition-colors">
               Đóng
             </button>
 
             <div className="flex flex-col md:flex-row items-center gap-3 w-full md:w-auto">
-
-              {/* Nút 2: Hủy điều trị */}
-              <button onClick={() => openConfirm("CANCEL_TREATMENT")} disabled={submitType !== null} className="w-full md:w-auto px-5 py-3 bg-red-50 text-red-600 rounded-2xl font-black hover:bg-red-100 transition-all flex justify-center items-center gap-2 active:scale-95 disabled:opacity-70 border border-red-100">
+              <button onClick={() => openConfirm("CANCEL_TREATMENT")} disabled={submitType !== null} className="w-full md:w-auto px-5 py-3 bg-red-50 text-red-600 rounded-2xl font-black hover:bg-red-100 transition-all flex justify-center items-center gap-2 border border-red-100">
                 {submitType === "CANCEL_TREATMENT" ? <div className="w-5 h-5 border-2 border-red-600 border-t-transparent rounded-full animate-spin"></div> : <Ban size={18} />}
                 Hủy điều trị
               </button>
 
-              {/* Nút 3: Cập nhật */}
-              <button onClick={() => openConfirm("UPDATE")} disabled={submitType !== null} className="w-full md:w-auto px-6 py-3 bg-blue-600 text-white rounded-2xl font-black hover:bg-blue-700 transition-all flex justify-center items-center gap-2 active:scale-95 disabled:opacity-70 shadow-lg shadow-blue-200">
-                {submitType === "UPDATE" ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div> : <Save size={18} />}
-                Lưu cập nhật
-              </button>
-
-              {/* Nút 4: Hoàn thành */}
-              <button onClick={() => openConfirm("COMPLETE")} disabled={submitType !== null} className="w-full md:w-auto px-8 py-3 bg-orange-500 text-white rounded-2xl font-black hover:bg-orange-600 transition-all flex justify-center items-center gap-2 shadow-lg shadow-orange-200 disabled:opacity-70 disabled:active:scale-100 active:scale-95">
+              <button onClick={() => openConfirm("COMPLETE")} disabled={submitType !== null} className="w-full md:w-auto px-8 py-3 bg-orange-500 text-white rounded-2xl font-black hover:bg-orange-600 transition-all flex justify-center items-center gap-2 shadow-lg shadow-orange-200">
                 {submitType === "COMPLETE" ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div> : <CheckCircle size={20} />}
                 Hoàn thành
+              </button>
+
+              <button onClick={() => openConfirm("UPDATE")} disabled={submitType !== null} className="w-full md:w-auto px-6 py-3 bg-blue-600 text-white rounded-2xl font-black hover:bg-blue-700 transition-all flex justify-center items-center gap-2 shadow-lg shadow-blue-200">
+                {submitType === "UPDATE" ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div> : <Save size={18} />}
+                Lưu cập nhật
               </button>
             </div>
           </div>
         </div>
       </div>
 
-      {/* --- POPUP CONFIRM OVERLAY --- */}
+      {/* CONFIRM POPUP */}
       {confirmPopup.isOpen && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white rounded-3xl w-full max-w-sm shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 p-6 text-center">
+          <div className="bg-white rounded-3xl w-full max-w-sm shadow-2xl p-6 text-center animate-in zoom-in-95">
             <div className="w-16 h-16 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center mx-auto mb-4">
               <HelpCircle size={32} />
             </div>
-            <h3 className="text-xl font-black text-slate-800 tracking-tight mb-2">{confirmPopup.title}</h3>
-            <p className="text-sm font-medium text-slate-500 mb-8 px-2">{confirmPopup.message}</p>
-
+            <h3 className="text-xl font-black text-slate-800 mb-2">{confirmPopup.title}</h3>
+            <p className="text-sm font-medium text-slate-500 mb-8">{confirmPopup.message}</p>
             <div className="flex items-center gap-3">
-              <button
-                onClick={() => setConfirmPopup({ isOpen: false })}
-                className="flex-1 py-3 bg-slate-100 text-slate-600 rounded-xl font-bold hover:bg-slate-200 transition-colors"
-              >
-                Hủy
-              </button>
-              <button
-                onClick={handleConfirmYes}
-                className={`flex-1 py-3 text-white rounded-xl font-black transition-colors ${confirmPopup.btnColor}`}
-              >
+              <button onClick={() => setConfirmPopup({ isOpen: false })} className="flex-1 py-3 bg-slate-100 text-slate-600 rounded-xl font-bold">Hủy</button>
+              <button onClick={handleConfirmYes} className={`flex-1 py-3 text-white rounded-xl font-black ${confirmPopup.btnColor}`}>
                 {confirmPopup.btnText}
               </button>
             </div>

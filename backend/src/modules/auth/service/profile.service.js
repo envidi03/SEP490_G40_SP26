@@ -124,6 +124,17 @@ const getProfileService = async (accountId) => {
     if (patient) {
       result.patient_id = patient._id;
     }
+  } else if (['DOCTOR', 'RECEPTIONIST', 'PHARMACIST', 'PHARMACY', 'ASSISTANT', 'ADMIN_CLINIC'].includes(roleName)) {
+    const StaffModel = require('../../staff/models/staff.model');
+    const staff = await StaffModel.Staff.findOne({ account_id: accountId }).lean();
+    if (staff) {
+      result.staff_id = staff._id;
+      result.degree = staff.degree;
+      result.education = staff.education;
+      result.note = staff.note;
+      result.work_start = staff.work_start;
+      result.work_end = staff.work_end;
+    }
   }
 
   return result;

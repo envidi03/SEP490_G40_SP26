@@ -2,6 +2,7 @@ const cron = require('node-cron');
 const Appointment = require('../models/appointment.model'); 
 const notificationService = require('./../../notification/service/notification.service'); 
 const emailService = require('../../../common/service/email.service');
+const logger = require('../../../common/utils/logger');
 
 const startAppointmentReminderCron = () => {
     // Chạy job này MỖI PHÚT 1 LẦN ('* * * * *')
@@ -53,11 +54,15 @@ const startAppointmentReminderCron = () => {
                             metadata: {
                                 entity_id: appt._id,
                                 entity_type: 'APPOINTMENT'
+                            },
+                            channels: {
+                                in_app: { enabled: true },
+                                sms: { enabled: true }
                             }
                         });
                     } catch (notifyErr) {
                         // Bắt lỗi riêng để không làm chết vòng lặp
-                        console.error(`[CRON] Lỗi gửi In-App Notify cho lịch ${appt._id}:`, notifyErr.message);
+                        logger.error(`[CRON] Lỗi gửi In-App Notify cho lịch ${appt._id}: ${notifyErr.message}`);
                     }
                 }
 
@@ -68,17 +73,17 @@ const startAppointmentReminderCron = () => {
                         await emailService.sendAppointmentReminder(appt);
                     } catch (emailErr) {
                         // Bắt lỗi riêng để nếu gửi mail người này xịt thì người kia vẫn nhận được
-                        console.error(`[CRON] Lỗi gửi Email cho lịch ${appt._id} (${appt.email}):`, emailErr.message);
+                        logger.error(`[CRON] Lỗi gửi Email cho lịch ${appt._id} (${appt.email}):`, emailErr.message);
                     }
                 }
             }
 
             if (upcomingAppointments.length > 0) {
-                console.log(`[CRON] Đã gửi thông báo & email nhắc hẹn cho ${upcomingAppointments.length} bệnh nhân lúc ${targetTimeString}`);
+                logger.info(`[CRON] Đã gửi thông báo & email nhắc hẹn cho ${upcomingAppointments.length} bệnh nhân lúc ${targetTimeString}`);
             }
 
         } catch (error) {
-            console.error("[CRON] Lỗi khi chạy job nhắc hẹn:", error);
+            logger.error("[CRON] Lỗi khi chạy job nhắc hẹn:", error);
         }
     });
 };

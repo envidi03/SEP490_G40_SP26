@@ -8,7 +8,7 @@
     "debug": "node --inspect src/server.js",
     "debug:dev": "nodemon -L --inspect src/server.js",
     "start": "node src/server.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "jest"
   },
   "keywords": [],
   "author": "",
@@ -39,6 +39,7 @@
     "winston-daily-rotate-file": "^5.0.0"
   },
   "devDependencies": {
+    "jest": "^30.3.0",
     "nodemon": "^3.1.10"
   }
 }

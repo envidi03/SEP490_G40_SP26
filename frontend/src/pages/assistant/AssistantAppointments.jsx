@@ -22,7 +22,6 @@ import ReportEquipmentModal from "./modals/ReportEquipmentModal";
 import PrepareAppointmentModal from "./modals/PrepareAppointmentModal";
 import appointmentService from "../../services/appointmentService";
 import staffService from "../../services/staffService";
-import equipmentService from "../../services/equipmentService";
 import SharedPagination from "../../components/ui/SharedPagination";
 import { useNavigate } from "react-router-dom";
 
@@ -40,7 +39,6 @@ const AssistantAppointments = () => {
 
   const [appointments, setAppointments] = useState([]);
   const [doctors, setDoctors] = useState([]);
-  const [equipments, setEquipments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState({
     show: false,
@@ -51,7 +49,6 @@ const AssistantAppointments = () => {
   const [selectedAppointment, setSelectedAppointment] = useState(null);
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [showViewModal, setShowViewModal] = useState(false);
-  const [showReportModal, setShowReportModal] = useState(false);
   const [showPrepareModal, setShowPrepareModal] = useState(false);
 
   // --- debounced searchTerm ---
@@ -78,7 +75,7 @@ const AssistantAppointments = () => {
         appointment_date: selectedDate,
         page: currentPage,
         limit: 6,
-        status: "CHECKED_IN,IN_CONSULTATION",
+        excludeStatuses: "SCHEDULED,PENDING_CONFIRMATION,SCHEDULED,COMPLETED,CANCELLED,NO_SHOW",
       };
       if (filterDoctor !== "all") {
         apptParams.doctor_id = filterDoctor;
@@ -130,13 +127,6 @@ const AssistantAppointments = () => {
         setDoctors(docsData);
       }
 
-      // 3. Fetch equipments for reporting
-      if (equipments.length === 0) {
-        const equipResponse = await equipmentService.getEquipments({
-          limit: 100,
-        });
-        setEquipments(equipResponse.data?.data || equipResponse.data || []);
-      }
     } catch (error) {
       console.error("Error fetching data:", error);
       setToast({ show: true, message: "Lỗi khi tải dữ liệu!", type: "error" });
@@ -181,7 +171,6 @@ const AssistantAppointments = () => {
   const closeModals = () => {
     setShowAssignModal(false);
     setShowViewModal(false);
-    setShowReportModal(false);
     setShowPrepareModal(false);
     setSelectedAppointment(null);
   };
@@ -247,30 +236,6 @@ const AssistantAppointments = () => {
       setToast({
         show: true,
         message: "Lỗi khi xử lý chuẩn bị!",
-        type: "error",
-      });
-    }
-  };
-
-  const handleReportSubmit = async (appointmentId, data) => {
-    try {
-      console.log("Reporting incident:", appointmentId, data);
-      const { equipmentId, ...rest } = data;
-      await equipmentService.reportIncident(equipmentId, {
-        ...rest,
-        appointment_id: appointmentId,
-      });
-      setToast({
-        show: true,
-        message: "Gửi báo cáo sự cố thành công!",
-        type: "success",
-      });
-      fetchData(); // Refresh to see updated equipment status if displayed
-    } catch (error) {
-      console.error("Error reporting incident:", error);
-      setToast({
-        show: true,
-        message: "Lỗi khi gửi báo cáo sự cố!",
         type: "error",
       });
     }
@@ -509,14 +474,6 @@ const AssistantAppointments = () => {
         onComplete={handlePrepareComplete}
         doctors={doctors}
       />
-      <ReportEquipmentModal
-        appointment={selectedAppointment}
-        isOpen={showReportModal}
-        onClose={closeModals}
-        onSubmit={handleReportSubmit}
-        equipments={equipments}
-      />
-
       <Toast
         show={toast.show}
         message={toast.message}

@@ -464,11 +464,55 @@ const ProfilePage = () => {
                                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                                     />
                                 ) : (
-                                    <p className="text-gray-900 px-4 py-2 bg-gray-50 rounded-lg">{formData.address}</p>
+                                    <p className="text-gray-900 px-4 py-2 bg-gray-50 rounded-lg">{formData.address || '—'}</p>
                                 )}
                             </div>
                         </div>
                     </Card>
+
+                    {/* Staff Work & Academic Info (Read Only) */}
+                    {(user?.degree || user?.education || user?.work_start || user?.note) && (
+                        <Card className="mt-6 border-l-4 border-l-blue-500">
+                            <h3 className="text-lg font-semibold text-gray-900 mb-4">Thông tin Công tác & Học vấn</h3>
+                            <div className="bg-blue-50/50 p-4 rounded-lg">
+                                <p className="text-xs text-blue-600 mb-4 italic">
+                                    * Thông tin này được cấu hình bởi Quản trị viên (Admin).
+                                </p>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    {user.degree && (
+                                        <div>
+                                            <label className="text-xs font-medium text-gray-500">Bằng cấp</label>
+                                            <p className="mt-1 text-sm font-medium text-gray-900">{user.degree}</p>
+                                        </div>
+                                    )}
+                                    {user.education && (
+                                        <div>
+                                            <label className="text-xs font-medium text-gray-500">Nơi đào tạo</label>
+                                            <p className="mt-1 text-sm font-medium text-gray-900">{user.education}</p>
+                                        </div>
+                                    )}
+                                    {user.work_start && (
+                                        <div>
+                                            <label className="text-xs font-medium text-gray-500">Ngày làm việc chính thức</label>
+                                            <p className="mt-1 text-sm text-gray-900">{formatDate(user.work_start)}</p>
+                                        </div>
+                                    )}
+                                    {user.work_end && (
+                                        <div>
+                                            <label className="text-xs font-medium text-gray-500">Ngày nghỉ việc</label>
+                                            <p className="mt-1 text-sm text-gray-900">{formatDate(user.work_end)}</p>
+                                        </div>
+                                    )}
+                                    {user.note && (
+                                        <div className="md:col-span-2 pt-2 border-t border-blue-100">
+                                            <label className="text-xs font-medium text-gray-500">Ghi chú chuyên môn</label>
+                                            <p className="mt-1 text-sm text-gray-900 whitespace-pre-wrap">{user.note}</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </Card>
+                    )}
 
                     {/* Security Card */}
                     <Card className="mt-6">

@@ -3,7 +3,7 @@ const Notification = require('../model/notification.model');
 const { emitToUser, emitToRole, getIO } = require('../../../socket');
 const logger = require('../../../common/utils/logger');
 const errorRes = require('../../../common/errors');
-const { dispatchEmail, dispatchZalo } = require('./notification.dispatcher');
+const { dispatchEmail, dispatchZalo, dispatchSMS } = require('./notification.dispatcher');
 
 const _dispatchInApp = async (notification) => {
     const payload = {
@@ -62,9 +62,10 @@ const createNotification = async (payload) => {
         if (!message) throw new errorRes.BadRequestError('message is required');
 
         const channelsConfig = {
-            in_app: { enabled: true, ...channels.in_app },
-            email: { enabled: false, ...channels.email },
-            zalo: { enabled: false, ...channels.zalo },
+            in_app: { enabled: true,  ...channels.in_app },
+            email:  { enabled: false, ...channels.email },
+            zalo:   { enabled: false, ...channels.zalo },
+            sms:    { enabled: false, ...channels.sms },
         };
 
         const notification = await Notification.create({
@@ -93,8 +94,13 @@ const createNotification = async (payload) => {
         }
 
         if (channelsConfig.zalo.enabled) {
-            // Gửi ngầm background Zalo ZNS
+            // Gửi ngầm background Zalo OA Message
             dispatchZalo(notification);
+        }
+
+        if (channelsConfig.sms.enabled) {
+            // Gửi ngầm background SMS qua ESMS
+            dispatchSMS(notification);
         }
 
         await notification.save();

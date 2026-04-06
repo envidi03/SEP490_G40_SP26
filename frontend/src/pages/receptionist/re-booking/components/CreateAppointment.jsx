@@ -11,7 +11,8 @@ const CreateAppointment = ({ isOpen, onClose, treatmentData, onSuccess }) => {
         phone: '',
         appointment_date: '',
         appointment_time: '',
-        treatment_id: ''
+        treatment_id: '',
+        priority: 1
     });
 
     useEffect(() => {
