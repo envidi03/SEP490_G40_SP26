@@ -1,29 +1,37 @@
 import React from "react";
-import { X, Stethoscope, Pill, Calendar, FileText, CheckCircle } from "lucide-react";
+import { X, Stethoscope, Pill, Calendar, FileText, CheckCircle, DollarSign, Hash } from "lucide-react";
 import Badge from "../../../../components/ui/Badge";
 import { getStatusConfig } from "./getStatusConfig";
-
-
 
 const TreatmentDetailModal = ({ isOpen, onClose, data, isLoading }) => {
   if (!isOpen) return null;
 
-  const formatCurrency = (amount) => new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(amount || 0);
+  const formatCurrency = (amount) => 
+    new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(amount || 0);
+
   const formatDate = (dateString) => {
     if (!dateString) return "Chưa cập nhật";
-    return new Date(dateString).toLocaleString("vi-VN", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "2-digit", year: "numeric" });
+    return new Date(dateString).toLocaleString("vi-VN", { 
+      hour: "2-digit", 
+      minute: "2-digit", 
+      day: "2-digit", 
+      month: "2-digit", 
+      year: "numeric" 
+    });
   };
 
   // Lấy cấu hình trạng thái hiện tại
   const currentStatus = data?.status || 'PLANNED';
   const statusConfig = getStatusConfig(currentStatus);
-  const theme = statusConfig.modalTheme; // Trích xuất theme ra để code cho gọn
+  const theme = statusConfig.modalTheme;
 
-  console.log(data);
+  // Tính toán chi phí (Giá thực tế hoặc giá dự kiến)
+  const unitPrice = data?.price || data?.planned_price || 0;
+  const totalAmount = unitPrice * (data?.quantity || 1);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-200">
-
+      
       {/* KHUNG MODAL */}
       <div
         className={`bg-white rounded-3xl w-full max-w-2xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden border-2 ${theme.border} ring-4 ${theme.ring}`}
@@ -56,27 +64,39 @@ const TreatmentDetailModal = ({ isOpen, onClose, data, isLoading }) => {
           ) : data ? (
             <div className="space-y-6">
 
-              {/* Box 4 thông số */}
+              {/* Box 4 thông số chính */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className={`p-4 bg-slate-50 rounded-2xl border ${theme.border}`}>
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Vị trí răng</p>
-                  <p className="text-lg font-black text-slate-800">{data.tooth_position}</p>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 flex items-center gap-1">
+                    <Hash size={10} /> Vị trí răng
+                  </p>
+                  <p className="text-base font-black text-slate-800">{data.tooth_position}</p>
                 </div>
                 <div className={`p-4 bg-slate-50 rounded-2xl border ${theme.border}`}>
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Giai đoạn</p>
-                  <p className="text-lg font-black text-slate-800">{data.phase}</p>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Số lượng</p>
+                  <p className="text-base font-black text-slate-800">{data.quantity || 1} <span className="text-[10px] text-slate-400">Răng</span></p>
                 </div>
                 <div className={`p-4 bg-slate-50 rounded-2xl border ${theme.border}`}>
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Dự kiến thu</p>
-                  <p className={`text-lg font-black ${theme.text}`}>{formatCurrency(data.planned_price)}</p>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 flex items-center gap-1">
+                    <DollarSign size={10} /> Đơn giá
+                  </p>
+                  <p className={`text-base font-black ${theme.text}`}>{formatCurrency(unitPrice)}</p>
                 </div>
                 <div className={`p-4 bg-slate-50 rounded-2xl border ${theme.border}`}>
                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Trạng thái</p>
-                  <Badge variant={statusConfig.badgeVariant} className="mt-1 font-bold text-xs uppercase px-2 py-0.5" style={{ backgroundColor: statusConfig.badgeVariant === 'secondary' ? '#f3e8ff' : undefined, color: statusConfig.badgeVariant === 'secondary' ? '#9333ea' : undefined }}>
+                  <Badge variant={statusConfig.badgeVariant} className="mt-1 font-bold text-[10px] uppercase px-2 py-0.5">
                     {statusConfig.label}
                   </Badge>
                 </div>
               </div>
+
+              {/* Box Tổng tiền (Chỉ hiện nếu số lượng > 1) */}
+              {data.quantity > 1 && (
+                <div className="p-4 bg-blue-50 border border-blue-100 rounded-2xl flex justify-between items-center">
+                   <p className="text-sm font-black text-blue-600 uppercase tracking-widest">Tổng chi phí vị trí này:</p>
+                   <p className="text-xl font-black text-blue-700">{formatCurrency(totalAmount)}</p>
+                </div>
+              )}
 
               {/* Box Ngày tháng & Ghi chú */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -87,7 +107,7 @@ const TreatmentDetailModal = ({ isOpen, onClose, data, isLoading }) => {
                 </div>
                 <div className="p-5 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
                   <div className="flex items-center gap-2 text-slate-600"><FileText size={18} /><span className="font-black uppercase tracking-widest text-xs">Ghi chú của bác sĩ</span></div>
-                  <p className="text-sm font-bold text-slate-600 leading-relaxed bg-white p-3 rounded-xl border border-slate-100">{data.note || "Không có ghi chú"}</p>
+                  <p className="text-sm font-bold text-slate-600 leading-relaxed bg-white p-3 rounded-xl border border-slate-100 min-h-[80px]">{data.note || "Không có ghi chú"}</p>
                 </div>
               </div>
 
