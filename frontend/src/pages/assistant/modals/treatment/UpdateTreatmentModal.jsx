@@ -157,7 +157,7 @@ const UpdateTreatmentModal = ({ isOpen, onClose, treatment, onSuccess }) => {
         return { ...rest, quantity: Number(rest.quantity) };
       });
 
-      let finalStatus = treatment.status === "PLANNED" ? "IN_PROGRESS" : treatment.status;
+      let finalStatus = treatment.status;
       if (type === "COMPLETE") finalStatus = "WAITING_APPROVAL";
       if (type === "CANCEL_TREATMENT") finalStatus = "CANCELLED";
 
