@@ -30,12 +30,12 @@ const Login = () => {
     }, []);
 
     const handleLoginSuccess = (response) => {
-        // Backend returns: { status, message, data: { account, user, role, token, refreshToken } }
-        const responseData = response.data || response;
+        // apiClient interceptor trả về response.data trực tiếp
+        // Backend: { status, message, data: { account, user, role, token, refreshToken } }
+        const responseData = response?.data || response;
         const { account, user, role } = responseData;
 
         if (user && account && role) {
-            // Combine user data with account and role info
             const userData = {
                 ...user,
                 account_id: account.id,
@@ -49,34 +49,20 @@ const Login = () => {
                 permissions: role.permissions
             };
 
-            // Update auth context with user data
             login(userData, rememberMe);
 
-            // NOTE: Tokens are already saved by authService.login() via StorageService.
-            // Do NOT save tokens here again to avoid double-stringification.
-
-            // Save username if remember me is checked
             if (rememberMe) {
                 localStorage.setItem('remembered_username', username);
             } else {
                 localStorage.removeItem('remembered_username');
             }
 
-            const from = location.state?.from;
-            const bookingData = location.state?.bookingData;
-
-            // Define the success toast object
             const successToast = {
                 message: 'Đăng nhập thành công! Chào mừng bạn trở lại.',
                 type: 'success',
                 duration: 5000
             };
-
-            // Bulletproof delivery via sessionStorage
             sessionStorage.setItem('pendingToast', JSON.stringify(successToast));
-
-            // Update auth context with user data (this triggers PublicRoute redirect)
-            login(userData, rememberMe);
         } else {
             setError('Không thể lấy thông tin người dùng');
         }

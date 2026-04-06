@@ -174,12 +174,18 @@ const authService = {
      */
     googleAuth: async (googleToken) => {
         try {
+            // apiClient interceptor trả về response.data trực tiếp
+            // Backend: { status, message, data: { account, user, role, token, refreshToken } }
             const response = await apiClient.post('/api/auth/google', { googleToken });
 
-            // Save tokens
-            if (response.data.access_token) {
-                sessionStorage.set('access_token', response.data.access_token);
-                sessionStorage.set('refresh_token', response.data.refresh_token);
+            // Trích xuất token từ response.data (đã unwrap bởi interceptor)
+            const accessToken = response.data?.token || response.token;
+            const refreshToken = response.data?.refreshToken || response.refreshToken;
+
+            if (accessToken) {
+                // Google login không có "remember me" → lưu vào sessionStorage
+                sessionStorage.set('access_token', accessToken);
+                sessionStorage.set('refresh_token', refreshToken);
             }
 
             return response;
