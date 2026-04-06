@@ -107,7 +107,8 @@ const TreatmentComponent = ({ treatment, index, onRefresh }) => {
               </button>
             )}
 
-            {localStatus === 'PLANNED' && (
+            {/* ĐÃ SỬA: Thêm điều kiện treatment.appointment_id vào đây */}
+            {localStatus === 'PLANNED' && treatment.appointment_id && (
               <button 
                 onClick={handleStartTreatment} 
                 disabled={isChangingStatus} 
