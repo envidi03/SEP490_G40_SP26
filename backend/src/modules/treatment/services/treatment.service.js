@@ -4,14 +4,6 @@ const mongoose = require("mongoose");
 const fs = require("fs");
 const path = require("path");
 
-const debugLog = (msg) => {
-    try {
-        const logPath = path.join(__dirname, "../../../../debug.log");
-        const timestamp = new Date().toISOString();
-        fs.appendFileSync(logPath, `[${timestamp}] ${msg}\n`);
-    } catch (e) { }
-};
-
 const model = require("../models/index.model");
 const { service: AppointmentService } = require("./../../appointment/index");
 
@@ -118,8 +110,8 @@ const updateService = async (treatmentId, data) => {
         // - SESSION phase: có appointment_id riêng → dùng trực tiếp
         // - PLAN phase: không có appointment_id riêng → fallback qua DentalRecord
         if (data.status === 'WAITING_APPROVAL') {
-            debugLog(`WAITING_APPROVAL block reached. Phase: ${existingTreatment.phase}, ID: ${treatmentId}`);
-            console.log('[DEBUG-HARD] WAITING_APPROVAL block reached. phase =', existingTreatment.phase, '| appointment_id =', existingTreatment.appointment_id, '| record_id =', existingTreatment.record_id);
+            logger.debug(`WAITING_APPROVAL block reached. Phase: ${existingTreatment.phase}, ID: ${treatmentId}`);
+            logger.debug('[DEBUG-HARD] WAITING_APPROVAL block reached. phase =', existingTreatment.phase, '| appointment_id =', existingTreatment.appointment_id, '| record_id =', existingTreatment.record_id);
             try {
                 const AppointmentModel = require('../../appointment/models/appointment.model');
                 let targetAppointmentId = existingTreatment.appointment_id;
@@ -134,7 +126,6 @@ const updateService = async (treatmentId, data) => {
 
                     if (activeAppt) {
                         targetAppointmentId = activeAppt._id;
-                        debugLog(`Found active appt: ${targetAppointmentId}`);
                         logger.debug("PLAN phase: found active IN_CONSULTATION appointment", {
                             context,
                             patientId: existingTreatment.patient_id?.toString(),
@@ -145,7 +136,6 @@ const updateService = async (treatmentId, data) => {
                         const DentalRecord = require('../models/dental-record.model');
                         const record = await DentalRecord.findById(existingTreatment.record_id).lean();
                         targetAppointmentId = record?.appointment_id;
-                        debugLog(`Fallback to record.appointment_id: ${targetAppointmentId}`);
                         logger.debug("PLAN phase: fallback to DentalRecord.appointment_id", {
                             context,
                             recordId: existingTreatment.record_id?.toString(),
@@ -155,9 +145,7 @@ const updateService = async (treatmentId, data) => {
                 }
 
                 if (targetAppointmentId) {
-                    debugLog(`Attempting to complete appt: ${targetAppointmentId}`);
-                    console.log('[DEBUG-HARD] Found targetAppointmentId:', targetAppointmentId);
-
+                    logger.debug('[DEBUG-HARD] Found targetAppointmentId:', targetAppointmentId);
                     // Dùng trực tiếp Model để tránh circular dependency với AppointmentService
                     const updatedAppt = await AppointmentModel.findOneAndUpdate(
                         {
@@ -170,11 +158,9 @@ const updateService = async (treatmentId, data) => {
 
                     if (!updatedAppt) {
                         const checkAppt = await AppointmentModel.findById(targetAppointmentId).lean();
-                        debugLog(`FAILED TO UPDATE. Current Status: ${checkAppt?.status}`);
-                        console.log('[DEBUG-HARD] FAILED TO UPDATE. Current Appt status:', checkAppt?.status);
+                        logger.error(`FAILED TO UPDATE. Current Status: ${checkAppt?.status}`);
                     } else {
-                        debugLog(`SUCCESS! Appt ${targetAppointmentId} is now COMPLETED.`);
-                        console.log('[DEBUG-HARD] Auto-complete appointment SUCCESS. Status:', updatedAppt.status);
+                        logger.info(`SUCCESS! Appt ${targetAppointmentId} is now COMPLETED.`);
                     }
 
                     logger.info("Auto-complete appointment result", {
@@ -185,13 +171,13 @@ const updateService = async (treatmentId, data) => {
                         result: updatedAppt ? updatedAppt.status : 'NOT_FOUND_OR_WRONG_STATUS',
                     });
                 } else {
-                    debugLog("No targetAppointmentId resolved.");
+                    logger.debug("No targetAppointmentId resolved.");
                     logger.warn("No appointment_id found to auto-complete", {
                         context, treatmentId, phase: existingTreatment.phase,
                     });
                 }
             } catch (aptErr) {
-                debugLog(`CRITICAL ERROR in completion flow: ${aptErr.message}`);
+                logger.debug(`CRITICAL ERROR in completion flow: ${aptErr.message}`);
                 logger.error("Failed to auto-complete appointment", {
                     context, treatmentId, message: aptErr.message,
                 });
@@ -323,7 +309,7 @@ const getListTreatementWithAppointmentNull = async (query) => {
         const search = query.search?.trim();
         const filterDate = query.filter_date;
         const filterStatus = query.status || "PLANNED";
-        const sortOrder = query.sort === "desc" ? -1 : 1; 
+        const sortOrder = query.sort === "desc" ? -1 : 1;
         const page = Math.max(1, parseInt(query.page || 1));
         const limit = Math.max(1, parseInt(query.limit || 10));
         const skip = (page - 1) * limit;
@@ -335,15 +321,15 @@ const getListTreatementWithAppointmentNull = async (query) => {
         };
 
         if (filterDate) {
-            const startOfToday = new Date(); 
+            const startOfToday = new Date();
             startOfToday.setUTCHours(0, 0, 0, 0);
 
             const endOfDay = new Date(filterDate);
             endOfDay.setUTCHours(23, 59, 59, 999);
 
-            initialMatch.planned_date = { 
-                $gte: startOfToday, 
-                $lte: endOfDay 
+            initialMatch.planned_date = {
+                $gte: startOfToday,
+                $lte: endOfDay
             };
         }
 
@@ -356,7 +342,7 @@ const getListTreatementWithAppointmentNull = async (query) => {
             // (Thao tác này tương đương với populate record_id)
             {
                 $lookup: {
-                    from: "dental_records", 
+                    from: "dental_records",
                     localField: "record_id",
                     foreignField: "_id",
                     as: "record_info"
@@ -393,11 +379,11 @@ const getListTreatementWithAppointmentNull = async (query) => {
                 data: [
                     { $skip: skip },
                     { $limit: limit },
-                    
+
                     // --- LOOKUP DOCTOR ---
                     {
                         $lookup: {
-                            from: "staffs", 
+                            from: "staffs",
                             localField: "doctor_id",
                             foreignField: "_id",
                             as: "doctor_info"
@@ -426,7 +412,7 @@ const getListTreatementWithAppointmentNull = async (query) => {
                             "doctor_info.profile": { $arrayElemAt: ["$doctor_profile", 0] }
                         }
                     },
-                    
+
                     // --- DỌN DẸP DỮ LIỆU THỪA ---
                     {
                         $project: {
@@ -467,7 +453,7 @@ const getListTreatementWithAppointmentNull = async (query) => {
             query: query,
             error: error.message
         });
-        
+
         throw new errorRes.InternalServerError(
             `Failed to fetch treatments without appointment: ${error.message}`
         );
@@ -480,13 +466,13 @@ const addAppointmentIdOnTreatment = async (treatmentId, appointmentId, session) 
         const treatmentUpdate = await model.Treatment.findByIdAndUpdate(
             treatmentId,
             { appointment_id: appointmentId, phase: 'SESSION' },
-            { new: true, session: session } 
+            { new: true, session: session }
         );
-        
+
         if (!treatmentUpdate) {
             throw new errorRes.NotFoundError("Can't find treatment by id to update.");
         }
-        
+
         return treatmentUpdate;
     } catch (error) {
         logger.error("Error cannot add appointment_id into treatment", {
