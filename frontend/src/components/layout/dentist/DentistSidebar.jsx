@@ -3,11 +3,9 @@ import { Link, useLocation } from 'react-router-dom';
 import {
     LayoutDashboard,
     Calendar,
-    FileText,
     ClipboardList,
     CheckSquare,
     Briefcase,
-    ChevronDown,
     ChevronRight,
     Stethoscope,
 } from 'lucide-react';

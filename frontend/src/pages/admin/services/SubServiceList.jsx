@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { 
-    Plus, Edit2, Trash2, CheckCircle, XCircle, 
+import {
+    Plus, Edit2, Trash2, CheckCircle, XCircle,
     Clock, DollarSign, AlertTriangle, ArrowLeft,
     Search, LayoutGrid, List
 } from 'lucide-react';
@@ -19,6 +19,7 @@ const SubServiceList = () => {
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState('');
     const [modalError, setModalError] = useState('');
+    const [errors, setErrors] = useState({});
     const [success, setSuccess] = useState('');
 
     // SubService form modal state
@@ -35,7 +36,7 @@ const SubServiceList = () => {
         try {
             setLoading(true);
             setError('');
-            
+
             // Lấy thông tin dịch vụ cha
             const parentRes = await serviceService.getServiceById(serviceId);
             setParentService(parentRes?.data || null);
@@ -65,6 +66,7 @@ const SubServiceList = () => {
         setSelectedSubService(null);
         setFormData({ ...EMPTY_FORM });
         setModalError('');
+        setErrors({});
         setShowForm(true);
     };
 
@@ -83,23 +85,35 @@ const SubServiceList = () => {
             status: sub.status || 'AVAILABLE'
         });
         setModalError('');
+        setErrors({});
         setShowForm(true);
     };
 
     // Lưu (tạo mới hoặc cập nhật)
     const handleSave = async () => {
+        const newErrors = {};
+
         if (!formData.sub_service_name?.trim()) {
-            setModalError('Vui lòng nhập tên gói dịch vụ!');
-            return;
+            newErrors.sub_service_name = 'Vui lòng nhập tên gói dịch vụ!';
         }
-        if (!formData.min_price || Number(formData.min_price) < 0) {
-            setModalError('Vui lòng nhập giá thấp nhất hợp lệ!');
+
+        if (!formData.duration || Number(formData.duration) <= 0) {
+            newErrors.duration = 'Vui lòng nhập thời gian thực hiện (phút)!';
+        }
+
+        if (!formData.min_price || Number(formData.min_price) < 1000) {
+            newErrors.min_price = 'Vui lòng nhập giá thấp nhất hợp lệ (mặc định tối thiểu 1,000 VNĐ)!';
+        }
+
+        if (Object.keys(newErrors).length > 0) {
+            setErrors(newErrors);
             return;
         }
 
         try {
             setSaving(true);
             setModalError('');
+            setErrors({});
             const payload = {
                 ...formData,
                 min_price: Number(formData.min_price),
@@ -109,16 +123,23 @@ const SubServiceList = () => {
 
             if (isEditMode) {
                 await subServiceService.updateSubService(selectedSubService._id, payload);
-                showSuccessMsg('✅ Cập nhật gói dịch vụ thành công!');
+                showSuccessMsg('Cập nhật gói dịch vụ thành công!');
             } else {
                 await subServiceService.createSubService(serviceId, payload);
-                showSuccessMsg('✅ Thêm gói dịch vụ thành công!');
+                showSuccessMsg('Thêm gói dịch vụ thành công!');
             }
 
             setShowForm(false);
             fetchData();
         } catch (err) {
-            setModalError(err?.data?.message || err?.message || 'Có lỗi xảy ra, vui lòng thử lại.');
+            console.error('Error saving sub-service:', err);
+            const msg = err.response?.data?.message || err.message || 'Có lỗi xảy ra, vui lòng thử lại.';
+
+            if (msg.toLowerCase().includes('tồn tại') || msg.toLowerCase().includes('already exists')) {
+                setErrors({ sub_service_name: 'Tên gói dịch vụ này đã tồn tại!' });
+            } else {
+                setModalError(msg);
+            }
         } finally {
             setSaving(false);
         }
@@ -131,7 +152,7 @@ const SubServiceList = () => {
             setDeletingId(subId);
             setError('');
             await subServiceService.deleteSubService(subId);
-            showSuccessMsg('✅ Đã xóa gói dịch vụ!');
+            showSuccessMsg('Đã xóa gói dịch vụ!');
             fetchData();
         } catch (err) {
             setError(err?.data?.message || 'Không thể xóa gói dịch vụ.');
@@ -147,7 +168,7 @@ const SubServiceList = () => {
         <div className="p-4 md:p-8 min-h-screen bg-gray-50/50">
             {/* Header / Navigation */}
             <div className="max-w-7xl mx-auto mb-8">
-                <button 
+                <button
                     onClick={() => navigate('/admin/services')}
                     className="flex items-center gap-2 text-gray-500 hover:text-blue-600 transition-colors mb-4 group"
                 >
@@ -228,8 +249,8 @@ const SubServiceList = () => {
                                 {/* Images Header */}
                                 {sub.images && sub.images.length > 0 ? (
                                     <div className="relative h-48 overflow-hidden">
-                                        <img 
-                                            src={sub.images[0]} 
+                                        <img
+                                            src={sub.images[0]}
                                             alt={sub.sub_service_name}
                                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                                         />
@@ -272,7 +293,7 @@ const SubServiceList = () => {
                                                 <DollarSign size={10} /> Giá dịch vụ
                                             </p>
                                             <p className="text-sm font-bold text-green-600">
-                                                {sub.max_price && sub.max_price !== sub.min_price 
+                                                {sub.max_price && sub.max_price !== sub.min_price
                                                     ? `${formatCurrency(sub.min_price)}`
                                                     : formatCurrency(sub.min_price)}
                                             </p>
@@ -331,6 +352,8 @@ const SubServiceList = () => {
                 onClose={() => setShowForm(false)}
                 loading={saving}
                 error={modalError}
+                errors={errors}
+                setErrors={setErrors}
             />
         </div>
     );

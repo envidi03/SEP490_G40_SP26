@@ -186,36 +186,34 @@ const UserList = () => {
 
 
     const handleFormSubmit = async (formData) => {
-        try {
-            const data = new FormData();
-            data.append('full_name', formData.fullName);
-            data.append('email', formData.email);
-            data.append('phone_number', formData.phone);
-            data.append('username', formData.username);
-            data.append('role_id', formData.role_id);
-            data.append('gender', formData.gender || 'OTHER');
-            if (formData.dob) data.append('dob', formData.dob);
-            if (formData.address) data.append('address', formData.address);
+        const data = new FormData();
+        data.append('full_name', formData.fullName);
+        data.append('email', formData.email);
+        data.append('phone_number', formData.phone);
+        data.append('username', formData.username);
+        data.append('role_id', formData.role_id);
 
-            if (formMode === 'add') {
-                data.append('password', formData.password);
-                if (formData.certificate) data.append('license', formData.certificate);
-                if (formData.avatar) data.append('avatar', formData.avatar);
-                await staffService.createStaff(data);
-                showToast('success', 'Thêm người dùng thành công!');
-            } else {
-                if (formData.certificate) data.append('license', formData.certificate);
-                if (formData.avatar) data.append('avatar', formData.avatar);
-                await staffService.updateStaff(selectedUser.accountId, data);
-                showToast('success', 'Cập nhật thông tin thành công!');
-            }
-
-            setFormModalOpen(false);
-            fetchUsers(pagination.page);
-        } catch (error) {
-            console.error('Error saving user:', error);
-            showToast('error', error?.response?.data?.message || error?.message || 'Có lỗi xảy ra.');
+        if (formMode === 'add') {
+            data.append('password', formData.password);
+            if (formData.certificate) data.append('license', formData.certificate);
+            if (formData.avatar) data.append('avatar', formData.avatar);
+            if (formData.license_number) data.append('license_number', formData.license_number);
+            if (formData.issued_by) data.append('issued_by', formData.issued_by);
+            if (formData.issued_date) data.append('issued_date', formData.issued_date);
+            await staffService.createStaff(data);
+            showToast('success', 'Thêm người dùng thành công!');
+        } else {
+            if (formData.certificate) data.append('license', formData.certificate);
+            if (formData.avatar) data.append('avatar', formData.avatar);
+            if (formData.license_number) data.append('license_number', formData.license_number);
+            if (formData.issued_by) data.append('issued_by', formData.issued_by);
+            if (formData.issued_date) data.append('issued_date', formData.issued_date);
+            await staffService.updateStaff(selectedUser.accountId, data);
+            showToast('success', 'Cập nhật thông tin thành công!');
         }
+
+        setFormModalOpen(false);
+        fetchUsers(pagination.page);
     };
 
     // ========== RENDER ==========
@@ -315,13 +313,15 @@ const UserList = () => {
             />
 
             {/* Toast */}
-            <Toast
-                show={toast.show}
-                type={toast.type}
-                message={toast.message}
-                onClose={() => setToast({ ...toast, show: false })}
-                duration={3000}
-            />
+            {toast.show && (
+                <Toast
+                    show={toast.show}
+                    type={toast.type}
+                    message={toast.message}
+                    onClose={() => setToast({ ...toast, show: false })}
+                    duration={4000}
+                />
+            )}
         </div>
     );
 };

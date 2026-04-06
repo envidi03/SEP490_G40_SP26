@@ -9,7 +9,7 @@ const { dental: ServiceProcess } = require("../services/index.service");
 const { checkRequiredFields } = require("../../../utils/checkRequiredFields");
 const { findStaffByAccountId, findPatientByAccountId } = require("../../auth/service/account.service");
 const { checkDuplicateDental } = require("../services/dental.record.service");
-
+const appointmentService = require("../../appointment/services/appointment.service");
 /* 
   get list dental record with pagination and filter
     (
@@ -320,8 +320,21 @@ const createController = async (req, res) => {
       "created_by",
       "full_name",
       "phone",
-      "record_name"
+      "record_name",
+      "appointment_id"
     ];
+
+    if (!cleanedData.appointment_id) {
+      const appointment = await appointmentService.getFirstAppointmentOfPatientAtNowWithStatusCheckin(patientID);
+      if (!appointment) {
+        logger.warn("No valid appointment found for patient", {
+          context: context,
+          patientID: patientID
+        });
+        throw new errorRes.NotFoundError("No valid appointment found for this patient");
+      }
+      cleanedData.appointment_id = appointment._id;
+    }
 
     // Kiểm tra validation cơ bản
     checkRequiredFields(requiredFields, cleanedData, this, "createController");

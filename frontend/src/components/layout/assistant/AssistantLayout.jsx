@@ -1,6 +1,5 @@
 import React from 'react';
 import AssistantSidebar from './AssistantSidebar';
-import { Search } from 'lucide-react';
 import NotificationBell from '../../features/notifications/NotificationBell';
 
 const AssistantLayout = ({ children }) => {
@@ -16,16 +15,7 @@ const AssistantLayout = ({ children }) => {
             {/* Main Content Area */}
             <main className="ml-80 mr-4 py-4 min-h-screen relative z-10 flex flex-col">
                 {/* Floating Header */}
-                <header className="mb-6 flex items-center justify-between">
-                    <div className="flex items-center gap-4 bg-white/60 backdrop-blur-md px-6 py-3 rounded-2xl border border-white/50 shadow-sm w-full max-w-xl transition-all duration-300 focus-within:bg-white focus-within:shadow-md focus-within:border-white/80">
-                        <Search className="text-gray-400" size={20} />
-                        <input
-                            type="text"
-                            placeholder="Tìm kiếm lịch hẹn, bệnh nhân..."
-                            className="bg-transparent border-none outline-none text-gray-700 placeholder:text-gray-400 w-full text-sm font-medium"
-                        />
-                    </div>
-
+                <header className="mb-6 flex items-center justify-end">
                     <div className="flex items-center gap-4">
                         <NotificationBell />
                     </div>

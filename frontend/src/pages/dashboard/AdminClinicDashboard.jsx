@@ -284,10 +284,10 @@ const AdminClinicDashboard = () => {
                                         <div key={leave._id || idx} className="flex items-center justify-between p-3 bg-yellow-50 rounded-xl border border-yellow-100 hover:bg-yellow-100 transition-colors">
                                             <div className="min-w-0 flex-1">
                                                 <p className="font-semibold text-gray-900 text-sm truncate">
-                                                    {leave.staff_name || leave.full_name || 'Nhân viên'}
+                                                    {leave.staff_id?.profile_id?.full_name || leave.staff_id?.account_id?.username || 'Nhân viên'}
                                                 </p>
                                                 <p className="text-xs text-gray-500 mt-0.5">
-                                                    {formatDate(leave.start_date)} → {formatDate(leave.end_date)}
+                                                    {formatDate(leave.startedDate)} → {formatDate(leave.endDate)}
                                                 </p>
                                             </div>
                                             <span className="px-2.5 py-1 bg-yellow-200 text-yellow-800 text-xs font-bold rounded-full whitespace-nowrap">

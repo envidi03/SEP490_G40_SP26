@@ -490,14 +490,15 @@ const getLeaveRequestController = async (req, res) => {
   try {
     const accountId = req.user?.account_id;
 
-    const result = await ServiceProcess.getLeaveRequestService(
+    const { data, statistics } = await ServiceProcess.getLeaveRequestService(
       accountId,
       req.query,
     );
-
     return new successRes.GetListSuccess(
-      result,
+      data,
+      null, // No pagination needed here relative to current design
       "Get leave requests successfully",
+      statistics
     ).send(res);
   } catch (error) {
     logger.error("View leave error", {

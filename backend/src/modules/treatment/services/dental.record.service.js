@@ -190,7 +190,9 @@ const getListOfPatientService = async (query, patientId) => {
       const searchRegex = { $regex: search, $options: "i" };
       complexMatch.$or = [
         { record_name: searchRegex },
-        { "doctor_info.profile.full_name": searchRegex }, // Tìm theo tên trong Profile
+        { full_name: searchRegex }, // Tìm theo tên bệnh nhân
+        { phone: searchRegex }, // Tìm theo số điện thoại bệnh nhân
+        { "doctor_info.profile.full_name": searchRegex }, // Tìm theo tên trong Profile của bác sĩ
         { "treatments.tooth_position": searchRegex },
       ];
     }

@@ -183,6 +183,7 @@ const ClinicList = () => {
             {/* Toast */}
             {toast.show && (
                 <Toast
+                    show={toast.show}
                     type={toast.type}
                     message={toast.message}
                     onClose={() => setToast({ ...toast, show: false })}

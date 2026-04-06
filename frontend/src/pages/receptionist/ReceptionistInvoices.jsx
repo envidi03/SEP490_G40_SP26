@@ -6,6 +6,7 @@ import Toast from '../../components/ui/Toast';
 import InvoiceDetailModal from './components/modals/InvoiceDetailModal';
 import CreateInvoiceModal from './components/modals/CreateInvoiceModal';
 import PaymentModal from './components/modals/PaymentModal';
+import TreatmentDetailModal from './components/modals/TreatmentDetailModal'; // Component mới
 import billingService from '../../services/billingService';
 import appointmentService from '../../services/appointmentService';
 
@@ -31,6 +32,11 @@ const ReceptionistInvoices = () => {
     const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+    
+    // State cho Modal Chi tiết Treatment
+    const [isTreatmentModalOpen, setIsTreatmentModalOpen] = useState(false);
+    const [selectedAppointmentForTreatment, setSelectedAppointmentForTreatment] = useState(null);
+
     const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
 
     // --- Gọi API lấy dữ liệu ---
@@ -102,6 +108,14 @@ const ReceptionistInvoices = () => {
         }
     }, [isDetailModalOpen, isPaymentModalOpen, isCreateModalOpen]);
 
+    // Dọn dẹp state khi đóng treatment modal
+    useEffect(() => {
+        if (!isTreatmentModalOpen) {
+            const timer = setTimeout(() => setSelectedAppointmentForTreatment(null), 300);
+            return () => clearTimeout(timer);
+        }
+    }, [isTreatmentModalOpen]);
+
     // --- Handlers ---
     const handlePageChange = (newPage) => {
         if (newPage >= 1 && newPage <= pagination.total_pages) {
@@ -113,6 +127,11 @@ const ReceptionistInvoices = () => {
         // Gán thông tin cuộc hẹn vào selectedInvoice để truyền sang modal Tạo hóa đơn
         setSelectedInvoice(appointmentItem);
         setIsCreateModalOpen(true);
+    };
+
+    const handleViewTreatments = (appointmentItem) => {
+        setSelectedAppointmentForTreatment(appointmentItem);
+        setIsTreatmentModalOpen(true);
     };
 
     const handlePayment = async (invoice) => {
@@ -150,51 +169,6 @@ const ReceptionistInvoices = () => {
                     <h1 className="text-3xl font-bold text-gray-900">Danh Sách Chờ Thanh Toán</h1>
                     <p className="text-gray-600 mt-1">Các lịch hẹn đã hoàn thành điều trị và cần xuất hóa đơn</p>
                 </div>
-            </div>
-
-            {/* Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-                <Card>
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-sm text-gray-600">Tổng doanh thu</p>
-                            <p className="text-2xl font-bold text-gray-900 mt-1">
-                                {stats.totalAmount.toLocaleString('vi-VN')}đ
-                            </p>
-                        </div>
-                        <div className="p-3 bg-blue-100 rounded-full">
-                            <FileText size={24} className="text-blue-600" />
-                        </div>
-                    </div>
-                </Card>
-
-                <Card>
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-sm text-gray-600">Đã thu</p>
-                            <p className="text-2xl font-bold text-green-600 mt-1">
-                                {stats.paidAmount.toLocaleString('vi-VN')}đ
-                            </p>
-                        </div>
-                        <div className="p-3 bg-green-100 rounded-full">
-                            <CheckCircle size={24} className="text-green-600" />
-                        </div>
-                    </div>
-                </Card>
-
-                <Card>
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-sm text-gray-600">Chưa thu / Nợ</p>
-                            <p className="text-2xl font-bold text-red-600 mt-1">
-                                {stats.pendingAmount.toLocaleString('vi-VN')}đ
-                            </p>
-                        </div>
-                        <div className="p-3 bg-red-100 rounded-full">
-                            <Clock size={24} className="text-red-600" />
-                        </div>
-                    </div>
-                </Card>
             </div>
 
             {/* Filters */}
@@ -271,8 +245,11 @@ const ReceptionistInvoices = () => {
                                             <span className="text-sm font-bold text-red-600">
                                                 {(item.total_payment_amount || 0).toLocaleString('vi-VN')}đ
                                             </span>
-                                            <div className="text-xs text-gray-400 mt-0.5">
-                                                ({item.treatments_to_pay?.length || 0} dịch vụ)
+                                            <div 
+                                                className="text-xs text-primary-600 mt-1 flex items-center justify-end gap-1 cursor-pointer hover:text-primary-800 hover:underline transition-colors"
+                                                onClick={() => handleViewTreatments(item)}
+                                            >
+                                                <Eye size={14} /> Xem chi tiết ({item.treatments_to_pay?.length || 0} DV)
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-center">
@@ -366,6 +343,13 @@ const ReceptionistInvoices = () => {
                     setToast({ show: true, message: 'Thanh toán qua QR đã được xác nhận!', type: 'success' });
                     fetchData(pagination.current_page);
                 }}
+            />
+
+            {/* Modal Xem chi tiết Treatment */}
+            <TreatmentDetailModal
+                appointment={selectedAppointmentForTreatment}
+                isOpen={isTreatmentModalOpen}
+                onClose={() => setIsTreatmentModalOpen(false)}
             />
 
             {/* Toast Thông báo */}

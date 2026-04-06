@@ -8,21 +8,23 @@ import toast from 'react-hot-toast';
 
 const AssistantLeaveRequests = () => {
     const [requests, setRequests] = useState([]);
+    const [statistics, setStatistics] = useState({ total: 0, pending: 0, approved: 0, rejected: 0 }); // Thống kê từ Backend
     const [loading, setLoading] = useState(true);
     const [filterStatus, setFilterStatus] = useState('all');
     const [selectedRequest, setSelectedRequest] = useState(null);
     const [showModal, setShowModal] = useState(false);
     const [modalMode, setModalMode] = useState('create');
 
-    const fetchLeaveRequests = async () => {
+    const fetchLeaveRequests = async (status = 'all') => {
         try {
             setLoading(true);
-            const response = await staffService.getLeaveRequests();
-            // Data usually mapped out in interceptor or we check response.data
-            const leaveData = response.data?.data || response.data || [];
-            // Sort by latest created
-            leaveData.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+            const response = await staffService.getLeaveRequests({ status });
+            // API trả về cấu trúc { success, data, statistics } trực tiếp qua interceptor
+            const leaveData = response.data || [];
+            const leaveStats = response.statistics || { total: 0, pending: 0, approved: 0, rejected: 0 };
+
             setRequests(leaveData);
+            setStatistics(leaveStats);
         } catch (error) {
             console.error('Error fetching leave requests:', error);
             toast.error('Không thể tải danh sách nghỉ phép');
@@ -32,14 +34,11 @@ const AssistantLeaveRequests = () => {
     };
 
     useEffect(() => {
-        fetchLeaveRequests();
-    }, []);
+        fetchLeaveRequests(filterStatus);
+    }, [filterStatus]);
 
-    const filteredRequests = requests.filter(req => {
-        if (filterStatus === 'all') return true;
-        // Backend returns uppercase status
-        return req.status === filterStatus.toUpperCase();
-    });
+    // Backend đã lọc nến frontend không cần filter lại, trừ khi muốn lọc thêm client-side
+    const filteredRequests = requests;
 
     const getStatusInfo = (status) => {
         switch (status) {
@@ -160,7 +159,7 @@ const AssistantLeaveRequests = () => {
                     <div className="flex items-center justify-between">
                         <div>
                             <p className="text-sm font-medium text-gray-600">Tổng yêu cầu</p>
-                            <p className="text-3xl font-bold text-blue-600 mt-1">{loading ? '-' : stats.total}</p>
+                            <p className="text-3xl font-bold text-blue-600 mt-1">{loading ? '-' : statistics.total}</p>
                         </div>
                         <div className="p-3 bg-blue-100 rounded-full">
                             <Clock size={24} className="text-blue-600" />
@@ -172,7 +171,7 @@ const AssistantLeaveRequests = () => {
                     <div className="flex items-center justify-between">
                         <div>
                             <p className="text-sm font-medium text-gray-600">Chờ duyệt</p>
-                            <p className="text-3xl font-bold text-amber-600 mt-1">{loading ? '-' : stats.pending}</p>
+                            <p className="text-3xl font-bold text-amber-600 mt-1">{loading ? '-' : statistics.pending}</p>
                         </div>
                         <div className="p-3 bg-amber-100 rounded-full">
                             <AlertCircle size={24} className="text-amber-600" />
@@ -184,7 +183,7 @@ const AssistantLeaveRequests = () => {
                     <div className="flex items-center justify-between">
                         <div>
                             <p className="text-sm font-medium text-gray-600">Đã duyệt</p>
-                            <p className="text-3xl font-bold text-green-600 mt-1">{loading ? '-' : stats.approved}</p>
+                            <p className="text-3xl font-bold text-green-600 mt-1">{loading ? '-' : statistics.approved}</p>
                         </div>
                         <div className="p-3 bg-green-100 rounded-full">
                             <CheckCircle size={24} className="text-green-600" />
@@ -196,7 +195,7 @@ const AssistantLeaveRequests = () => {
                     <div className="flex items-center justify-between">
                         <div>
                             <p className="text-sm font-medium text-gray-600">Từ chối</p>
-                            <p className="text-3xl font-bold text-red-600 mt-1">{loading ? '-' : stats.rejected}</p>
+                            <p className="text-3xl font-bold text-red-600 mt-1">{loading ? '-' : statistics.rejected}</p>
                         </div>
                         <div className="p-3 bg-red-100 rounded-full">
                             <XCircle size={24} className="text-red-600" />

@@ -8,25 +8,13 @@ import ReceptionistServices from '../../pages/receptionist/ReceptionistServices'
 import ReceptionistEquipment from '../../pages/receptionist/ReceptionistEquipment';
 import ReceptionistLeave from '../../pages/receptionist/ReceptionistLeave';
 import ReceptionistCheckIn from '../../pages/receptionist/ReceptionistCheckIn';
-import Payment from '../../pages/receptionist/payment/ReceptionistPayment';
 import ReceptionistSubServices from '../../pages/receptionist/ReceptionistSubServices';
 import ReBooking from '../../pages/receptionist/re-booking/ReBooking';
-import ReceptionistPendingAppointments from '../../pages/receptionist/ReceptionistPendingAppointments';
 
 /**
  * Receptionist Routes - Protected routes for Receptionist role
  */
 const receptionistRoutes = [
-    {
-        path: '/receptionist/pending-appointments',
-        element: (
-            <ProtectedRoute allowedRoles={['RECEPTIONIST']}>
-                <ReceptionistLayout>
-                    <ReceptionistPendingAppointments />
-                </ReceptionistLayout>
-            </ProtectedRoute>
-        )
-    },
     {
         path: '/receptionist/check-in',
         element: (

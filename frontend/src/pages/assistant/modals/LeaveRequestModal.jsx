@@ -8,6 +8,7 @@ const LeaveRequestModal = ({ request, mode, isOpen, onClose, onSave }) => {
         type: 'ANNUAL',
         reason: ''
     });
+    const [errors, setErrors] = useState({});
 
     // Handle string to valid date string format YYYY-MM-DD
     const formatDateForInput = (dateString) => {
@@ -32,6 +33,7 @@ const LeaveRequestModal = ({ request, mode, isOpen, onClose, onSave }) => {
                 type: 'ANNUAL',
                 reason: ''
             });
+            setErrors({});
         }
     }, [request, mode]);
 
@@ -43,10 +45,34 @@ const LeaveRequestModal = ({ request, mode, isOpen, onClose, onSave }) => {
             ...prev,
             [name]: value
         }));
+        // Xóa lỗi khi người dùng bắt đầu sửa
+        if (errors[name]) {
+            setErrors(prev => ({ ...prev, [name]: null }));
+        }
+    };
+
+    const validate = () => {
+        const newErrors = {};
+        if (!formData.startedDate) newErrors.startedDate = "Vui lòng chọn ngày bắt đầu";
+        if (!formData.endDate) newErrors.endDate = "Vui lòng chọn ngày kết thúc";
+        if (!formData.type) newErrors.type = "Vui lòng chọn loại nghỉ phép";
+        
+        // Kiểm tra logic ngày
+        if (formData.startedDate && formData.endDate) {
+            if (new Date(formData.startedDate) > new Date(formData.endDate)) {
+                newErrors.endDate = "Ngày kết thúc không được trước ngày bắt đầu";
+            }
+        }
+
+        setErrors(newErrors);
+        return Object.keys(newErrors).length === 0;
     };
 
     const handleSubmit = (e) => {
         e.preventDefault();
+        
+        if (!validate()) return;
+
         if (onSave) {
             // Chuẩn bị payload chuẩn theo backend schema
             const payload = {
@@ -105,10 +131,10 @@ const LeaveRequestModal = ({ request, mode, isOpen, onClose, onSave }) => {
                                 name="startedDate"
                                 value={formData.startedDate}
                                 onChange={handleChange}
-                                required
                                 min={new Date().toISOString().split('T')[0]} // Cannot be past
-                                className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                                className={`w-full px-4 py-2.5 bg-gray-50 border rounded-xl focus:bg-white focus:ring-2 outline-none transition-all ${errors.startedDate ? 'border-red-500 focus:ring-red-200' : 'border-gray-200 focus:ring-blue-500 focus:border-blue-500'}`}
                             />
+                            {errors.startedDate && <p className="text-[11px] text-red-500 mt-1 font-medium ml-1">*{errors.startedDate}</p>}
                         </div>
                         <div>
                             <label className="block text-sm font-semibold text-gray-700 mb-2">
@@ -119,10 +145,10 @@ const LeaveRequestModal = ({ request, mode, isOpen, onClose, onSave }) => {
                                 name="endDate"
                                 value={formData.endDate}
                                 onChange={handleChange}
-                                required
                                 min={formData.startedDate || new Date().toISOString().split('T')[0]}
-                                className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                                className={`w-full px-4 py-2.5 bg-gray-50 border rounded-xl focus:bg-white focus:ring-2 outline-none transition-all ${errors.endDate ? 'border-red-500 focus:ring-red-200' : 'border-gray-200 focus:ring-blue-500 focus:border-blue-500'}`}
                             />
+                            {errors.endDate && <p className="text-[11px] text-red-500 mt-1 font-medium ml-1">*{errors.endDate}</p>}
                         </div>
                     </div>
 
@@ -143,9 +169,9 @@ const LeaveRequestModal = ({ request, mode, isOpen, onClose, onSave }) => {
                             name="type"
                             value={formData.type}
                             onChange={handleChange}
-                            required
-                            className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                            className={`w-full px-4 py-2.5 bg-gray-50 border rounded-xl focus:bg-white focus:ring-2 outline-none transition-all ${errors.type ? 'border-red-500 focus:ring-red-200' : 'border-gray-200 focus:ring-blue-500 focus:border-blue-500'}`}
                         >
+                            <option value="">-- Chọn hình thức nghỉ --</option>
                             <option value="ANNUAL">Phép năm định kỳ</option>
                             <option value="SICK">Nghỉ ốm / Khám bệnh</option>
                             <option value="MATERNITY">Nghỉ thai sản</option>
@@ -153,6 +179,7 @@ const LeaveRequestModal = ({ request, mode, isOpen, onClose, onSave }) => {
                             <option value="EMERGENCY">Nghỉ khẩn cấp</option>
                             <option value="UNPAID">Nghỉ không lương</option>
                         </select>
+                        {errors.type && <p className="text-[11px] text-red-500 mt-1 font-medium ml-1">*{errors.type}</p>}
                     </div>
 
                     {/* Reason Details */}

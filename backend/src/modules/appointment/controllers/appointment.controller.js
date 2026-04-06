@@ -44,7 +44,7 @@ const getListController = async (req, res) => {
     return new successRes.GetListSuccess(
       data,
       paginationData,
-      "Appointment retrieved successfully",
+      "Lấy danh sách lịch hẹn thành công",
     ).send(res);
   } catch (error) {
     logger.error("Error get Appointment", {
@@ -52,7 +52,9 @@ const getListController = async (req, res) => {
       message: error.message,
       stack: error.stack,
     });
-    throw error;
+    // Trả về message tiếng Việt chung cho các lỗi hệ thống
+    if (error.statusCode) throw error;
+    throw new errorRes.InternalServerError("Hệ thống lỗi, vui lòng thực hiện sau.");
   }
 };
 
@@ -78,7 +80,7 @@ const getListOfPatientControllerWithDate = async (req, res) => {
         account_id: account_id,
       });
       throw new errorRes.UnauthorizedError(
-        "Invalid token: account_id is missing",
+        "Token không hợp lệ: Thiếu thông tin tài khoản",
       );
     }
 
@@ -103,7 +105,7 @@ const getListOfPatientControllerWithDate = async (req, res) => {
     return new successRes.GetListSuccess(
       data,
       paginationData,
-      "Appointment retrieved successfully",
+      "Lấy danh sách lịch hẹn thành công",
     ).send(res);
   } catch (error) {
     logger.error("Error get Appointment", {
@@ -111,7 +113,8 @@ const getListOfPatientControllerWithDate = async (req, res) => {
       message: error.message,
       stack: error.stack,
     });
-    throw error;
+    if (error.statusCode) throw error;
+    throw new errorRes.InternalServerError("Hệ thống lỗi, vui lòng thực hiện sau.");
   }
 };
 
@@ -136,7 +139,7 @@ const getListOfPatientController = async (req, res) => {
         account_id: account_id,
       });
       throw new errorRes.UnauthorizedError(
-        "Invalid token: account_id is missing",
+        "Token không hợp lệ: Thiếu thông tin tài khoản",
       );
     }
 
@@ -160,7 +163,7 @@ const getListOfPatientController = async (req, res) => {
     return new successRes.GetListSuccess(
       data,
       paginationData,
-      "Appointment retrieved successfully",
+      "Lấy danh sách lịch hẹn thành công",
     ).send(res);
   } catch (error) {
     logger.error("Error get Appointment", {
@@ -168,7 +171,8 @@ const getListOfPatientController = async (req, res) => {
       message: error.message,
       stack: error.stack,
     });
-    throw error;
+    if (error.statusCode) throw error;
+    throw new errorRes.InternalServerError("Hệ thống lỗi, vui lòng thực hiện sau.");
   }
 };
 
@@ -197,7 +201,7 @@ const getListOfDoctorController = async (req, res) => {
         queryParams: queryParams,
       });
       throw new errorRes.UnauthorizedError(
-        "Invalid token: account_id is missing",
+        "Token không hợp lệ: Thiếu thông tin tài khoản",
       );
     }
     const { staff } = await findStaffByAccountId(accountDoctorId);
@@ -207,7 +211,7 @@ const getListOfDoctorController = async (req, res) => {
         accountDoctorId: accountDoctorId,
       });
       throw new errorRes.UnauthorizedError(
-        "No staff profile found for this account",
+        "Không tìm thấy hồ sơ nhân viên cho tài khoản này",
       );
     }
 
@@ -225,7 +229,7 @@ const getListOfDoctorController = async (req, res) => {
     return new successRes.GetListSuccess(
       data,
       paginationData,
-      "Appointment retrieved successfully",
+      "Lấy danh sách lịch hẹn thành công",
     ).send(res);
   } catch (error) {
     logger.error("Error get list appointment of doctor", {
@@ -233,7 +237,8 @@ const getListOfDoctorController = async (req, res) => {
       message: error.message,
       stack: error.stack,
     });
-    throw error;
+    if (error.statusCode) throw error;
+    throw new errorRes.InternalServerError("Hệ thống lỗi, vui lòng thực hiện sau.");
   }
 };
 
@@ -254,14 +259,14 @@ const getByIdController = async (req, res) => {
         context: "AppointmentController.getByIdController",
         appointmentId: id,
       });
-      throw new errorRes.BadRequestError("Appointment ID is required");
+      throw new errorRes.BadRequestError("Mã lịch hẹn là bắt buộc");
     }
 
     // Gọi service xử lý logic
     const service = await ServiceProcess.getByIdService(id);
     return new successRes.GetDetailSuccess(
       service,
-      "Appointment retrieved successfully",
+      "Lấy thông tin lịch hẹn thành công",
     ).send(res);
   } catch (error) {
     logger.error("Error get appointment by id", {
@@ -269,7 +274,8 @@ const getByIdController = async (req, res) => {
       message: error.message,
       stack: error.stack,
     });
-    throw error;
+    if (error.statusCode) throw error;
+    throw new errorRes.InternalServerError("Hệ thống lỗi, vui lòng thực hiện sau.");
   }
 };
 
@@ -302,20 +308,20 @@ const createController = async (req, res) => {
     };
 
     if (!regex.fullName.test(cleanedData.full_name)) {
-      throw new errorRes.BadRequestError("Full name is invalid (2-50 characters, no numbers)");
+      throw new errorRes.BadRequestError("Họ tên không hợp lệ (2-50 ký tự, không chứa số)");
     }
     if (!regex.phone.test(cleanedData.phone)) {
-      throw new errorRes.BadRequestError("Phone number is invalid (Vietnamese format)");
+      throw new errorRes.BadRequestError("Số điện thoại không hợp lệ");
     }
     if (!regex.email.test(cleanedData.email)) {
-      throw new errorRes.BadRequestError("Email format is invalid");
+      throw new errorRes.BadRequestError("Định dạng email không hợp lệ");
     }
     // Validate mảng book_service nếu client có gửi kèm dịch vụ
     if (cleanedData.book_service && Array.isArray(cleanedData.book_service)) {
       cleanedData.book_service.forEach((item, index) => {
         if (!item.service_id || item.unit_price === undefined) {
-          throw new Error(
-            `service at the index ${index + 1} is missing service_id or unit_price`,
+          throw new errorRes.BadRequestError(
+            `Dịch vụ tại vị trí thứ ${index + 1} bị thiếu mã dịch vụ (service_id) hoặc đơn giá (unit_price)`,
           );
         }
       });
@@ -328,16 +334,17 @@ const createController = async (req, res) => {
     );
     if (!newAppointment) {
       logger.warn("Failed to create new appointment");
-      throw new errorRes.BadRequestError("Create new appointment fails.");
+      throw new errorRes.BadRequestError("Tạo lịch hẹn mới thất bại.");
     }
     // 3. Trả về response
-    return new successRes.CreateSuccess(newAppointment).send(res);
+    return new successRes.CreateSuccess(newAppointment, "Tạo lịch hẹn thành công").send(res);
   } catch (error) {
     logger.error("Error create new appointment controller", {
       context: "appointmentController.createController",
       message: error.message,
     });
-    throw error; // Ném lỗi ra để middleware error handler tổng bắt lấy
+    if (error.statusCode) throw error; // Ném lỗi ra để middleware error handler tổng bắt lấy
+    throw new errorRes.InternalServerError("Hệ thống lỗi, vui lòng thực hiện sau.");
   }
 };
 
@@ -363,7 +370,7 @@ const staffCreateController = async (req, res) => {
       cleanedData.book_service.forEach((item, index) => {
         if (!item.service_id || item.unit_price === undefined) {
           throw new errorRes.BadRequestError(
-            `Service at index ${index} is missing service_id or unit_price`,
+            `Dịch vụ tại vị trí thứ ${index + 1} bị thiếu mã dịch vụ (service_id) hoặc đơn giá (unit_price)`,
           );
         }
       });
@@ -379,7 +386,7 @@ const staffCreateController = async (req, res) => {
       )
     ) {
       logger.warn("Appointment is existed.");
-      throw new errorRes.ConflictError("Appointment is already existed.");
+      throw new errorRes.ConflictError("Lịch hẹn đã tồn tại.");
     }
 
     // 2. Chuyển dữ liệu sang Service để xử lý logic nghiệp vụ
@@ -390,20 +397,21 @@ const staffCreateController = async (req, res) => {
         context: "appointmentController.staffCreateController",
         data: cleanedData,
       });
-      throw new errorRes.BadRequestError("Create new appointment fails.");
+      throw new errorRes.BadRequestError("Tạo lịch hẹn mới thất bại.");
     }
 
     // 3. Trả về response
     return new successRes.CreateSuccess(
       newAppointment,
-      "Appointment created successfully",
+      "Tạo lịch hẹn thành công",
     ).send(res);
   } catch (error) {
     logger.error("Error appointm create new appointment controller", {
       context: "appointmentController.staffCreateController",
       message: error.message,
     });
-    throw error;
+    if (error.statusCode) throw error;
+    throw new errorRes.InternalServerError("Hệ thống lỗi, vui lòng thực hiện sau.");
   }
 };
 // Cập nhật thông tin lịch hẹn (ngày, giờ, lý do)
@@ -417,7 +425,7 @@ const updateController = async (req, res) => {
 
     // Kiểm tra xem có dữ liệu nào để update không
     if (!appointment_date && !appointment_time && reason === undefined) {
-      throw new errorRes.BadRequestError("No data provided for update");
+      throw new errorRes.BadRequestError("Không có dữ liệu để cập nhật");
     }
 
     // 2. Gọi Service thực hiện cập nhật
@@ -432,7 +440,7 @@ const updateController = async (req, res) => {
     // Gửi response thành công
     return new successRes.UpdateSuccess(
       updated,
-      "Appointment updated successfully",
+      "Cập nhật lịch hẹn thành công",
     ).send(res);
   } catch (error) {
     // Logging lỗi chi tiết để debug
@@ -441,7 +449,8 @@ const updateController = async (req, res) => {
       message: error.message,
       stack: error.stack,
     });
-    throw error;
+    if (error.statusCode) throw error;
+    throw new errorRes.InternalServerError("Hệ thống lỗi, vui lòng thực hiện sau.");
   }
 };
 
@@ -454,7 +463,7 @@ const patientRequestUpdateController = async (req, res) => {
     const { appointment_date, appointment_time, reason } = dataUpdate;
 
     if (!appointment_date && !appointment_time && reason === undefined) {
-      throw new errorRes.BadRequestError("No data provided for update");
+      throw new errorRes.BadRequestError("Không có dữ liệu để cập nhật");
     }
 
     const updateData = {
@@ -468,7 +477,7 @@ const patientRequestUpdateController = async (req, res) => {
 
     return new successRes.UpdateSuccess(
       updated,
-      "Appointment update requested successfully",
+      "Yêu cầu dời lịch hẹn thành công",
     ).send(res);
   } catch (error) {
     logger.error("Error patient update appointment controller", {
@@ -476,7 +485,8 @@ const patientRequestUpdateController = async (req, res) => {
       message: error.message,
       stack: error.stack,
     });
-    throw error;
+    if (error.statusCode) throw error;
+    throw new errorRes.InternalServerError("Hệ thống lỗi, vui lòng thực hiện sau.");
   }
 };
 
@@ -497,19 +507,20 @@ const calculateTotalAmountFromAppointment = async (req, res, next) => {
         context,
         appointment_id: appointmentId,
       });
-      return new errorRes.NotFoundError("ID appointment is null.");
+      return new errorRes.NotFoundError("Mã lịch hẹn không được để trống.");
     }
     totalAmount = await ServiceProcess.calculateTotalAmount(appointmentId);
     return new successRes.GetDetailSuccess(
       { totalAmount: totalAmount },
-      "Calculated amount from appointment successfully.",
+      "Tính toán tổng tiền lịch hẹn thành công.",
     ).send(res);
   } catch (err) {
     logger.error("Error calculating total amount from appointment.", {
       context,
       error: err,
     });
-    throw err;
+    if (err.statusCode) throw err;
+    throw new errorRes.InternalServerError("Hệ thống lỗi, vui lòng thực hiện sau.");
   }
 };
 
@@ -551,7 +562,7 @@ const updateStatusController = async (req, res) => {
         allowed: validStatuses,
       });
       throw new errorRes.BadRequestError(
-        `Invalid status. Allowed values: ${validStatuses.join(", ")}`,
+        `Trạng thái không hợp lệ. Các giá trị cho phép: ${validStatuses.join(", ")}`,
       );
     }
 
@@ -562,18 +573,18 @@ const updateStatusController = async (req, res) => {
           status: status,
         });
         throw new errorRes.BadRequestError(
-          "doctorId is required when status is IN_CONSULTATION",
+          "Bắt buộc phải có mã bác sĩ (doctorId) khi trạng thái là Đang khám (IN_CONSULTATION)",
         );
       }
     }
 
-    // 3. Gọi Service cập nhật (Đã sửa lỗi: truyền trực tiếp biến status dạng chuỗi)
+    // 3. Gọi Service cập nhật
     const result = await ServiceProcess.updateStatusOnly(id, status, doctorId);
 
     // Kiểm tra kết quả
     if (!result) {
       throw new errorRes.NotFoundError(
-        "Appointment not found or update failed",
+        "Không tìm thấy lịch hẹn hoặc cập nhật thất bại",
       );
     }
 
@@ -586,7 +597,7 @@ const updateStatusController = async (req, res) => {
     // 4. Trả về kết quả
     return new successRes.UpdateSuccess(
       result,
-      "Appointment status updated successfully",
+      "Cập nhật trạng thái lịch hẹn thành công",
     ).send(res);
   } catch (error) {
     logger.error("Error updating appointment status", {
@@ -594,7 +605,8 @@ const updateStatusController = async (req, res) => {
       message: error.message,
       stack: error.stack,
     });
-    throw error;
+    if (error.statusCode) throw error;
+    throw new errorRes.InternalServerError("Hệ thống lỗi, vui lòng thực hiện sau.");
   }
 };
 
@@ -604,17 +616,14 @@ const updateStatusController = async (req, res) => {
 */
 const checkinController = async (req, res) => {
   try {
-    // ĐÃ SỬA: Thêm thẻ try bị thiếu
     const query = req.body || {};
     const cleanedData = cleanObjectData(query);
 
     logger.debug("Checkin appointment request received", {
       context: "AppointmentController.checkinController",
-      query: cleanedData, // ĐÃ SỬA: Xóa biến 'id' rác gây crash app
+      query: cleanedData,
     });
 
-    // LƯU Ý: Nếu người lớn tuổi không có email, bạn nên cân nhắc bỏ "email"
-    // ra khỏi requiredFields để họ chỉ cần nhập Tên + SĐT là check-in được nhé!
     const requiredFields = ["full_name", "phone", "email"];
 
     checkRequiredFields(requiredFields, cleanedData, this, "checkinController");
@@ -625,15 +634,16 @@ const checkinController = async (req, res) => {
     // Trả về kết quả
     return new successRes.UpdateSuccess(
       result,
-      `Check-in successful! Your queue number is ${result.queue_number}`,
+      `Check-in thành công! Số thứ tự của bạn là ${result.queue_number}`,
     ).send(res);
   } catch (error) {
     logger.error("Error during checkin", {
-      context: "AppointmentController.checkinController", // ĐÃ SỬA đúng tên context
+      context: "AppointmentController.checkinController",
       message: error.message,
       stack: error.stack,
     });
-    throw error;
+    if (error.statusCode) throw error;
+    throw new errorRes.InternalServerError("Hệ thống lỗi, vui lòng thực hiện sau.");
   }
 };
 
@@ -654,7 +664,7 @@ const getListAppointmentToPaymentController = async (req, res) => {
     return new successRes.GetListSuccess(
       data,
       paginationData,
-      "Appointments for payment retrieved successfully",
+      "Lấy danh sách lịch hẹn chờ thanh toán thành công",
     ).send(res);
   } catch (error) {
     logger.error("Error get list appointment to payment", {
@@ -662,7 +672,8 @@ const getListAppointmentToPaymentController = async (req, res) => {
       message: error.message,
       stack: error.stack,
     });
-    throw error;
+    if (error.statusCode) throw error;
+    throw new errorRes.InternalServerError("Hệ thống lỗi, vui lòng thực hiện sau.");
   }
 };
 

@@ -22,14 +22,18 @@ import SharedPagination from "../../components/ui/SharedPagination";
 import { getAllDentalRecords } from "../../services/dentalRecordService";
 import TreatmentComponent from "./components/TreatmentComponent";
 import AddTreatmentModal from "./modals/treatment/AddTreatmentModal";
+import { useLocation } from "react-router-dom";
 
 const AssistantMedicalRecords = () => {
+  const location = useLocation();
+  const initialSearch = location.state?.phone || "";
+
   // --- STATE BỘ LỌC ---
-  const [tempSearch, setTempSearch] = useState("");
+  const [tempSearch, setTempSearch] = useState(initialSearch);
   const [tempStatus, setTempStatus] = useState("all");
   const [filterDoctor, setFilterDoctor] = useState("all");
   const [filterParams, setFilterParams] = useState({
-    search: "",
+    search: initialSearch,
     status: "all",
   });
 

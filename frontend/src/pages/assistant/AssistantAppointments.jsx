@@ -1,4 +1,4 @@
-import { useState, useEffect,  } from "react";
+import { useState, useEffect } from "react";
 import {
   Calendar,
   Clock,
@@ -11,6 +11,7 @@ import {
   Phone,
   UserPlus,
   FileText,
+  Star,
 } from "lucide-react";
 import Card from "../../components/ui/Card";
 import Badge from "../../components/ui/Badge";
@@ -21,14 +22,15 @@ import ReportEquipmentModal from "./modals/ReportEquipmentModal";
 import PrepareAppointmentModal from "./modals/PrepareAppointmentModal";
 import appointmentService from "../../services/appointmentService";
 import staffService from "../../services/staffService";
-import equipmentService from "../../services/equipmentService";
 import SharedPagination from "../../components/ui/SharedPagination";
+import { useNavigate } from "react-router-dom";
 
 const AssistantAppointments = () => {
+  const navigate = useNavigate();
   const todayStr = new Date().toISOString().split("T")[0];
   const [selectedDate, setSelectedDate] = useState(todayStr);
   const [filterDoctor, setFilterDoctor] = useState("all");
-  const [filterStatus, setFilterStatus] = useState("all");
+  // Trang phụ tá chỉ xử lý lịch hẹn đã CHECKED_IN — cố định, không cần bộ lọc trạng thái
   const [searchTerm, setSearchTerm] = useState("");
 
   const [currentPage, setCurrentPage] = useState(1);
@@ -37,7 +39,6 @@ const AssistantAppointments = () => {
 
   const [appointments, setAppointments] = useState([]);
   const [doctors, setDoctors] = useState([]);
-  const [equipments, setEquipments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState({
     show: false,
@@ -48,7 +49,6 @@ const AssistantAppointments = () => {
   const [selectedAppointment, setSelectedAppointment] = useState(null);
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [showViewModal, setShowViewModal] = useState(false);
-  const [showReportModal, setShowReportModal] = useState(false);
   const [showPrepareModal, setShowPrepareModal] = useState(false);
 
   // --- debounced searchTerm ---
@@ -64,23 +64,21 @@ const AssistantAppointments = () => {
   // Reset page to 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [selectedDate, filterDoctor, filterStatus, debouncedSearch]);
+  }, [selectedDate, filterDoctor, debouncedSearch]);
 
   // --- FETCH DATA ---
   const fetchData = async () => {
     setLoading(true);
     try {
-      // 1. Fetch appointments for selected date
+      // Luôn hiển thị trạng thái Đã đến (chờ khám) và Đang khám
       const apptParams = {
         appointment_date: selectedDate,
         page: currentPage,
         limit: 6,
+        excludeStatuses: "SCHEDULED,PENDING_CONFIRMATION,SCHEDULED,COMPLETED,CANCELLED,NO_SHOW",
       };
       if (filterDoctor !== "all") {
         apptParams.doctor_id = filterDoctor;
-      }
-      if (filterStatus !== "all") {
-        apptParams.status = filterStatus;
       }
       if (debouncedSearch) {
         apptParams.search = debouncedSearch;
@@ -129,13 +127,6 @@ const AssistantAppointments = () => {
         setDoctors(docsData);
       }
 
-      // 3. Fetch equipments for reporting
-      if (equipments.length === 0) {
-        const equipResponse = await equipmentService.getEquipments({
-          limit: 100,
-        });
-        setEquipments(equipResponse.data?.data || equipResponse.data || []);
-      }
     } catch (error) {
       console.error("Error fetching data:", error);
       setToast({ show: true, message: "Lỗi khi tải dữ liệu!", type: "error" });
@@ -146,7 +137,7 @@ const AssistantAppointments = () => {
 
   useEffect(() => {
     fetchData();
-  }, [selectedDate, filterDoctor, filterStatus, debouncedSearch, currentPage]);
+  }, [selectedDate, filterDoctor, debouncedSearch, currentPage]);
 
   const filteredAppointments = appointments;
 
@@ -180,13 +171,15 @@ const AssistantAppointments = () => {
   const closeModals = () => {
     setShowAssignModal(false);
     setShowViewModal(false);
-    setShowReportModal(false);
     setShowPrepareModal(false);
     setSelectedAppointment(null);
   };
 
   const handleViewProfile = (appointment) => {
-    console.log("app: ", appointment);
+    // Chuyển hướng sang trang Quản lý Hồ sơ, truyền theo SĐT để ô tìm kiếm tự động lọc
+    navigate("/assistant/medical-records", {
+      state: { phone: appointment.phone }
+    });
   };
 
   const handleUpdateStatus = async (appointmentId, newStatus, doctorId) => {
@@ -248,30 +241,6 @@ const AssistantAppointments = () => {
     }
   };
 
-  const handleReportSubmit = async (appointmentId, data) => {
-    try {
-      console.log("Reporting incident:", appointmentId, data);
-      const { equipmentId, ...rest } = data;
-      await equipmentService.reportIncident(equipmentId, {
-        ...rest,
-        appointment_id: appointmentId,
-      });
-      setToast({
-        show: true,
-        message: "Gửi báo cáo sự cố thành công!",
-        type: "success",
-      });
-      fetchData(); // Refresh to see updated equipment status if displayed
-    } catch (error) {
-      console.error("Error reporting incident:", error);
-      setToast({
-        show: true,
-        message: "Lỗi khi gửi báo cáo sự cố!",
-        type: "error",
-      });
-    }
-  };
-
   return (
     <div>
       {/* Header */}
@@ -293,7 +262,7 @@ const AssistantAppointments = () => {
 
       {/* Filters */}
       <Card className="mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* Date Filter */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -323,24 +292,6 @@ const AssistantAppointments = () => {
                   {doctor.profile?.full_name || doctor.name || "Không xác định"}
                 </option>
               ))}
-            </select>
-          </div>
-
-          {/* Status Filter */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Trạng thái
-            </label>
-            <select
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-            >
-              <option value="all">Tất cả trạng thái</option>
-              <option value="SCHEDULED">Chờ khám</option>
-              <option value="CHECKED_IN">Đã đến</option>
-              <option value="IN_CONSULTATION">Đang khám</option>
-              <option value="COMPLETED">Hoàn thành</option>
             </select>
           </div>
 
@@ -399,8 +350,16 @@ const AssistantAppointments = () => {
 
                     {/* Patient Info */}
                     <div className="flex-1">
-                      <h3 className="text-lg font-semibold text-gray-900">
+                      <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
                         {apt.full_name}
+                        {/* Hiển thị ngôi sao vàng nếu priority = 1 (Ưu tiên cao) */}
+                        {apt.priority === 1 && (
+                          <Star
+                            size={16}
+                            className="text-yellow-400 fill-yellow-400 flex-shrink-0"
+                            title="Ưu tiên cao"
+                          />
+                        )}
                       </h3>
                       <div className="flex items-center gap-2 text-sm text-gray-600 mt-1">
                         <Phone size={14} />
@@ -515,14 +474,6 @@ const AssistantAppointments = () => {
         onComplete={handlePrepareComplete}
         doctors={doctors}
       />
-      <ReportEquipmentModal
-        appointment={selectedAppointment}
-        isOpen={showReportModal}
-        onClose={closeModals}
-        onSubmit={handleReportSubmit}
-        equipments={equipments}
-      />
-
       <Toast
         show={toast.show}
         message={toast.message}

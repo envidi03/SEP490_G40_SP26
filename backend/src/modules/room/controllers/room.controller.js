@@ -96,7 +96,7 @@ const createRoom = async (req, res) => {
                 context: 'RoomController.createRoom',
                 room_number: cleanRoomData.room_number
             });
-            throw new errorRes.ConflictError(`Room number ${cleanRoomData.room_number} already exists`);
+            throw new errorRes.ConflictError(`Số phòng ${cleanRoomData.room_number} đã tồn tại!`);
         }   
 
         // Gọi service để tạo phòng mới
@@ -200,7 +200,7 @@ const updateRoom = async (req, res) => {
                 context: 'RoomController.updateRoom',
                 room_number: cleanUpdateData.room_number
             });
-            throw new errorRes.ConflictError(`Room number ${cleanUpdateData.room_number} already exists`);
+            throw new errorRes.ConflictError(`Số phòng ${cleanUpdateData.room_number} đã tồn tại!`);
         }
 
 

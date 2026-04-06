@@ -9,6 +9,8 @@ const RoomFormModal = ({
     setRoomForm,
     onClose,
     onSave,
+    errors = {},
+    setErrors
 }) => {
     const [servicesList, setServicesList] = useState([]);
     const [loadingServices, setLoadingServices] = useState(false);
@@ -32,9 +34,26 @@ const RoomFormModal = ({
         fetchServices();
     }, [show]);
 
+    const handleInputChange = (field, value) => {
+        setRoomForm({ ...roomForm, [field]: value });
+        if (errors[field]) {
+            const newErrors = { ...errors };
+            delete newErrors[field];
+            setErrors(newErrors);
+        }
+    };
+
+    // Error Message Component
+    const ErrorMessage = ({ message }) => (
+        <p className="text-red-500 text-[11px] mt-1.5 font-semibold flex items-center gap-1.5 animate-in fade-in slide-in-from-top-1">
+            <span className="w-1 h-1 rounded-full bg-red-500" />
+            {message}
+        </p>
+    );
+
     // Toggle chọn / bỏ chọn dịch vụ
     const handleToggleService = (serviceId) => {
-        const current = roomForm.room_service || [];
+        const current = (roomForm.room_service || []);
         const exists = current.some(s => s.service_id === serviceId);
         const updated = exists
             ? current.filter(s => s.service_id !== serviceId)
@@ -53,7 +72,7 @@ const RoomFormModal = ({
             <div className="flex min-h-full items-center justify-center p-4">
                 <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-4xl transform transition-all">
                     {/* Header */}
-                    <div className="relative bg-gradient-to-br from-blue-600 to-indigo-700 text-white rounded-t-2xl p-6">
+                    <div className="relative bg-gradient-to-br from-blue-600 to-indigo-700 text-white rounded-t-2xl p-6 shadow-lg">
                         <h2 className="text-2xl font-bold">
                             {isEditMode ? 'Chỉnh sửa phòng' : 'Thêm phòng mới'}
                         </h2>
@@ -63,30 +82,35 @@ const RoomFormModal = ({
                     </div>
 
                     {/* Body */}
-                    <div className="p-6 space-y-6 max-h-[75vh] overflow-y-auto custom-scrollbar">
+                    <div className="p-6 space-y-6 max-h-[75vh] overflow-y-auto custom-scrollbar bg-gray-50/30">
                         {/* Số phòng + Trạng thái */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 bg-white rounded-2xl border border-gray-100 shadow-sm">
                             <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                <label className="block text-xs font-bold text-gray-400 mb-2 uppercase tracking-wider ml-1">
                                     Số phòng <span className="text-red-500">*</span>
                                 </label>
                                 <input
                                     type="text"
-                                    value={roomForm.room_number}
-                                    onChange={(e) => setRoomForm({ ...roomForm, room_number: e.target.value })}
-                                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
-                                    placeholder="P101"
+                                    value={roomForm.room_number || ''}
+                                    onChange={(e) => handleInputChange('room_number', e.target.value)}
+                                    className={`w-full px-4 py-3 border rounded-xl focus:ring-4 outline-none transition-all font-semibold ${
+                                        errors.room_number 
+                                        ? 'border-red-400 bg-red-50 text-red-900 focus:ring-red-100' 
+                                        : 'border-gray-300 focus:ring-blue-100 focus:border-blue-500'
+                                    }`}
+                                    placeholder="Ví dụ: P101, VIP2..."
                                 />
+                                {errors.room_number && <ErrorMessage message={errors.room_number} />}
                             </div>
 
                             <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                <label className="block text-xs font-bold text-gray-400 mb-2 uppercase tracking-wider ml-1">
                                     Trạng thái <span className="text-red-500">*</span>
                                 </label>
                                 <select
                                     value={roomForm.status}
-                                    onChange={(e) => setRoomForm({ ...roomForm, status: e.target.value })}
-                                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all bg-white"
+                                    onChange={(e) => handleInputChange('status', e.target.value)}
+                                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-4 focus:ring-blue-100 focus:border-blue-500 outline-none transition-all bg-white font-semibold cursor-pointer appearance-none shadow-sm"
                                 >
                                     <option value="ACTIVE">Hoạt động</option>
                                     <option value="MAINTENANCE">Bảo trì</option>
@@ -145,9 +169,9 @@ const RoomFormModal = ({
                                 Ghi chú / Mô tả
                             </label>
                             <textarea
-                                value={roomForm.note}
-                                onChange={(e) => setRoomForm({ ...roomForm, note: e.target.value })}
-                                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all h-28 resize-none"
+                                value={roomForm.note || ''}
+                                onChange={(e) => handleInputChange('note', e.target.value)}
+                                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all h-28 resize-none shadow-sm"
                                 placeholder="Nhập ghi chú thêm về phòng này..."
                             />
                         </div>

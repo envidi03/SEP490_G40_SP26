@@ -19,31 +19,45 @@ const updateRoom = async (roomId, updateData) => {
       roomId,
     });
 
-    logger.debug("Room update payload", {
-      context: "RoomService.updateRoom",
-      updateData,
-    });
+    // Nếu có đổi room_number, check trùng
+    if (updateData.room_number) {
+      const exists = await checkRoomExistsNotId(updateData.room_number, roomId);
+      if (exists) {
+        throw new errorRes.BadRequestError("Số phòng đã tồn tại!");
+      }
+    }
 
     const updatedRoom = await Room.findByIdAndUpdate(roomId, updateData, {
       new: true,
       runValidators: true,
     });
 
+    if (!updatedRoom) {
+        throw new errorRes.NotFoundError("Không tìm thấy phòng!");
+    }
+
     logger.debug("Updated room data in service", {
       context: "RoomService.updateRoom",
       updatedRoom,
     });
 
-    return updatedRoom || null;
+    return updatedRoom;
   } catch (error) {
     logger.error("Error in updateRoom service", {
       context: "RoomService.updateRoom",
       message: error.message,
-      stack: error.stack,
     });
 
+    if (error.statusCode) throw error;
+    
+    // Handle validation errors from Mongoose
+    if (error.name === 'ValidationError') {
+        const firstError = Object.values(error.errors)[0].message;
+        throw new errorRes.BadRequestError(firstError);
+    }
+
     throw new errorRes.InternalServerError(
-      "An error occurred while updating the room",
+      "Có lỗi xảy ra khi cập nhật phòng",
     );
   }
 };
@@ -344,6 +358,12 @@ const createRoom = async (roomData) => {
       roomData,
     });
 
+    // Check trùng room_number
+    const exists = await checkRoomExists(roomData.room_number);
+    if (exists) {
+      throw new errorRes.BadRequestError("Số phòng đã tồn tại!");
+    }
+
     const newRoom = new Room(roomData);
     const savedRoom = await newRoom.save();
 
@@ -357,11 +377,18 @@ const createRoom = async (roomData) => {
     logger.error("Error in createRoom service", {
       context: "RoomService.createRoom",
       message: error.message,
-      stack: error.stack,
     });
 
+    if (error.statusCode) throw error;
+
+    // Handle validation errors from Mongoose (like maxlength)
+    if (error.name === 'ValidationError') {
+        const firstError = Object.values(error.errors)[0].message;
+        throw new errorRes.BadRequestError(firstError);
+    }
+
     throw new errorRes.InternalServerError(
-      "An error occurred while creating the room",
+      "Có lỗi xảy ra khi tạo phòng mới",
     );
   }
 };
@@ -374,7 +401,9 @@ const createRoom = async (roomData) => {
  */
 const checkRoomExists = async (roomNumber) => {
   try {
-    const room = await Room.findOne({ room_number: roomNumber });
+    const room = await Room.findOne({ 
+      room_number: { $regex: new RegExp(`^${roomNumber.trim()}$`, "i") } 
+    });
     return !!room;
   } catch (error) {
     logger.error("Error in checkRoomExists service", {
@@ -399,7 +428,7 @@ const checkRoomExists = async (roomNumber) => {
 const checkRoomExistsNotId = async (roomNumber, currentRoomId) => {
   try {
     const room = await Room.findOne({
-      room_number: roomNumber,
+      room_number: { $regex: new RegExp(`^${roomNumber.trim()}$`, "i") },
       _id: { $ne: currentRoomId },
     });
     return !!room;

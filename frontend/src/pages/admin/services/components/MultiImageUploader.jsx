@@ -31,6 +31,21 @@ const MultiImageUploader = ({ images = [], onChange, maxImages = 10, label = '�
     };
 
     const uploadFiles = async (files) => {
+        const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+        const MAX_FILE_SIZE_MB = 10;
+
+        // Validate từng file trước khi upload
+        for (const file of files) {
+            if (!ALLOWED_TYPES.includes(file.type)) {
+                setUploadError(`Định dạng file không được hỗ trợ! Chỉ chấp nhận PNG, JPG, WebP, GIF.`);
+                return;
+            }
+            if (file.size > MAX_FILE_SIZE_MB * 1024 * 1024) {
+                setUploadError(`File "${file.name}" vượt quá giới hạn ${MAX_FILE_SIZE_MB}MB.`);
+                return;
+            }
+        }
+
         const remaining = maxImages - images.length;
         if (remaining <= 0) {
             setUploadError(`Đã đạt giới hạn ${maxImages} ảnh tối đa.`);

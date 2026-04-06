@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Clock, Activity, Play, Edit, Eye, Pill } from "lucide-react";
+import { Clock, Activity, Play, Edit, Pill } from "lucide-react";
 import Badge from "../../../components/ui/Badge";
 import treatmentApi from "../../../services/treatmentService";
 import TreatmentDetailModal from "./../modals/treatment/TreatmentDetailModal";
@@ -52,6 +52,10 @@ const TreatmentComponent = ({ treatment, index, onRefresh }) => {
     setShowUpdateModal(true);
   };
 
+  // Danh sách các trạng thái KHÔNG cho phép cập nhật
+  const restrictedStatuses = ['APPROVED', 'REJECTED', 'DONE', 'CANCELLED'];
+  const canUpdate = !restrictedStatuses.includes(localStatus);
+
   const meds = treatment.medicine_usage || [];
 
   return (
@@ -76,7 +80,6 @@ const TreatmentComponent = ({ treatment, index, onRefresh }) => {
             {treatment.note || "Không có ghi chú"}
           </p>
 
-          {/* Medicine summary badge */}
           {meds.length > 0 && (
             <div className="flex items-center gap-1.5 relative z-10 mb-2">
               <Pill size={12} className="text-orange-500" />
@@ -94,22 +97,24 @@ const TreatmentComponent = ({ treatment, index, onRefresh }) => {
           </div>
 
           <div className="flex items-center gap-2">
-            <p className="text-[10px] text-blue-600 font-black uppercase opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
-              <Activity size={12} /> Xem chi tiết
-            </p>
-
-            {localStatus === 'PLANNED' && (
-              <button onClick={handleStartTreatment} disabled={isChangingStatus} className="flex items-center gap-1 bg-blue-600 text-white px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase hover:bg-blue-700 transition-colors disabled:opacity-50">
-                {isChangingStatus ? "..." : <Play size={10} fill="currentColor" />} BẮT ĐẦU
+            {/* Logic hiển thị nút Cập nhật dựa trên canUpdate */}
+            {canUpdate && (
+              <button 
+                onClick={handleOpenUpdate} 
+                className="flex items-center gap-1 bg-orange-500 text-white px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase hover:bg-orange-600 transition-colors shadow-sm active:scale-95"
+              >
+                <Edit size={10} /> CẬP NHẬT
               </button>
             )}
 
-            {localStatus === 'IN_PROGRESS' && (
-              <>
-                <button onClick={handleOpenUpdate} className="flex items-center gap-1 bg-orange-500 text-white px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase hover:bg-orange-600 transition-colors">
-                  <Edit size={10} /> CẬP NHẬT
-                </button>
-              </>
+            {localStatus === 'PLANNED' && (
+              <button 
+                onClick={handleStartTreatment} 
+                disabled={isChangingStatus} 
+                className="flex items-center gap-1 bg-blue-600 text-white px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase hover:bg-blue-700 transition-colors disabled:opacity-50 active:scale-95 shadow-sm"
+              >
+                {isChangingStatus ? "..." : <Play size={10} fill="currentColor" />} BẮT ĐẦU
+              </button>
             )}
           </div>
         </div>

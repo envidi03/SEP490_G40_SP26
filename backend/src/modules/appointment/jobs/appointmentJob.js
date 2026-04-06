@@ -1,63 +1,57 @@
 const cron = require('node-cron');
-const { Appointment } = require('../models/index.model');
+const Appointment = require('../models/appointment.model'); // Điều chỉnh lại đường dẫn cho đúng với project của bạn
 const logger = require('../../../common/utils/logger');
 const NotificationService = require('../../notification/service/notification.service');
 const EmailService = require('../../../common/service/email.service');
 
-const initAppointmentJobs = () => {
-    // Chạy mỗi 10 phút một lần
-    cron.schedule('*/10 * * * *', async () => {
-        console.log('--- Đang kiểm tra lịch hẹn quá hạn ---');
+const initReminderJobs = () => {
+    // Chạy vào lúc 08:00 sáng mỗi ngày (Giờ local của server)
+    cron.schedule('0 8 * * *', async () => {
+        logger.info('--- Starting daily appointment reminder cron job (24h prior) ---');
         try {
             const now = new Date();
 
-            // Dùng UTC để khớp với cách MongoDB lưu trữ appointment_date
-            const currentDayUTC = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+            // Lấy ngày mai
+            const tomorrow = new Date(now);
+            tomorrow.setDate(tomorrow.getDate() + 1);
 
-            // Tính mốc thời gian cách đây 30 phút (theo giờ local server UTC+7)
-            const thirtyMinsAgo = new Date(Date.now() - 30 * 60000);
-            // Dùng giờ local (UTC+7) để so sánh với appointment_time dạng "HH:mm" của VN
-            const compareHour = thirtyMinsAgo.getHours().toString().padStart(2, '0');
-            const compareMinute = thirtyMinsAgo.getMinutes().toString().padStart(2, '0');
-            const currentTimeStr = `${compareHour}:${compareMinute}`;
+            // Dùng UTC để khớp với cách MongoDB lưu trữ appointment_date (00:00:00.000 UTC)
+            const tomorrowDayUTC = new Date(Date.UTC(tomorrow.getUTCFullYear(), tomorrow.getUTCMonth(), tomorrow.getUTCDate()));
 
-            // 1. Tìm các lịch hẹn quá hạn nhưng chưa được xử lý
-            const overdueAppointments = await Appointment.find({
+            // Tìm các lịch hẹn có trạng thái SCHEDULED vào ngày mai
+            const upcomingAppointments = await Appointment.find({
                 status: "SCHEDULED",
-                $or: [
-                    { appointment_date: { $lt: currentDayUTC } }, // Đã qua ngày hôm nay (UTC)
-                    {
-                        appointment_date: currentDayUTC,           // Đúng ngày hôm nay (UTC)
-                        appointment_time: { $lt: currentTimeStr }  // Giờ hẹn đã quá 30 phút
-                    }
-                ]
+                appointment_date: tomorrowDayUTC
             }).populate({
                 path: 'patient_id',
                 select: 'account_id'
             });
 
-            if (overdueAppointments.length > 0) {
-                logger.info(`Tìm thấy ${overdueAppointments.length} lịch hẹn quá hạn.`);
+            if (upcomingAppointments.length > 0) {
+                logger.info(`Found ${upcomingAppointments.length} appointments for tomorrow. Sending reminders...`);
 
-                for (const appointment of overdueAppointments) {
+                let successCount = 0;
+
+                for (const appointment of upcomingAppointments) {
                     try {
                         const patientName = appointment.full_name;
                         const appointmentDate = new Date(appointment.appointment_date).toLocaleDateString('vi-VN');
                         const appointmentTime = appointment.appointment_time;
 
-                        // 2. Gửi thông báo hệ thống (nếu có tài khoản)
+                        // 1. Gửi thông báo qua hệ thống (Push notification / In-app)
                         if (appointment.patient_id && appointment.patient_id.account_id) {
                             await NotificationService.sendToUser(appointment.patient_id.account_id, {
-                                type: 'APPOINTMENT_NO_SHOW',
-                                title: 'Thông báo vắng mặt',
-                                message: `Bạn đã vắng mặt trong lịch hẹn ngày ${appointmentDate} lúc ${appointmentTime}. Lịch hẹn đã được chuyển sang trạng thái Vắng mặt.`,
-                                action_url: '/appointments'
+                                type: 'APPOINTMENT_REMINDER',
+                                title: 'Nhắc nhở lịch hẹn ngày mai',
+                                message: `Chào ${patientName}, bạn có lịch hẹn khám nha khoa vào lúc ${appointmentTime} ngày mai (${appointmentDate}). Vui lòng đến đúng giờ nhé!`,
+                                action_url: `/appointments/${appointment._id}`
                             });
                         }
 
-                        // 3. Gửi Email thông báo
+                        // 2. Gửi Email thông báo (nếu có email)
                         if (appointment.email) {
-                            await EmailService.sendNoShowEmail(
+                            // Giả định bạn có hàm sendReminderEmail trong EmailService
+                            await EmailService.sendReminderEmail(
                                 appointment.email,
                                 patientName,
                                 appointmentDate,
@@ -65,25 +59,26 @@ const initAppointmentJobs = () => {
                             );
                         }
 
-                        // 4. Cập nhật trạng thái
-                        appointment.status = "NO_SHOW";
-                        await appointment.save();
-
+                        successCount++;
                     } catch (singleErr) {
-                        logger.error(`Lỗi khi xử lý thông báo NO_SHOW cho lịch hẹn ${appointment._id}`, {
-                            error: singleErr.message
+                        logger.error(`Error sending reminder for appointment ${appointment._id}`, {
+                            error: singleErr.message,
+                            stack: singleErr.stack
                         });
                     }
                 }
 
-                logger.info(`Đã hoàn thành cập nhật ${overdueAppointments.length} lịch hẹn sang NO_SHOW.`);
+                logger.info(`Successfully sent reminders for ${successCount}/${upcomingAppointments.length} appointments.`);
+            } else {
+                logger.info('No upcoming appointments for tomorrow. Skipping reminders.');
             }
         } catch (err) {
-            logger.error("Lỗi trong Cron job kiểm tra lịch hẹn", {
-                error: err.message
+            logger.error("Error in daily reminder Cron job", {
+                error: err.message,
+                stack: err.stack
             });
         }
     });
 };
 
-module.exports = initAppointmentJobs;
+module.exports = initReminderJobs;
