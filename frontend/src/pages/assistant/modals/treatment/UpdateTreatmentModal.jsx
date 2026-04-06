@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { X, Save, Edit, Pill, Plus, AlertCircle, CheckCircle, Ban, HelpCircle, DollarSign } from "lucide-react";
+import { X, Save, Edit, Pill, Plus, AlertCircle, CheckCircle, Ban, HelpCircle, DollarSign, Activity } from "lucide-react";
 import treatmentApi from "../../../../services/treatmentService";
 import MedicineModal from "./medicineModal";
 
@@ -17,8 +17,8 @@ const UpdateTreatmentModal = ({ isOpen, onClose, treatment, onSuccess }) => {
   const [error, setError] = useState("");
   const [isFetchingDetail, setIsFetchingDetail] = useState(false);
 
-  // State thông tin cơ bản - Đã thêm price
-  const [formData, setFormData] = useState({ note: "", price: "" });
+  // State thông tin cơ bản - Thêm phase vào formData
+  const [formData, setFormData] = useState({ note: "", price: "", phase: "PLAN" });
   const [medicines, setMedicines] = useState([]);
 
   // --- STATE QUẢN LÝ POPUP CONFIRM ---
@@ -45,10 +45,11 @@ const UpdateTreatmentModal = ({ isOpen, onClose, treatment, onSuccess }) => {
         const response = await treatmentApi.viewTreatmentDetail(treatment._id);
         const detail = response?.data?.data || response?.data || response;
         
-        // Cập nhật formData bao gồm note và price
+        // Cập nhật formData bao gồm note, price và phase
         setFormData({ 
           note: detail.note || treatment.note || "",
-          price: detail.price !== undefined ? detail.price : (treatment.price || 0)
+          price: detail.price !== undefined ? detail.price : (treatment.price || 0),
+          phase: detail.phase || treatment.phase || "PLAN"
         });
 
         if (detail.medicine_usage && detail.medicine_usage.length > 0) {
@@ -69,7 +70,8 @@ const UpdateTreatmentModal = ({ isOpen, onClose, treatment, onSuccess }) => {
         // Fallback
         setFormData({ 
           note: treatment.note || "", 
-          price: treatment.price || 0 
+          price: treatment.price !== undefined ? treatment.price : 0,
+          phase: treatment.phase || "PLAN"
         });
         if (treatment.medicine_usage && treatment.medicine_usage.length > 0) {
           setMedicines(
@@ -115,7 +117,7 @@ const UpdateTreatmentModal = ({ isOpen, onClose, treatment, onSuccess }) => {
         config = { title: "Hủy bỏ điều trị", message: "Bạn có chắc chắn muốn HỦY đợt điều trị này? Trạng thái sẽ được đổi thành Đã hủy (CANCELLED).", btnText: "Xác nhận Hủy", btnColor: "bg-red-500 hover:bg-red-600" };
         break;
       case 'UPDATE':
-        config = { title: "Lưu cập nhật", message: "Xác nhận lưu lại các thông tin ghi chú, đơn thuốc và đơn giá?", btnText: "Xác nhận Lưu", btnColor: "bg-blue-600 hover:bg-blue-700" };
+        config = { title: "Lưu cập nhật", message: "Xác nhận lưu lại các thông tin hình thức, ghi chú, đơn thuốc và đơn giá?", btnText: "Xác nhận Lưu", btnColor: "bg-blue-600 hover:bg-blue-700" };
         break;
       case 'COMPLETE':
         config = { title: "Hoàn thành điều trị", message: "Xác nhận hoàn thành đợt điều trị này? Hồ sơ sẽ được chuyển sang trạng thái Chờ duyệt.", btnText: "Xác nhận Hoàn thành", btnColor: "bg-orange-500 hover:bg-orange-600" };
@@ -141,7 +143,7 @@ const UpdateTreatmentModal = ({ isOpen, onClose, treatment, onSuccess }) => {
     setError("");
 
     try {
-      // 1. Validate đơn giá
+      // 1. Validate đơn giá (Giá >= 0)
       const priceValue = Number(formData.price);
       if (formData.price === "" || isNaN(priceValue) || priceValue < 0) {
         throw new Error("Vui lòng nhập đơn giá hợp lệ (không được để trống).");
@@ -157,14 +159,22 @@ const UpdateTreatmentModal = ({ isOpen, onClose, treatment, onSuccess }) => {
         return { ...rest, quantity: Number(rest.quantity) };
       });
 
+      // 3. Logic điều hướng trạng thái
       let finalStatus = treatment.status;
-      if (type === "COMPLETE") finalStatus = "WAITING_APPROVAL";
-      if (type === "CANCEL_TREATMENT") finalStatus = "CANCELLED";
+      if (type === "COMPLETE") {
+        finalStatus = "WAITING_APPROVAL";
+      } else if (type === "CANCEL_TREATMENT") {
+        finalStatus = "CANCELLED";
+      } else if (type === "UPDATE") {
+        // Tự động map status dựa theo phase
+        finalStatus = formData.phase === "PLAN" ? "PLANNED" : "IN_PROGRESS";
+      }
 
       const payload = {
         status: finalStatus,
+        phase: formData.phase, // Gửi cả phase về body
         note: formData.note,
-        price: priceValue, // Gửi price về body
+        price: priceValue,
         medicine_usage: cleanMedicineUsage,
       };
 
@@ -225,8 +235,25 @@ const UpdateTreatmentModal = ({ isOpen, onClose, treatment, onSuccess }) => {
                     <AlertCircle size={16} /> Thông tin điều trị & Chi phí
                   </h3>
                   
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-                    {/* TRƯỜNG PRICE MỚI */}
+                  {/* Cập nhật lại Grid: 2 cột để chứa Phase và Price cân đối */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    {/* TRƯỜNG PHASE MỚI */}
+                    <div className="space-y-2">
+                      <label className="text-xs font-black text-slate-600 ml-1 flex items-center gap-1">
+                        <Activity size={12} /> Hình thức điều trị
+                      </label>
+                      <select
+                        name="phase"
+                        value={formData.phase}
+                        onChange={handleChange}
+                        className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-100 rounded-2xl focus:bg-white focus:border-blue-500 outline-none font-bold text-slate-700 transition-colors cursor-pointer"
+                      >
+                        <option value="PLAN">Lên kế hoạch</option>
+                        <option value="SESSION">Thực thi (Làm ngay)</option>
+                      </select>
+                    </div>
+
+                    {/* TRƯỜNG PRICE */}
                     <div className="space-y-2">
                       <label className="text-xs font-black text-slate-600 ml-1 flex items-center gap-1">
                          <DollarSign size={12} /> Đơn giá (VNĐ) <span className="text-red-500">*</span>
@@ -247,7 +274,7 @@ const UpdateTreatmentModal = ({ isOpen, onClose, treatment, onSuccess }) => {
                         name="note"
                         value={formData.note}
                         onChange={handleChange}
-                        rows="1"
+                        rows="2"
                         placeholder="Ghi nhận tình trạng bệnh nhân..."
                         className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-100 rounded-2xl focus:bg-white focus:border-orange-500 outline-none font-medium text-slate-700 transition-colors resize-none"
                       ></textarea>
