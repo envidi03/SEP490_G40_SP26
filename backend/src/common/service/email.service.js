@@ -1,5 +1,4 @@
 const nodemailer = require('nodemailer');
-const { log } = require('winston');
 const logger = require('../utils/logger');
 require('dotenv').config();
 
@@ -621,6 +620,7 @@ class EmailService {
 
     async sendEmail(to, subject, html) {
         try {
+            logger.info(`[EmailService] Sending email to ${to} with subject "${subject}"`);
             const info = await this.transporter.sendMail({
                 from: `"${process.env.SMTP_FROM_NAME || 'Dental CMS'}" <${process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER}>`,
                 to,
