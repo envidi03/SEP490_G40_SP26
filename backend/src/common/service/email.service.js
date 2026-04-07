@@ -625,10 +625,10 @@ class EmailService {
                 html
             });
 
-            console.log(' Email sent successfully:', info.messageId);
+            logger.info(' Email sent successfully:', info.messageId);
             return info;
         } catch (error) {
-            console.error(' Error sending email:', error);
+            logger.error(' Error sending email:', error);
             throw new Error('Failed to send email: ' + error.message);
         }
     }
