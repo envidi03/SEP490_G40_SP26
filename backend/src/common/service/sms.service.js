@@ -18,7 +18,12 @@ const sendSMS = async (phones, content) => {
         const smsType   = process.env.ESMS_SMS_TYPE   || '8';
 
         if (!apiKey || !secretKey) {
-            logger.warn('[SMSService] Missing ESMS_API_KEY or ESMS_SECRET_KEY in .env');
+            logger.warn('[SMSService] Missing ESMS_API_KEY or ESMS_SECRET_KEY in .env', {
+                apiKey: apiKey,
+                secretKey: secretKey,
+                brandName: brandName,
+                smsType: smsType
+            });
             return { CodeResult: '-1', ErrorMessage: 'Missing ESMS credentials' };
         }
 
