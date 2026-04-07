@@ -1,4 +1,6 @@
-const nodemailer = require('nodemailer')
+const nodemailer = require('nodemailer');
+const { log } = require('winston');
+const logger = require('../utils/logger');
 require('dotenv').config();
 
 class EmailService {
@@ -88,6 +90,7 @@ class EmailService {
     }
 
     async sendPasswordResetEmail(email, otp, userName = '') {
+        logger.info('[EmailService] Preparing to send password reset email', { email: email, user: userName });
         const subject = 'Password Reset Request - Dental Clinic Management System';
         const html = `
             <!DOCTYPE html>

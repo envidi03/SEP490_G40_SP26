@@ -1,3 +1,4 @@
+const logger = require('../../../common/utils/logger');
 const authService = require('../service/auth.service');
 
 exports.register = async (req, res, next) => {
@@ -116,7 +117,9 @@ exports.refreshToken = async (req, res, next) => {
 exports.forgotPassword = async (req, res, next) => {
     try {
         const { email } = req.body;
+        logger.info('[AuthController] Forgot password request received', { email: email });
         if (!email) {
+            logger.warn('[AuthController] Forgot password request missing email');
             return res.status(400).json({
                 status: 'error',
                 message: 'Email is required'
@@ -129,6 +132,7 @@ exports.forgotPassword = async (req, res, next) => {
             message: result.message
         });
     } catch (error) {
+        logger.error('[AuthController] Error in forgotPassword:', { message: error.message });
         next(error);
     }
 };
