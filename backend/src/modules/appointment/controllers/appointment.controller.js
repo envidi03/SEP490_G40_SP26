@@ -480,6 +480,18 @@ const updateController = async (req, res) => {
       reason,
     };
 
+    if (appointment_date && appointment_time) {
+      if (checkBookingInFuture(appointment_date, appointment_time)) {
+        logger.warn("Cannot update appointment in the past", {
+          context: "AppointmentController.updateController",
+          appointment_date: appointment_date,
+          appointment_time: appointment_time,
+          time_now: new Date(),
+        });
+        throw new errorRes.BadRequestError("Bạn không thể cập nhật lịch hẹn trong quá khứ");
+      }
+    }
+
     const updated = await ServiceProcess.updateService(id, updateData);
 
     // Gửi response thành công
