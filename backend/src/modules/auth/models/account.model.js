@@ -11,16 +11,9 @@ const accountSchema = new Schema(
             trim: true,
             minlength: [3, 'Tên đăng nhập phải có ít nhất 3 ký tự'],
             maxlength: [20, 'Tên đăng nhập không được vượt quá 20 ký tự'],
-            validate: {
-                validator: function (v) {
-                    return /^[a-zA-Z][a-zA-Z0-9_]*$/.test(v);
-                },
-                message: 'Tên đăng nhập chỉ được chứa chữ cái, số, dấu gạch dưới và không được bắt đầu bằng số'
-            }
         },
         email: {
             type: String,
-            required: true,
             unique: true,
             trim: true,
             lowercase: true,
@@ -52,7 +45,7 @@ const accountSchema = new Schema(
         },
 
         email_verified: { type: Boolean, default: false },
-        
+
         phone_number: {
             type: String,
             unique: true,

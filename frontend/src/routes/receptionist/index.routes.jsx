@@ -10,6 +10,7 @@ import ReceptionistLeave from '../../pages/receptionist/ReceptionistLeave';
 import ReceptionistCheckIn from '../../pages/receptionist/ReceptionistCheckIn';
 import ReceptionistSubServices from '../../pages/receptionist/ReceptionistSubServices';
 import ReBooking from '../../pages/receptionist/re-booking/ReBooking';
+import Booking from '../../pages/receptionist/booking/Booking';
 
 /**
  * Receptionist Routes - Protected routes for Receptionist role
@@ -28,7 +29,7 @@ const receptionistRoutes = [
     {
         path: '/receptionist/patients',
         element: (
-            <ProtectedRoute allowedRoles={['RECEPTIONIST', 'ADMIN_CLINIC']}>
+            <ProtectedRoute allowedRoles={['RECEPTIONIST']}>
                 <ReceptionistLayout>
                     <ReceptionistPatients />
                 </ReceptionistLayout>
@@ -38,7 +39,7 @@ const receptionistRoutes = [
     {
         path: '/receptionist/appointments',
         element: (
-            <ProtectedRoute allowedRoles={['RECEPTIONIST', 'ADMIN_CLINIC']}>
+            <ProtectedRoute allowedRoles={['RECEPTIONIST']}>
                 <ReceptionistLayout>
                     <ReceptionistAppointments />
                 </ReceptionistLayout>
@@ -48,7 +49,7 @@ const receptionistRoutes = [
     {
         path: '/receptionist/re-examination',
         element: (
-            <ProtectedRoute allowedRoles={['RECEPTIONIST', 'ADMIN_CLINIC']}>
+            <ProtectedRoute allowedRoles={['RECEPTIONIST']}>
                 <ReceptionistLayout>
                     <ReBooking />
                 </ReceptionistLayout>
@@ -58,7 +59,7 @@ const receptionistRoutes = [
     {
         path: '/receptionist/invoices',
         element: (
-            <ProtectedRoute allowedRoles={['RECEPTIONIST', 'ADMIN_CLINIC']}>
+            <ProtectedRoute allowedRoles={['RECEPTIONIST']}>
                 <ReceptionistLayout>
                     <ReceptionistInvoices />
                 </ReceptionistLayout>
@@ -66,9 +67,19 @@ const receptionistRoutes = [
         )
     },
     {
+        path: '/receptionist/booking',
+        element: (
+            <ProtectedRoute allowedRoles={['RECEPTIONIST']}>
+                <ReceptionistLayout>
+                    <Booking />
+                </ReceptionistLayout>
+            </ProtectedRoute>
+        )
+    },
+    {
         path: '/receptionist/services',
         element: (
-            <ProtectedRoute allowedRoles={['RECEPTIONIST', 'ADMIN_CLINIC']}>
+            <ProtectedRoute allowedRoles={['RECEPTIONIST']}>
                 <ReceptionistLayout>
                     <ReceptionistServices />
                 </ReceptionistLayout>
@@ -78,7 +89,7 @@ const receptionistRoutes = [
     {
         path: '/receptionist/sub-services/:parentId',
         element: (
-            <ProtectedRoute allowedRoles={['RECEPTIONIST', 'ADMIN_CLINIC']}>
+            <ProtectedRoute allowedRoles={['RECEPTIONIST']}>
                 <ReceptionistLayout>
                     <ReceptionistSubServices />
                 </ReceptionistLayout>
@@ -88,7 +99,7 @@ const receptionistRoutes = [
     {
         path: '/receptionist/equipment',
         element: (
-            <ProtectedRoute allowedRoles={['RECEPTIONIST', 'ADMIN_CLINIC']}>
+            <ProtectedRoute allowedRoles={['RECEPTIONIST']}>
                 <ReceptionistLayout>
                     <ReceptionistEquipment />
                 </ReceptionistLayout>
@@ -98,7 +109,7 @@ const receptionistRoutes = [
     {
         path: '/receptionist/leave',
         element: (
-            <ProtectedRoute allowedRoles={['RECEPTIONIST', 'ADMIN_CLINIC']}>
+            <ProtectedRoute allowedRoles={['RECEPTIONIST']}>
                 <ReceptionistLayout>
                     <ReceptionistLeave />
                 </ReceptionistLayout>

@@ -7,6 +7,7 @@ const {
   uploadToCloudinary,
   uploadMultipleToCloudinary,
 } = require("../../../utils/cloudinaryHelper");
+const accountService = require("../../auth/service/account.service");
 
 const ServiceProcess = require("../services/appointment.service");
 const { checkRequiredFields } = require("../../../utils/checkRequiredFields");
@@ -296,7 +297,15 @@ const createController = async (req, res) => {
       "appointment_date",
       "appointment_time",
     ];
-
+    if (!checkBookingInFuture(cleanedData.appointment_date, cleanedData.appointment_time)) {
+      logger.warn("Attempt to book appointment in the past", {
+        context: "AppointmentController.staffCreateController",
+        appointment_date_booked: cleanedData.appointment_date,
+        appointment_time_booked: cleanedData.appointment_time,
+        time_now: new Date(),
+      });
+      throw new errorRes.BadRequestError("bạn không thể đặt lịch hẹn cho quá khứ.");
+    }
     // Kiểm tra validation cơ bản
     checkRequiredFields(requiredFields, cleanedData, this, "createController");
 
@@ -365,6 +374,16 @@ const staffCreateController = async (req, res) => {
     // Kiểm tra validation cơ bản
     checkRequiredFields(requiredFields, cleanedData, this, "createController");
 
+    if (!checkBookingInFuture(cleanedData.appointment_date, cleanedData.appointment_time)) {
+      logger.warn("Attempt to book appointment in the past", {
+        context: "AppointmentController.staffCreateController",
+        appointment_date_booked: cleanedData.appointment_date,
+        appointment_time_booked: cleanedData.appointment_time,
+        time_now: new Date(),
+      });
+      throw new errorRes.BadRequestError("bạn không thể đặt lịch hẹn cho quá khứ.");
+    }
+
     // Validate mảng book_service nếu client có gửi kèm dịch vụ
     if (cleanedData.book_service && Array.isArray(cleanedData.book_service)) {
       cleanedData.book_service.forEach((item, index) => {
@@ -389,7 +408,23 @@ const staffCreateController = async (req, res) => {
       throw new errorRes.ConflictError("Lịch hẹn đã tồn tại.");
     }
 
-    // 2. Chuyển dữ liệu sang Service để xử lý logic nghiệp vụ
+    if (!await accountService.findAccountByPhone(cleanedData.phone)) {
+      const patientCreated = await accountService.createPatientFromUserProfile(
+        cleanedData.full_name,
+        cleanedData.phone
+      );
+      if (!patientCreated) {
+        logger.warn("Failed to create patient account from appointment booking", {
+          context: "AppointmentController.staffCreateController",
+        });
+        throw new errorRes.BadRequestError("Tạo tài khoản bệnh nhân thất bại.");
+      }
+      logger.info("New patient account created from appointment booking", {
+        context: "AppointmentController.staffCreateController",
+        patient: patientCreated,
+      });
+      cleanedData.patient_id = patientCreated._id;
+    }
     const newAppointment = await ServiceProcess.staffCreateService(cleanedData);
 
     if (!newAppointment) {
@@ -399,6 +434,16 @@ const staffCreateController = async (req, res) => {
       });
       throw new errorRes.BadRequestError("Tạo lịch hẹn mới thất bại.");
     }
+
+    logger.debug("New appointment created successfully", {
+      context: "appointmentController.staffCreateController",
+      newAppointment: newAppointment,
+    });
+
+    logger.info("New appointment created successfully", {
+      context: "appointmentController.staffCreateController",
+      appointmentId: newAppointment._id,
+    });
 
     // 3. Trả về response
     return new successRes.CreateSuccess(
@@ -488,6 +533,12 @@ const patientRequestUpdateController = async (req, res) => {
     if (error.statusCode) throw error;
     throw new errorRes.InternalServerError("Hệ thống lỗi, vui lòng thực hiện sau.");
   }
+};
+
+const checkBookingInFuture = (appointment_date, appointment_time) => {
+  const appointmentDateTime = new Date(`${appointment_date}T${appointment_time}:00`);
+  const now = new Date();
+  return appointmentDateTime > now;
 };
 
 /**

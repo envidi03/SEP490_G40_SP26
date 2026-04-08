@@ -26,6 +26,9 @@ const PatientRecordSearch = () => {
     // ── Create modal state ────────────────────────────────────────
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
+    // Tên bệnh nhân trong lịch hẹn (để kiểm tra trường hợp đặt lịch cho người thân)
+    const appointmentName = searchParams.get('appointment_name') || '';
+
     // Initial query params loading
     useEffect(() => {
         const phone = searchParams.get('phone');
@@ -43,8 +46,6 @@ const PatientRecordSearch = () => {
         }
     }, [searchParams]);
 
-    // Chỉ cho tạo hồ sơ mới khi không còn hồ sơ IN_PROGRESS nào
-    const canCreate = !records.some(r => r.status === 'IN_PROGRESS');
 
     // ── Debounce search 400ms ─────────────────────────────────────
     useEffect(() => {
@@ -150,6 +151,7 @@ const PatientRecordSearch = () => {
                 isSearching={isSearching}
             />
 
+
             {/* Main 2-col layout */}
             {(patients.length > 0 || selectedPatient) && (
                 <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
@@ -157,7 +159,7 @@ const PatientRecordSearch = () => {
                     {/* Left: Patient results */}
                     <div className="md:col-span-2 space-y-4">
                         <div className="flex items-center justify-between px-1">
-                            <p className="text-xs text-gray-500">
+                            <p className="text-sm text-gray-500">
                                 Tìm thấy <span className="font-medium text-gray-700">{patients.length}</span> bệnh nhân
                             </p>
                             <button
@@ -201,7 +203,6 @@ const PatientRecordSearch = () => {
                                 isLoading={isLoadingRecords}
                                 error={recordsError}
                                 onRetry={() => fetchRecords(selectedPatient)}
-                                canCreate={!isLoadingRecords && canCreate}
                                 onCreateClick={() => setIsCreateModalOpen(true)}
                             />
                         ) : (
@@ -226,7 +227,7 @@ const PatientRecordSearch = () => {
                 onClose={() => setIsCreateModalOpen(false)}
                 onSuccess={handleCreateSuccess}
                 patientId={selectedPatient?.patient_id}
-                patientName={selectedPatient?.full_name}
+                patientName={appointmentName || selectedPatient?.full_name}
                 patientPhone={selectedPatient?.phone}
                 patientEmail={selectedPatient?.email}
                 patientGender={selectedPatient?.gender}

@@ -425,7 +425,9 @@ exports.refreshToken = async (refreshToken) => {
 
 exports.forgotPassword = async (email) => {
     const account = await Account.findOne({ email });
+    logger.info('[AuthService] Forgot password requested for email', { email: email });
     if (!account) {
+        logger.warn('[AuthService] Forgot password requested for non-existent email', { email: email });
         throw new NotFoundError('Account not found!')
     }
 
@@ -442,9 +444,10 @@ exports.forgotPassword = async (email) => {
 
     const user = await Profile.findOne({ account_id: account._id })
     try {
+        logger.info('[AuthService] Sending password reset email', { email: email, user: user.full_name });
         await emailService.sendPasswordResetEmail(email, otp, user.full_name);
     } catch (error) {
-        console.error('Failed to send email:', error);
+        logger.error('[AuthService] Error sending password reset email:', { message: error.message });
     }
 
     return {

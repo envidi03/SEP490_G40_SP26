@@ -2,10 +2,8 @@ import React, { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import { useAuth } from "../../contexts/AuthContext"
 import appointmentService from "../../services/appointmentService"
-import { getDentalRecordsByPatient } from "../../services/dentalRecordService"
 
 import AppointmentDetailModal from "./components/AppointmentDetailModal"
-import PatientInfoModal from "./components/PatientInfoModal"
 import CreateDentalRecordModal from "../medical_records/components/CreateDentalRecordModal"
 import AppointmentFilters from "./components/AppointmentFilters"
 import AppointmentTable from "./components/AppointmentTable"
@@ -30,7 +28,6 @@ const DentistAppointmentList = () => {
 
   const [selectedAppointment, setSelectedAppointment] = useState(null)
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false)
-  const [isPatientInfoModalOpen, setIsPatientInfoModalOpen] = useState(false)
   const [isCreateRecordModalOpen, setIsCreateRecordModalOpen] = useState(false)
   const [appointmentForRecord, setAppointmentForRecord] = useState(null)
 
@@ -97,59 +94,22 @@ const DentistAppointmentList = () => {
     setIsDetailModalOpen(true)
   }
 
-  const handleCreateRecord = async (appointment) => {
+  const handleCreateRecord = (appointment) => {
     setAppointmentForRecord(appointment)
-
-    if (appointment.status === 'IN_CONSULTATION') {
-      try {
-        const patientObj = appointment.patient_id || {};
-        const patientId = patientObj._id || patientObj.id || patientObj;
-
-        if (patientId && typeof patientId === 'string') {
-          const res = await getDentalRecordsByPatient(patientId);
-          const records = res.data || [];
-          if (records.length === 0) {
-            // No existing records -> open Create Modal directly
-            setIsCreateRecordModalOpen(true);
-            return;
-          }
-        }
-      } catch (err) {
-        console.error("Failed to check patient records:", err);
-      }
-    }
-
-    // Default flow if condition not met, or fallback
-    setIsPatientInfoModalOpen(true)
-  }
-
-  const handlePatientInfoConfirm = (patientInfo) => {
-    setIsPatientInfoModalOpen(false)
-    const params = new URLSearchParams({
-      appointment_id: patientInfo.appointment_id,
-      name: patientInfo.name,
-      dob: patientInfo.dob,
-      gender: patientInfo.gender,
-      phone: patientInfo.phone,
-    })
-    navigate(`/dentist/dental-records/search?${params.toString()}`)
+    // Luôn mở CreateDentalRecordModal trực tiếp.
+    // Nếu là người thân, bác sĩ chỉ cần đổi tên trong form.
+    // Hồ sơ sẽ được tạo dưới patient_id của tài khoản bệnh nhân,
+    // và tự động hiển thị badge "Hồ sơ người thân" nếu tên khác nhau.
+    setIsCreateRecordModalOpen(true)
   }
 
   const handleCreateRecordSuccess = (newRecord) => {
     setIsCreateRecordModalOpen(false);
     if (newRecord?._id) {
       navigate(`/dentist/dental-records/${newRecord._id}`);
-    } else {
-      // Fallback
-      handlePatientInfoConfirm({
-        appointment_id: appointmentForRecord?._id || appointmentForRecord?.appointment_id || "",
-        name: appointmentForRecord?.patient_id?.full_name || '',
-        dob: appointmentForRecord?.patient_id?.dob ? new Date(appointmentForRecord.patient_id.dob).toISOString().split('T')[0] : '',
-        gender: appointmentForRecord?.patient_id?.gender ? "MALE" : "FEMALE",
-        phone: appointmentForRecord?.patient_id?.phone || '',
-      });
     }
   }
+
 
   const handleClearFilters = () => {
     setSearchTerm("");
@@ -219,12 +179,6 @@ const DentistAppointmentList = () => {
         appointment={selectedAppointment}
       />
 
-      <PatientInfoModal
-        isOpen={isPatientInfoModalOpen}
-        onClose={() => setIsPatientInfoModalOpen(false)}
-        appointment={appointmentForRecord}
-        onConfirm={handlePatientInfoConfirm}
-      />
 
       <CreateDentalRecordModal
         isOpen={isCreateRecordModalOpen}

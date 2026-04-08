@@ -1,4 +1,5 @@
-const nodemailer = require('nodemailer')
+const nodemailer = require('nodemailer');
+const logger = require('../utils/logger');
 require('dotenv').config();
 
 class EmailService {
@@ -88,6 +89,7 @@ class EmailService {
     }
 
     async sendPasswordResetEmail(email, otp, userName = '') {
+        logger.info('[EmailService] Preparing to send password reset email', { email: email, user: userName });
         const subject = 'Password Reset Request - Dental Clinic Management System';
         const html = `
             <!DOCTYPE html>
@@ -618,6 +620,7 @@ class EmailService {
 
     async sendEmail(to, subject, html) {
         try {
+            logger.info(`[EmailService] Sending email to ${to} with subject "${subject}"`);
             const info = await this.transporter.sendMail({
                 from: `"${process.env.SMTP_FROM_NAME || 'Dental CMS'}" <${process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER}>`,
                 to,
@@ -625,10 +628,10 @@ class EmailService {
                 html
             });
 
-            console.log(' Email sent successfully:', info.messageId);
+            logger.info(' Email sent successfully:', info.messageId);
             return info;
         } catch (error) {
-            console.error(' Error sending email:', error);
+            logger.error(' Error sending email:', error);
             throw new Error('Failed to send email: ' + error.message);
         }
     }

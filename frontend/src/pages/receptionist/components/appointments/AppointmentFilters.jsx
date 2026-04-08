@@ -1,12 +1,10 @@
-import { Plus } from 'lucide-react';
 import Card from '../../../../components/ui/Card';
 
 const AppointmentFilters = ({
     selectedDate,
     setSelectedDate,
     filterStatus,
-    setFilterStatus,
-    onBookNew
+    setFilterStatus
 }) => {
     return (
         <Card className="mb-6">
@@ -41,17 +39,6 @@ const AppointmentFilters = ({
                         <option value="COMPLETED">Hoàn thành</option>
                         <option value="CANCELLED">Đã hủy</option>
                     </select>
-                </div>
-
-                {/* Add Button */}
-                <div className="flex items-end">
-                    <button
-                        onClick={onBookNew}
-                        className="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors flex items-center gap-2"
-                    >
-                        <Plus size={20} />
-                        Đặt lịch mới
-                    </button>
                 </div>
             </div>
         </Card>

@@ -9,7 +9,6 @@ const { dental: ServiceProcess } = require("../services/index.service");
 const { checkRequiredFields } = require("../../../utils/checkRequiredFields");
 const { findStaffByAccountId, findPatientByAccountId } = require("../../auth/service/account.service");
 const { checkDuplicateDental } = require("../services/dental.record.service");
-const appointmentService = require("../../appointment/services/appointment.service");
 /* 
   get list dental record with pagination and filter
     (
@@ -325,6 +324,7 @@ const createController = async (req, res) => {
     ];
 
     if (!cleanedData.appointment_id) {
+      const appointmentService = require("../../appointment/services/appointment.service");
       const appointment = await appointmentService.getFirstAppointmentOfPatientAtNowWithStatusCheckin(patientID);
       if (!appointment) {
         logger.warn("No valid appointment found for patient", {

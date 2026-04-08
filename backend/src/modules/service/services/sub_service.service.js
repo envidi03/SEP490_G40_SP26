@@ -29,7 +29,12 @@ const getSubServicesByParentId = async (parentId, query = {}) => {
             .find(filter)
             .sort({ createdAt: -1 })
             .lean();
-
+        logger.debug("Sub-services fetched successfully", {
+            context: "SubServiceService.getSubServicesByParentId",
+            parentId,
+            filter,
+            subServiceCount: subServices.length
+        });
         return subServices;
     } catch (error) {
         logger.error("Error getting sub-services by parent ID", {

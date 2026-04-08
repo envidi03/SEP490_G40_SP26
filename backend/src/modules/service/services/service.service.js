@@ -78,7 +78,7 @@ const getListService = async (query) => {
                                 calculated_max_price: {
                                     $cond: {
                                         if: { $gt: [{ $size: "$sub_services_data" }, 0] },
-                                        then: { 
+                                        then: {
                                             $max: {
                                                 $map: {
                                                     input: "$sub_services_data",
@@ -109,7 +109,16 @@ const getListService = async (query) => {
 
         const services = result[0]?.data || [];
         const totalItems = result[0]?.totalCount[0]?.count || 0;
-
+        logger.debug("services fetched successfully", {
+            context: "ServiceService.getListService",
+            query: query,
+            data: services,
+            pagination: {
+                page: page,
+                size: limit,
+                totalItems: totalItems
+            }
+        });
         return {
             data: services,
             pagination: {

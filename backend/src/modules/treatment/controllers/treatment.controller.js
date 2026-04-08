@@ -150,6 +150,16 @@ const createController = async (req, res) => {
       });
       throw new errorRes.BadRequestError("Create new treatment fails.");
     }
+    logger.debug("New treatment created", {
+      context: context,
+      dentalRecordId: dentalRecordId,
+      treatment: newTreatment,
+    });
+    logger.info("New treatment created successfully", {
+      context,
+      treatmentId: newTreatment._id,
+      dentalRecordId: dentalRecordId,
+    });
     return new successRes.CreateSuccess(
       newTreatment,
       "Treatment created successfully",
