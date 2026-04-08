@@ -7,6 +7,7 @@ const logger = require('./common/utils/logger');
 const initAppointmentJobs = require('./modules/appointment/jobs/appointmentJob');
 const initInventoryJobs = require('./modules/inventory/jobs/inventoryJob');
 const initRevenueJobs = require('./modules/billing/jobs/revenueJob');
+const mongoose = require('mongoose');
 
 const app = express();
 app.set('trust proxy', true);
