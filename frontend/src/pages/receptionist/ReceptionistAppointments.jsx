@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import Toast from '../../components/ui/Toast';
 import appointmentService from '../../services/appointmentService';
 import SharedPagination from '../../components/ui/SharedPagination';
@@ -17,8 +17,7 @@ import BookAppointmentModal from './components/modals/BookAppointmentModal';
 import ViewAppointmentDetailsModal from './components/modals/ViewAppointmentDetailsModal';
 
 const ReceptionistAppointments = () => {
-    const todayStr = new Date().toISOString().split('T')[0];
-    const [selectedDate, setSelectedDate] = useState(todayStr);
+    const [selectedDate, setSelectedDate] = useState();
     const [filterStatus, setFilterStatus] = useState('all');
 
     const [currentPage, setCurrentPage] = useState(1);
@@ -165,7 +164,7 @@ const ReceptionistAppointments = () => {
         }
     };
 
-    const handleCancelAppointment = async (appointmentId, reason) => {
+    const handleCancelAppointment = async (appointmentId) => {
         try {
             await appointmentService.cancelAppointment(appointmentId);
             setToast({ show: true, type: 'success', message: 'Đã hủy lịch hẹn!' });
