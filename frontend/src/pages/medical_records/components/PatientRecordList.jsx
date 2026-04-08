@@ -11,18 +11,19 @@ const formatDate = (iso) => {
     return new Date(iso).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
 };
 
+const normalize = (str) => (str || '').trim().toLowerCase();
+
 /**
  * PatientRecordList
  * Props:
- *   patient       – bệnh nhân đang được chọn
+ *   patient       – bệnh nhân tài khoản đang được chọn
  *   records       – mảng dental records
  *   isLoading     – bool
  *   error         – string | null
  *   onRetry       – callback
- *   canCreate     – bool (không có hồ sơ IN_PROGRESS nào)
- *   onCreateClick – callback mở modal
+ *   onCreateClick – callback mở modal tạo hồ sơ
  */
-const PatientRecordList = ({ patient, records, isLoading, error, onRetry, canCreate, onCreateClick }) => {
+const PatientRecordList = ({ patient, records, isLoading, error, onRetry, onCreateClick }) => {
     const navigate = useNavigate();
 
     if (isLoading) {
@@ -53,18 +54,12 @@ const PatientRecordList = ({ patient, records, isLoading, error, onRetry, canCre
                     <span className="ml-2 text-gray-400 text-xs">· {records.length} hồ sơ</span>
                 </div>
 
-                {canCreate ? (
-                    <button
-                        onClick={onCreateClick}
-                        className="px-4 py-1.5 rounded-xl bg-teal-500 text-white text-xs font-medium hover:bg-teal-600 transition-colors"
-                    >
-                        Tạo hồ sơ mới
-                    </button>
-                ) : (
-                    <span className="text-xs text-amber-600 bg-amber-50 border border-amber-200 px-3 py-1 rounded-full">
-                        Đang có hồ sơ điều trị
-                    </span>
-                )}
+                <button
+                    onClick={onCreateClick}
+                    className="px-4 py-1.5 rounded-xl bg-teal-500 text-white text-sm font-medium hover:bg-teal-600 transition-colors"
+                >
+                    + Tạo hồ sơ mới
+                </button>
             </div>
 
             {/* Empty state */}
@@ -77,16 +72,32 @@ const PatientRecordList = ({ patient, records, isLoading, error, onRetry, canCre
             {/* Record cards */}
             {records.map(record => {
                 const statusInfo = statusConfig[record.status] || { label: record.status, style: 'bg-gray-100 text-gray-500 border-gray-200' };
+                // Hồ sơ người thân: tên trong hồ sơ khác tên tài khoản bệnh nhân
+                const isRelative = record.full_name
+                    && normalize(record.full_name) !== normalize(patient.full_name);
+
                 return (
                     <div
                         key={record._id}
-                        className="group bg-white border border-gray-100 rounded-2xl shadow-sm hover:shadow-md hover:border-teal-200 transition-all duration-200"
+                        className={`group bg-white border rounded-2xl shadow-sm hover:shadow-md transition-all duration-200 ${isRelative
+                            ? 'border-purple-100 hover:border-purple-300'
+                            : 'border-gray-100 hover:border-teal-200'
+                            }`}
                     >
+                        {/* Badge người thân */}
+                        {isRelative && (
+                            <div className="px-5 pt-3 pb-0">
+                                <span className="inline-flex items-center gap-1 text-[12px] font-semibold text-purple-700 bg-purple-50 border border-purple-200 px-2.5 py-0.5 rounded-full">
+                                    Hồ sơ người thân · {record.full_name}
+                                </span>
+                            </div>
+                        )}
+
                         <div className="p-5">
                             <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
                                 <div className="flex-1 min-w-0 space-y-2">
                                     <div className="flex items-center gap-2.5 flex-wrap">
-                                        <h3 className="text-sm font-semibold text-gray-900 group-hover:text-teal-700 transition-colors">
+                                        <h3 className={`text-md font-semibold transition-colors ${isRelative ? 'text-purple-900 group-hover:text-purple-700' : 'text-gray-900 group-hover:text-teal-700'}`}>
                                             {record.record_name}
                                         </h3>
                                         <span className={`text-xs font-medium px-2.5 py-0.5 rounded-full border ${statusInfo.style}`}>
@@ -122,7 +133,10 @@ const PatientRecordList = ({ patient, records, isLoading, error, onRetry, canCre
 
                                 <button
                                     onClick={() => navigate(`/dentist/dental-records/${record._id}`)}
-                                    className="flex-shrink-0 self-center px-4 py-1.5 rounded-xl border border-teal-500 text-teal-600 text-xs font-medium hover:bg-teal-500 hover:text-white transition-all duration-200"
+                                    className={`flex-shrink-0 self-center px-4 py-1.5 rounded-xl border text-sm font-medium transition-all duration-200 ${isRelative
+                                        ? 'border-purple-400 text-purple-600 hover:bg-purple-500 hover:text-white'
+                                        : 'border-teal-500 text-teal-600 hover:bg-teal-500 hover:text-white'
+                                        }`}
                                 >
                                     Xem chi tiết
                                 </button>

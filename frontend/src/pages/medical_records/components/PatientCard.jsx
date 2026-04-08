@@ -12,14 +12,14 @@ const PatientCard = ({ patient, isSelected, onSelect }) => (
     <button
         onClick={() => onSelect(patient)}
         className={`w-full text-left p-4 rounded-xl border transition-all duration-150 ${isSelected
-                ? 'border-teal-400 bg-teal-50 shadow-sm'
-                : 'border-gray-100 bg-white hover:border-teal-200 hover:bg-teal-50/40'
+            ? 'border-teal-400 bg-teal-50 shadow-sm'
+            : 'border-gray-100 bg-white hover:border-teal-200 hover:bg-teal-50/40'
             }`}
     >
         <div className="flex items-start justify-between gap-3">
             <div className="flex-1 min-w-0 space-y-1">
-                <p className="text-sm font-semibold text-gray-800 truncate">{patient.full_name}</p>
-                <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-gray-500">
+                <p className="text-md font-semibold text-gray-800 truncate">{patient.full_name}</p>
+                <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-sm text-gray-500">
                     {patient.phone && <span>SĐT: {patient.phone}</span>}
                     {patient.email && <span>{patient.email}</span>}
                     {patient.dob && <span>NS: {formatDate(patient.dob)}</span>}
