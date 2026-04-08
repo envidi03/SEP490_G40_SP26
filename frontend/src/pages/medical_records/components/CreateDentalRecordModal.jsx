@@ -35,7 +35,7 @@ const CreateDentalRecordModal = ({
     });
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isLoadingAmount, setIsLoadingAmount] = useState(false);
-    const [error, setError] = useState(null);
+    const [errors, setErrors] = useState({});
     // Reset form và fetch total_amount mỗi khi modal mở
     useEffect(() => {
         if (isOpen) {
@@ -54,7 +54,7 @@ const CreateDentalRecordModal = ({
                 start_date: new Date().toISOString().split('T')[0],
                 end_date: '',
             });
-            setError(null);
+            setErrors({});
 
             // 2. Fetch total_amount nếu có appointmentId
             if (appointmentId) {
@@ -89,9 +89,23 @@ const CreateDentalRecordModal = ({
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        
+        const newErrors = {};
+        if (!form.full_name?.trim()) {
+            newErrors.full_name = 'Vui lòng nhập họ và tên bệnh nhân.';
+        }
+        if (!form.record_name?.trim()) {
+            newErrors.record_name = 'Vui lòng nhập tên hồ sơ nha khoa.';
+        }
+
+        if (Object.keys(newErrors).length > 0) {
+            setErrors(newErrors);
+            return;
+        }
+
         if (!patientId) return;
         setIsSubmitting(true);
-        setError(null);
+        setErrors({});
         try {
             const body = {
                 appointment_id: form.appointment_id || undefined,
@@ -113,7 +127,7 @@ const CreateDentalRecordModal = ({
             onClose();
         } catch (err) {
             console.error('Create dental record error:', err);
-            setError(err.response?.data?.message || 'Tạo hồ sơ thất bại. Vui lòng thử lại.');
+            setErrors({ submit: err.response?.data?.message || 'Tạo hồ sơ thất bại. Vui lòng thử lại.' });
         } finally {
             setIsSubmitting(false);
         }
@@ -149,12 +163,17 @@ const CreateDentalRecordModal = ({
                                 <input
                                     type="text"
                                     name="full_name"
-                                    required
                                     value={form.full_name}
-                                    onChange={handleChange}
+                                    onChange={(e) => {
+                                        handleChange(e);
+                                        if (errors.full_name) setErrors(prev => ({ ...prev, full_name: null }));
+                                    }}
                                     placeholder="Họ và tên bệnh nhân"
-                                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-400 focus:bg-white transition"
+                                    className={`w-full px-3 py-2 bg-gray-50 border ${errors.full_name ? 'border-red-400' : 'border-gray-200'} rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-400 focus:bg-white transition`}
                                 />
+                                {errors.full_name && (
+                                    <p className="text-[11px] text-red-500 mt-1 ml-1">{errors.full_name}</p>
+                                )}
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Số điện thoại</label>
@@ -220,12 +239,17 @@ const CreateDentalRecordModal = ({
                                 <input
                                     type="text"
                                     name="record_name"
-                                    required
                                     value={form.record_name}
-                                    onChange={handleChange}
+                                    onChange={(e) => {
+                                        handleChange(e);
+                                        if (errors.record_name) setErrors(prev => ({ ...prev, record_name: null }));
+                                    }}
                                     placeholder="VD: Điều trị tủy răng số 6, Nhổ răng khôn..."
-                                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-400 focus:bg-white transition"
+                                    className={`w-full px-3 py-2 bg-gray-50 border ${errors.record_name ? 'border-red-400' : 'border-gray-200'} rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-400 focus:bg-white transition`}
                                 />
+                                {errors.record_name && (
+                                    <p className="text-[11px] text-red-500 mt-1 ml-1">{errors.record_name}</p>
+                                )}
                             </div>
 
                             <div>
@@ -309,10 +333,10 @@ const CreateDentalRecordModal = ({
                         </div>
                     </div>
 
-                    {/* Error */}
-                    {error && (
+                    {/* Global Error (Submit) */}
+                    {errors.submit && (
                         <p className="text-xs text-red-500 bg-red-50 border border-red-100 rounded-xl px-3 py-2">
-                            {error}
+                            {errors.submit}
                         </p>
                     )}
                 </form>

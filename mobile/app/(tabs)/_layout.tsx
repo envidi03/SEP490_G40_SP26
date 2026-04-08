@@ -32,6 +32,14 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="appointments"
+        options={{
+          title: 'Lịch hẹn',
+          href: isLoggedIn ? undefined : null,
+          tabBarIcon: ({ color }) => <IconSymbol size={26} name="calendar" color={color} />,
+        }}
+      />
+      <Tabs.Screen
         name="dental-record"
         options={{
           title: 'Hồ sơ',

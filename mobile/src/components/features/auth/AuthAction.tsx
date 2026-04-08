@@ -4,9 +4,10 @@ import { ThemedText } from '@/src/components/ui/themed-text';
 type Props = {
     isLoading: boolean;
     onLogin: () => void;
+    onRegister?: () => void;
 };
 
-export function AuthAction({ isLoading, onLogin }: Props) {
+export function AuthAction({ isLoading, onLogin, onRegister }: Props) {
     return (
         <View style={styles.actionContainer}>
             <TouchableOpacity
@@ -24,7 +25,7 @@ export function AuthAction({ isLoading, onLogin }: Props) {
 
             <View style={styles.registerContainer}>
                 <ThemedText style={styles.registerPrompt}>Chưa có tài khoản? </ThemedText>
-                <TouchableOpacity>
+                <TouchableOpacity onPress={onRegister}>
                     <ThemedText style={styles.registerLink}>Đăng ký ngay</ThemedText>
                 </TouchableOpacity>
             </View>

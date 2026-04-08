@@ -51,6 +51,9 @@ const ServiceDetail = () => {
                 let detailRes;
                 if (type === 'package') {
                     detailRes = await serviceService.getSubServiceById(id);
+                } else {
+                    // Fallback to regular service if not specified as a package
+                    detailRes = await serviceService.getServiceById(id);
                 }
 
                 const detailData = detailRes?.data || null;

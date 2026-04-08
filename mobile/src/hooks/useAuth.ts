@@ -14,8 +14,28 @@ export function useLogin() {
 // Register
 export function useRegister() {
     return useMutation({
-        mutationFn: async (credentials: { identifier: string; password: string }) => {
+        mutationFn: async (credentials: any) => {
             const { data } = await apiClient.post('/api/auth/register', credentials);
+            return data;
+        },
+    });
+}
+
+// Forgot Password
+export function useForgotPassword() {
+    return useMutation({
+        mutationFn: async (email: string) => {
+            const { data } = await apiClient.post('/api/auth/forgot-password', { email });
+            return data;
+        },
+    });
+}
+
+// Reset Password
+export function useResetPassword() {
+    return useMutation({
+        mutationFn: async (payload: { email: string; otp: string; newPassword: string }) => {
+            const { data } = await apiClient.post('/api/auth/reset-password', payload);
             return data;
         },
     });

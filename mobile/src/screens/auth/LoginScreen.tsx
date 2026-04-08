@@ -37,6 +37,12 @@ export function LoginScreen() {
             const resData = responseData?.data as any;
             const accessToken = resData?.token;
             const refreshToken = resData?.refreshToken;
+            const roleName = resData?.role?.name;
+
+            if (roleName !== 'PATIENT') {
+                setErrorMsg('Tài khoản của bạn không được cấp quyền truy cập ứng dụng này.');
+                return;
+            }
 
             if (accessToken) {
                 await SecureStore.setItemAsync('access_token', accessToken);
@@ -82,11 +88,13 @@ export function LoginScreen() {
                     password={password}
                     setPassword={setPassword}
                     isLoading={isLoading}
+                    onForgotPassword={() => router.push('/forgot-password')}
                 />
 
                 <AuthAction
                     isLoading={isLoading}
                     onLogin={handleLogin}
+                    onRegister={() => router.push('/register')}
                 />
             </ScrollView>
         </KeyboardAvoidingView>

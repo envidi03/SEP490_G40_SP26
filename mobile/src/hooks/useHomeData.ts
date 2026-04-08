@@ -96,6 +96,31 @@ export function useAppointmentsData() {
     });
 }
 
+// 3b. Fetch All Patient Appointments with date range filter
+export function usePatientAppointments(params: {
+    gte_date?: string;
+    lte_date?: string;
+    sort?: 'asc' | 'desc';
+    page?: number;
+    limit?: number;
+    status?: string;
+}) {
+    return useQuery({
+        queryKey: ['appointments', 'patient', 'history', params],
+        queryFn: async () => {
+            const { data } = await apiClient.get('/api/appointment/patient', {
+                params: {
+                    sort: 'desc',
+                    limit: 50,
+                    page: 1,
+                    ...params,
+                },
+            });
+            return data;
+        },
+    });
+}
+
 // ==========================================
 // APPOINTMENT BOOKING API
 // ==========================================

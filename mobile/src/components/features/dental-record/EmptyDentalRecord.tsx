@@ -5,7 +5,6 @@ import { ThemedText } from '@/src/components/ui/themed-text';
 export function EmptyDentalRecord() {
     return (
         <View style={styles.container}>
-            <ThemedText style={styles.emoji}>🦷</ThemedText>
             <ThemedText style={styles.title}>Chưa có hồ sơ nha khoa</ThemedText>
             <ThemedText style={styles.subtitle}>
                 Lịch sử khám của bạn sẽ xuất hiện ở đây sau mỗi lần điều trị.
@@ -26,10 +25,6 @@ const styles = StyleSheet.create({
         marginTop: 48,
         alignItems: 'center',
         paddingHorizontal: 24,
-    },
-    emoji: {
-        fontSize: 64,
-        marginBottom: 20,
     },
     title: {
         fontSize: 20,

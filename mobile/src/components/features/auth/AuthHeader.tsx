@@ -5,9 +5,11 @@ import { ThemedText } from '@/src/components/ui/themed-text';
 
 type Props = {
     errorMsg?: string;
+    title?: string;
+    subtitle?: string;
 };
 
-export function AuthHeader({ errorMsg }: Props) {
+export function AuthHeader({ errorMsg, title = 'Đăng nhập', subtitle = 'Vui lòng nhập thông tin để quản lý sức khỏe răng miệng của bạn.' }: Props) {
     return (
         <View style={styles.header}>
             <Link href="/" asChild>
@@ -20,8 +22,8 @@ export function AuthHeader({ errorMsg }: Props) {
                     <ThemedText style={styles.backButtonText}>Quay lại</ThemedText>
                 </TouchableOpacity>
             </Link>
-            <ThemedText type="title" style={styles.title}>Đăng nhập</ThemedText>
-            <ThemedText style={styles.subtitle}>Vui lòng nhập thông tin để quản lý sức khỏe răng miệng của bạn.</ThemedText>
+            <ThemedText type="title" style={styles.title}>{title}</ThemedText>
+            <ThemedText style={styles.subtitle}>{subtitle}</ThemedText>
             {errorMsg ? <ThemedText style={styles.errorText}>{errorMsg}</ThemedText> : null}
         </View>
     );

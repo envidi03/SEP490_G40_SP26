@@ -7,9 +7,10 @@ type Props = {
     password: string;
     setPassword: (value: string) => void;
     isLoading: boolean;
+    onForgotPassword?: () => void;
 };
 
-export function AuthForm({ identifier, setIdentifier, password, setPassword, isLoading }: Props) {
+export function AuthForm({ identifier, setIdentifier, password, setPassword, isLoading, onForgotPassword }: Props) {
     return (
         <View style={styles.formContainer}>
             <View style={styles.inputGroup}>
@@ -39,7 +40,7 @@ export function AuthForm({ identifier, setIdentifier, password, setPassword, isL
                 />
             </View>
 
-            <TouchableOpacity style={styles.forgotPassword}>
+            <TouchableOpacity style={styles.forgotPassword} onPress={onForgotPassword}>
                 <ThemedText style={styles.forgotPasswordText}>Quên mật khẩu?</ThemedText>
             </TouchableOpacity>
         </View>

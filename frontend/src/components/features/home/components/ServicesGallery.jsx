@@ -71,7 +71,7 @@ const ServicesGallery = () => {
                     {!loading && !error && services.map((service) => (
                         <div
                             key={service._id || Math.random()}
-                            onClick={() => navigate(`/service/${service._id}`)}
+                            onClick={() => navigate(`/services?parentId=${service._id}`)}
                             className="group cursor-pointer"
                         >
                             <div className="relative overflow-hidden rounded-2xl aspect-square mb-3 bg-gray-100 flex items-center justify-center">

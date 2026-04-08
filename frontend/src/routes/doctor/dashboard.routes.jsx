@@ -3,7 +3,6 @@ import DentistDashboardLayout from '../../components/layout/dentist/DentistDashb
 import ProtectedRoute from '../guards/ProtectedRoute';
 import DoctorDashboard from '../../pages/dashboard/DoctorDashboard';
 import DentistAppointmentList from '../../pages/appointments/DentistAppointmentList';
-import DentistPatientList from '../../pages/patients/DentistPatientList';
 import LeaveRequestList from '../../pages/leave_requests/LeaveRequestList';
 import DentalRecordDetail from '../../pages/medical_records/DentalRecordDetail';
 import PatientRecordSearch from '../../pages/medical_records/PatientRecordSearch';
@@ -27,16 +26,6 @@ const dashboardRoutes = [
             <ProtectedRoute allowedRoles={['DOCTOR']}>
                 <DentistDashboardLayout>
                     <DentistAppointmentList />
-                </DentistDashboardLayout>
-            </ProtectedRoute>
-        )
-    },
-    {
-        path: '/dentist/patients',
-        element: (
-            <ProtectedRoute allowedRoles={['DOCTOR']}>
-                <DentistDashboardLayout>
-                    <DentistPatientList />
                 </DentistDashboardLayout>
             </ProtectedRoute>
         )
