@@ -6,7 +6,11 @@ async function connectDB() {
         const uri = process.env.MONGO_URI || process.env.MONGODB_URI;
         if (!uri) throw new Error('Missing MONGO_URI/MONGODB_URI in .env');
 
-        await mongoose.connect(uri);
+        await mongoose.connect(uri, {
+            serverSelectionTimeoutMS: 5000, 
+            socketTimeoutMS: 45000,         
+            family: 4                       
+        });
         console.log(' MongoDB connected');
         return true;
     } catch (err) {

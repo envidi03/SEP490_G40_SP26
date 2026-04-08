@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const cron = require('node-cron');
 const morgan = require('morgan');
 require('dotenv').config();
 const logger = require('./common/utils/logger');
@@ -135,7 +136,7 @@ app.use('/api/receptionist', receptionistRoute);
 const { notificationRoute } = require('./modules/notification');
 app.use('/api/notification', notificationRoute);
 
-const { route: routePayment} = require('./modules/payment/index');
+const { route: routePayment } = require('./modules/payment/index');
 app.use('/api/payment', routePayment);
 
 const zaloWebhookRoute = require('./common/routes/zalo.webhook.route');
@@ -167,6 +168,19 @@ app.use((err, req, res, next) => {
         errors: err.errors || null,
         ...(process.env.NODE_ENV !== 'production' && { stack: err.stack })
     });
+});
+
+cron.schedule('*/10 * * * *', async () => {
+    // Chỉ ping nếu DB đang ở trạng thái connected (readyState === 1)
+    if (mongoose.connection.readyState === 1) {
+        try {
+            // Bắn một lệnh ping cực nhẹ thẳng vào core của MongoDB
+            await mongoose.connection.db.admin().ping();
+            logger.info('💓 [Heartbeat] Pinged Database to keep connection alive');
+        } catch (error) {
+            logger.error('💔 [Heartbeat] Ping to Database failed:', error);
+        }
+    }
 });
 
 module.exports = { app, corsOptions };
