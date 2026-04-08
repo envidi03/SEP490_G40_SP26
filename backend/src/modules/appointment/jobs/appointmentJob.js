@@ -1,84 +1,97 @@
 const cron = require('node-cron');
-const Appointment = require('../models/appointment.model'); // Điều chỉnh lại đường dẫn cho đúng với project của bạn
+const Appointment = require('../models/appointment.model');
 const logger = require('../../../common/utils/logger');
 const NotificationService = require('../../notification/service/notification.service');
 const EmailService = require('../../../common/service/email.service');
+const moment = require('moment-timezone'); // Bạn đã có thư viện này trong package.json
 
 const initReminderJobs = () => {
-    // Chạy vào lúc 08:00 sáng mỗi ngày (Giờ local của server)
-    cron.schedule('0 8 * * *', async () => {
-        logger.info('--- Starting daily appointment reminder cron job (24h prior) ---');
+    // Chạy mỗi phút một lần để kiểm tra các mốc thời gian ngắn (2h, 1h, 30', 15')
+    cron.schedule('* * * * *', async () => {
         try {
-            const now = new Date();
+            const now = moment();
 
-            // Lấy ngày mai
-            const tomorrow = new Date(now);
-            tomorrow.setDate(tomorrow.getDate() + 1);
+            // Tìm các lịch hẹn SCHEDULED trong vòng 24 giờ tới
+            // Chúng ta lấy dôi ra một chút để không bỏ sót
+            const startSearch = now.clone().toDate();
+            const endSearch = now.clone().add(25, 'hours').toDate();
 
-            // Dùng UTC để khớp với cách MongoDB lưu trữ appointment_date (00:00:00.000 UTC)
-            const tomorrowDayUTC = new Date(Date.UTC(tomorrow.getUTCFullYear(), tomorrow.getUTCMonth(), tomorrow.getUTCDate()));
-
-            // Tìm các lịch hẹn có trạng thái SCHEDULED vào ngày mai
-            const upcomingAppointments = await Appointment.find({
+            const appointments = await Appointment.find({
                 status: "SCHEDULED",
-                appointment_date: tomorrowDayUTC
+                appointment_date: { $gte: startSearch, $lte: endSearch }
             }).populate({
                 path: 'patient_id',
                 select: 'account_id'
             });
 
-            if (upcomingAppointments.length > 0) {
-                logger.info(`Found ${upcomingAppointments.length} appointments for tomorrow. Sending reminders...`);
+            for (const app of appointments) {
+                // Kết hợp ngày và giờ để có thời điểm hẹn chính xác
+                // Giả sử app.appointment_time có dạng "14:30"
+                const [hours, minutes] = app.appointment_time.split(':');
+                const appointmentMoment = moment(app.appointment_date)
+                    .set({ hour: parseInt(hours), minute: parseInt(minutes), second: 0 });
 
-                let successCount = 0;
+                const diffMinutes = appointmentMoment.diff(now, 'minutes');
 
-                for (const appointment of upcomingAppointments) {
-                    try {
-                        const patientName = appointment.full_name;
-                        const appointmentDate = new Date(appointment.appointment_date).toLocaleDateString('vi-VN');
-                        const appointmentTime = appointment.appointment_time;
+                let reminderType = null;
+                let message = "";
 
-                        // 1. Gửi thông báo qua hệ thống (Push notification / In-app)
-                        if (appointment.patient_id && appointment.patient_id.account_id) {
-                            await NotificationService.sendToUser(appointment.patient_id.account_id, {
-                                type: 'APPOINTMENT_REMINDER',
-                                title: 'Nhắc nhở lịch hẹn ngày mai',
-                                message: `Chào ${patientName}, bạn có lịch hẹn khám nha khoa vào lúc ${appointmentTime} ngày mai (${appointmentDate}). Vui lòng đến đúng giờ nhé!`,
-                                action_url: `/appointments/${appointment._id}`
-                            });
-                        }
-
-                        // 2. Gửi Email thông báo (nếu có email)
-                        if (appointment.email) {
-                            // Giả định bạn có hàm sendReminderEmail trong EmailService
-                            await EmailService.sendReminderEmail(
-                                appointment.email,
-                                patientName,
-                                appointmentDate,
-                                appointmentTime
-                            );
-                        }
-
-                        successCount++;
-                    } catch (singleErr) {
-                        logger.error(`Error sending reminder for appointment ${appointment._id}`, {
-                            error: singleErr.message,
-                            stack: singleErr.stack
-                        });
-                    }
+                // Xác định mốc nhắc nhở
+                if (diffMinutes <= 1440 && diffMinutes > 1430 && !app.reminders_sent.includes('1D')) {
+                    reminderType = '1D';
+                    message = `Bạn có lịch hẹn vào ngày mai lúc ${app.appointment_time}.`;
+                } else if (diffMinutes <= 120 && diffMinutes > 110 && !app.reminders_sent.includes('2H')) {
+                    reminderType = '2H';
+                    message = `Chỉ còn 2 giờ nữa là đến lịch hẹn của bạn (${app.appointment_time}).`;
+                } else if (diffMinutes <= 60 && diffMinutes > 50 && !app.reminders_sent.includes('1H')) {
+                    reminderType = '1H';
+                    message = `Lịch hẹn của bạn sẽ bắt đầu sau 1 giờ nữa.`;
+                } else if (diffMinutes <= 30 && diffMinutes > 25 && !app.reminders_sent.includes('30M')) {
+                    reminderType = '30M';
+                    message = `Nhắc nhở: 30 phút nữa bạn có lịch hẹn khám.`;
+                } else if (diffMinutes <= 15 && diffMinutes > 0 && !app.reminders_sent.includes('15M')) {
+                    reminderType = '15M';
+                    message = `Lịch hẹn của bạn sẽ bắt đầu sau 15 phút. Vui lòng chuẩn bị!`;
                 }
 
-                logger.info(`Successfully sent reminders for ${successCount}/${upcomingAppointments.length} appointments.`);
-            } else {
-                logger.info('No upcoming appointments for tomorrow. Skipping reminders.');
+                if (reminderType) {
+                    await sendReminders(app, message, reminderType);
+                }
             }
         } catch (err) {
-            logger.error("Error in daily reminder Cron job", {
-                error: err.message,
-                stack: err.stack
-            });
+            logger.error("Error in Reminder Cron Job", { error: err.message });
         }
     });
 };
+
+async function sendReminders(appointment, message, type) {
+    try {
+        // 1. Gửi Push Notification
+        if (appointment.patient_id?.account_id) {
+            await NotificationService.sendToUser(appointment.patient_id.account_id, {
+                type: 'APPOINTMENT_REMINDER',
+                title: 'Nhắc nhở lịch hẹn',
+                message: message,
+                action_url: `/appointments/${appointment._id}`
+            });
+        }
+
+        // 2. Gửi Email
+        if (appointment.email) {
+            // Sử dụng hàm sendAppointmentReminder mà bạn đã có trong EmailService
+            // Lưu ý: Bạn có thể cần truyền thêm message để nội dung email linh hoạt theo mốc thời gian
+            await EmailService.sendAppointmentReminder(appointment);
+        }
+
+        // 3. Đánh dấu đã gửi mốc này để không gửi lại
+        await Appointment.findByIdAndUpdate(appointment._id, {
+            $addToSet: { reminders_sent: type }
+        });
+
+        logger.info(`Sent ${type} reminder for appointment ${appointment._id}`);
+    } catch (err) {
+        logger.error(`Failed to send ${type} reminder`, { error: err.message });
+    }
+}
 
 module.exports = initReminderJobs;

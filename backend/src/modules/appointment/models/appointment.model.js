@@ -75,6 +75,10 @@ const appointmentSchema = new Schema(
         priority: {
             type: Number,
             default: 2, // 1: Cao, 2: Bình thường, 3: Thấp
+        },
+        reminders_sent: {
+            type: [String],
+            default: []
         }
     },
     {

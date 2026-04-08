@@ -400,6 +400,16 @@ const staffCreateController = async (req, res) => {
       throw new errorRes.BadRequestError("Tạo lịch hẹn mới thất bại.");
     }
 
+    logger.debug("New appointment created successfully", {
+      context: "appointmentController.staffCreateController",
+      newAppointment: newAppointment,
+    });
+
+    logger.info("New appointment created successfully", {
+      context: "appointmentController.staffCreateController",
+      appointmentId: newAppointment._id,
+    });
+
     // 3. Trả về response
     return new successRes.CreateSuccess(
       newAppointment,

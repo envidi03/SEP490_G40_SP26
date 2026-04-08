@@ -7,12 +7,15 @@ const CreateAppointment = ({ isOpen, onClose, treatmentData, onSuccess }) => {
     const [error, setError] = useState(null);
 
     const [formData, setFormData] = useState({
+        patient_id: treatmentData?.patient_id || '',
         full_name: '',
         phone: '',
+        email: treatmentData?.record_info?.email || '',
         appointment_date: '',
         appointment_time: '',
         treatment_id: '',
-        priority: 1
+        priority: 1,
+        reason: `Lên lịch hẹn cho phiếu điều trị: ${treatmentData?.record_info?.record_name || 'N/A'}`,
     });
 
     useEffect(() => {
@@ -23,11 +26,15 @@ const CreateAppointment = ({ isOpen, onClose, treatmentData, onSuccess }) => {
             }
 
             setFormData({
+                patient_id: treatmentData.patient_id || '',
                 full_name: treatmentData.record_info?.full_name || treatmentData.full_name || '',
                 phone: treatmentData.record_info?.phone || treatmentData.phone || '',
+                email: treatmentData.record_info?.email || '',
                 appointment_date: defaultDate, 
                 appointment_time: '09:00', 
-                treatment_id: treatmentData._id || '' 
+                treatment_id: treatmentData._id || '',
+                priority: 1,
+                reason: `Lên lịch hẹn cho phiếu điều trị: ${treatmentData.record_info?.record_name || 'N/A'}`
             });
             setError(null);
         }
