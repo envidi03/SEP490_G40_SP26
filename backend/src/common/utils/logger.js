@@ -4,30 +4,30 @@ const path = require('path');
 
 // Lấy môi trường hiện tại
 const env = process.env.NODE_ENV || 'development';
-// 1. Định dạng log cho môi trường DEV
+
+// 1. Định dạng log cho màn hình Console (Luôn hiển thị đẹp, dễ đọc ở cả Local và Server)
 const devFormat = winston.format.combine(
-  winston.format.colorize(), 
+  winston.format.colorize(),
   winston.format.timestamp({ format: 'HH:mm:ss' }),
   winston.format.errors({ stack: true }),
   winston.format.printf(({ timestamp, level, message, stack, context, ...metadata }) => {
     // In dòng tiêu đề log
     let logMsg = `${timestamp} [${level}]${context ? ` [${context}]` : ''}: ${message}`;
-    
-    // NẾU CÓ DỮ LIỆU PHỤ (metadata): Chuyển thành chuỗi JSON đẹp để hiển thị
+
+    // NẾU CÓ DỮ LIỆU PHỤ (metadata): Chuyển thành chuỗi JSON đẹp để hiển thị nhiều dòng
     if (Object.keys(metadata).length > 0) {
-      // metadata ở đây sẽ chứa: query, rooms, roomData, cleanUpdateData... tùy theo chỗ gọi
       logMsg += `\n${JSON.stringify(metadata, null, 2)}`;
     }
-    
+
     // In stack trace nếu là log lỗi
     if (stack) {
-        logMsg += `\n${stack}`;
+      logMsg += `\n${stack}`;
     }
     return logMsg;
   })
 );
 
-// 2. Định dạng log cho môi trường PROD
+// 2. Định dạng log cho việc ghi File trên Production (Chuẩn JSON 1 dòng để tối ưu dung lượng)
 const prodFormat = winston.format.combine(
   winston.format.timestamp(),
   winston.format.errors({ stack: true }),
@@ -46,20 +46,24 @@ const fileRotateTransport = new DailyRotateFile({
   level: 'info',
 });
 
-// Khởi tạo Logger
+// 4. Khởi tạo Logger
 const logger = winston.createLogger({
+  // Ở local thì hiện log debug, lên server thì chỉ hiện từ info trở lên cho đỡ rác
   level: env === 'development' ? 'debug' : 'info',
-  // Mặc định format chung (sẽ bị override bởi transport nếu cần)
-  format: env === 'development' ? devFormat : prodFormat,
+
   transports: [
-    // Console Transport
+    // Luôn luôn in ra Terminal/Console (ở cả Local và Render) dạng đẹp mắt dễ đọc
     new winston.transports.Console({
-      format: env === 'development' ? devFormat : prodFormat 
+      format: devFormat
     }),
   ],
 });
 
-// Nếu là Production, thêm transport ghi file
-logger.add(fileRotateTransport);
+// 5. Nếu là Production, mới bật tính năng ghi log ra file cất đi
+if (env === 'production') {
+  // Ép transport ghi file dùng định dạng nén JSON 1 dòng
+  fileRotateTransport.format = prodFormat;
+  logger.add(fileRotateTransport);
+}
 
 module.exports = logger;
