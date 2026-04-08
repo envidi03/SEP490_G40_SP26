@@ -4,8 +4,6 @@ import StatusBadge from './StatusBadge';
 
 const AppointmentItem = ({
     appointment,
-    onConfirm,
-    onCancel,
     onContact,
     onReschedule,
     onViewDetails,
@@ -40,43 +38,6 @@ const AppointmentItem = ({
 
                 {/* Actions */}
                 <div className="flex gap-2 ml-4">
-                    {appointment.status === 'SCHEDULED' && (
-                        <>
-                            <button
-                                onClick={() => onConfirm(appointment)}
-                                className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                                title="Xác nhận đến"
-                            >
-                                <CheckCircle size={20} />
-                            </button>
-                            <button
-                                onClick={() => onCancel(appointment)}
-                                className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                                title="Hủy"
-                            >
-                                <XCircle size={20} />
-                            </button>
-                        </>
-                    )}
-
-                    {appointment.status === 'PENDING_CONFIRMATION' && (
-                        <>
-                            <button
-                                onClick={() => onConfirm(appointment)}
-                                className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg transition-colors font-medium border border-blue-200"
-                                title="Xác nhận lịch hẹn mới"
-                            >
-                                <span className="text-sm">Xác nhận lịch hẹn</span>
-                            </button>
-                            <button
-                                onClick={() => onCancel(appointment)}
-                                className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                                title="Từ chối/Hủy"
-                            >
-                                <span className="text-sm"> Từ chối lịch hẹn</span>
-                            </button>
-                        </>
-                    )}
                     <button
                         onClick={() => onContact(appointment)}
                         className="p-2 text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
