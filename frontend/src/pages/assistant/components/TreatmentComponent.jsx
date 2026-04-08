@@ -1,19 +1,27 @@
-import React, { useState } from "react";
-import { Clock, Activity, Play, Edit, Pill } from "lucide-react";
+import React, { useEffect, useState } from "react";
+import { Clock, Play, Edit, Pill } from "lucide-react";
 import Badge from "../../../components/ui/Badge";
 import treatmentApi from "../../../services/treatmentService";
 import TreatmentDetailModal from "./../modals/treatment/TreatmentDetailModal";
 import UpdateTreatmentModal from "./../modals/treatment/UpdateTreatmentModal";
 import { getStatusConfig } from "../modals/treatment/getStatusConfig";
 
+// Đảm bảo đường dẫn này trỏ đúng đến file StartTreatmentModal mà chúng ta vừa tạo
+import StartTreatmentModal from "../modals/StartTreatmentModal"; 
+import staffService from "../../../services/staffService";
+
 const TreatmentComponent = ({ treatment, index, onRefresh }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [detailData, setDetailData] = useState(null);
+  const [doctors, setDoctors] = useState([]);
 
   const [localStatus, setLocalStatus] = useState(treatment.status);
   const [isChangingStatus, setIsChangingStatus] = useState(false);
   const [showUpdateModal, setShowUpdateModal] = useState(false);
+  
+  // State quản lý việc đóng mở Modal chọn bác sĩ
+  const [isDoctorModalOpen, setIsDoctorModalOpen] = useState(false);
 
   const statusConfig = getStatusConfig(localStatus);
 
@@ -33,12 +41,55 @@ const TreatmentComponent = ({ treatment, index, onRefresh }) => {
     }
   };
 
+  useEffect(() => {
+    if (isDoctorModalOpen) {
+      const fetchDoctors = async () => {
+        try {
+          const staffResponse = await staffService.getStaffs({
+            role_name: "DOCTOR",
+          });
+          let docsData = staffResponse.data?.data || staffResponse.data || [];
+          setDoctors(docsData);
+        } catch (error) {
+          console.error("Lỗi tải danh sách bác sĩ:", error);
+        }
+      };
+      fetchDoctors();
+    }
+  }, [isDoctorModalOpen]);
+
+
+  // Kích hoạt khi bấm nút "BẮT ĐẦU" trên thẻ điều trị
   const handleStartTreatment = async (e) => {
     e.stopPropagation();
-    setIsChangingStatus(true);
+    if (!treatment?.doctor_id) {
+      setIsDoctorModalOpen(true);
+    } else {
+      setIsChangingStatus(true);
+      try {
+        await treatmentApi.changeStatusTreatment(treatment._id, { status: "IN_PROGRESS" });
+        setLocalStatus("IN_PROGRESS");
+      } catch (error) {
+        console.error("Lỗi:", error);
+        alert(error.response?.data?.message || "Lỗi cập nhật trạng thái!");
+      } finally {
+        setIsChangingStatus(false);
+      }
+    }
+  };
+
+  const handleConfirmStart = async (treatmentId, data) => {
+    setIsDoctorModalOpen(false); 
+    setIsChangingStatus(true);   
+    
     try {
-      await treatmentApi.changeStatusTreatment(treatment._id, { status: "IN_PROGRESS" });
+      await treatmentApi.changeStatusTreatment(treatmentId, { 
+        status: "IN_PROGRESS",
+        doctor_id: data.doctorId 
+      });
+      
       setLocalStatus("IN_PROGRESS");
+      if (onRefresh) onRefresh();
     } catch (error) {
       console.error("Lỗi:", error);
       alert(error.response?.data?.message || "Lỗi cập nhật trạng thái!");
@@ -97,7 +148,6 @@ const TreatmentComponent = ({ treatment, index, onRefresh }) => {
           </div>
 
           <div className="flex items-center gap-2">
-            {/* Logic hiển thị nút Cập nhật dựa trên canUpdate */}
             {canUpdate && (
               <button 
                 onClick={handleOpenUpdate} 
@@ -107,7 +157,6 @@ const TreatmentComponent = ({ treatment, index, onRefresh }) => {
               </button>
             )}
 
-            {/* ĐÃ SỬA: Thêm điều kiện treatment.appointment_id vào đây */}
             {localStatus === 'PLANNED' && treatment.appointment_id && (
               <button 
                 onClick={handleStartTreatment} 
@@ -121,7 +170,12 @@ const TreatmentComponent = ({ treatment, index, onRefresh }) => {
         </div>
       </div>
 
-      <TreatmentDetailModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} data={detailData} isLoading={isLoading} />
+      <TreatmentDetailModal 
+        isOpen={isModalOpen} 
+        onClose={() => setIsModalOpen(false)} 
+        data={detailData} 
+        isLoading={isLoading} 
+      />
 
       <UpdateTreatmentModal
         isOpen={showUpdateModal}
@@ -132,6 +186,14 @@ const TreatmentComponent = ({ treatment, index, onRefresh }) => {
           setDetailData(null);
           if (onRefresh) onRefresh();
         }}
+      />
+
+      <StartTreatmentModal
+        isOpen={isDoctorModalOpen}
+        onClose={() => setIsDoctorModalOpen(false)}
+        treatment={treatment}
+        doctors={doctors}
+        onComplete={handleConfirmStart}
       />
     </div>
   );

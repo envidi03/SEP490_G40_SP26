@@ -1,15 +1,11 @@
 import { X, User, ArrowRight, Activity } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState } from 'react'; // Bỏ useEffect đi
 
 const AssignDoctorModal = ({ appointment, isOpen, onClose, onComplete, doctors }) => {
-    const [selectedDoctor, setSelectedDoctor] = useState('');
+    // 1. Khởi tạo trực tiếp state từ props (Không cần useEffect nữa)
+    const [selectedDoctor, setSelectedDoctor] = useState(appointment?.doctor_id || '');
 
-    useEffect(() => {
-        if (appointment) {
-            setSelectedDoctor(appointment.doctor_id || '');
-        }
-    }, [appointment]);
-
+    // 2. Chặn render nếu modal đang đóng hoặc thiếu dữ liệu
     if (!isOpen || !appointment) return null;
 
     const handleSubmit = (e) => {
