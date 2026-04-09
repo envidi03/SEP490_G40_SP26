@@ -7,12 +7,25 @@ class EmailService {
         this.transporter = nodemailer.createTransport({
             host: process.env.SMTP_HOST,
             port: process.env.SMTP_PORT,
-            secure: false,
+            secure: process.env.SMTP_PORT == 465, // true if port is 465
             auth: {
                 user: process.env.SMTP_USER,
                 pass: process.env.SMTP_PASS
+            },
+            tls: {
+                // Do not fail on invalid certs (common issue on some cloud providers)
+                rejectUnauthorized: false
             }
-        })
+        });
+
+        // Verify connection configuration
+        this.transporter.verify((error, success) => {
+            if (error) {
+                logger.error('[EmailService] SMTP Connection Error:', error);
+            } else {
+                logger.info('[EmailService] SMTP Server is ready to take our messages');
+            }
+        });
     }
 
     async sendEmailVerificationEmail(email, verificationToken, userName = '') {
