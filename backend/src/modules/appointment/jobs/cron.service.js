@@ -25,7 +25,7 @@ async function sendReminders(appointment, message, type) {
                 },
                 channels: {
                     in_app: { enabled: true },
-                    sms: { enabled: false } // Bật/tắt SMS tùy logic của bạn
+                    sms: { enabled: true }
                 }
             });
         }
@@ -40,19 +40,18 @@ async function sendReminders(appointment, message, type) {
             $addToSet: { reminders_sent: type }
         });
 
-        logger.info(`[CRON] Đã gửi thông báo (${type}) cho lịch hẹn ${appointment._id}`);
+        logger.info(`[CRON gửi thông báo] Đã gửi thông báo (${type}) cho lịch hẹn ${appointment._id}`);
     } catch (err) {
-        logger.error(`[CRON] Lỗi khi gửi thông báo (${type}):`, { error: err.message });
+        logger.error(`[CRON gửi thông báo] Lỗi khi gửi thông báo (${type}):`, { error: err.message });
     }
 }
 
-// ==============================================================
-// JOB 1: NHẮC HẸN ĐA MỐC THỜI GIAN (Giữ nguyên logic của bạn)
-// ==============================================================
+
 // ==============================================================
 // JOB 1: NHẮC HẸN ĐA MỐC THỜI GIAN (ĐÃ FIX LỖI TIMEZONE & NGÀY)
 // ==============================================================
 const initReminderJobs = () => {
+    logger.info('[CRON nhắc lịch hẹn] Reminder job scheduled to run every minute');
     cron.schedule('* * * * *', async () => {
         try {
             // 1. Ép múi giờ chuẩn Việt Nam cho hiện tại
@@ -102,29 +101,26 @@ const initReminderJobs = () => {
                     message = `Lịch hẹn của bạn sẽ bắt đầu sau 15 phút. Vui lòng chuẩn bị!`;
                 }
 
-                // Log này sẽ giúp bạn nhìn thấy chính xác Cron đang đếm ngược bao nhiêu phút
                 if (diffMinutes >= 0 && diffMinutes <= 1440) {
-                    logger.debug(`[CRON CHECK] ${app.full_name} (${app.appointment_time}) | Cách hiện tại: ${diffMinutes} phút | Đã gửi: [${app.reminders_sent.join(', ')}]`);
+                    logger.debug(`[CRON nhắc lịch hẹn] ${app.full_name} (${app.appointment_time}) | Cách hiện tại: ${diffMinutes} phút | Đã gửi: [${app.reminders_sent.join(', ')}]`);
                 }
 
                 if (reminderType) {
-                    logger.info(`[CRON] Chuẩn bị gửi ${reminderType}: "${message}" cho lịch ${app._id}`);
+                    logger.info(`[CRON nhắc lịch hẹn] Chuẩn bị gửi ${reminderType}: "${message}" cho lịch ${app._id}`);
                     await sendReminders(app, message, reminderType);
                 }
             }
         } catch (err) {
-            logger.error("[CRON] Lỗi trong Reminder Cron Job", { error: err.message });
+            logger.error("[CRON nhắc lịch hẹn] Lỗi trong Reminder Cron Job", { error: err.message });
         }
     });
 };
 
 // ==============================================================
-// JOB 2: TỰ ĐỘNG CHUYỂN NO_SHOW (Nếu quá hẹn 1 tiếng)
-// ==============================================================
-// ==============================================================
 // JOB 2: TỰ ĐỘNG CHUYỂN NO_SHOW (ĐÃ FIX LỖI TIMEZONE)
 // ==============================================================
 const startNoShowCheckCron = () => {
+    logger.info('[CRON đổi trạng thái] No-show check job scheduled to run every minute');
     cron.schedule('* * * * *', async () => {
         try {
             // 1. Ép múi giờ chuẩn Việt Nam cho thời điểm hiện tại
@@ -160,16 +156,16 @@ const startNoShowCheckCron = () => {
                     app.status = 'NO_SHOW';
                     await app.save();
                     noShowCount++;
-                    logger.info(`[CRON NO_SHOW] Lịch hẹn của ${app.full_name} (${app.appointment_time}) đã chuyển thành NO_SHOW do trễ ${minutesPassed} phút.`);
+                    logger.info(`[CRON đổi trạng thái] Lịch hẹn của ${app.full_name} (${app.appointment_time}) đã chuyển thành NO_SHOW do trễ ${minutesPassed} phút.`);
                 }
             }
 
             if (noShowCount > 0) {
-                logger.info(`[CRON NO_SHOW] Quét xong. Đã cập nhật ${noShowCount} lịch hẹn thành NO_SHOW.`);
+                logger.info(`[CRON đổi trạng thái] Quét xong. Đã cập nhật ${noShowCount} lịch hẹn thành NO_SHOW.`);
             }
 
         } catch (err) {
-            logger.error("[CRON] Lỗi trong NO_SHOW Check Job", { error: err.message });
+            logger.error("[CRON đổi trạng thái] Lỗi trong NO_SHOW Check Job", { error: err.message });
         }
     });
 };

@@ -4,6 +4,9 @@ require('dotenv').config();
 
 class EmailService {
     constructor() {
+        logger.debug("=== DEBUG SMTP PASS ===", {
+            SMTP_PASS: process.env.SMTP_PASS
+        });
         this.transporter = nodemailer.createTransport({
             host: process.env.SMTP_HOST,
             port: process.env.SMTP_PORT,
