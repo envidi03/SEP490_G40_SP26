@@ -3,6 +3,7 @@ import { Search, UserCheck, Phone, Clock, Loader2, RefreshCw, Filter } from 'luc
 import Card from '../../components/ui/Card';
 import Badge from '../../components/ui/Badge';
 import Toast from '../../components/ui/Toast';
+import SharedPagination from '../../components/ui/SharedPagination';
 import appointmentService from '../../services/appointmentService';
 import { formatDate } from '../../utils/dateUtils';
 
@@ -10,6 +11,9 @@ const ReceptionistCheckIn = () => {
     const [appointments, setAppointments] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalItems, setTotalItems] = useState(0);
+    const limit = 6;
     const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
 
     const todayStr = new Date().toISOString().split('T')[0];
@@ -17,24 +21,23 @@ const ReceptionistCheckIn = () => {
     const fetchTodayAppointments = async () => {
         setLoading(true);
         try {
-            // Lấy danh sách những người chưa Check-in (Sẽ lấy được cả SCHEDULED và NO_SHOW)
             const response = await appointmentService.getStaffAppointments({
-                page: 1,
-                limit: 100,
+                page: currentPage,
+                limit: limit,
                 exclude_status: 'CHECKED_IN,IN_CONSULTATION,COMPLETED,CANCELLED',
                 lte_date: todayStr,
                 gte_date: todayStr,
+                search: searchTerm || undefined
             });
-            const data = response.data?.data || response.data || [];
+            const resData = response.data;
+            const data = resData?.data || resData || [];
             const list = Array.isArray(data) ? data : data.data || [];
 
-            // Filter lại lần nữa ở frontend để chắc chắn là ngày hôm nay
-            const todayList = list.filter(apt => {
-                const aptDate = new Date(apt.appointment_date).toISOString().split('T')[0];
-                return aptDate === todayStr;
-            });
+            setAppointments(list);
 
-            setAppointments(todayList);
+            // Cập nhật tổng số item từ API pagination
+            const paginationRes = resData?.pagination || response.pagination || {};
+            setTotalItems(paginationRes.totalItems || paginationRes.total_items || list.length);
         } catch (error) {
             console.error('Error fetching check-in list:', error);
             setToast({ show: true, message: 'Lỗi khi tải danh sách tiếp đón', type: 'error' });
@@ -43,18 +46,21 @@ const ReceptionistCheckIn = () => {
         }
     };
 
+    // Gọi API khi currentPage thay đổi, hoặc khi gõ tìm kiếm (có debounce)
     useEffect(() => {
-        fetchTodayAppointments();
-    }, []);
+        const timeoutId = setTimeout(() => {
+            fetchTodayAppointments();
+        }, 500); // 500ms debounce
+        return () => clearTimeout(timeoutId);
+    }, [currentPage, searchTerm]);
 
-    const filteredAppointments = useMemo(() => {
-        return appointments.filter(apt => {
-            const name = (apt.full_name || '').toLowerCase();
-            const phone = (apt.phone || '').toLowerCase();
-            const search = searchTerm.toLowerCase();
-            return name.includes(search) || phone.includes(search);
-        });
-    }, [appointments, searchTerm]);
+    // Reset pagination khi search thay đổi
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchTerm]);
+
+    // Pagination calculations
+    const totalPages = Math.ceil(totalItems / limit) || 1;
 
     const handleCheckIn = async (appointmentId) => {
         try {
@@ -131,8 +137,8 @@ const ReceptionistCheckIn = () => {
                                         </div>
                                     </td>
                                 </tr>
-                            ) : filteredAppointments.length > 0 ? (
-                                filteredAppointments.map((apt) => (
+                            ) : appointments.length > 0 ? (
+                                appointments.map((apt) => (
                                     <tr key={apt._id} className="hover:bg-gray-50">
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <div className="flex items-center">
@@ -158,7 +164,7 @@ const ReceptionistCheckIn = () => {
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                                             {apt.doctor_info?.profile?.full_name || apt.doctorId?.name || 'Chưa chỉ định'}
                                         </td>
-                                        
+
                                         {/* --- CỘT TRẠNG THÁI (ĐÃ SỬA LẠI ĐỂ HIỂN THỊ ĐỘNG) --- */}
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             {apt.status === 'NO_SHOW' ? (
@@ -189,6 +195,19 @@ const ReceptionistCheckIn = () => {
                         </tbody>
                     </table>
                 </div>
+
+                {/* Pagination */}
+                {totalPages > 1 && (
+                    <div className="p-4 border-t border-gray-100 bg-gray-50/50">
+                        <SharedPagination
+                            currentPage={currentPage}
+                            totalPages={totalPages}
+                            totalItems={totalItems}
+                            onPageChange={setCurrentPage}
+                            itemLabel="bệnh nhân"
+                        />
+                    </div>
+                )}
             </Card>
 
             <Toast
