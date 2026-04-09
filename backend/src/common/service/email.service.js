@@ -1,5 +1,6 @@
 const nodemailer = require('nodemailer');
 const logger = require('../utils/logger');
+const dns = require('dns');
 require('dotenv').config();
 
 class EmailService {
@@ -7,6 +8,12 @@ class EmailService {
         const port = parseInt(process.env.SMTP_PORT || '465');
         const host = process.env.SMTP_HOST || 'smtp.gmail.com';
         
+        // --- CHẨN ĐOÁN DNS ---
+        dns.lookup(host, (err, address, family) => {
+            if (err) logger.error(`[EmailService] DNS Lookup Failed for ${host}:`, err);
+            else logger.info(`[EmailService] DNS Lookup Success: ${host} -> ${address} (IPv${family})`);
+        });
+
         logger.info(`[EmailService] Initializing with Host: ${host}, Port: ${port}, User: ${process.env.SMTP_USER}`);
 
         this.transporter = nodemailer.createTransport({
@@ -21,8 +28,12 @@ class EmailService {
                 // Do not fail on invalid certs (common issue on some cloud providers)
                 rejectUnauthorized: false
             },
-            connectionTimeout: 10000, // 10 seconds
-            greetingTimeout: 10000,   // 10 seconds
+            connectionTimeout: 15000, // 15 seconds
+            greetingTimeout: 15000,   // 15 seconds
+            socketTimeout: 15000,
+            debug: true,              // Bật log debug chi tiết
+            logger: true,             // Ghi log ra console
+            family: 4                 // Ép sử dụng IPv4 để tránh lỗi IPv6 trên Cloud
         });
 
         // Verify connection configuration
