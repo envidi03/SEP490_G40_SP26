@@ -888,6 +888,7 @@ const createService = async (dataCreate, account_id) => {
         // ==========================================================
 
         // --- 5. GỬI EMAIL XÁC NHẬN ĐẶT LỊCH (Fire and Forget) ---
+        console.log('🚀 [DEBUG] Đang chuẩn bị gửi email đặt lịch cho:', newAppointment.email);
         if (newAppointment.email) {
             const formattedDate = new Date(newAppointment.appointment_date).toLocaleDateString('vi-VN');
             emailService.sendBookingConfirmationEmail(

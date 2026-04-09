@@ -1,18 +1,49 @@
 const nodemailer = require('nodemailer');
 const logger = require('../utils/logger');
+const dns = require('dns');
 require('dotenv').config();
 
 class EmailService {
     constructor() {
+        const port = parseInt(process.env.SMTP_PORT || '587');
+        const host = process.env.SMTP_HOST || 'smtp.gmail.com';
+
+        // --- CHẨN ĐOÁN DNS ---
+        dns.lookup(host, (err, address, family) => {
+            if (err) logger.error(`[EmailService] DNS Lookup Failed for ${host}:`, err);
+            else logger.info(`[EmailService] DNS Lookup Success: ${host} -> ${address} (IPv${family})`);
+        });
+
+        logger.info(`[EmailService] Initializing with Host: ${host}, Port: ${port}, User: ${process.env.SMTP_USER}`);
+
         this.transporter = nodemailer.createTransport({
-            host: process.env.SMTP_HOST,
-            port: process.env.SMTP_PORT,
-            secure: false,
+            host: host,
+            port: port,
+            secure: port === 587, // true if port is 465
             auth: {
                 user: process.env.SMTP_USER,
                 pass: process.env.SMTP_PASS
+            },
+            tls: {
+                // Do not fail on invalid certs (common issue on some cloud providers)
+                rejectUnauthorized: false
+            },
+            connectionTimeout: 15000, // 15 seconds
+            greetingTimeout: 15000,   // 15 seconds
+            socketTimeout: 15000,
+            debug: true,              // Bật log debug chi tiết
+            logger: true,             // Ghi log ra console
+            family: 4                 // Ép sử dụng IPv4 để tránh lỗi IPv6 trên Cloud
+        });
+
+        // Verify connection configuration
+        this.transporter.verify((error, success) => {
+            if (error) {
+                logger.error('[EmailService] SMTP Connection Error:', error);
+            } else {
+                logger.info('[EmailService] SMTP Server is ready to take our messages');
             }
-        })
+        });
     }
 
     async sendEmailVerificationEmail(email, verificationToken, userName = '') {

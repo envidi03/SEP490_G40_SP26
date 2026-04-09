@@ -62,10 +62,10 @@ const createNotification = async (payload) => {
         if (!message) throw new errorRes.BadRequestError('message is required');
 
         const channelsConfig = {
-            in_app: { enabled: true,  ...channels.in_app },
-            email:  { enabled: false, ...channels.email },
-            zalo:   { enabled: false, ...channels.zalo },
-            sms:    { enabled: false, ...channels.sms },
+            in_app: { enabled: true, ...channels.in_app },
+            email: { enabled: true, ...channels.email },
+            zalo: { enabled: true, ...channels.zalo },
+            sms: { enabled: true, ...channels.sms },
         };
 
         const notification = await Notification.create({
