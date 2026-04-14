@@ -1,39 +1,17 @@
 const nodemailer = require('nodemailer');
 const logger = require('../utils/logger');
-const dns = require('dns');
 require('dotenv').config();
 
 class EmailService {
     constructor() {
-        const port = parseInt(process.env.SMTP_PORT || '587');
-        const host = process.env.SMTP_HOST || 'smtp.gmail.com';
-
-        // --- CHẨN ĐOÁN DNS ---
-        dns.lookup(host, (err, address, family) => {
-            if (err) logger.error(`[EmailService] DNS Lookup Failed for ${host}:`, err);
-            else logger.info(`[EmailService] DNS Lookup Success: ${host} -> ${address} (IPv${family})`);
-        });
-
-        logger.info(`[EmailService] Initializing with Host: ${host}, Port: ${port}, User: ${process.env.SMTP_USER}`);
-
         this.transporter = nodemailer.createTransport({
-            host: host,
-            port: port,
-            secure: port === 587, // true if port is 465
+            host: process.env.SMTP_HOST || 'smtp.gmail.com',
+            port: parseInt(process.env.SMTP_PORT || '587'),
+            secure: process.env.SMTP_PORT == '465', // true for 465, false for other ports
             auth: {
                 user: process.env.SMTP_USER,
-                pass: process.env.SMTP_PASS
+                pass: process.env.SMTP_PASS,
             },
-            tls: {
-                // Do not fail on invalid certs (common issue on some cloud providers)
-                rejectUnauthorized: false
-            },
-            connectionTimeout: 15000, // 15 seconds
-            greetingTimeout: 15000,   // 15 seconds
-            socketTimeout: 15000,
-            debug: true,              // Bật log debug chi tiết
-            logger: true,             // Ghi log ra console
-            family: 4                 // Ép sử dụng IPv4 để tránh lỗi IPv6 trên Cloud
         });
 
         // Verify connection configuration
@@ -44,6 +22,8 @@ class EmailService {
                 logger.info('[EmailService] SMTP Server is ready to take our messages');
             }
         });
+
+        logger.info('[EmailService] Initialized with SMTP (Nodemailer)');
     }
 
     async sendEmailVerificationEmail(email, verificationToken, userName = '') {
@@ -652,17 +632,23 @@ class EmailService {
     async sendEmail(to, subject, html) {
         try {
             logger.info(`[EmailService] Sending email to ${to} with subject "${subject}"`);
-            const info = await this.transporter.sendMail({
-                from: `"${process.env.SMTP_FROM_NAME || 'Dental CMS'}" <${process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER}>`,
-                to,
-                subject,
-                html
-            });
 
-            logger.info(' Email sent successfully:', info.messageId);
+            const fromEmail = process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER;
+            const fromName = process.env.SMTP_FROM_NAME || 'Dental CMS';
+
+            const mailOptions = {
+                from: `"${fromName}" <${fromEmail}>`,
+                to: to, // Nodemailer handles string "a@b.com, c@d.com" or array ["a@b.com", "c@d.com"]
+                subject: subject,
+                html: html
+            };
+
+            const info = await this.transporter.sendMail(mailOptions);
+
+            logger.info('[EmailService] Email sent successfully:', info.messageId);
             return info;
         } catch (error) {
-            logger.error(' Error sending email:', error);
+            logger.error('[EmailService] Error sending email:', error);
             throw new Error('Failed to send email: ' + error.message);
         }
     }

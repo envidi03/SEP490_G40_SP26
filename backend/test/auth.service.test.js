@@ -145,7 +145,7 @@ describe('Auth Service', () => {
         // TC-R-02: Chỉ có 5 fields bắt buộc, optional = null/empty
         it('TC-R-02: Đăng ký thành công chỉ với 5 fields bắt buộc (optional = null)', async () => {
             mockRegisterSuccess();
-            const minData = { username: 'quoc123', password: 'StrongPass@123', email: 'quoc@ex.com', full_name: 'Quoc Nguyen' };
+            const minData = { username: 'quoc123', password: 'StrongPass@123', email: 'quoc@email.com', full_name: 'Quoc Nguyen' };
 
             const result = await authService.register(minData);
 
@@ -574,4 +574,237 @@ describe('Auth Service', () => {
             await expect(authService.refreshToken('valid_token')).rejects.toThrow(ForbiddenError);
         });
     });
+
+    // ===================================================
+    //  9. resendVerificationEmail(email)
+    //  Input: email (string)
+    // ===================================================
+    describe('resendVerificationEmail(email)', () => {
+        // TC-RVE-01: Email hợp lệ, chưa verify → gửi lại thành công
+        it('TC-RVE-01: Email hợp lệ, chưa verify → gửi lại email xác thực thành công', async () => {
+            Account.findOne.mockResolvedValue({ _id: 'acc1', email_verified: false });
+            EmailVerification.deleteMany.mockResolvedValue({});
+            EmailVerification.create.mockResolvedValue({});
+            Profile.findOne.mockResolvedValue({ full_name: 'Quoc Nguyen' });
+
+            const result = await authService.resendVerificationEmail('user@email.com');
+
+            expect(result.message).toBe('Verification email sent successfully');
+            expect(EmailVerification.deleteMany).toHaveBeenCalledWith({ account_id: 'acc1' });
+            expect(EmailVerification.create).toHaveBeenCalled();
+            expect(emailService.sendEmailVerificationEmail).toHaveBeenCalled();
+        });
+
+        // TC-RVE-02: Email không tồn tại trong DB
+        it('TC-RVE-02: Email không tồn tại → NotFoundError', async () => {
+            Account.findOne.mockResolvedValue(null);
+            await expect(authService.resendVerificationEmail('notfound@email.com')).rejects.toThrow(NotFoundError);
+        });
+
+        // TC-RVE-03: Email đã được verify trước đó
+        it('TC-RVE-03: Email đã được verify → ConflictError', async () => {
+            Account.findOne.mockResolvedValue({ _id: 'acc1', email_verified: true });
+            await expect(authService.resendVerificationEmail('verified@email.com')).rejects.toThrow(ConflictError);
+        });
+    });
+
+    // ===================================================
+    //  10. setupPasswordService(email, token, newPassword)
+    //  Input: email, token (string từ welcome email), newPassword
+    // ===================================================
+    describe('setupPasswordService(email, token, newPassword)', () => {
+        // TC-SP-01: Tất cả input hợp lệ → thiết lập mật khẩu thành công
+        it('TC-SP-01: Token hợp lệ, còn hạn → thiết lập mật khẩu thành công', async () => {
+            Account.findOne.mockResolvedValue({ _id: 'acc1', save: jest.fn() });
+            PasswordReset.findOne.mockResolvedValue({ _id: 'tok1', expires_at: new Date(Date.now() + 60000) });
+            jest.spyOn(bcryptjs, 'hash').mockResolvedValue('newhashedpw');
+            PasswordReset.deleteOne.mockResolvedValue({});
+            Session.deleteMany.mockResolvedValue({});
+
+            const result = await authService.setupPasswordService('user@email.com', 'valid_token', 'NewPass@123');
+
+            expect(result.message).toContain('Thiết lập mật khẩu thành công');
+            expect(PasswordReset.deleteOne).toHaveBeenCalled();
+            expect(Session.deleteMany).toHaveBeenCalled();
+        });
+
+        // TC-SP-02: newPassword null hoặc < 8 ký tự (Boundary)
+        it('TC-SP-02: Password mới null hoặc < 8 chars → ValidationError', async () => {
+            await expect(authService.setupPasswordService('e@e.com', 'tok', null)).rejects.toThrow(ValidationError);
+            await expect(authService.setupPasswordService('e@e.com', 'tok', 'short')).rejects.toThrow(ValidationError);
+        });
+
+        // TC-SP-03: Password mới yếu (không đủ regex)
+        it('TC-SP-03: Password mới yếu → ValidationError', async () => {
+            await expect(authService.setupPasswordService('e@e.com', 'tok', 'weakpassword')).rejects.toThrow(ValidationError);
+        });
+
+        // TC-SP-04: Email không tồn tại trong DB
+        it('TC-SP-04: Account không tồn tại → NotFoundError', async () => {
+            Account.findOne.mockResolvedValue(null);
+            await expect(authService.setupPasswordService('notfound@e.com', 'tok', 'NewPass@123')).rejects.toThrow(NotFoundError);
+        });
+
+        // TC-SP-05: Token sai hoặc đã được sử dụng (used=true)
+        it('TC-SP-05: Token sai hoặc đã dùng → UnauthorizedError', async () => {
+            Account.findOne.mockResolvedValue({ _id: 'acc1' });
+            PasswordReset.findOne.mockResolvedValue(null);
+            await expect(authService.setupPasswordService('e@e.com', 'invalid_token', 'NewPass@123')).rejects.toThrow(UnauthorizedError);
+        });
+
+        // TC-SP-06: Token hết hạn (expires_at < now) (Boundary)
+        it('TC-SP-06: Token hết hạn → UnauthorizedError', async () => {
+            Account.findOne.mockResolvedValue({ _id: 'acc1' });
+            PasswordReset.findOne.mockResolvedValue({ _id: 'tok1', expires_at: new Date(Date.now() - 1000) });
+            PasswordReset.deleteOne.mockResolvedValue({});
+            await expect(authService.setupPasswordService('e@e.com', 'expired_token', 'NewPass@123')).rejects.toThrow(UnauthorizedError);
+        });
+    });
+
+    // ===================================================
+    //  11. googleAuth(googleToken)
+    //  Input: googleToken (string từ Google OAuth)
+    // ===================================================
+    describe('googleAuth(googleToken)', () => {
+        // Helper: mock Google OAuth2Client verify thành công
+        const mockGoogleClient = (payload) => {
+            const { OAuth2Client } = require('google-auth-library');
+            OAuth2Client.mockImplementation(() => ({
+                verifyIdToken: jest.fn().mockResolvedValue({
+                    getPayload: () => payload
+                })
+            }));
+        };
+
+        const googlePayload = {
+            sub: 'google_id_123',
+            email: 'google@email.com',
+            name: 'Google User',
+            picture: 'http://photo.com/img.jpg'
+        };
+
+        const mockFullAccount = {
+            _id: 'acc1',
+            username: 'user_123',
+            email: 'google@email.com',
+            phone_number: '',
+            status: 'ACTIVE',
+            email_verified: true,
+            role_id: { _id: 'role1', name: 'PATIENT', permissions: [] }
+        };
+
+        // TC-GA-01: Google ID đã liên kết, account đang ACTIVE → login thành công
+        it('TC-GA-01: Google ID đã liên kết, account ACTIVE → trả về token', async () => {
+            mockGoogleClient(googlePayload);
+            AuthProvider.findOne.mockResolvedValue({ _id: 'prov1', account_id: 'acc1' });
+            Account.findById.mockReturnValue({ populate: jest.fn().mockResolvedValue(mockFullAccount) });
+            Profile.findOne.mockResolvedValue({ _id: 'prof1', full_name: 'Google User', is_doctor: false, is_patient: true });
+            Patient.findOne.mockResolvedValue({ _id: 'pat1' });
+            Session.create.mockResolvedValue({});
+            LoginAttempt.create.mockResolvedValue({});
+
+            const result = await authService.googleAuth('valid_google_token');
+
+            expect(result).toHaveProperty('token');
+            expect(result).toHaveProperty('refreshToken');
+            expect(result.account.email).toBe('google@email.com');
+        });
+
+        // TC-GA-02: Google ID đã liên kết nhưng account bị INACTIVE
+        it('TC-GA-02: Google ID đã liên kết, account INACTIVE → ForbiddenError', async () => {
+            mockGoogleClient(googlePayload);
+            AuthProvider.findOne.mockResolvedValue({ _id: 'prov1', account_id: 'acc1' });
+            Account.findById.mockReturnValue({
+                populate: jest.fn().mockResolvedValue({ ...mockFullAccount, status: 'INACTIVE' })
+            });
+            await expect(authService.googleAuth('valid_google_token')).rejects.toThrow(ForbiddenError);
+        });
+
+        // TC-GA-03: Google ID chưa liên kết, email chưa có trong DB → tạo account mới
+        it('TC-GA-03: Google ID chưa liên kết, email mới → tạo account + profile + patient mới', async () => {
+            mockGoogleClient(googlePayload);
+            AuthProvider.findOne.mockResolvedValue(null); // Không có Google provider
+            // Email chưa có trong DB
+            Account.findOne.mockReturnValue({ populate: jest.fn().mockResolvedValue(null) });
+            Role.findOne.mockResolvedValue({ _id: 'roleId', name: 'PATIENT' });
+            jest.spyOn(bcryptjs, 'hash').mockResolvedValue('randomhashedpw');
+            Account.create.mockResolvedValue({ _id: 'acc_new', email: 'google@email.com', role_id: 'roleId' });
+            Profile.create.mockResolvedValue({ _id: 'prof_new', full_name: 'Google User' });
+            Patient.create.mockResolvedValue({ _id: 'pat_new' });
+            AuthProvider.create.mockResolvedValue({});
+            PasswordReset.create.mockResolvedValue({});
+            Account.findById.mockReturnValue({ populate: jest.fn().mockResolvedValue(mockFullAccount) });
+            Profile.findOne.mockResolvedValue({ _id: 'prof1', full_name: 'Google User', is_doctor: false, is_patient: true });
+            Patient.findOne.mockResolvedValue({ _id: 'pat1' });
+            Session.create.mockResolvedValue({});
+            LoginAttempt.create.mockResolvedValue({});
+
+            const result = await authService.googleAuth('valid_google_token');
+
+            expect(Account.create).toHaveBeenCalled();
+            expect(Profile.create).toHaveBeenCalled();
+            expect(Patient.create).toHaveBeenCalled();
+            expect(result).toHaveProperty('token');
+        });
+
+        // TC-GA-04: Google ID chưa liên kết, email đã có trong DB → liên kết Google provider
+        it('TC-GA-04: Google ID chưa liên kết, email đã tồn tại → liên kết provider và login', async () => {
+            mockGoogleClient(googlePayload);
+            AuthProvider.findOne
+                .mockResolvedValueOnce(null)   // Không có provider theo googleId
+                .mockResolvedValueOnce(null);  // Không có provider theo account_id
+            Account.findOne.mockReturnValue({ populate: jest.fn().mockResolvedValue(mockFullAccount) });
+            AuthProvider.create.mockResolvedValue({});
+            Profile.findOne.mockResolvedValue({ _id: 'prof1', full_name: 'Google User', is_doctor: false, is_patient: true });
+            Patient.findOne.mockResolvedValue({ _id: 'pat1' });
+            Session.create.mockResolvedValue({});
+            LoginAttempt.create.mockResolvedValue({});
+
+            const result = await authService.googleAuth('valid_google_token');
+
+            expect(AuthProvider.create).toHaveBeenCalled();
+            expect(result).toHaveProperty('token');
+        });
+
+        // TC-GA-05: Google token không hợp lệ (Google từ chối verify)
+        it('TC-GA-05: Google token không hợp lệ → UnauthorizedError', async () => {
+            const { OAuth2Client } = require('google-auth-library');
+            OAuth2Client.mockImplementation(() => ({
+                verifyIdToken: jest.fn().mockRejectedValue(new Error('Invalid token'))
+            }));
+            await expect(authService.googleAuth('invalid_google_token')).rejects.toThrow(UnauthorizedError);
+        });
+
+        // TC-GA-06: Google ID đã liên kết nhưng Account bị xoá (orphaned provider)
+        it('TC-GA-06: Provider tồn tại nhưng Account bị xoá → xoá provider, tạo account mới', async () => {
+            mockGoogleClient(googlePayload);
+            AuthProvider.findOne.mockResolvedValueOnce({ _id: 'prov1', account_id: 'acc_deleted' });
+            AuthProvider.deleteOne.mockResolvedValue({});
+
+            // Lần 1: findById cho account bị xoá → null
+            // Lần 2: findById sau khi tạo account mới → mockFullAccount
+            Account.findById
+                .mockReturnValueOnce({ populate: jest.fn().mockResolvedValue(null) })
+                .mockReturnValue({ populate: jest.fn().mockResolvedValue(mockFullAccount) });
+
+            // Email cũng không có trong DB → tạo account mới
+            Account.findOne.mockReturnValue({ populate: jest.fn().mockResolvedValue(null) });
+            Role.findOne.mockResolvedValue({ _id: 'roleId', name: 'PATIENT' });
+            jest.spyOn(bcryptjs, 'hash').mockResolvedValue('pw');
+            Account.create.mockResolvedValue({ _id: 'acc_new2' });
+            Profile.create.mockResolvedValue({ _id: 'prof_new2' });
+            Patient.create.mockResolvedValue({});
+            AuthProvider.create.mockResolvedValue({});
+            PasswordReset.create.mockResolvedValue({});
+            Profile.findOne.mockResolvedValue({ _id: 'prof1', full_name: 'Google User', is_doctor: false, is_patient: true });
+            Patient.findOne.mockResolvedValue({ _id: 'pat1' });
+            Session.create.mockResolvedValue({});
+            LoginAttempt.create.mockResolvedValue({});
+
+            await authService.googleAuth('valid_google_token');
+
+            expect(AuthProvider.deleteOne).toHaveBeenCalled();
+        });
+    });
 });
+
