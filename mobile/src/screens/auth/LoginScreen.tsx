@@ -59,7 +59,7 @@ export function LoginScreen() {
                 showsVerticalScrollIndicator={false}
                 keyboardShouldPersistTaps="handled"
             >
-                <AuthHeader errorMsg={errorMsg} />
+                <AuthHeader errorMsg={errorMsg} showBackButton={false} />
 
                 <AuthForm
                     identifier={identifier}
