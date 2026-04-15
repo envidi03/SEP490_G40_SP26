@@ -19,7 +19,7 @@ const ForgotPassword = () => {
 
     const getErrorMessage = (msg) => {
         if (!msg) return 'Đã xảy ra lỗi. Vui lòng thử lại. (An error occurred. Please try again.)';
-        
+
         const errorMap = {
             'Invalid OTP': 'Mã OTP không hợp lệ hoặc đã hết hạn. (Invalid or expired OTP)',
             'Invalid OTP!': 'Mã OTP không hợp lệ hoặc đã hết hạn. (Invalid or expired OTP)',
@@ -34,7 +34,7 @@ const ForgotPassword = () => {
 
         const cleanMsg = msg ? msg.replace('!', '').trim() : '';
         const mapped = errorMap[msg] || errorMap[cleanMsg];
-        
+
         return mapped || msg;
     };
 
@@ -216,6 +216,8 @@ const ForgotPassword = () => {
                                     </label>
                                     <input
                                         type="text"
+                                        name="otp"
+                                        autoComplete="one-time-code"
                                         value={otp}
                                         onChange={(e) => setOtp(e.target.value)}
                                         placeholder="······"

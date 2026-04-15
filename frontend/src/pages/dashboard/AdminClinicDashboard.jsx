@@ -1,16 +1,17 @@
-import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
-    Users, Calendar, AlertTriangle, ClipboardList,
-    PackagePlus, Pill, Wrench, DoorOpen, ClipboardCheck,
-    TrendingDown, Clock, ChevronRight, Activity, Briefcase, Loader2
+    Activity, Banknote, CalendarCheck, BarChart3,
+    Loader2, CalendarDays, CheckCircle2, XCircle
 } from 'lucide-react';
 
+// === IMPORT RECHARTS ===
+import {
+    AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid,
+    Tooltip, Legend, ResponsiveContainer
+} from 'recharts';
+
 // Services
-import staffService from '../../services/staffService';
-import inventoryService from '../../services/inventoryService';
-import equipmentService from '../../services/equipmentService';
-import apiClient from '../../services/api';
+import statisticService from '../../services/statisticService';
 
 // ==================== SUB-COMPONENTS ====================
 
@@ -28,7 +29,7 @@ const StatCard = ({ icon: Icon, title, value, subtitle, color, bgColor, loading 
                     </div>
                 ) : (
                     <>
-                        <p className="text-3xl font-bold text-gray-900">{value}</p>
+                        <p className="text-2xl lg:text-3xl font-bold text-gray-900 truncate">{value}</p>
                         {subtitle && (
                             <p className={`text-xs font-medium mt-0.5 ${color || 'text-gray-500'}`}>{subtitle}</p>
                         )}
@@ -39,80 +40,21 @@ const StatCard = ({ icon: Icon, title, value, subtitle, color, bgColor, loading 
     </div>
 );
 
-const SectionHeader = ({ icon: Icon, title, linkTo, linkText = 'Xem tất cả' }) => (
+const SectionHeader = ({ icon: Icon, title }) => (
     <div className="flex items-center justify-between mb-4">
         <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
             <Icon size={20} className="text-blue-600" />
             {title}
         </h2>
-        {linkTo && (
-            <Link to={linkTo} className="text-sm text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1 transition-colors">
-                {linkText}
-                <ChevronRight size={16} />
-            </Link>
-        )}
     </div>
 );
-
-const EmptyState = ({ message }) => (
-    <div className="text-center py-8 text-gray-400">
-        <Activity size={32} className="mx-auto mb-2 opacity-50" />
-        <p className="text-sm">{message}</p>
-    </div>
-);
-
-const PriorityBadge = ({ priority }) => {
-    const config = {
-        high: 'bg-red-100 text-red-700 border-red-200',
-        medium: 'bg-yellow-100 text-yellow-700 border-yellow-200',
-        low: 'bg-green-100 text-green-700 border-green-200',
-    };
-    const labels = { high: 'Cao', medium: 'Trung bình', low: 'Thấp' };
-    return (
-        <span className={`px-2 py-0.5 rounded-full text-xs font-semibold border ${config[priority] || config.medium}`}>
-            {labels[priority] || priority}
-        </span>
-    );
-};
-
-const StatusBadge = ({ status }) => {
-    const config = {
-        PENDING: 'bg-yellow-100 text-yellow-700',
-        CONFIRMED: 'bg-blue-100 text-blue-700',
-        COMPLETED: 'bg-green-100 text-green-700',
-        CANCELLED: 'bg-red-100 text-red-700',
-        IN_PROGRESS: 'bg-indigo-100 text-indigo-700'
-    };
-    const labels = {
-        PENDING: 'Chờ xác nhận',
-        CONFIRMED: 'Đã xác nhận',
-        COMPLETED: 'Hoàn thành',
-        CANCELLED: 'Đã hủy',
-        IN_PROGRESS: 'Đang khám'
-    };
-    return (
-        <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${config[status] || 'bg-gray-100 text-gray-700'}`}>
-            {labels[status] || status}
-        </span>
-    );
-};
 
 // ==================== MAIN DASHBOARD ====================
 
 const AdminClinicDashboard = () => {
-    // KPI State
-    const [staffCount, setStaffCount] = useState(0);
-    const [appointmentsToday, setAppointmentsToday] = useState([]);
-    const [inventoryStats, setInventoryStats] = useState(null);
-    const [pendingLeaves, setPendingLeaves] = useState([]);
-    const [pendingRestocks, setPendingRestocks] = useState([]);
-
-    // Detail State
-    const [lowStockMedicines, setLowStockMedicines] = useState([]);
-    const [nearExpiredMedicines, setNearExpiredMedicines] = useState([]);
-    const [maintenanceEquipment, setMaintenanceEquipment] = useState([]);
-
-    // Loading
+    // Thống kê State
+    const [moneyStats, setMoneyStats] = useState(null);
+    const [bookingStats, setBookingStats] = useState(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -123,344 +65,271 @@ const AdminClinicDashboard = () => {
         setLoading(true);
         try {
             const results = await Promise.allSettled([
-                // [0] Staff count
-                staffService.getStaffs({ page: 1, limit: 1 }),
-                // [1] Appointments today
-                apiClient.get('/api/appointment/staff'),
-                // [2] Inventory stats
-                inventoryService.getDashboardStats(),
-                // [3] Pending leave requests
-                staffService.getAllLeaveRequestsAdmin(),
-                // [4] Pending restock requests
-                inventoryService.getRestockRequests({ status: 'pending', page: 1, limit: 5 }),
-                // [5] Low stock medicines
-                inventoryService.getLowStockMedicines(5),
-                // [6] Near expired medicines
-                inventoryService.getNearExpiredMedicines(30),
-                // [7] Equipment needing maintenance
-                equipmentService.getEquipments({ status: 'MAINTENANCE' }),
+                statisticService.getMoneyStatistics(),
+                statisticService.getBookingStatistics(),
             ]);
-
-            // [0] Staff
             if (results[0].status === 'fulfilled') {
-                const staffData = results[0].value;
-                setStaffCount(staffData?.pagination?.totalItems || staffData?.data?.length || 0);
+                const apiResponse = results[0].value?.data;
+                setMoneyStats(apiResponse || null);
             }
 
-            // [1] Appointments today
             if (results[1].status === 'fulfilled') {
-                const today = new Date().toISOString().split('T')[0];
-                const allAppointments = results[1].value?.data || [];
-                const todayApts = allAppointments.filter(apt => {
-                    const aptDate = apt.appointment_date?.split('T')[0] || apt.date?.split('T')[0];
-                    return aptDate === today;
-                });
-                setAppointmentsToday(todayApts);
+                const apiResponse = results[1].value?.data;
+                setBookingStats(apiResponse || null);
             }
 
-            // [2] Inventory stats
-            if (results[2].status === 'fulfilled') {
-                setInventoryStats(results[2].value?.data || null);
-            }
-
-            // [3] Pending leaves
-            if (results[3].status === 'fulfilled') {
-                const allLeaves = results[3].value?.data || [];
-                const pending = allLeaves.filter(l => l.status === 'PENDING');
-                setPendingLeaves(pending);
-            }
-
-            // [4] Pending restocks
-            if (results[4].status === 'fulfilled') {
-                setPendingRestocks(results[4].value?.data || []);
-            }
-
-            // [5] Low stock
-            if (results[5].status === 'fulfilled') {
-                setLowStockMedicines(results[5].value?.data || []);
-            }
-
-            // [6] Near expired
-            if (results[6].status === 'fulfilled') {
-                setNearExpiredMedicines(results[6].value?.data || []);
-            }
-
-            // [7] Maintenance equipment
-            if (results[7].status === 'fulfilled') {
-                const equipData = results[7].value?.data || [];
-                setMaintenanceEquipment(equipData);
-            }
         } catch (error) {
-            console.error('Dashboard fetch error:', error);
+            console.error('Lỗi khi tải dữ liệu dashboard:', error);
         } finally {
             setLoading(false);
         }
     };
 
-    // Helpers
-    const formatDate = (dateStr) => {
-        if (!dateStr) return '';
-        const date = new Date(dateStr);
-        return date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    // ==========================================
+    // LOGIC XỬ LÝ DỮ LIỆU CHO BIỂU ĐỒ & BẢNG
+    // ==========================================
+
+    // 1. Dữ liệu cho biểu đồ Doanh thu
+    const revenueChartData = useMemo(() => {
+        if (!moneyStats?.daily) return [];
+        return moneyStats.daily.map(item => ({
+            date: new Date(item._id).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' }),
+            revenue: item.totalIn
+        }));
+    }, [moneyStats]);
+
+    // 2. Dữ liệu cho biểu đồ Lịch hẹn
+    const bookingChartData = useMemo(() => {
+        if (!bookingStats) return [];
+        const map = {};
+        const processData = (sourceArray, type) => {
+            if (!sourceArray) return;
+            sourceArray.forEach(item => {
+                if (!map[item._id]) map[item._id] = { rawDate: item._id, normal: 0, cancelled: 0 };
+                map[item._id][type] += item.totalCount;
+            });
+        };
+        processData(bookingStats?.normal?.daily, 'normal');
+        processData(bookingStats?.cancelled?.daily, 'cancelled');
+
+        return Object.values(map)
+            .sort((a, b) => new Date(a.rawDate) - new Date(b.rawDate))
+            .map(item => ({
+                date: new Date(item.rawDate).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' }),
+                normal: item.normal,
+                cancelled: item.cancelled
+            }));
+    }, [bookingStats]);
+
+    // 3. DỮ LIỆU GỘP CHO BẢNG CHI TIẾT THEO NGÀY (Từ mới nhất đến cũ nhất)
+    const combinedDailyDetails = useMemo(() => {
+        const map = {};
+
+        // Gộp Doanh thu
+        if (moneyStats?.daily) {
+            moneyStats.daily.forEach(item => {
+                if (!map[item._id]) map[item._id] = { rawDate: item._id, revenue: 0, revenueCount: 0, normalBooking: 0, cancelledBooking: 0 };
+                map[item._id].revenue = item.totalIn;
+                map[item._id].revenueCount = item.totalCount;
+            });
+        }
+
+        // Gộp Lịch hẹn (Bình thường)
+        if (bookingStats?.normal?.daily) {
+            bookingStats.normal.daily.forEach(item => {
+                if (!map[item._id]) map[item._id] = { rawDate: item._id, revenue: 0, revenueCount: 0, normalBooking: 0, cancelledBooking: 0 };
+                map[item._id].normalBooking = item.totalCount;
+            });
+        }
+
+        // Gộp Lịch hẹn (Hủy)
+        if (bookingStats?.cancelled?.daily) {
+            bookingStats.cancelled.daily.forEach(item => {
+                if (!map[item._id]) map[item._id] = { rawDate: item._id, revenue: 0, revenueCount: 0, normalBooking: 0, cancelledBooking: 0 };
+                map[item._id].cancelledBooking = item.totalCount;
+            });
+        }
+
+        // Convert thành mảng và sắp xếp (Mới nhất lên đầu)
+        return Object.values(map).sort((a, b) => new Date(b.rawDate) - new Date(a.rawDate));
+    }, [moneyStats, bookingStats]);
+
+
+    // ==========================================
+    // HELPERS FORMAT FORMAT
+    // ==========================================
+    const formatMoney = (amount) => {
+        if (amount == null) return '0 ₫';
+        return amount.toLocaleString('vi-VN') + ' ₫';
     };
 
-    const formatTime = (dateStr) => {
-        if (!dateStr) return '';
+    const formatDateFull = (dateStr) => {
         const date = new Date(dateStr);
-        return date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+        return date.toLocaleDateString('vi-VN', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' });
     };
-
-    const totalPendingActions = pendingLeaves.length + pendingRestocks.length;
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 p-6">
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-blue-50 p-6">
             <div className="max-w-7xl mx-auto">
 
-                {/* ==================== HEADER ==================== */}
+                {/* HEADER */}
                 <div className="mb-8">
                     <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
                         <Activity className="text-blue-600" size={32} />
-                        Dashboard Admin Clinic
+                        Báo Cáo Hoạt Động & Kinh Doanh
                     </h1>
-                    <p className="text-gray-500 mt-1">Tổng quan hoạt động phòng khám hôm nay</p>
+                    <p className="text-gray-500 mt-1">Phân tích chuyên sâu về Doanh thu và Lịch khám</p>
                 </div>
 
-                {/* ==================== [1] KPI CARDS ==================== */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                {/* KPI CARDS */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                     <StatCard
-                        icon={Users}
-                        title="Tổng nhân viên"
-                        value={staffCount}
-                        subtitle="Đang hoạt động"
-                        color="text-blue-600"
+                        icon={Banknote}
+                        title="Tổng Doanh Thu (Tháng này)"
+                        value={formatMoney(moneyStats?.summary?.totalIn)}
+                        subtitle={moneyStats?.summary?.totalCount > 0 ? `${moneyStats.summary.totalCount} giao dịch phát sinh` : 'Chưa có dữ liệu'}
+                        color="text-emerald-600"
+                        bgColor="bg-gradient-to-br from-emerald-500 to-teal-600"
+                        loading={loading}
+                    />
+                    <StatCard
+                        icon={CalendarCheck}
+                        title="Tổng Lịch Hẹn (Tháng này)"
+                        value={bookingStats?.normal?.summary?.totalCount || 0}
+                        subtitle={bookingStats?.cancelled?.summary?.totalCount > 0 ? `Đã có ${bookingStats.cancelled.summary.totalCount} lịch hẹn bị hủy` : 'Tỉ lệ hủy 0%'}
+                        color={bookingStats?.cancelled?.summary?.totalCount > 0 ? "text-orange-500" : "text-gray-500"}
                         bgColor="bg-gradient-to-br from-blue-500 to-indigo-600"
                         loading={loading}
                     />
-                    <StatCard
-                        icon={Calendar}
-                        title="Lịch hẹn hôm nay"
-                        value={appointmentsToday.length}
-                        subtitle={appointmentsToday.length > 0 ? `${appointmentsToday.filter(a => a.status === 'CONFIRMED').length} đã xác nhận` : 'Không có lịch hẹn'}
-                        color="text-green-600"
-                        bgColor="bg-gradient-to-br from-green-500 to-emerald-600"
-                        loading={loading}
-                    />
-                    <StatCard
-                        icon={AlertTriangle}
-                        title="Thuốc sắp hết"
-                        value={inventoryStats?.lowStockCount || 0}
-                        subtitle={inventoryStats?.urgentStockCount > 0 ? `${inventoryStats.urgentStockCount} cần gấp` : 'Kho ổn định'}
-                        color={inventoryStats?.lowStockCount > 0 ? 'text-orange-600' : 'text-green-600'}
-                        bgColor="bg-gradient-to-br from-orange-500 to-amber-600"
-                        loading={loading}
-                    />
-                    <StatCard
-                        icon={ClipboardList}
-                        title="Chờ duyệt"
-                        value={totalPendingActions}
-                        subtitle={`${pendingLeaves.length} nghỉ phép · ${pendingRestocks.length} nhập thuốc`}
-                        color={totalPendingActions > 0 ? 'text-purple-600' : 'text-green-600'}
-                        bgColor="bg-gradient-to-br from-purple-500 to-violet-600"
-                        loading={loading}
-                    />
                 </div>
 
-                {/* ==================== [2] & [3] MAIN CONTENT ==================== */}
+                {/* CHARTS */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-
-                    {/* ---------- LEFT: Cảnh báo & Đợi xử lý ---------- */}
-                    <div className="space-y-6">
-
-                        {/* Đơn nghỉ phép chờ duyệt */}
-                        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
-                            <SectionHeader icon={Briefcase} title="Nghỉ phép chờ duyệt" linkTo="/admin/leave-management" />
-                            {loading ? (
-                                <div className="flex justify-center py-6"><Loader2 size={24} className="animate-spin text-gray-400" /></div>
-                            ) : pendingLeaves.length === 0 ? (
-                                <EmptyState message="Không có đơn nghỉ phép nào đang chờ" />
-                            ) : (
-                                <div className="space-y-3">
-                                    {pendingLeaves.slice(0, 4).map((leave, idx) => (
-                                        <div key={leave._id || idx} className="flex items-center justify-between p-3 bg-yellow-50 rounded-xl border border-yellow-100 hover:bg-yellow-100 transition-colors">
-                                            <div className="min-w-0 flex-1">
-                                                <p className="font-semibold text-gray-900 text-sm truncate">
-                                                    {leave.staff_id?.profile_id?.full_name || leave.staff_id?.account_id?.username || 'Nhân viên'}
-                                                </p>
-                                                <p className="text-xs text-gray-500 mt-0.5">
-                                                    {formatDate(leave.startedDate)} → {formatDate(leave.endDate)}
-                                                </p>
-                                            </div>
-                                            <span className="px-2.5 py-1 bg-yellow-200 text-yellow-800 text-xs font-bold rounded-full whitespace-nowrap">
-                                                Chờ duyệt
-                                            </span>
-                                        </div>
-                                    ))}
-                                    {pendingLeaves.length > 4 && (
-                                        <p className="text-xs text-center text-gray-400 pt-1">
-                                            và {pendingLeaves.length - 4} đơn khác...
-                                        </p>
-                                    )}
-                                </div>
-                            )}
-                        </div>
-
-                        {/* Yêu cầu nhập thuốc chờ duyệt */}
-                        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
-                            <SectionHeader icon={PackagePlus} title="Nhập thuốc chờ duyệt" linkTo="/admin/restock-requests" />
-                            {loading ? (
-                                <div className="flex justify-center py-6"><Loader2 size={24} className="animate-spin text-gray-400" /></div>
-                            ) : pendingRestocks.length === 0 ? (
-                                <EmptyState message="Không có yêu cầu nhập thuốc nào đang chờ" />
-                            ) : (
-                                <div className="space-y-3">
-                                    {pendingRestocks.slice(0, 4).map((req, idx) => (
-                                        <div key={req._id || idx} className="flex items-center justify-between p-3 bg-blue-50 rounded-xl border border-blue-100 hover:bg-blue-100 transition-colors">
-                                            <div className="min-w-0 flex-1">
-                                                <p className="font-semibold text-gray-900 text-sm truncate">{req.medicine_name}</p>
-                                                <p className="text-xs text-gray-500 mt-0.5">
-                                                    SL yêu cầu: <span className="font-bold text-blue-700">{req.quantity_requested}</span> · Tồn: {req.current_quantity}
-                                                </p>
-                                            </div>
-                                            <PriorityBadge priority={req.priority} />
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-
-                        {/* Thuốc sắp hết hạn */}
-                        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
-                            <SectionHeader icon={Clock} title="Thuốc sắp hết hạn (30 ngày)" linkTo="/admin/medicines" />
-                            {loading ? (
-                                <div className="flex justify-center py-6"><Loader2 size={24} className="animate-spin text-gray-400" /></div>
-                            ) : nearExpiredMedicines.length === 0 ? (
-                                <EmptyState message="Không có thuốc nào sắp hết hạn" />
-                            ) : (
-                                <div className="space-y-3">
-                                    {nearExpiredMedicines.slice(0, 4).map((med, idx) => (
-                                        <div key={med._id || idx} className="flex items-center justify-between p-3 bg-red-50 rounded-xl border border-red-100">
-                                            <div className="min-w-0 flex-1">
-                                                <p className="font-semibold text-gray-900 text-sm truncate">{med.medicine_name}</p>
-                                                <p className="text-xs text-gray-500 mt-0.5">
-                                                    SL: {med.quantity} · HSD: <span className="font-bold text-red-600">{formatDate(med.expiry_date)}</span>
-                                                </p>
-                                            </div>
-                                            <AlertTriangle size={18} className="text-red-500 flex-shrink-0" />
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
+                    {/* Revenue Chart */}
+                    <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
+                        <SectionHeader icon={BarChart3} title="Biểu đồ Doanh thu" />
+                        {loading ? (
+                            <div className="h-[350px] flex items-center justify-center"><Loader2 size={32} className="animate-spin text-gray-300" /></div>
+                        ) : revenueChartData.length === 0 ? (
+                            <div className="h-[350px] flex items-center justify-center text-gray-400">Chưa có dữ liệu doanh thu</div>
+                        ) : (
+                            <div className="h-[350px] w-full mt-4">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <AreaChart data={revenueChartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                                        <defs>
+                                            <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
+                                                <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                                            </linearGradient>
+                                        </defs>
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
+                                        <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#6b7280' }} dy={10} />
+                                        <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#6b7280' }} tickFormatter={(value) => value === 0 ? '0' : `${(value / 1000)}k`} width={50} />
+                                        <Tooltip formatter={(value) => [formatMoney(value), 'Doanh thu']} labelStyle={{ color: '#374151', fontWeight: 'bold' }} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                                        <Area type="monotone" dataKey="revenue" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#colorRevenue)" />
+                                    </AreaChart>
+                                </ResponsiveContainer>
+                            </div>
+                        )}
                     </div>
 
-                    {/* ---------- RIGHT: Hoạt động gần đây ---------- */}
-                    <div className="space-y-6">
-
-                        {/* Lịch hẹn hôm nay */}
-                        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
-                            <SectionHeader icon={Calendar} title="Lịch hẹn hôm nay" />
-                            {loading ? (
-                                <div className="flex justify-center py-6"><Loader2 size={24} className="animate-spin text-gray-400" /></div>
-                            ) : appointmentsToday.length === 0 ? (
-                                <EmptyState message="Không có lịch hẹn nào hôm nay" />
-                            ) : (
-                                <div className="space-y-3">
-                                    {appointmentsToday.slice(0, 6).map((apt, idx) => (
-                                        <div key={apt._id || idx} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
-                                            <div className="min-w-0 flex-1">
-                                                <p className="font-semibold text-gray-900 text-sm truncate">
-                                                    {apt.patient_name || apt.patientName || 'Bệnh nhân'}
-                                                </p>
-                                                <p className="text-xs text-gray-500 mt-0.5">
-                                                    {formatTime(apt.appointment_date || apt.date)} · {apt.dentist_name || apt.doctorName || 'Bác sĩ'}
-                                                </p>
-                                            </div>
-                                            <StatusBadge status={apt.status} />
-                                        </div>
-                                    ))}
-                                    {appointmentsToday.length > 6 && (
-                                        <p className="text-xs text-center text-gray-400 pt-1">
-                                            và {appointmentsToday.length - 6} cuộc hẹn khác...
-                                        </p>
-                                    )}
-                                </div>
-                            )}
-                        </div>
-
-                        {/* Thuốc sắp hết hàng */}
-                        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
-                            <SectionHeader icon={TrendingDown} title="Thuốc sắp hết hàng" linkTo="/admin/medicines" />
-                            {loading ? (
-                                <div className="flex justify-center py-6"><Loader2 size={24} className="animate-spin text-gray-400" /></div>
-                            ) : lowStockMedicines.length === 0 ? (
-                                <EmptyState message="Tất cả thuốc đều có đủ tồn kho" />
-                            ) : (
-                                <div className="space-y-3">
-                                    {lowStockMedicines.slice(0, 5).map((med, idx) => (
-                                        <div key={med._id || idx} className="p-3 bg-orange-50 rounded-xl border border-orange-100">
-                                            <div className="flex items-center justify-between">
-                                                <p className="font-semibold text-gray-900 text-sm truncate flex-1">{med.medicine_name}</p>
-                                                <span className="text-xs font-bold text-orange-700 bg-orange-200 px-2 py-0.5 rounded-full whitespace-nowrap ml-2">
-                                                    Còn {med.quantity}
-                                                </span>
-                                            </div>
-                                            {/* Progress bar */}
-                                            <div className="mt-2">
-                                                <div className="w-full h-1.5 bg-orange-200 rounded-full overflow-hidden">
-                                                    <div
-                                                        className="h-full bg-orange-500 rounded-full transition-all"
-                                                        style={{ width: `${Math.min((med.quantity / (med.min_quantity || 100)) * 100, 100)}%` }}
-                                                    />
-                                                </div>
-                                                <p className="text-xs text-gray-400 mt-1">
-                                                    Tối thiểu: {med.min_quantity || 'N/A'}
-                                                </p>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-
-                        {/* ==================== [4] RESOURCE OVERVIEW ==================== */}
-                        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
-                            <SectionHeader icon={ClipboardCheck} title="Tổng quan tài nguyên" />
-                            {loading ? (
-                                <div className="flex justify-center py-6"><Loader2 size={24} className="animate-spin text-gray-400" /></div>
-                            ) : (
-                                <div className="grid grid-cols-2 gap-4">
-                                    {/* Inventory total */}
-                                    <Link to="/admin/medicines" className="p-4 bg-blue-50 rounded-xl hover:bg-blue-100 transition-colors border border-blue-100 group">
-                                        <Pill size={24} className="text-blue-600 mb-2" />
-                                        <p className="text-2xl font-bold text-gray-900">{inventoryStats?.totalMedicines || 0}</p>
-                                        <p className="text-xs text-gray-500 group-hover:text-blue-700">Loại thuốc</p>
-                                    </Link>
-
-                                    {/* Equipment maintenance */}
-                                    <Link to="/admin/equipment" className="p-4 bg-yellow-50 rounded-xl hover:bg-yellow-100 transition-colors border border-yellow-100 group">
-                                        <Wrench size={24} className="text-yellow-600 mb-2" />
-                                        <p className="text-2xl font-bold text-gray-900">{maintenanceEquipment.length}</p>
-                                        <p className="text-xs text-gray-500 group-hover:text-yellow-700">Thiết bị bảo trì</p>
-                                    </Link>
-
-                                    {/* Pending Restock */}
-                                    <Link to="/admin/restock-requests" className="p-4 bg-purple-50 rounded-xl hover:bg-purple-100 transition-colors border border-purple-100 group">
-                                        <PackagePlus size={24} className="text-purple-600 mb-2" />
-                                        <p className="text-2xl font-bold text-gray-900">{inventoryStats?.pendingOrders || 0}</p>
-                                        <p className="text-xs text-gray-500 group-hover:text-purple-700">Đơn nhập chờ</p>
-                                    </Link>
-
-                                    {/* Total inventory Qty */}
-                                    <div className="p-4 bg-green-50 rounded-xl border border-green-100">
-                                        <DoorOpen size={24} className="text-green-600 mb-2" />
-                                        <p className="text-2xl font-bold text-gray-900">{inventoryStats?.totalInventoryQuantity?.toLocaleString('vi-VN') || 0}</p>
-                                        <p className="text-xs text-gray-500">Tổng tồn kho</p>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
+                    {/* Booking Chart */}
+                    <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
+                        <SectionHeader icon={CalendarCheck} title="Phân tích Lịch hẹn (Thành công vs Hủy)" />
+                        {loading ? (
+                            <div className="h-[350px] flex items-center justify-center"><Loader2 size={32} className="animate-spin text-gray-300" /></div>
+                        ) : bookingChartData.length === 0 ? (
+                            <div className="h-[350px] flex items-center justify-center text-gray-400">Chưa có dữ liệu lịch hẹn</div>
+                        ) : (
+                            <div className="h-[350px] w-full mt-4">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <BarChart data={bookingChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
+                                        <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#6b7280' }} dy={10} />
+                                        <YAxis allowDecimals={false} axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#6b7280' }} />
+                                        <Tooltip cursor={{ fill: '#f3f4f6' }} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                                        <Legend wrapperStyle={{ paddingTop: '20px' }} />
+                                        <Bar dataKey="normal" name="Hoàn thành / Mới" stackId="a" fill="#3b82f6" radius={[0, 0, 4, 4]} maxBarSize={50} />
+                                        <Bar dataKey="cancelled" name="Đã hủy" stackId="a" fill="#ef4444" radius={[4, 4, 0, 0]} maxBarSize={50} />
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </div>
+                        )}
                     </div>
                 </div>
+
+                {/* ==================== [3] BẢNG CHI TIẾT THEO NGÀY (THÊM MỚI) ==================== */}
+                <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+                    <div className="p-6 border-b border-gray-100">
+                        <SectionHeader icon={CalendarDays} title="Nhật ký chi tiết theo ngày" />
+                    </div>
+
+                    {loading ? (
+                        <div className="flex justify-center py-10"><Loader2 size={32} className="animate-spin text-gray-300" /></div>
+                    ) : combinedDailyDetails.length === 0 ? (
+                        <div className="text-center py-10 text-gray-500">Chưa có phát sinh giao dịch hoặc lịch hẹn nào.</div>
+                    ) : (
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left border-collapse">
+                                <thead>
+                                    <tr className="bg-gray-50 text-gray-500 text-sm border-b border-gray-200">
+                                        <th className="px-6 py-4 font-semibold whitespace-nowrap">Ngày</th>
+                                        <th className="px-6 py-4 font-semibold whitespace-nowrap">Doanh Thu</th>
+                                        <th className="px-6 py-4 font-semibold whitespace-nowrap">Lịch Hẹn & Khám</th>
+                                        <th className="px-6 py-4 font-semibold whitespace-nowrap">Lịch Hủy</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-100">
+                                    {combinedDailyDetails.map((day, idx) => (
+                                        <tr key={day.rawDate} className="hover:bg-blue-50/50 transition-colors">
+                                            {/* Cột 1: Ngày tháng */}
+                                            <td className="px-6 py-4">
+                                                <div className="font-medium text-gray-900 capitalize">
+                                                    {formatDateFull(day.rawDate)}
+                                                </div>
+                                            </td>
+
+                                            {/* Cột 2: Tiền */}
+                                            <td className="px-6 py-4">
+                                                <div className="flex flex-col">
+                                                    <span className="font-bold text-emerald-600 text-base">
+                                                        {formatMoney(day.revenue)}
+                                                    </span>
+                                                    {day.revenueCount > 0 && (
+                                                        <span className="text-xs text-gray-500 mt-1">
+                                                            Từ {day.revenueCount} giao dịch
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </td>
+
+                                            {/* Cột 3: Lịch Thành công/Mới */}
+                                            <td className="px-6 py-4">
+                                                <div className="flex items-center gap-2">
+                                                    <CheckCircle2 size={18} className={day.normalBooking > 0 ? "text-blue-500" : "text-gray-300"} />
+                                                    <span className={`font-semibold ${day.normalBooking > 0 ? 'text-gray-900' : 'text-gray-400'}`}>
+                                                        {day.normalBooking} ca
+                                                    </span>
+                                                </div>
+                                            </td>
+
+                                            {/* Cột 4: Lịch Hủy */}
+                                            <td className="px-6 py-4">
+                                                <div className="flex items-center gap-2">
+                                                    <XCircle size={18} className={day.cancelledBooking > 0 ? "text-red-500" : "text-gray-300"} />
+                                                    <span className={`font-semibold ${day.cancelledBooking > 0 ? 'text-red-600' : 'text-gray-400'}`}>
+                                                        {day.cancelledBooking} ca
+                                                    </span>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
+                </div>
+
             </div>
         </div>
     );

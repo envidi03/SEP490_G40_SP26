@@ -20,7 +20,6 @@ import ConfirmModal from './components/modals/ConfirmModal';
 // Tên role phải khớp với field account.role_id.name từ backend
 // =============================================
 const roleConfig = {
-    ADMIN_CLINIC: { label: 'Quản trị viên', color: 'bg-red-100 text-red-800', icon: Shield },
     DOCTOR: { label: 'Bác sĩ', color: 'bg-blue-100 text-blue-800', icon: UserCheck },
     RECEPTIONIST: { label: 'Lễ tân', color: 'bg-purple-100 text-purple-800', icon: Users },
     PHARMACY: { label: 'Dược sĩ', color: 'bg-green-100 text-green-800', icon: UserCheck },
@@ -74,7 +73,7 @@ const UserList = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [filterRole, setFilterRole] = useState('all');
     const [filterStatus, setFilterStatus] = useState('all');
-    const [serverStats, setServerStats] = useState({ total: 0, active: 0, inactive: 0, admins: 0, doctors: 0, staff: 0 });
+    const [serverStats, setServerStats] = useState({ total: 0, active: 0, inactive: 0, doctors: 0, staff: 0 });
     const [toast, setToast] = useState({ show: false, type: 'success', message: '' });
 
     // Modal states

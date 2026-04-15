@@ -52,14 +52,25 @@ const Sidebar = ({ role }) => {
 
     const menuItems = {
         ADMIN_CLINIC: [
+            // 1. Tổng quan (Luôn đặt trên cùng)
             { path: '/admin/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-            { path: '/admin/users', icon: UserCog, label: 'Bác sĩ & Trợ lý' },
-            { path: '/admin/rooms', icon: DoorOpen, label: 'Phòng khám' },
+
+            // 2. Nguồn lực con người & Kinh doanh (Cốt lõi, truy cập hàng ngày)
+            { path: '/admin/users', icon: UserCog, label: 'Nhân viên' },
             { path: '/admin/services', icon: ClipboardList, label: 'Dịch vụ' },
-            { path: '/admin/equipment', icon: Wrench, label: 'Thiết bị' },
+
+            // 3. Quản lý Kho & Vật tư (Tần suất cao, ảnh hưởng trực tiếp đến khám chữa bệnh)
             { path: '/admin/medicines', icon: Pill, label: 'Thuốc' },
-            { path: '/admin/leave-management', icon: Calendar, label: 'Quản lý Nghỉ phép' },
             { path: '/admin/restock-requests', icon: PackagePlus, label: 'Yêu cầu Nhập thuốc' },
+            { path: '/admin/equipment', icon: Wrench, label: 'Thiết bị' },
+
+            // 4. Cơ sở hạ tầng (Ít biến động hơn vật tư)
+            { path: '/admin/rooms', icon: DoorOpen, label: 'Phòng khám' },
+
+            // 5. Hành chính nhân sự (Xử lý theo đợt/sự vụ)
+            { path: '/admin/leave-management', icon: Calendar, label: 'Quản lý Nghỉ phép' },
+
+            // 6. Cài đặt / Thông tin tĩnh (Rất ít khi thay đổi, luôn để cuối cùng)
             { path: '/admin/clinics', icon: Building2, label: 'Thông tin phòng khám' },
         ],
         Doctor: [

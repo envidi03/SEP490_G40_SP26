@@ -1,25 +1,16 @@
 const nodemailer = require('nodemailer');
 const logger = require('../utils/logger');
-const dns = require('dns');
 require('dotenv').config();
 
 class EmailService {
     constructor() {
-        const port = parseInt(process.env.SMTP_PORT || '587');
-        const host = process.env.SMTP_HOST || 'smtp.gmail.com';
-
-        // --- CHẨN ĐOÁN DNS ---
-        dns.lookup(host, (err, address, family) => {
-            if (err) logger.error(`[EmailService] DNS Lookup Failed for ${host}:`, err);
-            else logger.info(`[EmailService] DNS Lookup Success: ${host} -> ${address} (IPv${family})`);
+        logger.debug("=== DEBUG SMTP PASS ===", {
+            SMTP_PASS: process.env.SMTP_PASS
         });
-
-        logger.info(`[EmailService] Initializing with Host: ${host}, Port: ${port}, User: ${process.env.SMTP_USER}`);
-
         this.transporter = nodemailer.createTransport({
-            host: host,
-            port: port,
-            secure: port === 587, // true if port is 465
+            host: process.env.SMTP_HOST,
+            port: process.env.SMTP_PORT,
+            secure: process.env.SMTP_PORT == 465, // true if port is 465
             auth: {
                 user: process.env.SMTP_USER,
                 pass: process.env.SMTP_PASS
@@ -27,13 +18,7 @@ class EmailService {
             tls: {
                 // Do not fail on invalid certs (common issue on some cloud providers)
                 rejectUnauthorized: false
-            },
-            connectionTimeout: 15000, // 15 seconds
-            greetingTimeout: 15000,   // 15 seconds
-            socketTimeout: 15000,
-            debug: true,              // Bật log debug chi tiết
-            logger: true,             // Ghi log ra console
-            family: 4                 // Ép sử dụng IPv4 để tránh lỗi IPv6 trên Cloud
+            }
         });
 
         // Verify connection configuration
@@ -647,6 +632,62 @@ class EmailService {
             </html>
         `;
         return this.sendEmail(email, subject, html);
+    }
+
+    async sendAppointmentReminderEmail(email, patientName, date, time) {
+        if (!email) return;
+        const subject = '⏳ Nhắc Nhở Lịch Hẹn - Dental Clinic Management System';
+        const clinicName = process.env.SMTP_FROM_NAME || 'Dental CMS';
+        const html = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <style>
+                    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+                    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+                    .header { background: linear-gradient(135deg, #ff9966 0%, #ff5e62 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+                    .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+                    .info-box { background: white; border-left: 4px solid #ff5e62; padding: 20px; margin: 20px 0; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+                    .info-table { width: 100%; border-collapse: collapse; }
+                    .info-table td { padding: 10px 0; border-bottom: 1px solid #eee; }
+                    .footer { text-align: center; margin-top: 20px; color: #666; font-size: 12px; }
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <div class="header">
+                        <h1 style="margin: 0;">⏳ Nhắc Nhở Lịch Hẹn</h1>
+                    </div>
+                    <div class="content">
+                        <p>Xin chào <strong>${patientName}</strong>,</p>
+                        <p><strong>${clinicName}</strong> xin thông báo nhắc nhở bạn về lịch hẹn khám nha khoa sắp diễn ra.</p>
+                        
+                        <div class="info-box">
+                            <table class="info-table">
+                                <tr>
+                                    <td><strong>Thời gian hẹn:</strong></td>
+                                    <td style="text-align: right; color: #ff5e62; font-weight: bold;">${time} - ${date}</td>
+                                </tr>
+                            </table>
+                        </div>
+                        
+                        <p style="color: #d9534f; font-size: 14px;"><strong>* Lưu ý:</strong> Vui lòng đến phòng khám đúng giờ để được phục vụ tốt nhất.</p>
+                        <p>Hẹn gặp lại bạn!</p>
+                        
+                        <div class="footer">
+                            <p style="margin-bottom: 5px;">Đây là email tự động. Vui lòng không trả lời email này.</p>
+                            <p>© 2026 ${clinicName}. All rights reserved.</p>
+                        </div>
+                    </div>
+                </div>
+            </body>
+            </html>
+        `;
+        return this.sendEmail(email, subject, html);
+    }
+
+    async sendAppointmentReminder(appointment) {
+        return this.sendAppointmentReminderEmail(appointment.email, appointment.full_name, appointment.appointment_date.toDateString(), appointment.appointment_time);
     }
 
     async sendEmail(to, subject, html) {

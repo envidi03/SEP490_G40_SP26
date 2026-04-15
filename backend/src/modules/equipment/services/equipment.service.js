@@ -387,8 +387,7 @@ const createEquipment = async (dataCreate) => {
     try {
         logger.debug("Processing new equipment data", {
             context: context,
-            equipment_type: dataCreate.equipment_type,
-            newItemsCount: dataCreate.equipment.length
+            dataCreate: dataCreate
         });
 
         // TÌM KIẾM xem loại thiết bị này đã tồn tại chưa
@@ -528,30 +527,30 @@ const updateCategory = async (categoryId, updateData) => {
 /**
  * Update 1 item cụ thể trong mảng equipment
  */
-const updateEquipmentItem = async (equipmentItemId, dataUpdate) => {
-    const context = "EquipmentService.updateEquipmentItem";
-    try {
-        const setQuery = {};
-        for (const key in dataUpdate) {
-            setQuery[`equipment.$.${key}`] = dataUpdate[key];
-        }
+const updateEquipmentItem = async (categoryId, dataUpdate) => {
+    const context = "EquipmentService.updateEquipmentCategory";
+    logger.debug("Updating equipment category with data", {
+        context,
+        categoryId,
+        dataUpdate
+    });
 
-        // 2. Tìm document chứa item đó, và chỉ update đúng phần tử (nhờ toán tử $)
-        const updatedDoc = await EquipmentModel.findOneAndUpdate(
-            { "equipment._id": equipmentItemId },
-            { $set: setQuery },
+    try {
+        const updatedDoc = await EquipmentModel.findByIdAndUpdate(
+            categoryId,
+            { $set: dataUpdate },
             { new: true, runValidators: true }
         );
 
         if (!updatedDoc) {
-            throw new errorRes.NotFoundError("Equipment item not found");
+            throw new errorRes.NotFoundError("Equipment category not found");
         }
-
         return updatedDoc;
+
     } catch (error) {
-        logger.error("Error updating equipment item", { context, message: error.message });
+        logger.error("Error updating equipment category", { context, message: error.message });
         if (error.statusCode) throw error;
-        throw new errorRes.InternalServerError(`An error occurred while updating equipment item: ${error.message}`);
+        throw new errorRes.InternalServerError(`An error occurred while updating equipment: ${error.message}`);
     }
 };
 

@@ -1,0 +1,25 @@
+# Use this workspace to collaborate
+workspace:
+  id: b2268f43-4d1f-4b0d-8657-0eb74269bb20
+
+# Each entry here maps a local resource to one or more corresponding objects in Postman Cloud
+
+cloudResources:
+  collections:
+    ..\postman\collections\dental record: 37516919-176d257a-93bf-4e2f-b0f3-1e53c2996709
+    ..\postman\collections\auth: 37516919-322759bd-d971-45ee-9f62-57c22c3ffeda
+    ..\postman\collections\room: 37516919-367e77a1-a040-4369-95cf-2d3490e16704
+    ..\postman\collections\booking: 37516919-3ac91a5e-e5f0-4afc-8e33-6f69db55aef1
+    ..\postman\collections\service: 37516919-48acc0fa-73f1-403b-a7e9-e56cc35088d4
+    ..\postman\collections\staff: 37516919-4e72d182-e24d-4dc5-b2df-d8fb18bf0e95
+    ..\postman\collections\mdicince: 37516919-de44ae0a-1d7a-48c7-8e71-2207ddfb2150
+    ..\postman\collections\clinic: 37516919-ed58c59e-4811-4601-90f5-3865a05f811d
+    ..\postman\collections\equipment: 37516919-f905b03e-cd1c-43cc-b325-6574cf39c485
+  environments:
+    ..\postman\environments\New Environment.environment.yaml: 37516919-ee82fc20-3aec-4a5f-ab0c-e0d58b73854e
+
+# All resources in the `postman/` folder are automatically registered in Local View.
+# Point to additional files outside the `postman/` folder to register them individually. Example:
+#localResources:
+#  collections:
+#    - ../tests/E2E Test Collection/

@@ -205,7 +205,7 @@ const addEquipmentItemsController = async (req, res) => {
         logger.debug('Add equipment items request received', {
             context: context,
             categoryId: categoryId,
-            itemCount: payload.equipment ? payload.equipment.length : 0
+            itemCount: payload,
         });
 
         if (!payload.equipment || !Array.isArray(payload.equipment) || payload.equipment.length === 0) {
@@ -255,7 +255,7 @@ const addEquipmentItemsController = async (req, res) => {
         });
 
         return new successRes.CreateSuccess(
-            updatedCategory, 
+            updatedCategory,
             'New equipment items added successfully'
         ).send(res);
 
@@ -311,17 +311,13 @@ const updateEquipmentItemController = async (req, res) => {
         const { equipmentId } = req.params; // _id của cái máy cụ thể trong mảng
         const dataUpdate = req.body || {};
 
-        // 1. Dùng Whitelist để tự động loại bỏ purchase_date, maintenance_history...
-        const allowedFields = ['equipment_name', 'equipment_serial_number', 'supplier', 'warranty', 'status'];
-        const safeData = {};
+        logger.debug('Update equipment item request received', {
+            context: context,
+            equipmentId: equipmentId,
+            dataUpdate: dataUpdate
+        });
 
-        for (const field of allowedFields) {
-            if (dataUpdate[field] !== undefined) {
-                safeData[field] = dataUpdate[field];
-            }
-        }
-
-        const cleanedData = cleanObjectData(safeData);
+        const cleanedData = cleanObjectData(dataUpdate);
 
         if (Object.keys(cleanedData).length === 0) {
             throw new errorRes.BadRequestError('No valid equipment data provided');

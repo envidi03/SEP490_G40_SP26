@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import Toast from '../../../components/ui/Toast';
 import { Plus, ClipboardList } from 'lucide-react';
@@ -264,9 +264,9 @@ const ServiceList = () => {
             fetchServices(pagination.page);
         } catch (error) {
             console.error('Error saving service:', error);
-            
+
             const message = error.response?.data?.message || 'Có lỗi xảy ra khi lưu dịch vụ.';
-            
+
             // Map backend error to field if possible
             if (message.toLowerCase().includes('name already exists')) {
                 setErrors({ service_name: 'Tên dịch vụ đã tồn tại!' });
@@ -364,11 +364,6 @@ const ServiceList = () => {
     // ========== RENDER ==========
 
     // Calculate statistics
-    const activeServices = services.filter(s => s.status === 'AVAILABLE').length;
-    const avgPrice = services.length > 0
-        ? services.reduce((sum, s) => sum + Number(s.calculated_min_price || s.price || 0), 0) / services.length
-        : 0;
-
     return (
         <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 p-6">
             <div className="max-w-7xl mx-auto">

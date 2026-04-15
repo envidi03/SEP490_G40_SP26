@@ -1,25 +1,25 @@
 import React, { useState } from 'react';
-import { PackageX, ChevronDown, ChevronUp, Plus } from 'lucide-react'; 
+// THÊM: Import icon Edit
+import { PackageX, ChevronDown, ChevronUp, Plus, Edit } from 'lucide-react';
 import EquipmentCard from './EquipmentCard';
 
 const EquipmentGrid = ({
-    filteredEquipment, // Dữ liệu bây giờ là mảng các Danh mục (Loại thiết bị)
+    filteredEquipment,
     loading,
     equipmentUsage,
     onViewDetails,
     onViewUsage,
-    onEdit,
     onDelete,
     getStatusColor,
     getStatusText,
     formatDate,
     searchTerm,
-    statusFilter
+    statusFilter,
+    onOpenAddChildModal,
+    onEditCategory // THÊM: Prop nhận hàm sửa danh mục từ cha
 }) => {
-    // State quản lý trạng thái đóng/mở của các nhóm (Mặc định ĐÓNG)
     const [openGroups, setOpenGroups] = useState({});
 
-    // Hàm toggle: nếu chưa có (undefined) thì !undefined = true (mở), ngược lại thì đảo trạng thái
     const toggleGroup = (categoryId) => {
         setOpenGroups(prev => ({
             ...prev,
@@ -56,18 +56,14 @@ const EquipmentGrid = ({
 
     return (
         <div className="space-y-6">
-            {/* Lặp qua từng Danh mục (Equipment Type) */}
             {filteredEquipment.map(category => {
                 const categoryId = category._id || category.id;
-                
-                // MẶC ĐỊNH ĐÓNG: Chỉ khi state là true thì mới mở
-                // Nếu chưa click bao giờ (undefined) thì isOpen sẽ là false
                 const isOpen = openGroups[categoryId] === true;
 
                 return (
                     <div key={categoryId} className="bg-transparent mb-4">
-                        {/* 1. THẺ TIÊU ĐỀ THEO HÀNG NGANG (Click để gập/mở) */}
-                        <div 
+                        {/* 1. THẺ TIÊU ĐỀ THEO HÀNG NGANG */}
+                        <div
                             onClick={() => toggleGroup(categoryId)}
                             className="flex items-center justify-between p-4 bg-white rounded-xl shadow-sm border border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors"
                         >
@@ -84,23 +80,33 @@ const EquipmentGrid = ({
                             </div>
 
                             <div className="flex items-center gap-3">
-                                {/* Trạng thái danh mục ACTIVE / INACTIVE */}
+                                {/* Trạng thái danh mục */}
                                 {category.status && (
-                                    <span className={`px-3 py-1.5 rounded-full text-xs font-bold border ${
-                                        category.status === 'ACTIVE' 
-                                            ? 'bg-green-100 text-green-700 border-green-200' 
+                                    <span className={`px-3 py-1.5 rounded-full text-xs font-bold border ${category.status === 'ACTIVE'
+                                            ? 'bg-green-100 text-green-700 border-green-200'
                                             : 'bg-red-100 text-red-700 border-red-200'
-                                    }`}>
+                                        }`}>
                                         {category.status === 'ACTIVE' ? 'Đang hoạt động' : 'Ngừng hoạt động'}
                                     </span>
                                 )}
 
-                                {/* Nút Thêm Thiết Bị */}
+                                {/* THÊM: Nút Sửa Toàn bộ Danh Mục (Mở Form Modal to) */}
                                 <button
                                     onClick={(e) => {
-                                        e.stopPropagation(); // QUAN TRỌNG: Chặn sự kiện click để không gập/mở thẻ cha
-                                        // TODO: Gọi hàm mở Modal thêm thiết bị con ở đây
-                                        console.log("Mở modal thêm thiết bị cho category:", categoryId);
+                                        e.stopPropagation();
+                                        if (onEditCategory) onEditCategory(category);
+                                    }}
+                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 text-amber-600 hover:bg-amber-100 hover:text-amber-700 rounded-lg text-sm font-semibold transition-colors border border-amber-100"
+                                >
+                                    <Edit size={16} />
+                                    <span>Sửa</span>
+                                </button>
+
+                                {/* Nút Thêm Thiết Bị Mới vào Danh mục */}
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        if (onOpenAddChildModal) onOpenAddChildModal(category);
                                     }}
                                     className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 hover:text-blue-700 rounded-lg text-sm font-semibold transition-colors border border-blue-100"
                                 >
@@ -115,15 +121,13 @@ const EquipmentGrid = ({
                             </div>
                         </div>
 
-                        {/* 2. LƯỚI DANH SÁCH CÁC THIẾT BỊ CON (Chỉ hiển thị khi isOpen = true) */}
+                        {/* 2. LƯỚI DANH SÁCH CÁC THIẾT BỊ CON */}
                         {isOpen && category.equipment && category.equipment.length > 0 && (
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-4 pl-4 border-l-2 border-blue-100 ml-2">
                                 {category.equipment.map(equip => {
                                     const equipId = equip._id || equip.id;
                                     const usageCount = equipmentUsage?.filter(u => u.equipment_id === equipId).length || 0;
 
-                                    // QUAN TRỌNG: Gộp thông tin thằng cha vào thằng con 
-                                    // để các Modal Action cũ của bạn vẫn lấy được equipment_type và categoryId
                                     const equipWithCategoryData = {
                                         ...equip,
                                         categoryId: categoryId,
@@ -137,7 +141,8 @@ const EquipmentGrid = ({
                                             usageCount={usageCount}
                                             onViewDetails={onViewDetails}
                                             onViewUsage={onViewUsage}
-                                            onEdit={onEdit}
+                                            // Nếu user bấm "Sửa" ở từng Card, ta cũng mở Modal của cả category lên
+                                            onEdit={() => onEditCategory(category)}
                                             onDelete={onDelete}
                                             getStatusColor={getStatusColor}
                                             getStatusText={getStatusText}

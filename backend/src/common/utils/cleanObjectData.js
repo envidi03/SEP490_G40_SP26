@@ -6,37 +6,50 @@ const logger = require('./../../common/utils/logger');
  * @returns {Object} - Object mới đã được làm sạch
  */
 const cleanObjectData = (obj) => {
-    // Nếu obj không tồn tại hoặc rỗng thì trả về object rỗng
-    if (!obj) return {};
+    if (!obj) return obj;
 
-    const newObj = { ...obj }; // Copy object để không sửa trực tiếp biến gốc
+    // Nếu là array → clean từng phần tử
+    if (Array.isArray(obj)) {
+        return obj
+            .map(item => cleanObjectData(item))
+            .filter(item => item !== undefined && item !== null);
+    }
 
-    Object.keys(newObj).forEach(key => {
-        const value = newObj[key];
+    // Nếu là object
+    if (typeof obj === 'object') {
+        const newObj = {};
 
-        // 1. Xóa nếu là null hoặc undefined
-        if (value === null || value === undefined) {
-            delete newObj[key];
-        }
+        Object.keys(obj).forEach(key => {
+            let value = obj[key];
 
-        // 2. Xử lý nếu là chuỗi
-        else if (typeof value === 'string') {
-            const trimmedValue = value.trim();
+            if (value === null || value === undefined) return;
 
-            // Nếu trim xong mà rỗng (tức là input ban đầu là "   " hoặc "")
-            if (trimmedValue === '') {
-                delete newObj[key]; // Xóa luôn key này -> Giữ lại giá trị cũ trong DB
-            } else {
-                newObj[key] = trimmedValue; // Cập nhật lại giá trị đã trim sạch sẽ
+            if (typeof value === 'string') {
+                value = value.trim();
+                if (value === '') return;
             }
-        }
+
+            if (typeof value === 'object') {
+                value = cleanObjectData(value);
+                if (
+                    value === undefined ||
+                    value === null ||
+                    (typeof value === 'object' && Object.keys(value).length === 0)
+                ) {
+                    return;
+                }
+            }
+
+            newObj[key] = value;
+        });
+
+        return newObj;
+    }
+    logger.debug("Value is not an object or array, returning as is", {
+        context: "cleanObjectData",
+        value: obj
     });
-
-    logger.debug('Clean data', {
-        cleanedData: newObj
-    })
-
-    return newObj;
+    return obj;
 };
 
 module.exports = {

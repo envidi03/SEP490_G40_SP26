@@ -36,7 +36,6 @@ const UserFilters = ({
                         onChange={onRoleChange}
                     >
                         <option value="all">Tất cả vai trò</option>
-                        <option value="ADMIN_CLINIC">Quản trị viên</option>
                         <option value="DOCTOR">Bác sĩ</option>
                         <option value="RECEPTIONIST">Lễ tân</option>
                         <option value="PHARMACIST">Dược sĩ</option>

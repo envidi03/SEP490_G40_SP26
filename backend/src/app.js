@@ -4,7 +4,7 @@ const cron = require('node-cron');
 const morgan = require('morgan');
 require('dotenv').config();
 const logger = require('./common/utils/logger');
-const initAppointmentJobs = require('./modules/appointment/jobs/appointmentJob');
+const { startNoShowCheckCron, initReminderJobs } = require('./modules/appointment/jobs/cron.service');
 const initInventoryJobs = require('./modules/inventory/jobs/inventoryJob');
 const initRevenueJobs = require('./modules/billing/jobs/revenueJob');
 const mongoose = require('mongoose');
@@ -23,7 +23,8 @@ const morganMiddleware = morgan(
     }
 );
 
-initAppointmentJobs();
+startNoShowCheckCron();
+initReminderJobs();
 initInventoryJobs();
 initRevenueJobs();
 
@@ -139,6 +140,9 @@ app.use('/api/notification', notificationRoute);
 
 const { route: routePayment } = require('./modules/payment/index');
 app.use('/api/payment', routePayment);
+
+const {route: routeStatistic} = require('./modules/statistic');
+app.use('/api/statistic', routeStatistic);
 
 const zaloWebhookRoute = require('./common/routes/zalo.webhook.route');
 app.use('/api/zalo', zaloWebhookRoute);
