@@ -709,7 +709,7 @@ class EmailService {
 
     async sendEmail(to, subject, html) {
         try {
-            logger.info(`[EmailService] Sending email to ${to} with subject "${subject}"`);
+            logger.info(`[EmailService.sendEmail - 1101] Sending email to ${to} with subject "${subject}"`);
             const info = await this.transporter.sendMail({
                 from: `"${process.env.SMTP_FROM_NAME || 'Dental CMS'}" <${process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER}>`,
                 to,
@@ -717,11 +717,20 @@ class EmailService {
                 html
             });
 
-            logger.info(' Email sent successfully:', info.messageId);
+            logger.info('[EmailService.sendEmail - 1103] Email sent successfully:', info.messageId);
             return info;
         } catch (error) {
-            logger.error(' Error sending email:', error);
-            throw new Error('Failed to send email: ' + error.message);
+            logger.error(' [EmailService.sendEmail - 4001] Error sending email:', {
+                message: error.message,
+                stack: error.stack,
+                errorCode: error.code,
+                errorResponse: error.response,
+                errorStatus: error.status,
+                error: error,
+                to,
+                subject
+            });
+            throw new Error("The system is having trouble sending the email. Please try again later.");
         }
     }
 }
