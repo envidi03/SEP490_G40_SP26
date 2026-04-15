@@ -7,21 +7,24 @@ type Props = {
     errorMsg?: string;
     title?: string;
     subtitle?: string;
+    showBackButton?: boolean;
 };
 
-export function AuthHeader({ errorMsg, title = 'Đăng nhập', subtitle = 'Vui lòng nhập thông tin để quản lý sức khỏe răng miệng của bạn.' }: Props) {
+export function AuthHeader({ errorMsg, title = 'Đăng nhập', subtitle = 'Vui lòng nhập thông tin để quản lý sức khỏe răng miệng của bạn.', showBackButton = true }: Props) {
     return (
         <View style={styles.header}>
-            <Link href="/" asChild>
-                <TouchableOpacity style={styles.backButton}>
-                    <Image
-                        source={require('@/assets/images/back.png')}
-                        style={styles.backButtonIcon}
-                        contentFit="contain"
-                    />
-                    <ThemedText style={styles.backButtonText}>Quay lại</ThemedText>
-                </TouchableOpacity>
-            </Link>
+            {showBackButton && (
+                <Link href="/" asChild>
+                    <TouchableOpacity style={styles.backButton}>
+                        <Image
+                            source={require('@/assets/images/back.png')}
+                            style={styles.backButtonIcon}
+                            contentFit="contain"
+                        />
+                        <ThemedText style={styles.backButtonText}>Quay lại</ThemedText>
+                    </TouchableOpacity>
+                </Link>
+            )}
             <ThemedText type="title" style={styles.title}>{title}</ThemedText>
             <ThemedText style={styles.subtitle}>{subtitle}</ThemedText>
             {errorMsg ? <ThemedText style={styles.errorText}>{errorMsg}</ThemedText> : null}
