@@ -3,6 +3,7 @@ import { AuthUser } from '../types/auth';
 import { tokenService } from '../services/tokenService';
 import { authApi } from '../services/authApi';
 import { authService } from '../services/authService';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface AuthContextType {
     user: AuthUser | null;
@@ -17,6 +18,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [user, setUser] = useState<AuthUser | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const queryClient = useQueryClient();
 
     const isAuthenticated = useMemo(() => !!user, [user]);
 
@@ -56,8 +58,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const logout = async () => {
         setIsLoading(true);
         try {
+            // 1. Call backend logout if refresh token exists
+            const refreshToken = await tokenService.getRefreshToken();
+            if (refreshToken) {
+                await authApi.logout(refreshToken).catch(err => {
+                    if (__DEV__) console.warn('Backend logout failed:', err);
+                });
+            }
+
+            // 2. Clear local storage tokens
             await authService.logout();
+
+            // 3. Reset state
             setUser(null);
+
+            // 4. Clear React Query cache
+            queryClient.clear();
         } catch (error) {
             console.error('Logout error:', error);
         } finally {

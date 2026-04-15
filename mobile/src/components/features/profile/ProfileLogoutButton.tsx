@@ -1,13 +1,10 @@
 import { StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { router } from 'expo-router';
 import { ThemedText } from '@/src/components/ui/themed-text';
-import { useLogout } from '@/src/hooks/useAuth';
-import { useQueryClient } from '@tanstack/react-query';
-import * as SecureStore from 'expo-secure-store';
+import { useAuth } from '@/src/context/AuthContext';
 
 export function ProfileLogoutButton() {
-    const logoutMutation = useLogout();
-    const queryClient = useQueryClient();
+    const { logout } = useAuth();
 
     const handleLogout = async () => {
         Alert.alert('Đăng xuất', 'Bạn có chắc muốn đăng xuất không?', [
@@ -16,18 +13,7 @@ export function ProfileLogoutButton() {
                 text: 'Đăng xuất',
                 style: 'destructive',
                 onPress: async () => {
-                    try {
-                        const refreshToken = await SecureStore.getItemAsync('refresh_token');
-                        if (refreshToken) await logoutMutation.mutateAsync(refreshToken);
-                    } catch (e) {
-                        console.error(e);
-                    } finally {
-                        await SecureStore.deleteItemAsync('access_token');
-                        await SecureStore.deleteItemAsync('refresh_token');
-                        queryClient.setQueryData(['profile'], null);
-                        queryClient.clear();
-                        router.replace('/(tabs)' as any);
-                    }
+                    await logout();
                 },
             },
         ]);

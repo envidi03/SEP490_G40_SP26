@@ -10,6 +10,13 @@ export function useLogin() {
     });
 }
 
+// Logout Hook
+export function useLogout() {
+    return useMutation({
+        mutationFn: (refreshToken: string) => authApi.logout(refreshToken),
+    });
+}
+
 // Register Hook
 export function useRegister() {
     return useMutation({

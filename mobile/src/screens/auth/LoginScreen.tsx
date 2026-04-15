@@ -22,7 +22,7 @@ export function LoginScreen() {
 
     const handleLogin = async () => {
         setLocalError(null);
-        
+
         // 1. Client-side Validation using Zod
         const validation = loginSchema.safeParse({ identifier, password });
         if (!validation.success) {
@@ -33,15 +33,14 @@ export function LoginScreen() {
         try {
             // 2. Trigger Mutation
             const user = await loginMutation.mutateAsync({ identifier, password });
-            
+
             // 3. Update Global Auth State
             setAuth(user);
-            
-            // 4. Navigation side effect (Handled in UI)
-            router.replace('/(tabs)');
-        } catch (err: any) {
+        } catch (err) {
             // Error is handled by React Query state (loginMutation.error)
-            console.error('Login screen error:', err);
+            if (__DEV__) {
+                console.error('Login screen error:', err);
+            }
         }
     };
 

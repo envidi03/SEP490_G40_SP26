@@ -31,4 +31,9 @@ export const authApi = {
         const response = await apiClient.get('/api/profile');
         return response.data;
     },
+
+    async logout(refreshToken: string) {
+        const response = await apiClient.post('/api/auth/logout', { refreshToken });
+        return response.data;
+    },
 };
