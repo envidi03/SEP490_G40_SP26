@@ -120,6 +120,13 @@ const findPatientByAccountId = async (accountId) => {
             profile: profile,
             role: role
         });
+        logger.info("Patient found successfully", {
+            context: context,
+            accountId: account?._id,
+            patientId: patient ? patient._id : null,
+            profileId: profile ? profile._id : null,
+            roleId: role ? role._id : null
+        });
         return { account, patient, profile, role };
     } catch (error) {
         logger.debug("Error get account by id", {
@@ -134,16 +141,18 @@ const findPatientByAccountId = async (accountId) => {
 const findAccountByPhone = async (phone) => {
     const context = "AccountService.findAccountByPhone";
     try {
+        logger.info("Finding account by phone", {
+            context: context,
+            phone: phone
+        });
         const account = await AccountModel.findOne({
             phone_number: phone
         }).lean();
-
-        logger.debug("Account found successfully", {
+        logger.info("Account found successfully", {
             context: context,
             phone: phone,
-            account: account
+            accountId: account ? account._id : null
         });
-
         return account;
     } catch (error) {
         logger.error("Error getting account by phone", {
@@ -158,6 +167,10 @@ const findAccountByPhone = async (phone) => {
 const createAccount = async (accountData, session) => {
     const context = "AccountService.createAccount";
     try {
+        logger.info("Creating account", {
+            context: context,
+            accountData: accountData
+        });
         const newAccount = new AccountModel(accountData);
         // Truyền session vào hàm save()
         const savedAccount = await newAccount.save({ session });
@@ -165,6 +178,11 @@ const createAccount = async (accountData, session) => {
             context: context,
             accountData: accountData,
             savedAccount: savedAccount
+        });
+        logger.info("Account created successfully", {
+            context: context,
+            accountId: savedAccount._id,
+            username: savedAccount.username
         });
         return savedAccount;
     } catch (error) {
@@ -180,12 +198,16 @@ const createAccount = async (accountData, session) => {
 const createProfile = async (profileData, session) => {
     const context = "AccountService.createProfile";
     try {
+        logger.info("Creating profile", {
+            context: context,
+            profileData: profileData
+        });
         const newProfile = new ProfileModel(profileData);
         const savedProfile = await newProfile.save({ session });
-        logger.debug("Profile created successfully", {
+        logger.info("Profile created successfully", {
             context: context,
-            profileData: profileData,
-            savedProfile: savedProfile
+            profileId: savedProfile._id,
+            accountId: savedProfile.account_id
         });
         return savedProfile;
     } catch (error) {
@@ -201,12 +223,16 @@ const createProfile = async (profileData, session) => {
 const createPatient = async (patientData, session) => {
     const context = "AccountService.createPatient";
     try {
+        logger.info("Creating patient", {
+            context: context,
+            patientData: patientData
+        });
         const newPatient = new PatientModel(patientData);
         const savedPatient = await newPatient.save({ session });
-        logger.debug("Patient created successfully", {
+        logger.info("Patient created successfully", {
             context: context,
-            patientData: patientData,
-            savedPatient: savedPatient
+            patientId: savedPatient._id,
+            accountId: savedPatient.account_id
         });
         return savedPatient;
     } catch (error) {
@@ -227,6 +253,11 @@ const createPatientFromUserProfile = async (full_name, phone) => {
     session.startTransaction();
 
     try {
+        logger.info("Creating patient from user profile", {
+            context: context,
+            full_name: full_name,
+            phone: phone
+        });
         const hashPassword = await bcryptjs.hash(phone, 10);
         const role = await RoleModel.findOne({ name: "PATIENT" }).session(session);
         const roleId = role._id;
@@ -252,6 +283,12 @@ const createPatientFromUserProfile = async (full_name, phone) => {
             status: "active"
         }, session);
 
+        logger.info("Patient created from user profile successfully", {
+            context: context,
+            accountId: accountSaved._id,
+            profileId: profileSaved._id,
+            patientId: patientSaved._id
+        });
         await session.commitTransaction();
 
         return patientSaved;

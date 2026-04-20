@@ -423,6 +423,14 @@ const staffCreateController = async (req, res) => {
         context: "AppointmentController.staffCreateController",
         patient: patientCreated,
       });
+
+      if (!patientCreated._id) {
+        logger.warn("Created patient account does not have an ID", {
+          context: "AppointmentController.staffCreateController",
+          patient: patientCreated,
+        });
+        throw new errorRes.InternalServerError("Tạo tài khoản bệnh nhân thất bại.");
+      }
       cleanedData.patient_id = patientCreated._id;
     }
     const newAppointment = await ServiceProcess.staffCreateService(cleanedData);
