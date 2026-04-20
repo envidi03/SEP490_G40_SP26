@@ -414,7 +414,13 @@ const staffCreateController = async (req, res) => {
         phone: cleanedData.phone,
         accountId: accountExisted._id,
       });
-      cleanedData.patient_id = accountExisted.patient_id;
+      const {patient} = await accountService.findPatientByAccountId(accountExisted._id);
+      logger.info("Patient linked to existing account", {
+        context: "AppointmentController.staffCreateController",
+        patientId: patient ? patient._id : null,
+        accountId: accountExisted._id,
+      });
+      cleanedData.patient_id = patient._id;
     }
     if (!accountExisted) {
       const patientCreated = await accountService.createPatientFromUserProfile(
@@ -436,7 +442,7 @@ const staffCreateController = async (req, res) => {
     if (!cleanedData.patient_id) {
         logger.warn("Patient ID is missing", {
           context: "AppointmentController.staffCreateController",
-          patient: patientCreated,
+          cleanedData: cleanedData,
         });
         throw new errorRes.InternalServerError("Tạo tài khoản bệnh nhân thất bại.");
       }
