@@ -60,7 +60,7 @@ exports.getDashboard = async () => {
             context: 'DashboardService.getDashboardService',
             message: error.message,
         })
-        throw new errorRes.InternalServerError(error.message)
+        throw new errorRes.InternalServerError("Hệ thống lỗi, vui lòng thực hiện sau")
     }
 
 }

@@ -13,7 +13,7 @@ const checkRequiredFields = (requiredFields, cleanedData, caller = null, methodN
                 context: context, // Kết quả: "StaffController.createController"
                 field: field
             });
-            throw new errorRes.BadRequestError(`Missing required field: ${field}`);
+            throw new errorRes.BadRequestError(`Thiếu trường bắt buộc: ${field}`);
         }
     }
     return true;

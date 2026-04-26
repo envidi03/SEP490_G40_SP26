@@ -117,7 +117,7 @@ const getListService = async (query) => {
             context: 'PatientService.getListService',
             message: error.message,
         });
-        throw new errorRes.InternalServerError(error.message);
+        throw new errorRes.InternalServerError("Hệ thống lỗi, vui lòng thực hiện sau");
     }
 };
 
@@ -129,7 +129,7 @@ const getPatientById = async (id) => {
             .populate('account_id', 'email phone_number');
 
         if (!patient) {
-            throw new errorRes.NotFoundError('Patient not found');
+            throw new errorRes.NotFoundError('Không tìm thấy bệnh nhân');
         }
 
         const result = patient.toObject();
@@ -147,7 +147,7 @@ const getPatientById = async (id) => {
             context: 'PatientService.getPatientById',
             message: error.message,
         });
-        throw new errorRes.InternalServerError(error.message);
+        throw new errorRes.InternalServerError("Hệ thống lỗi, vui lòng thực hiện sau");
     }
 };
 
@@ -187,7 +187,7 @@ const createPatientService = async (data) => {
             context: 'PatientService.createPatientService',
             message: error.message,
         });
-        throw new errorRes.InternalServerError(error.message);
+        throw new errorRes.InternalServerError("Hệ thống lỗi, vui lòng thực hiện sau");
     }
 };
 
@@ -195,7 +195,7 @@ const updatePatientService = async (id, data) => {
     try {
         const patient = await PatientModel.findById(id);
         if (!patient) {
-            throw new errorRes.NotFoundError('Patient not found');
+            throw new errorRes.NotFoundError('Không tìm thấy bệnh nhân');
         }
 
         const { full_name, phone, email, dob, gender, address, status } = data;
@@ -232,7 +232,7 @@ const updatePatientService = async (id, data) => {
             context: 'PatientService.updatePatientService',
             message: error.message,
         });
-        throw new errorRes.InternalServerError(error.message);
+        throw new errorRes.InternalServerError("Hệ thống lỗi, vui lòng thực hiện sau");
     }
 };
 

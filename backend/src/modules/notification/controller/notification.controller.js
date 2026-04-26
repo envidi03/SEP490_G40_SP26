@@ -230,7 +230,7 @@ const deleteNotificationController = async (req, res, next) => {
 
         await notificationService.deleteNotification(id, userId);
 
-        res.status(200).json({ status: 'success', message: 'Notification deleted successfully' });
+        res.status(200).json({ status: 'success', message: 'Xóa thông báo thành công' });
     } catch (error) {
         next(error);
     }

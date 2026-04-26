@@ -180,7 +180,7 @@ const getListService = async (query) => {
             stack: error.stack
         });
         throw new errorRes.InternalServerError(
-            `An error occurred while fetching staff: ${error.message}`
+            "Hệ thống lỗi, vui lòng thực hiện sau"
         );
     }
 };
@@ -203,7 +203,7 @@ const getByIdService = async (staffId, query) => {
 
         // --- 1. KIỂM TRA ĐỊNH DẠNG ID ---
         if (!mongoose.Types.ObjectId.isValid(staffId)) {
-            throw new errorRes.BadRequestError("Invalid Staff ID format");
+            throw new errorRes.BadRequestError("Định dạng mã nhân viên không hợp lệ");
         }
 
         // --- 2. AGGREGATION PIPELINE ---
@@ -313,7 +313,7 @@ const getByIdService = async (staffId, query) => {
         if (error.statusCode) throw error;
 
         throw new errorRes.InternalServerError(
-            `An error occurred while fetching staff by id: ${error.message}`
+            "Hệ thống lỗi, vui lòng thực hiện sau"
         );
     }
 };
@@ -322,7 +322,7 @@ const createService = async (dataCreate) => {
     // 1. Kiểm tra Role trước khi bắt đầu Transaction (để tiết kiệm tài nguyên)
     const role = await getRoleById(dataCreate.role_id || null);
     if (!role) {
-        throw new errorRes.NotFoundError('Invalid role_id: Role not found');
+        throw new errorRes.NotFoundError('Mã vai trò không hợp lệ: Không tìm thấy vai trò');
     }
 
     // Khởi tạo Session để bắt đầu Transaction
@@ -404,7 +404,7 @@ const createService = async (dataCreate) => {
         });
 
         // Quăng lỗi ra ngoài để Controller xử lý response
-        throw new errorRes.InternalServerError(`Transaction failed: ${error.message}`);
+        throw new errorRes.InternalServerError("Hệ thống lỗi, vui lòng thực hiện sau");
     } finally {
         // Kết thúc session
         await session.endSession();
@@ -468,7 +468,7 @@ const updateService = async (accountId, data) => {
                 { $set: accountUpdate },
                 { new: true, session }
             );
-            if (!updatedAccount) throw new errorRes.NotFoundError("Account not found");
+            if (!updatedAccount) throw new errorRes.NotFoundError("Không tìm thấy tài khoản");
         }
 
         // 2.2 Update Profile
@@ -486,7 +486,7 @@ const updateService = async (accountId, data) => {
 
         if (!currentStaff) {
             // Nếu không tìm thấy Staff, throw lỗi để rollback tất cả (kể cả Account/Profile vừa update)
-            throw new errorRes.NotFoundError("Staff profile not found for this account!");
+            throw new errorRes.NotFoundError("Không tìm thấy hồ sơ nhân viên cho tài khoản này!");
         }
 
         // Update Staff info
@@ -560,7 +560,7 @@ const getRoleById = async (id) => {
             stack: error.stack,
         });
         throw new errorRes.InternalServerError(
-            `An error occurred while getting role by id: ${error.message}`
+            "Hệ thống lỗi, vui lòng thực hiện sau"
         );
     }
 };
@@ -618,7 +618,7 @@ const updateStaffStatusOnly = async (accountId, status) => {
         { $set: { status } },
         { new: true }
     );
-    if (!updatedAccount) throw new errorRes.NotFoundError("Account not found");
+    if (!updatedAccount) throw new errorRes.NotFoundError("Không tìm thấy tài khoản");
 
     // Đồng bộ Staff.status
     await StaffModel.Staff.findOneAndUpdate(
@@ -641,7 +641,7 @@ const createLeaveRequestService = async (accountId, payload) => {
 
     // 2. Kiểm tra ngày hợp lệ
     if (new Date(payload.startedDate) > new Date(payload.endDate)) {
-        throw new errorRes.BadRequestError("End date must be after start date");
+        throw new errorRes.BadRequestError("Ngày kết thúc phải sau ngày bắt đầu");
     }
 
     // 3. Tạo leave request
@@ -673,7 +673,7 @@ const getLeaveRequestService = async (accountId, query = {}) => {
     const { status } = query;
     // 1. Lấy staff theo account_id
     const staff = await StaffModel.Staff.findOne({ account_id: accountId });
-    if (!staff) throw new errorRes.NotFoundError("Staff not found");
+    if (!staff) throw new errorRes.NotFoundError("Không tìm thấy nhân viên");
 
     const staffId = staff._id;
     const matchCondition = { staff_id: staffId };
@@ -724,14 +724,14 @@ const getLeaveRequestService = async (accountId, query = {}) => {
 // Edit leave request (chỉ cho phép sửa khi còn PENDING)
 const editLeaveRequestService = async (accountId, leaveId, payload) => {
     const staff = await StaffModel.Staff.findOne({ account_id: accountId });
-    if (!staff) throw new errorRes.NotFoundError("Staff not found");
+    if (!staff) throw new errorRes.NotFoundError("Không tìm thấy nhân viên");
 
     const leave = await leaveRequestModel.findById(leaveId);
-    if (!leave) throw new errorRes.NotFoundError("Leave request not found");
+    if (!leave) throw new errorRes.NotFoundError("Không tìm thấy yêu cầu nghỉ phép");
 
     // Chỉ cho sửa khi PENDING
     if (leave.status !== "PENDING") {
-        throw new errorRes.BadRequestError("Only PENDING request can be edited");
+        throw new errorRes.BadRequestError("Chỉ có thể chỉnh sửa yêu cầu đang chờ duyệt");
     }
 
     // Validate ngày
@@ -740,7 +740,7 @@ const editLeaveRequestService = async (accountId, leaveId, payload) => {
         payload.endDate &&
         new Date(payload.startedDate) > new Date(payload.endDate)
     ) {
-        throw new errorRes.BadRequestError("End date must be after start date");
+        throw new errorRes.BadRequestError("Ngày kết thúc phải sau ngày bắt đầu");
     }
 
     Object.assign(leave, payload);
@@ -753,17 +753,17 @@ const editLeaveRequestService = async (accountId, leaveId, payload) => {
 // Cancel leave request (chỉ cho phép cancel khi còn PENDING)
 const cancelLeaveRequestService = async (accountId, leaveId) => {
     const staff = await StaffModel.Staff.findOne({ account_id: accountId });
-    if (!staff) throw new errorRes.NotFoundError("Staff not found");
+    if (!staff) throw new errorRes.NotFoundError("Không tìm thấy nhân viên");
 
     const leave = await leaveRequestModel.findOne({
         _id: leaveId,
         staff_id: staff._id,
     });
 
-    if (!leave) throw new errorRes.NotFoundError("Leave request not found");
+    if (!leave) throw new errorRes.NotFoundError("Không tìm thấy yêu cầu nghỉ phép");
 
     if (leave.status !== "PENDING") {
-        throw new errorRes.BadRequestError("Only PENDING request can be cancelled");
+        throw new errorRes.BadRequestError("Chỉ có thể hủy yêu cầu đang chờ duyệt");
     }
 
     leave.status = "CANCELLED";
@@ -945,12 +945,12 @@ const getAllLeaveRequestsService = async (query = {}) => {
 // Admin: Phê duyệt hoặc từ chối leave request
 const approveLeaveRequestService = async (leaveId, status) => {
     if (!['APPROVED', 'REJECTED'].includes(status)) {
-        throw new errorRes.BadRequestError('Status must be APPROVED or REJECTED');
+        throw new errorRes.BadRequestError('Trạng thái phải là APPROVED hoặc REJECTED');
     }
     const leave = await leaveRequestModel.findById(leaveId);
-    if (!leave) throw new errorRes.NotFoundError('Leave request not found');
+    if (!leave) throw new errorRes.NotFoundError('Không tìm thấy yêu cầu nghỉ phép');
     if (leave.status !== 'PENDING') {
-        throw new errorRes.BadRequestError('Only PENDING requests can be approved or rejected');
+        throw new errorRes.BadRequestError('Chỉ có thể duyệt hoặc từ chối yêu cầu đang chờ');
     }
     leave.status = status;
     await leave.save();

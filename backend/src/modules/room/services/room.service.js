@@ -247,7 +247,7 @@ const getRoomById = async (roomId, query) => {
     });
 
     throw new errorRes.InternalServerError(
-      "An error occurred while fetching the room",
+      "Hệ thống lỗi, vui lòng thực hiện sau",
     );
   }
 };
@@ -337,7 +337,7 @@ const getRooms = async (query) => {
     });
 
     throw new errorRes.InternalServerError(
-      "An error occurred while fetching the rooms",
+      "Hệ thống lỗi, vui lòng thực hiện sau",
     );
   }
 };
@@ -413,7 +413,7 @@ const checkRoomExists = async (roomNumber) => {
     });
 
     throw new errorRes.InternalServerError(
-      "An error occurred while checking room existence",
+      "Hệ thống lỗi, vui lòng thực hiện sau",
     );
   }
 };
@@ -440,7 +440,7 @@ const checkRoomExistsNotId = async (roomNumber, currentRoomId) => {
     });
 
     throw new errorRes.InternalServerError(
-      "An error occurred while checking room existence",
+      "Hệ thống lỗi, vui lòng thực hiện sau",
     );
   }
 };

@@ -24,7 +24,7 @@ const getByIdService = async (id) => {
         });
 
         if (!mongoose.Types.ObjectId.isValid(id)) {
-            throw new errorRes.BadRequestError("Invalid Treatment ID format");
+            throw new errorRes.BadRequestError("Định dạng mã điều trị không hợp lệ");
         }
 
         const treatment = await model.Treatment.findById(id)
@@ -37,7 +37,7 @@ const getByIdService = async (id) => {
                 context: context,
                 treatmentId: id,
             });
-            throw new errorRes.NotFoundError("Treatment not found");
+            throw new errorRes.NotFoundError("Không tìm thấy điều trị");
         }
         return treatment;
 
@@ -51,7 +51,7 @@ const getByIdService = async (id) => {
         if (error.statusCode) throw error;
 
         throw new errorRes.InternalServerError(
-            `An error occurred while fetching treatment by id: ${error.message}`
+            "Hệ thống lỗi, vui lòng thực hiện sau"
         );
     }
 };
@@ -73,7 +73,7 @@ const createService = async (dataCreate) => {
             stack: error.stack,
         });
         if (error.statusCode) throw error;
-        throw new errorRes.InternalServerError(`Error creating treatment: ${error.message}`);
+        throw new errorRes.InternalServerError("Hệ thống lỗi, vui lòng thực hiện sau");
     }
 };
 
@@ -93,11 +93,11 @@ const updateService = async (treatmentId, data) => {
 
         const existingTreatment = await findById(treatmentId);
         if (!existingTreatment) {
-            throw new errorRes.NotFoundError("Treatment not found");
+            throw new errorRes.NotFoundError("Không tìm thấy điều trị");
         }
 
         if (existingTreatment.status === 'DONE' || existingTreatment.status === 'CANCELLED') {
-            throw new errorRes.BadRequestError(`Cannot update treatment because it is already ${existingTreatment.status}`);
+            throw new errorRes.BadRequestError(`Không thể cập nhật điều trị vì đã ở trạng thái ${existingTreatment.status}`);
         }
 
         const dataUpdate = await model.Treatment.findByIdAndUpdate(
@@ -194,7 +194,7 @@ const updateService = async (treatmentId, data) => {
             stack: error.stack,
         });
         if (error.statusCode) throw error;
-        throw new errorRes.InternalServerError(`Error updating treatment: ${error.message}`);
+        throw new errorRes.InternalServerError("Hệ thống lỗi, vui lòng thực hiện sau");
     }
 };
 /**
@@ -228,13 +228,13 @@ const updateStatusOnly = async (id, status) => {
     try {
         const treatment = await findById(id);
         if (!treatment) {
-            throw new errorRes.NotFoundError("Treatment not found");
+            throw new errorRes.NotFoundError("Không tìm thấy điều trị");
         }
         if (treatment.status === status) {
             return treatment;
         }
         if (treatment.status === 'CANCELLED' || treatment.status === 'DONE') {
-            throw new errorRes.BadRequestError(`Cannot change status from ${treatment.status}`);
+            throw new errorRes.BadRequestError(`Không thể thay đổi trạng thái từ ${treatment.status}`);
         }
 
         if (status === "WAITING_APPROVAL") {
@@ -288,7 +288,7 @@ const updateStatusOnly = async (id, status) => {
             message: error.message
         });
         if (error.statusCode) throw error;
-        throw new errorRes.InternalServerError(`Update fails: ${error.message}`);
+        throw new errorRes.InternalServerError("Hệ thống lỗi, vui lòng thực hiện sau");
     }
 };
 
@@ -455,7 +455,7 @@ const getListTreatementWithAppointmentNull = async (query) => {
         });
 
         throw new errorRes.InternalServerError(
-            `Failed to fetch treatments without appointment: ${error.message}`
+            "Hệ thống lỗi, vui lòng thực hiện sau"
         );
     }
 };
@@ -470,7 +470,7 @@ const addAppointmentIdOnTreatment = async (treatmentId, appointmentId, session) 
         );
 
         if (!treatmentUpdate) {
-            throw new errorRes.NotFoundError("Can't find treatment by id to update.");
+            throw new errorRes.NotFoundError("Không tìm thấy điều trị để cập nhật.");
         }
 
         return treatmentUpdate;
@@ -485,7 +485,7 @@ const addAppointmentIdOnTreatment = async (treatmentId, appointmentId, session) 
         if (error.statusCode) {
             throw error;
         }
-        throw new errorRes.InternalServerError("Error cannot add appointment_id on treatment.");
+        throw new errorRes.InternalServerError("Hệ thống lỗi, vui lòng thực hiện sau");
     }
 }
 

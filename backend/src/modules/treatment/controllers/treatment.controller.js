@@ -26,14 +26,14 @@ const getByIdController = async (req, res) => {
         context: context,
         treatmentId: treatmentId,
       });
-      throw new errorRes.BadRequestError("Treatment ID is required");
+      throw new errorRes.BadRequestError("Mã điều trị là bắt buộc");
     }
 
     // Gọi service xử lý logic
     const service = await ServiceProcess.getByIdService(treatmentId);
     return new successRes.GetDetailSuccess(
       service,
-      "Treatment retrieved successfully",
+      "Lấy thông tin điều trị thành công",
     ).send(res);
   } catch (error) {
     logger.error("Error get treatment by id", {
@@ -65,7 +65,7 @@ const createController = async (req, res) => {
     });
     const cleanedData = cleanObjectData(req.body || {});
     if (!dentalRecordId) {
-      throw new errorRes.BadRequestError("Dental record ID is required in URL");
+      throw new errorRes.BadRequestError("Mã bệnh án là bắt buộc trong URL");
     }
 
     /*
@@ -79,7 +79,7 @@ const createController = async (req, res) => {
         context,
         dentalRecordId,
       });
-      throw new errorRes.NotFoundError("Dental record not found");
+      throw new errorRes.NotFoundError("Không tìm thấy bệnh án");
     }
     if (dental.status !== "IN_PROGRESS") {
       logger.warn("Attempt to add treatment to a closed dental record", {
@@ -89,7 +89,7 @@ const createController = async (req, res) => {
         dental: dental,
       });
       throw new errorRes.BadRequestError(
-        `Cannot add treatment. Dental record is currently ${dental.status}.`,
+        `Không thể thêm điều trị. Bệnh án hiện đang ở trạng thái ${dental.status}.`,
       );
     }
     cleanedData.record_id = dental._id;
@@ -117,7 +117,7 @@ const createController = async (req, res) => {
           context,
           appointmentId: cleanedData.appointment_id,
         });
-        throw new errorRes.NotFoundError("Appointment not found");
+        throw new errorRes.NotFoundError("Không tìm thấy lịch hẹn");
       }
       if (String(appointment.patient_id) !== String(cleanedData.patient_id)) {
         logger.warn(
@@ -130,7 +130,7 @@ const createController = async (req, res) => {
           },
         );
         throw new errorRes.BadRequestError(
-          "Appointment does not belong to the same patient as the dental record",
+          "Lịch hẹn không thuộc cùng bệnh nhân với bệnh án",
         );
       }
       cleanedData.doctor_id = appointment.doctor_id;
@@ -152,7 +152,7 @@ const createController = async (req, res) => {
         context,
         dentalRecordId,
       });
-      throw new errorRes.BadRequestError("Create new treatment fails.");
+      throw new errorRes.BadRequestError("Tạo mới điều trị thất bại.");
     }
     logger.debug("New treatment created", {
       context: context,
@@ -166,7 +166,7 @@ const createController = async (req, res) => {
     });
     return new successRes.CreateSuccess(
       newTreatment,
-      "Treatment created successfully",
+      "Tạo điều trị thành công",
     ).send(res);
   } catch (error) {
     logger.error("Error create new treatment controller", {
@@ -197,7 +197,7 @@ const updateController = async (req, res) => {
     });
     // 1. Kiểm tra định dạng ID
     if (!mongoose.Types.ObjectId.isValid(treatmentId)) {
-      throw new errorRes.BadRequestError("Invalid Treatment ID format");
+      throw new errorRes.BadRequestError("Định dạng mã điều trị không hợp lệ");
     }
 
     // Chỉ cho phép update những trường nội dung, cấm tuyệt đối cập nhật Khóa ngoại
@@ -223,7 +223,7 @@ const updateController = async (req, res) => {
     const cleanedData = cleanObjectData(safeData);
     // 3. Kiểm tra xem có dữ liệu nào để update không
     if (Object.keys(cleanedData).length === 0) {
-      throw new errorRes.BadRequestError("No valid data provided for update");
+      throw new errorRes.BadRequestError("Không có dữ liệu hợp lệ để cập nhật");
     }
 
     // 4. Gọi Service
@@ -234,7 +234,7 @@ const updateController = async (req, res) => {
 
     return new successRes.UpdateSuccess(
       updated,
-      "Treatment updated successfully",
+      "Cập nhật điều trị thành công",
     ).send(res);
   } catch (error) {
     logger.error("Error update treatment", {
@@ -283,7 +283,7 @@ const updateStatusController = async (req, res) => {
         allowed: validStatuses,
       });
       throw new errorRes.BadRequestError(
-        `Invalid status. Allowed values: ${validStatuses.join(", ")}`,
+        `Trạng thái không hợp lệ. Các giá trị cho phép: ${validStatuses.join(", ")}`,
       );
     }
 
@@ -291,7 +291,7 @@ const updateStatusController = async (req, res) => {
 
     // Kiểm tra kết quả
     if (!result) {
-      throw new errorRes.NotFoundError("Treatment not found or update failed");
+      throw new errorRes.NotFoundError("Không tìm thấy điều trị hoặc cập nhật thất bại");
     }
 
     logger.info("Treatment status updated successfully", {
@@ -303,7 +303,7 @@ const updateStatusController = async (req, res) => {
     // 4. Trả về kết quả
     return new successRes.UpdateSuccess(
       result,
-      "Treatment status updated successfully",
+      "Cập nhật trạng thái điều trị thành công",
     ).send(res);
   } catch (error) {
     logger.error("Error updating treatment status", {
@@ -347,13 +347,13 @@ const getListTreatementWithAppointmentNull = async (req, res) => {
       data: data,
       pagination: pagination
     });
-    return new successRes.GetListSuccess(data, pagination, "Get list treatment plan successfull.").send(res);
+    return new successRes.GetListSuccess(data, pagination, "Lấy danh sách kế hoạch điều trị thành công.").send(res);
   } catch (error) {
     logger.error("Error cannot get list treatement", {
       context: context,
       error: error,
     });
-    throw new errorRes.InternalServerError("Error cannot get list treatment.");
+    throw new errorRes.InternalServerError("Hệ thống lỗi, vui lòng thực hiện sau");
   }
 };
 

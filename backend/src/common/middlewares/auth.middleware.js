@@ -9,7 +9,7 @@ const authenticate = async (req, res, next) => {
         const authHeader = req.headers.authorization;
 
         if (!authHeader || !authHeader.startsWith('Bearer ')) {
-            throw new UnauthorizedError('No token provided');
+            throw new UnauthorizedError('Không tìm thấy token xác thực');
         }
 
         const token = authHeader.substring(7);
@@ -19,25 +19,25 @@ const authenticate = async (req, res, next) => {
             decoded = verifyToken(token);
         } catch (error) {
             if (error.message === 'TOKEN_EXPIRED') {
-                throw new UnauthorizedError('Token expired');
+                throw new UnauthorizedError('Token đã hết hạn');
             }
             if (error.message === 'INVALID_TOKEN') {
-                throw new UnauthorizedError('Invalid token');
+                throw new UnauthorizedError('Token không hợp lệ');
             }
-            throw new UnauthorizedError('Token verification failed');
+            throw new UnauthorizedError('Xác minh token thất bại');
         }
         const account = await Account.findById(decoded.account_id).populate('role_id');
 
         if (!account) {
-            throw new UnauthorizedError('Account not found');
+            throw new UnauthorizedError('Không tìm thấy tài khoản');
         }
 
         if (account.status === 'INACTIVE') {
-            throw new ForbiddenError('Account is inactive');
+            throw new ForbiddenError('Tài khoản đã bị vô hiệu hóa');
         }
 
         if (account.status === 'PENDING') {
-            throw new ForbiddenError('Please verify your email');
+            throw new ForbiddenError('Vui lòng xác minh email của bạn');
         }
 
         req.user = {
@@ -59,17 +59,17 @@ const authorize = (...allowedRoles) => {
     return (req, res, next) => {
         try {
             if (!req.user) {
-                throw new UnauthorizedError('Authentication required');
+                throw new UnauthorizedError('Yêu cầu đăng nhập');
             }
 
             const userRole = req.user.role?.name;
 
             if (!userRole) {
-                throw new ForbiddenError('No role assigned');
+                throw new ForbiddenError('Tài khoản chưa được phân quyền');
             }
 
             if (!allowedRoles.includes(userRole)) {
-                throw new ForbiddenError(`Access denied. Required role: ${allowedRoles.join(' or ')}`);
+                throw new ForbiddenError(`Truy cập bị từ chối. Vai trò yêu cầu: ${allowedRoles.join(' hoặc ')}`);
             }
 
             next();

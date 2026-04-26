@@ -15,7 +15,7 @@ const getListController = async (req, res) => {
         return new successRes.GetListSuccess(
             data,
             pagination,
-            'Patients retrieved successfully'
+            'Lấy danh sách bệnh nhân thành công'
         ).send(res);
 
     } catch (error) {
@@ -40,7 +40,7 @@ const getByIdController = async (req, res) => {
 
         return new successRes.GetDetailSuccess(
             patient,
-            'Patient retrieved successfully'
+            'Lấy thông tin bệnh nhân thành công'
         ).send(res);
 
     } catch (error) {
@@ -65,7 +65,7 @@ const createController = async (req, res) => {
 
         return new successRes.CreateSuccess(
             patient,
-            'Patient created successfully'
+            'Tạo bệnh nhân thành công'
         ).send(res);
 
     } catch (error) {
@@ -88,14 +88,14 @@ const updateController = async (req, res) => {
         });
 
         if (Object.keys(data).length === 0) {
-            throw new errorRes.BadRequestError('No data provided');
+            throw new errorRes.BadRequestError('Không có dữ liệu được cung cấp');
         }
 
         const patient = await PatientService.updatePatientService(id, data);
 
         return new successRes.UpdateSuccess(
             patient,
-            'Patient updated successfully'
+            'Cập nhật bệnh nhân thành công'
         ).send(res);
 
     } catch (error) {

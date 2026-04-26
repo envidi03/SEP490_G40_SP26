@@ -99,7 +99,7 @@ const getListService = async (query) => {
             stack: error.stack
         });
         throw new errorRes.InternalServerError(
-            `An error occurred while fetching list of appointments: ${error.message}`
+            "Hệ thống lỗi, vui lòng thực hiện sau"
         );
     }
 };
@@ -238,7 +238,7 @@ const getByIdService = async (id) => {
 
         // --- 1. KIỂM TRA ĐỊNH DẠNG ID ---
         if (!mongoose.Types.ObjectId.isValid(id)) {
-            throw new errorRes.BadRequestError("Invalid Appointment ID format");
+            throw new errorRes.BadRequestError("Định dạng mã lịch hẹn không hợp lệ");
         }
 
         // --- 2. TRUY VẤN DỮ LIỆU ---
@@ -253,7 +253,7 @@ const getByIdService = async (id) => {
                 context: "AppointmentService.getByIdService",
                 appointmentId: id,
             });
-            throw new errorRes.NotFoundError("Appointment not found");
+            throw new errorRes.NotFoundError("Không tìm thấy lịch hẹn");
         }
 
         logger.debug("Appointment fetched successfully", {
@@ -275,7 +275,7 @@ const getByIdService = async (id) => {
         if (error.statusCode) throw error;
 
         throw new errorRes.InternalServerError(
-            `An error occurred while fetching appointment by id: ${error.message}`
+            "Hệ thống lỗi, vui lòng thực hiện sau"
         );
     }
 };
@@ -295,7 +295,7 @@ const createService = async (dataCreate, account_id) => {
                 account_id: account_id,
                 patient: patient
             });
-            throw new errorRes.NotFoundError("No patient records were found linked to this account. Please update your records.");
+            throw new errorRes.NotFoundError("Không tìm thấy hồ sơ bệnh nhân cho tài khoản này. Vui lòng cập nhật hồ sơ.");
         }
         dataCreate.patient_id = patient._id;
         // check duplicate appointment by 'full_name', 'phone', 'email',  'appointment_date', 'appointment_time'
@@ -309,7 +309,7 @@ const createService = async (dataCreate, account_id) => {
         };
         const isDuplicatePatient = await AppointmentModel.findOne(duplicateQuery);
         if (isDuplicatePatient) {
-            throw new Error(`Patient ${dataCreate.full_name} already has an appointment scheduled for ${dataCreate.appointment_time}. Please do not book a duplicate appointment.`);
+            throw new Error(`Bệnh nhân ${dataCreate.full_name} đã có lịch hẹn vào ${dataCreate.appointment_time}. Vui lòng không đặt lịch trùng.`);
         }
         // check id service
         if (dataCreate.book_service && Array.isArray(dataCreate.book_service)) {
@@ -322,7 +322,7 @@ const createService = async (dataCreate, account_id) => {
                         account_id: account_id,
                         service_id: service.service_id
                     });
-                    throw new errorRes.NotFoundError(`Service not found! ID: ${service.service_id}`);
+                    throw new errorRes.NotFoundError(`Không tìm thấy dịch vụ! Mã: ${service.service_id}`);
                 }
             }
         }
@@ -344,7 +344,7 @@ const createService = async (dataCreate, account_id) => {
             message: error.message,
             stack: error.stack,
         });
-        throw new errorRes.InternalServerError(`Error: ${error.message}`);
+        throw new errorRes.InternalServerError("Hệ thống lỗi, vui lòng thực hiện sau");
     }
 };
 
@@ -365,7 +365,7 @@ const staffCreateService = async (dataCreate) => {
         };
         const isDuplicatePatient = await AppointmentModel.findOne(duplicateQuery);
         if (isDuplicatePatient) {
-            throw new errorRes.ConflictError(`Patient ${dataCreate.full_name} already has an appointment scheduled for ${dataCreate.appointment_time}.`);
+            throw new errorRes.ConflictError(`Bệnh nhân ${dataCreate.full_name} đã có lịch hẹn vào ${dataCreate.appointment_time}.`);
         }
 
         // 2. Check valid services
@@ -379,7 +379,7 @@ const staffCreateService = async (dataCreate) => {
                         service_id: service.service_id
                         // ĐÃ SỬA BUG CỦA BẠN: Xóa biến account_id gây crash app ở đây
                     });
-                    throw new errorRes.NotFoundError(`Service not found! ID: ${service.service_id}`);
+                    throw new errorRes.NotFoundError(`Không tìm thấy dịch vụ! Mã: ${service.service_id}`);
                 }
             }
         }
@@ -403,7 +403,7 @@ const staffCreateService = async (dataCreate) => {
 
         // Đã sửa để ném ra đúng HTTP Status (Ví dụ: 409 Conflict, 404 Not Found)
         if (error.statusCode) throw error;
-        throw new errorRes.InternalServerError(`Error: ${error.message}`);
+        throw new errorRes.InternalServerError("Hệ thống lỗi, vui lòng thực hiện sau");
     }
 };
 
@@ -461,7 +461,7 @@ const updateService = async (accountId, data) => {
                 { $set: accountUpdate },
                 { new: true, session }
             );
-            if (!updatedAccount) throw new errorRes.NotFoundError("Account not found");
+            if (!updatedAccount) throw new errorRes.NotFoundError("Không tìm thấy tài khoản");
         }
 
         // 2.2 Update Profile
@@ -479,7 +479,7 @@ const updateService = async (accountId, data) => {
 
         if (!currentStaff) {
             // Nếu không tìm thấy Staff, throw lỗi để rollback tất cả (kể cả Account/Profile vừa update)
-            throw new errorRes.NotFoundError("Staff profile not found for this account!");
+            throw new errorRes.NotFoundError("Không tìm thấy hồ sơ nhân viên cho tài khoản này!");
         }
 
         // Update Staff info
@@ -554,7 +554,7 @@ const updateStatusOnly = async (id, status) => {
             const existingAppt = await AppointmentModel.findById(id);
 
             if (!existingAppt) {
-                throw new errorRes.NotFoundError("Appointment not found");
+                throw new errorRes.NotFoundError("Không tìm thấy lịch hẹn");
             }
 
             // Bảo vệ API (Idempotent): Nếu khách ấn Check-in 2 lần liên tiếp, 
@@ -588,7 +588,7 @@ const updateStatusOnly = async (id, status) => {
 
         // --- KIỂM TRA LẠI KẾT QUẢ ---
         if (!newData) {
-            throw new errorRes.NotFoundError("Appointment not found or update failed");
+            throw new errorRes.NotFoundError("Không tìm thấy lịch hẹn hoặc cập nhật thất bại");
         }
 
         return newData;
@@ -605,7 +605,7 @@ const updateStatusOnly = async (id, status) => {
         if (error.statusCode) throw error;
 
         // Bắt các lỗi hệ thống (Database lỗi, rớt mạng...)
-        throw new errorRes.InternalServerError(`Update fails: ${error.message}`);
+        throw new errorRes.InternalServerError("Hệ thống lỗi, vui lòng thực hiện sau");
     }
 };
 
@@ -629,7 +629,7 @@ const checkinService = async (data) => {
 
         // Nếu không có lịch nào trong hôm nay
         if (!appointments || appointments.length === 0) {
-            throw new errorRes.NotFoundError("You do not have any scheduled appointments for TODAY. Please check the date or contact the receptionist.");
+            throw new errorRes.NotFoundError("Bạn không có lịch hẹn nào trong HÔM NAY. Vui lòng kiểm tra lại ngày hoặc liên hệ lễ tân.");
         }
 
         const checkedInResults = [];
@@ -676,7 +676,7 @@ const checkinService = async (data) => {
         });
 
         if (error.statusCode) throw error;
-        throw new errorRes.InternalServerError(`Check-in fails: ${error.message}`);
+        throw new errorRes.InternalServerError("Hệ thống lỗi, vui lòng thực hiện sau");
     }
 };
 

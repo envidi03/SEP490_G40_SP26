@@ -247,7 +247,7 @@ const getListOfPatientService = async (query, patientId) => {
       stack: error.stack,
     });
     throw new errorRes.InternalServerError(
-      `An error occurred while fetching list of dental records: ${error.message}`,
+      "Hệ thống lỗi, vui lòng thực hiện sau",
     );
   }
 };
@@ -283,7 +283,7 @@ const getByIdService = async (id, treatmentStatus) => {
         context: context,
         dentalRecordId: id,
       });
-      throw new errorRes.NotFoundError("Dental record not found");
+      throw new errorRes.NotFoundError("Không tìm thấy bệnh án");
     }
 
     // 2. Get Treatments
@@ -320,7 +320,7 @@ const getByIdService = async (id, treatmentStatus) => {
     if (error.statusCode) throw error;
 
     throw new errorRes.InternalServerError(
-      `An error occurred while fetching dental record by id: ${error.message}`,
+      "Hệ thống lỗi, vui lòng thực hiện sau",
     );
   }
 };
@@ -347,7 +347,7 @@ const createService = async (dataCreate) => {
     // Quăng tiếp lỗi chuẩn nếu có
     if (error.statusCode) throw error;
     throw new errorRes.InternalServerError(
-      `Error creating dental record: ${error.message}`,
+      "Hệ thống lỗi, vui lòng thực hiện sau",
     );
   }
 };
@@ -378,18 +378,18 @@ const updateService = async (id, data) => {
 
     const existingRecord = await Model.DentalRecord.findById(id);
     if (!existingRecord)
-      throw new errorRes.NotFoundError("Dental record not found");
+      throw new errorRes.NotFoundError("Không tìm thấy bệnh án");
 
     if (existingRecord.status !== "IN_PROGRESS") {
       throw new errorRes.BadRequestError(
-        "Only IN_PROGRESS records can be updated.",
+        "Chỉ có thể cập nhật bệnh án đang ở trạng thái ĐANG ĐIỀU TRỊ.",
       );
     }
 
     // STRICT BUSINESS RULE: Không bao giờ cho phép tự tay đổi thành COMPLETED
     if (data.status === "COMPLETED") {
       throw new errorRes.BadRequestError(
-        "Cannot manually set status to COMPLETED. System will auto-complete when all treatments are COMPLETED.",
+        "Không thể chuyển trạng thái thành HOÀN THÀNH. Hệ thống sẽ tự động hoàn thành khi tất cả điều trị đều đã hoàn thành.",
       );
     }
 
@@ -400,7 +400,7 @@ const updateService = async (id, data) => {
 
       if (hasInProgress) {
         throw new errorRes.BadRequestError(
-          "Cannot cancel dental record. There are treatments in IN_PROGRESS status.",
+          "Không thể hủy bệnh án. Có điều trị đang ở trạng thái ĐANG THỰC HIỆN.",
         );
       }
       data.end_date = new Date();
@@ -420,7 +420,7 @@ const updateService = async (id, data) => {
     });
     if (error.statusCode) throw error;
     throw new errorRes.InternalServerError(
-      `Error updating dental record: ${error.message}`,
+      "Hệ thống lỗi, vui lòng thực hiện sau",
     );
   }
 };
@@ -464,7 +464,7 @@ const checkDuplicateDental = async (patientId, record_name) => {
       stack: error.stack,
     });
     throw new errorRes.InternalServerError(
-      `Error checking duplicate dental record: ${error.message}`,
+      "Hệ thống lỗi, vui lòng thực hiện sau",
     );
   }
 };
@@ -519,7 +519,7 @@ const checkDuplicateDentalExcludeId = async (
       stack: error.stack,
     });
     throw new errorRes.InternalServerError(
-      `Error checking duplicate dental record: ${error.message}`,
+      "Hệ thống lỗi, vui lòng thực hiện sau",
     );
   }
 };
@@ -557,7 +557,7 @@ const getDentalRecordById = async (id) => {
       stack: error.stack,
     });
     throw new errorRes.InternalServerError(
-      `An error occurred while finding dental record by id: ${error.message}`,
+      "Hệ thống lỗi, vui lòng thực hiện sau",
     );
   }
 };
@@ -664,7 +664,7 @@ const findDentalByInforUser = async (search) => {
       stack: error.stack,
     });
     throw new errorRes.InternalServerError(
-      `An error occurred while finding dental record by user information: ${error.message}`,
+      "Hệ thống lỗi, vui lòng thực hiện sau",
     );
   }
 };
@@ -715,7 +715,7 @@ const createTreatmentPlanService = async (data, accountDoctorId) => {
       message: error.message,
     });
     if (error.statusCode) throw error;
-    throw new errorRes.InternalServerError(`Error creating treatment plan: ${error.message}`);
+    throw new errorRes.InternalServerError("Hệ thống lỗi, vui lòng thực hiện sau");
   }
 };
 
@@ -733,7 +733,7 @@ const updateTreatmentPlanService = async (id, data) => {
 
     const existingRecord = await Model.DentalRecord.findById(id).session(session);
     if (!existingRecord) {
-      throw new errorRes.NotFoundError("Treatment plan not found");
+      throw new errorRes.NotFoundError("Không tìm thấy kế hoạch điều trị");
     }
 
     // 1. Update DentalRecord
@@ -782,7 +782,7 @@ const updateTreatmentPlanService = async (id, data) => {
       message: error.message,
     });
     if (error.statusCode) throw error;
-    throw new errorRes.InternalServerError(`Error updating treatment plan: ${error.message}`);
+    throw new errorRes.InternalServerError("Hệ thống lỗi, vui lòng thực hiện sau");
   }
 };
 

@@ -41,7 +41,7 @@ const getListController = async (req, res) => {
     return new successRes.GetListSuccess(
       data,
       paginationData,
-      "Dental records retrieved successfully",
+      "Lấy danh sách bệnh án thành công",
     ).send(res);
   } catch (error) {
     logger.error("Error get Dental Record", {
@@ -76,7 +76,7 @@ const getListDentalOfPatientController = async (queryParams, patientId) => {
         context: context,
         patientId: patientId,
       });
-      throw new errorRes.BadRequestError("Patient ID is required to get dental records for a patient");
+      throw new errorRes.BadRequestError("Mã bệnh nhân là bắt buộc để lấy danh sách bệnh án");
     }
 
     logger.debug("Get list dental record of patient request received", {
@@ -129,14 +129,14 @@ const getListOfPatientController = async (req, res) => {
         context: context,
         accountPatientId: accountPatientId
       });
-      throw new errorRes.NotFoundError("Patient not found!")
+      throw new errorRes.NotFoundError("Không tìm thấy bệnh nhân!")
     };
     const { data, pagination } = await getListDentalOfPatientController(queryParams, patient._id);
 
     return new successRes.GetListSuccess(
       data,
       pagination,
-      "Dental records of patient retrieved successfully",
+      "Lấy danh sách bệnh án của bệnh nhân thành công",
     ).send(res);
 
   } catch (error) {
@@ -174,14 +174,14 @@ const getListOfStaffController = async (req, res) => {
         context: context,
         patientId: patientId,
       });
-      throw new errorRes.BadRequestError("Patient ID is required to get dental records for a patient");
+      throw new errorRes.BadRequestError("Mã bệnh nhân là bắt buộc để lấy danh sách bệnh án");
     }
     const { data, pagination } = await getListDentalOfPatientController(queryParams, patientId);
 
     return new successRes.GetListSuccess(
       data,
       pagination,
-      "Dental records of patient retrieved successfully",
+      "Lấy danh sách bệnh án của bệnh nhân thành công",
     ).send(res);
   } catch (error) {
     logger.error("Error get Dental Record of staff", {
@@ -211,7 +211,7 @@ const getByIdController = async (req, res) => {
       logger.warn("Empty ID", {
         context: context,
       });
-      throw new errorRes.BadRequestError("Dental record ID is required");
+      throw new errorRes.BadRequestError("Mã bệnh án là bắt buộc");
     }
 
     // 2. Kiểm tra định dạng chuẩn của MongoDB ObjectId
@@ -220,7 +220,7 @@ const getByIdController = async (req, res) => {
         context: context,
         dentalRecordId: id,
       });
-      throw new errorRes.BadRequestError("Invalid Dental Record ID format");
+      throw new errorRes.BadRequestError("Định dạng mã bệnh án không hợp lệ");
     }
 
     // 3. Gọi service xử lý logic
@@ -232,13 +232,13 @@ const getByIdController = async (req, res) => {
         context: context,
         dentalRecordId: id,
       });
-      throw new errorRes.NotFoundError("Dental record not found");
+      throw new errorRes.NotFoundError("Không tìm thấy bệnh án");
     }
 
     // 5. Trả về Response
     return new successRes.GetDetailSuccess(
       dentalRecordDetail,
-      "Dental record retrieved successfully",
+      "Lấy thông tin bệnh án thành công",
     ).send(res);
 
   } catch (error) {
@@ -276,7 +276,7 @@ const createController = async (req, res) => {
         context: context,
         accountDoctorId: accountDoctorId
       });
-      throw new errorRes.NotFoundError("Doctor not found!")
+      throw new errorRes.NotFoundError("Không tìm thấy bác sĩ!")
     };
     if (!doctor._id) {
       logger.error("Doctor record missing _id", {
@@ -284,14 +284,14 @@ const createController = async (req, res) => {
         accountDoctorId: accountDoctorId,
         doctorData: doctor
       });
-      throw new errorRes.InternalServerError("Doctor data is invalid!")
+      throw new errorRes.InternalServerError("Dữ liệu bác sĩ không hợp lệ!")
     }
     if (!patientID) {
       logger.warn("Missing patient ID in request params", {
         context: context,
         patientID: patientID
       });
-      throw new errorRes.BadRequestError("Patient ID is required!")
+      throw new errorRes.BadRequestError("Mã bệnh nhân là bắt buộc!")
     }
     const dentalDuplicate = await checkDuplicateDental(patientID, dataCreate.record_name);
     if (dentalDuplicate) {
@@ -302,7 +302,7 @@ const createController = async (req, res) => {
         dentalDuplicate: dentalDuplicate
       });
       throw new errorRes.ConflictError(
-        "A dental record with the same name is already in progress for this patient. Please choose a different name or complete the existing record before creating a new one."
+        "Bệnh án với tên này đang trong quá trình điều trị cho bệnh nhân này. Vui lòng chọn tên khác hoặc hoàn thành bệnh án hiện tại trước khi tạo mới."
       );
     }
 
@@ -332,7 +332,7 @@ const createController = async (req, res) => {
           context: context,
           patientID: patientID
         });
-        throw new errorRes.NotFoundError("No valid appointment found for this patient");
+        throw new errorRes.NotFoundError("Không tìm thấy lịch hẹn hợp lệ cho bệnh nhân này");
       }
       cleanedData.appointment_id = appointment._id;
     }
@@ -344,13 +344,13 @@ const createController = async (req, res) => {
     const newData = await ServiceProcess.createService(cleanedData);
     if (!newData) {
       logger.warn("Failed to create new dental record", { context });
-      throw new errorRes.BadRequestError("Create new dental record fails.");
+      throw new errorRes.BadRequestError("Tạo bệnh án mới thất bại.");
     }
 
     // --- 5. RESPONSE ---
     return new successRes.CreateSuccess(
       newData,
-      "Dental record created successfully"
+      "Tạo bệnh án thành công"
     ).send(res);
 
   } catch (error) {
@@ -389,7 +389,7 @@ const updateController = async (req, res) => {
 
     // 1. Kiểm tra ID đầu vào
     if (!id) {
-      throw new errorRes.BadRequestError("Dental record ID is required");
+      throw new errorRes.BadRequestError("Mã bệnh án là bắt buộc");
     }
 
     // 2. Kiểm tra quyền: Chỉ có DOCTOR mới được phép update (Giữ nguyên logic của bạn)
@@ -400,7 +400,7 @@ const updateController = async (req, res) => {
         accountDoctorId: accountDoctorId,
         role: role
       });
-      throw new errorRes.UnauthorizedError("Only doctors can update dental records");
+      throw new errorRes.UnauthorizedError("Chỉ bác sĩ mới có quyền cập nhật bệnh án");
     }
 
     // 3. LỌC DỮ LIỆU (Whitelist): Chỉ cho phép lấy các field được phép update
@@ -431,7 +431,7 @@ const updateController = async (req, res) => {
           context: context,
           dentalRecordId: id,
         });
-        throw new errorRes.NotFoundError("Dental record not found");
+        throw new errorRes.NotFoundError("Không tìm thấy bệnh án");
       }
 
       const patientId = currentDentalRecord.patient_id;
@@ -444,14 +444,14 @@ const updateController = async (req, res) => {
           dentalDuplicate: dentalDuplicate
         });
         throw new errorRes.ConflictError(
-          "A dental record with the same name is already in progress for this patient. Please choose a different name or complete the existing record before updating."
+          "Bệnh án với tên này đang trong quá trình điều trị cho bệnh nhân này. Vui lòng chọn tên khác hoặc hoàn thành bệnh án hiện tại trước khi cập nhật."
         );
       }
     }
 
     // Kiểm tra xem sau khi lọc và clean, có còn dữ liệu nào để update không
     if (Object.keys(cleanedData).length === 0) {
-      throw new errorRes.BadRequestError("No valid data provided for update");
+      throw new errorRes.BadRequestError("Không có dữ liệu hợp lệ để cập nhật");
     }
 
     // 5. Gọi Service cập nhật
@@ -460,7 +460,7 @@ const updateController = async (req, res) => {
     // 6. Gửi response thành công
     return new successRes.UpdateSuccess(
       updated,
-      "Dental record updated successfully"
+      "Cập nhật bệnh án thành công"
     ).send(res);
 
   } catch (error) {
@@ -493,10 +493,10 @@ const findUserByUserInfo = async (req, res) => {
       logger.warn("Missing search query parameter", {
         context: context,
       });
-      throw new errorRes.BadRequestError("Search query parameter is required");
+      throw new errorRes.BadRequestError("Tham số tìm kiếm là bắt buộc");
     }
     const userList = await ServiceProcess.findDentalByInforUser(search);
-    return new successRes.GetListSuccess(userList, "Users found successfully").send(res);
+    return new successRes.GetListSuccess(userList, "Tìm kiếm bệnh nhân thành công").send(res);
   } catch (error) {
     logger.error("Error find user by user info", {
       context: context,
@@ -524,21 +524,21 @@ const createTreatmentPlanController = async (req, res) => {
 
     const { staff: doctor } = await findStaffByAccountId(accountDoctorId);
     if (!doctor || !doctor._id) {
-      throw new errorRes.UnauthorizedError("Doctor not found!");
+      throw new errorRes.UnauthorizedError("Không tìm thấy bác sĩ!");
     }
 
     dataCreate.created_by = doctor._id;
     const cleanedData = cleanObjectData(dataCreate);
 
     if (!cleanedData.patient_id) {
-      throw new errorRes.BadRequestError("patient_id is required!");
+      throw new errorRes.BadRequestError("Mã bệnh nhân là bắt buộc!");
     }
 
     const newData = await ServiceProcess.createTreatmentPlanService(cleanedData, accountDoctorId);
 
     return new successRes.CreateSuccess(
       newData,
-      "Treatment plan created successfully"
+      "Tạo kế hoạch điều trị thành công"
     ).send(res);
 
   } catch (error) {
@@ -566,7 +566,7 @@ const updateTreatmentPlanController = async (req, res) => {
     });
 
     if (!id) {
-      throw new errorRes.BadRequestError("Treatment Plan ID is required");
+      throw new errorRes.BadRequestError("Mã kế hoạch điều trị là bắt buộc");
     }
 
     const cleanedData = cleanObjectData(dataUpdate);
@@ -575,7 +575,7 @@ const updateTreatmentPlanController = async (req, res) => {
 
     return new successRes.UpdateSuccess(
       updated,
-      "Treatment plan updated successfully"
+      "Cập nhật kế hoạch điều trị thành công"
     ).send(res);
 
   } catch (error) {
@@ -634,7 +634,7 @@ const getListTreatmentPlansController = async (req, res) => {
     return new successRes.GetListSuccess(
       formattedData,
       pagination,
-      "Treatment plans retrieved successfully"
+      "Lấy danh sách kế hoạch điều trị thành công"
     ).send(res);
 
   } catch (error) {

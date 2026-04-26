@@ -1,4 +1,5 @@
 const { BaseError } = require('../errors');
+const logger = require('../utils/logger');
 
 function errorHandler(err, req, res, next) {
     console.error('Error:', err);
@@ -6,7 +7,7 @@ function errorHandler(err, req, res, next) {
     if (err.name === 'ValidationError' && err.errors) {
         return res.status(400).json({
             success: false,
-            message: 'Validation failed',
+            message: 'Dữ liệu không hợp lệ',
             errors: Object.values(err.errors).map(e => ({
                 field: e.path,
                 message: e.message
@@ -18,7 +19,7 @@ function errorHandler(err, req, res, next) {
         const field = Object.keys(err.keyPattern)[0];
         return res.status(409).json({
             success: false,
-            message: `${field} already exists`
+            message: `${field} đã tồn tại`
         });
     }
 
@@ -30,11 +31,15 @@ function errorHandler(err, req, res, next) {
         });
     }
 
+    logger.error('Unhandled error caught by global error handler', {
+        context: 'GlobalErrorHandler',
+        message: err.message,
+        stack: err.stack,
+    });
+
     res.status(500).json({
         success: false,
-        message: process.env.NODE_ENV === 'production'
-            ? 'Internal server error'
-            : err.message
+        message: 'Hệ thống lỗi, vui lòng thực hiện sau'
     });
 }
 

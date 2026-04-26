@@ -43,7 +43,7 @@ const getListController = async (req, res) => {
     return new successRes.GetListSuccess(
       data,
       paginationData,
-      "Staff retrieved successfully",
+      "Lấy danh sách nhân viên thành công",
       statistics
     ).send(res);
   } catch (error) {
@@ -75,14 +75,14 @@ const getByIdController = async (req, res) => {
         context: "StaffController.getByIdController",
         serviceId: id,
       });
-      throw new errorRes.BadRequestError("Staff ID is required");
+      throw new errorRes.BadRequestError("Mã nhân viên là bắt buộc");
     }
 
     // Gọi service xử lý logic
     const service = await ServiceProcess.getByIdService(id, queryParams);
     return new successRes.GetDetailSuccess(
       service,
-      "Service retrieved successfully",
+      "Lấy thông tin nhân viên thành công",
     ).send(res);
   } catch (error) {
     logger.error("Error get staff by id", {
@@ -113,7 +113,7 @@ const createController = async (req, res) => {
     // 2. Validate Role & Cập nhật requiredFields
     const role = await ServiceProcess.getRoleById(cleanedData.role_id || null);
     if (!role) {
-      throw new errorRes.BadRequestError("Invalid role_id: Role not found");
+      throw new errorRes.BadRequestError("Mã vai trò không hợp lệ: Không tìm thấy vai trò");
     }
 
     if (role.name === "DOCTOR") {
@@ -129,10 +129,10 @@ const createController = async (req, res) => {
 
     // 4. Kiểm tra Unique trong Database (Tránh trùng lặp)
     if (await ServiceProcess.checkUniqueUsername(cleanedData.username)) {
-      throw new errorRes.ConflictError("Username already exists!");
+      throw new errorRes.ConflictError("Tên đăng nhập đã tồn tại!");
     }
     if (await ServiceProcess.checkUniqueEmail(cleanedData.email)) {
-      throw new errorRes.ConflictError("Email already exists!");
+      throw new errorRes.ConflictError("Email đã tồn tại!");
     }
 
     if (role.name === "DOCTOR") {
@@ -142,7 +142,7 @@ const createController = async (req, res) => {
           cleanedData.license_number,
         )
       ) {
-        throw new errorRes.ConflictError("License number already exists!");
+        throw new errorRes.ConflictError("Số giấy phép đã tồn tại!");
       }
       checkIssuedBy(cleanedData.issued_by);
       checkIssuedDate(cleanedData.issued_date);
@@ -185,7 +185,7 @@ const checkPassword = (password) => {
 
   if (!passwordRegex.test(password)) {
     const errorMsg =
-      "Passwords must be at least 8 characters long and include uppercase letters, lowercase letters, numbers, and special characters.";
+      "Mật khẩu phải có ít nhất 8 ký tự và bao gồm chữ hoa, chữ thường, số và ký tự đặc biệt.";
 
     // Ghi log lỗi để tiện debug khi deploy
     logger.error("Weak password validation failed.", {
@@ -205,7 +205,7 @@ const checkEmail = (email) => {
         context: "StaffController.createController",
         email: email,
       });
-      throw new errorRes.BadRequestError("Invalid email format");
+      throw new errorRes.BadRequestError("Định dạng email không hợp lệ");
     }
   }
 };
@@ -220,7 +220,7 @@ const checkPhone = (phone) => {
       });
       // Cập nhật thông báo lỗi bao quát hơn
       throw new errorRes.BadRequestError(
-        "The phone number is not in the correct format (e.g., 0912345678 or +84912345678)",
+        "Số điện thoại không đúng định dạng (ví dụ: 0912345678 hoặc +84912345678)",
       );
     }
   }
@@ -240,7 +240,7 @@ const checkLicenseNumber = (license_number) => {
         },
       );
       throw new errorRes.BadRequestError(
-        "The license number must be between 6 and 15 characters long.",
+        "Số giấy phép phải từ 6 đến 15 ký tự.",
       );
     } else if (!licenseRegex.test(license_number)) {
       logger.error("The license number must not contain special characters.", {
@@ -248,7 +248,7 @@ const checkLicenseNumber = (license_number) => {
         license_number: license_number,
       });
       throw new errorRes.BadRequestError(
-        "The license number must not contain special characters.",
+        "Số giấy phép không được chứa ký tự đặc biệt.",
       );
     }
   }
@@ -262,7 +262,7 @@ const checkIssuedBy = (issued_by) => {
         issued_by: issued_by,
       });
       throw new errorRes.BadRequestError(
-        "The name of the issuing authority is too short.",
+        "Tên cơ quan cấp quá ngắn.",
       );
     }
   }
@@ -278,7 +278,7 @@ const checkIssuedDate = (issued_date) => {
         issued_date: issued_date,
       });
       throw new errorRes.BadRequestError(
-        "The certificate issuance date is invalid (too old).",
+        "Ngày cấp chứng chỉ không hợp lệ (quá cũ).",
       );
     }
   }
@@ -298,7 +298,7 @@ const updateController = async (req, res) => {
 
     // Kiểm tra xem có dữ liệu nào để update không (bao gồm cả file)
     if (Object.keys(cleanedData).length === 0 && !req.files) {
-      throw new errorRes.BadRequestError("No data provided for update");
+      throw new errorRes.BadRequestError("Không có dữ liệu để cập nhật");
     }
 
     // 3. VALIDATION: Chỉ kiểm tra những trường có trong dữ liệu gửi lên
@@ -312,7 +312,7 @@ const updateController = async (req, res) => {
         accountId,
       );
       if (isEmailExist) {
-        throw new errorRes.ConflictError("Email already exists!");
+        throw new errorRes.ConflictError("Email đã tồn tại!");
       }
     }
 
@@ -324,7 +324,7 @@ const updateController = async (req, res) => {
         accountId,
       );
       if (isUsernameExist) {
-        throw new errorRes.ConflictError("Username already exists!");
+        throw new errorRes.ConflictError("Tên đăng nhập đã tồn tại!");
       }
     }
 
@@ -342,7 +342,7 @@ const updateController = async (req, res) => {
         accountId,
       );
       if (isLicenseExist) {
-        throw new errorRes.ConflictError("License number already exists!");
+        throw new errorRes.ConflictError("Số giấy phép đã tồn tại!");
       }
     }
 
@@ -391,7 +391,7 @@ const getRolesController = async (req, res) => {
     return new successRes.GetListSuccess(
       roles,
       null,
-      "Roles retrieved successfully",
+      "Lấy danh sách vai trò thành công",
     ).send(res);
   } catch (error) {
     logger.error("Error get roles", {
@@ -425,7 +425,7 @@ const updateStatusController = async (req, res) => {
         allowed: validStatuses,
       });
       throw new errorRes.BadRequestError(
-        `Invalid status. Allowed values: ${validStatuses.join(", ")}`,
+        `Trạng thái không hợp lệ. Các giá trị cho phép: ${validStatuses.join(", ")}`,
       );
     }
 
@@ -438,7 +438,7 @@ const updateStatusController = async (req, res) => {
 
     // Kiểm tra kết quả
     if (!result) {
-      throw new errorRes.NotFoundError("Staff not found");
+      throw new errorRes.NotFoundError("Không tìm thấy nhân viên");
     }
 
     logger.info("Staff status updated successfully", {
@@ -450,7 +450,7 @@ const updateStatusController = async (req, res) => {
     // 4. Trả về kết quả
     return new successRes.UpdateSuccess(
       result,
-      "Staff status updated successfully",
+      "Cập nhật trạng thái nhân viên thành công",
     ).send(res);
   } catch (error) {
     logger.error("Error update staff status", {
@@ -474,7 +474,7 @@ const createLeaveController = async (req, res) => {
 
     return new successRes.CreateSuccess(
       result,
-      "Create leave request successfully",
+      "Tạo yêu cầu nghỉ phép thành công",
     ).send(res);
   } catch (error) {
     logger.error("Create leave error", {
@@ -497,7 +497,7 @@ const getLeaveRequestController = async (req, res) => {
     return new successRes.GetListSuccess(
       data,
       null, // No pagination needed here relative to current design
-      "Get leave requests successfully",
+      "Lấy danh sách yêu cầu nghỉ phép thành công",
       statistics
     ).send(res);
   } catch (error) {
@@ -523,7 +523,7 @@ const editLeaveRequestController = async (req, res) => {
 
     return new successRes.UpdateSuccess(
       result,
-      "Update leave request successfully",
+      "Cập nhật yêu cầu nghỉ phép thành công",
     ).send(res);
   } catch (error) {
     logger.error("Edit leave error", {
@@ -547,7 +547,7 @@ const cancelLeaveRequestController = async (req, res) => {
 
     return new successRes.UpdateSuccess(
       result,
-      "Cancel leave request successfully",
+      "Hủy yêu cầu nghỉ phép thành công",
     ).send(res);
   } catch (error) {
     logger.error("Cancel leave error", {
@@ -569,7 +569,7 @@ const getAllLeaveController = async (req, res) => {
       totalItems: paginationInfo.totalItems,
     });
 
-    return new successRes.GetListSuccess(data, paginationData, 'Leave requests retrieved successfully', statistics).send(res);
+    return new successRes.GetListSuccess(data, paginationData, 'Lấy danh sách yêu cầu nghỉ phép thành công', statistics).send(res);
   } catch (error) {
     logger.error('[LeaveController.getAllLeaveController]', { message: error.message });
     throw error;
@@ -582,7 +582,7 @@ const approveLeaveController = async (req, res) => {
     const { id } = req.params;
     const { status } = req.body;
     const leave = await ServiceProcess.approveLeaveRequestService(id, status);
-    return new successRes.UpdateSuccess(leave, 'Leave request updated').send(res);
+    return new successRes.UpdateSuccess(leave, 'Cập nhật yêu cầu nghỉ phép thành công').send(res);
   } catch (error) {
     logger.error('[LeaveController.approveLeaveController]', { message: error.message });
     throw error;

@@ -35,7 +35,7 @@ const getListController = async (req, res) => {
             totalItems: pagination.totalItems,
         });
 
-        return new successRes.GetListSuccess(data, paginationData, 'Services retrieved successfully').send(res);
+        return new successRes.GetListSuccess(data, paginationData, 'Lấy danh sách dịch vụ thành công').send(res);
     } catch (error) {
         logger.error('Error get service', {
             context: 'ServiceController.getList',
@@ -70,12 +70,12 @@ const getByIdController = async (req, res) => {
                 context: 'ServiceController.getById',
                 serviceId: id
             });
-            throw new errorRes.BadRequestError('Service ID is required');
+            throw new errorRes.BadRequestError('Mã dịch vụ là bắt buộc');
         }
 
         // Gọi service xử lý logic
         const service = await ServiceProcess.getByIdService(id);
-        return new successRes.GetDetailSuccess(service, 'Service retrieved successfully').send(res);
+        return new successRes.GetDetailSuccess(service, 'Lấy thông tin dịch vụ thành công').send(res);
     } catch (error) {
         logger.error('Error get service by id', {
             context: 'ServiceController.getById',
@@ -109,7 +109,7 @@ const createController = async (req, res) => {
                     context: 'ServiceController.createService',
                     field: field
                 });
-                throw new errorRes.BadRequestError(`Missing required field: ${field}`);
+                throw new errorRes.BadRequestError(`Thiếu trường bắt buộc: ${field}`);
             }
         }
 
@@ -120,7 +120,7 @@ const createController = async (req, res) => {
                 context: 'ServiceController.create',
                 serviceName: cleanedData.service_name
             });
-            throw new errorRes.ConflictError('Service name already exists');
+            throw new errorRes.ConflictError('Tên dịch vụ đã tồn tại');
         }
 
         // check price positive number
@@ -129,7 +129,7 @@ const createController = async (req, res) => {
                 context: 'ServiceController.create',
                 price: cleanedData.price
             });
-            throw new errorRes.BadRequestError('Price must be a positive number');
+            throw new errorRes.BadRequestError('Giá phải là số dương');
         }
         // check duration positive number
         if (cleanedData.duration < 0) {
@@ -137,7 +137,7 @@ const createController = async (req, res) => {
                 context: 'ServiceController.create',
                 duration: cleanedData.duration
             });
-            throw new errorRes.BadRequestError('Duration must be a positive number');
+            throw new errorRes.BadRequestError('Thời lượng phải là số dương');
         }
 
         // check price > 1000 
@@ -146,7 +146,7 @@ const createController = async (req, res) => {
                 context: 'ServiceController.create',
                 price: cleanedData.price
             });
-            throw new errorRes.BadRequestError('Price must be at least 1000');
+            throw new errorRes.BadRequestError('Giá phải tối thiểu 1000');
         }
 
         // Gọi service xử lý logic
@@ -155,7 +155,7 @@ const createController = async (req, res) => {
             context: 'ServiceController.create',
             serviceId: createdService.id
         });
-        return new successRes.CreateSuccess(createdService, 'Service created successfully').send(res);
+        return new successRes.CreateSuccess(createdService, 'Tạo dịch vụ thành công').send(res);
     } catch (error) {
         logger.error('Error create service', {
             context: 'ServiceController.create',
@@ -183,7 +183,7 @@ const updateController = async (req, res) => {
                 context: 'ServiceController.update',
                 serviceId: id
             });
-            throw new errorRes.BadRequestError('Service ID is required');
+            throw new errorRes.BadRequestError('Mã dịch vụ là bắt buộc');
         }
         // clean data (cho phép status và equipment_service)
         const cleanedData = cleanObjectData(serviceData);
@@ -192,7 +192,7 @@ const updateController = async (req, res) => {
                 context: 'ServiceController.update',
                 serviceId: id
             });
-            throw new errorRes.BadRequestError('No data provided for update');
+            throw new errorRes.BadRequestError('Không có dữ liệu để cập nhật');
         }
 
         // check unique service_name
@@ -204,7 +204,7 @@ const updateController = async (req, res) => {
                     serviceId: id,
                     serviceName: cleanedData.service_name
                 });
-                throw new errorRes.ConflictError('Service name already exists');
+                throw new errorRes.ConflictError('Tên dịch vụ đã tồn tại');
             }
         }
         if (cleanedData.price !== undefined) {
@@ -215,7 +215,7 @@ const updateController = async (req, res) => {
                     serviceId: id,
                     price: cleanedData.price
                 });
-                throw new errorRes.BadRequestError('Price must be a positive number');
+                throw new errorRes.BadRequestError('Giá phải là số dương');
             }
             // check price > 1000
             if (cleanedData.price < 1000) {
@@ -224,7 +224,7 @@ const updateController = async (req, res) => {
                     serviceId: id,
                     price: cleanedData.price
                 });
-                throw new errorRes.BadRequestError('Price must be at least 1000');
+                throw new errorRes.BadRequestError('Giá phải tối thiểu 1000');
             }
         }
         if (cleanedData.duration !== undefined) {
@@ -235,20 +235,20 @@ const updateController = async (req, res) => {
                     serviceId: id,
                     duration: cleanedData.duration
                 });
-                throw new errorRes.BadRequestError('Duration must be a positive number');
+                throw new errorRes.BadRequestError('Thời lượng phải là số dương');
             }
         }
         // Gọi service xử lý logic
         const updatedService = await ServiceProcess.updateService(id, cleanedData);
         // QUAN TRỌNG: Kiểm tra nếu ID không tồn tại trong DB
         if (!updatedService) {
-            throw new errorRes.NotFoundError('Service not found');
+            throw new errorRes.NotFoundError('Không tìm thấy dịch vụ');
         }
         logger.info('Service updated successfully', {
             context: 'ServiceController.update',
             serviceId: updatedService.id
         });
-        return new successRes.UpdateSuccess(updatedService, 'Service updated successfully').send(res);
+        return new successRes.UpdateSuccess(updatedService, 'Cập nhật dịch vụ thành công').send(res);
     } catch (error) {
         logger.error('Error update service', {
             context: 'ServiceController.update',
@@ -277,7 +277,7 @@ const updateStatusController = async (req, res) => {
                 context: 'ServiceController.updateStatus',
                 status: status
             });
-            throw new errorRes.BadRequestError('Invalid or missing status value');
+            throw new errorRes.BadRequestError('Giá trị trạng thái không hợp lệ hoặc bị thiếu');
         }
 
         // update status
@@ -293,11 +293,11 @@ const updateStatusController = async (req, res) => {
 
         // QUAN TRỌNG: Kiểm tra nếu ID không tồn tại trong DB
         if (!updatedService) {
-            throw new errorRes.NotFoundError('Service not found');
+            throw new errorRes.NotFoundError('Không tìm thấy dịch vụ');
         }
 
         // return response update success
-        return new successRes.UpdateSuccess(updatedService, 'Service status updated successfully').send(res);
+        return new successRes.UpdateSuccess(updatedService, 'Cập nhật trạng thái dịch vụ thành công').send(res);
     } catch (error) {
         logger.error('Error update service status', {
             context: 'ServiceController.updateStatus',

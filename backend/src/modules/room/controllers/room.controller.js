@@ -41,7 +41,7 @@ const getRooms = async (req, res) => {
         return new successRes.GetListSuccess(
             rooms,
             pagination,
-            'Rooms retrieved successfully'
+            'Lấy danh sách phòng thành công'
         ).send(res);
 
     } catch (error) {
@@ -52,7 +52,7 @@ const getRooms = async (req, res) => {
         });
 
         throw new errorRes.InternalServerError(
-            `An error occurred while fetching rooms: ${error.message}`
+            "Hệ thống lỗi, vui lòng thực hiện sau"
         );
     }
 };
@@ -81,14 +81,14 @@ const createRoom = async (req, res) => {
             logger.warn('No room data provided in request body', {
                 context: 'RoomController.createRoom'
             });
-            throw new errorRes.BadRequestError('No room data provided');
+            throw new errorRes.BadRequestError('Không có dữ liệu phòng được cung cấp');
         }
 
         if (!cleanRoomData.room_number) {
             logger.warn('Room number is required but not provided', {
                 context: 'RoomController.createRoom'
             });
-            throw new errorRes.BadRequestError('Room number is required');
+            throw new errorRes.BadRequestError('Số phòng là bắt buộc');
         }
 
         if (await roomService.checkRoomExists(cleanRoomData.room_number)) {
@@ -110,7 +110,7 @@ const createRoom = async (req, res) => {
         // Trả về phản hồi thành công
         return new successRes.CreateSuccess(
             newRoom,
-            'Room created successfully'
+            'Tạo phòng thành công'
         ).send(res);
 
     } catch (error) {
@@ -147,7 +147,7 @@ const getRoomById = async (req, res) => {
 
         return new successRes.GetDetailSuccess(
             room,
-            'Room retrieved successfully'
+            'Lấy thông tin phòng thành công'
         ).send(res);
 
     } catch (error) {
@@ -191,7 +191,7 @@ const updateRoom = async (req, res) => {
             logger.warn('No update data provided in request body', {
                 context: 'RoomController.updateRoom'
             });
-            throw new errorRes.BadRequestError('No update data provided');
+            throw new errorRes.BadRequestError('Không có dữ liệu cập nhật được cung cấp');
         }
 
         // check if change room_number, if yes check exists
@@ -215,7 +215,7 @@ const updateRoom = async (req, res) => {
         // Trả về phản hồi thành công
         return new successRes.UpdateSuccess(
             updatedRoom,
-            `Room ${roomId} updated successfully`
+            `Cập nhật phòng thành công`
         ).send(res);
 
     } catch (error) {
@@ -247,7 +247,7 @@ const updateRoomStatus = async (req, res) => {
             logger.warn('No status provided in request body', {
                 context: 'RoomController.updateRoomStatus'
             });
-            throw new errorRes.BadRequestError('No status provided');
+            throw new errorRes.BadRequestError('Trạng thái không được cung cấp');
         }
 
         // check status value is "ACTIVE", "INACTIVE", "MAINTENANCE"
@@ -258,7 +258,7 @@ const updateRoomStatus = async (req, res) => {
                 status
             });
             throw new errorRes.BadRequestError(
-                `Invalid status value. Must be one of: ${validStatuses.join(', ')}`
+                `Giá trị trạng thái không hợp lệ. Phải là một trong: ${validStatuses.join(', ')}`
             );
         }
 
@@ -273,7 +273,7 @@ const updateRoomStatus = async (req, res) => {
 
         // Trả về phản hồi thành công
         logger.info(`Room ${roomId} status updated successfully to ${status}`);
-        return new successRes.UpdateSuccess(updatedRoom, `Room ${roomId} status updated successfully`).send(res);
+        return new successRes.UpdateSuccess(updatedRoom, `Cập nhật trạng thái phòng thành công`).send(res);
     } catch (error) {
         logger.error('Error updating room status', {
             context: 'RoomController.updateRoomStatus',

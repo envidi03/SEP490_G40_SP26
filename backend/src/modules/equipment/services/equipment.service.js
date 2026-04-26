@@ -155,7 +155,7 @@ const getEquipments = async (query) => {
             message: error.message,
             stack: error.stack,
         });
-        throw new errorRes.InternalServerError(`An error occurred while fetching equipments: ${error.message}`);
+        throw new errorRes.InternalServerError("Hệ thống lỗi, vui lòng thực hiện sau");
     }
 };
 
@@ -343,7 +343,7 @@ const getEquipmentById = async (id, query) => {
             stack: error.stack,
         });
         throw new errorRes.InternalServerError(
-            `An error occurred while fetching equipment by id: ${error.message}`
+            "Hệ thống lỗi, vui lòng thực hiện sau"
         );
     }
 };
@@ -372,7 +372,7 @@ const checkExitSerialNumber = async (serialNumber) => {
             stack: error.stack,
         });
         throw new errorRes.InternalServerError(
-            `An error occurred while checking equipment serial number: ${error.message}`
+            "Hệ thống lỗi, vui lòng thực hiện sau"
         );
     }
 };
@@ -401,7 +401,7 @@ const createEquipment = async (dataCreate) => {
                 context: context,
                 equipment_type: dataCreate.equipment_type
             });
-            throw new errorRes.ConflictError(`Equipment type '${dataCreate.equipment_type}' already exists. Please use the add items API instead.`);
+            throw new errorRes.ConflictError(`Loại thiết bị '${dataCreate.equipment_type}' đã tồn tại. Vui lòng sử dụng chức năng thêm thiết bị vào danh mục.`);
         }
 
         // NẾU CHƯA TỒN TẠI -> Tạo document mới hoàn toàn
@@ -425,7 +425,7 @@ const createEquipment = async (dataCreate) => {
         if (error.statusCode) throw error;
 
         throw new errorRes.InternalServerError(
-            `An error occurred while creating equipment: ${error.message}`
+            "Hệ thống lỗi, vui lòng thực hiện sau"
         );
     }
 };
@@ -452,7 +452,7 @@ const addEquipmentItems = async (categoryId, newItems) => {
 
         // Nếu trả về null nghĩa là cái categoryId truyền vào bị sai hoặc đã bị xóa
         if (!updatedCategory) {
-            throw new errorRes.NotFoundError("Equipment category not found");
+            throw new errorRes.NotFoundError("Không tìm thấy danh mục thiết bị");
         }
 
         return updatedCategory;
@@ -466,7 +466,7 @@ const addEquipmentItems = async (categoryId, newItems) => {
         });
         if (error.statusCode) throw error;
         throw new errorRes.InternalServerError(
-            `An error occurred while adding equipment items: ${error.message}`
+            "Hệ thống lỗi, vui lòng thực hiện sau"
         );
     }
 };
@@ -501,7 +501,7 @@ const checkExitSerialNumberNotId = async (serialNumber, id) => {
             stack: error.stack,
         });
         throw new errorRes.InternalServerError(
-            `An error occurred while checking equipment serial number: ${error.message}`
+            "Hệ thống lỗi, vui lòng thực hiện sau"
         );
     }
 };
@@ -520,7 +520,7 @@ const updateCategory = async (categoryId, updateData) => {
         return updatedCategory;
     } catch (error) {
         if (error.statusCode) throw error;
-        throw new errorRes.InternalServerError(`Error updating category: ${error.message}`);
+        throw new errorRes.InternalServerError("Hệ thống lỗi, vui lòng thực hiện sau");
     }
 };
 
@@ -543,14 +543,14 @@ const updateEquipmentItem = async (categoryId, dataUpdate) => {
         );
 
         if (!updatedDoc) {
-            throw new errorRes.NotFoundError("Equipment category not found");
+            throw new errorRes.NotFoundError("Không tìm thấy danh mục thiết bị");
         }
         return updatedDoc;
 
     } catch (error) {
         logger.error("Error updating equipment category", { context, message: error.message });
         if (error.statusCode) throw error;
-        throw new errorRes.InternalServerError(`An error occurred while updating equipment: ${error.message}`);
+        throw new errorRes.InternalServerError("Hệ thống lỗi, vui lòng thực hiện sau");
     }
 };
 
@@ -619,7 +619,7 @@ const getStatistics = async () => {
             message: error.message,
             stack: error.stack,
         });
-        throw new errorRes.InternalServerError(`An error occurred while fetching equipment statistics: ${error.message}`);
+        throw new errorRes.InternalServerError("Hệ thống lỗi, vui lòng thực hiện sau");
     }
 };
 
@@ -691,7 +691,7 @@ const reportIncident = async (id, incidentData) => {
             stack: error.stack,
         });
         throw new errorRes.InternalServerError(
-            `An error occurred while reporting equipment incident: ${error.message}`
+            "Hệ thống lỗi, vui lòng thực hiện sau"
         );
     }
 };

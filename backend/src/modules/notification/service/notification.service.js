@@ -57,9 +57,9 @@ const createNotification = async (payload) => {
             expires_at = null,
         } = payload;
 
-        if (!type) throw new errorRes.BadRequestError('type is required');
-        if (!title) throw new errorRes.BadRequestError('title is required');
-        if (!message) throw new errorRes.BadRequestError('message is required');
+        if (!type) throw new errorRes.BadRequestError('Loại thông báo là bắt buộc');
+        if (!title) throw new errorRes.BadRequestError('Tiêu đề thông báo là bắt buộc');
+        if (!message) throw new errorRes.BadRequestError('Nội dung thông báo là bắt buộc');
 
         const channelsConfig = {
             in_app: { enabled: true, ...channels.in_app },
@@ -112,7 +112,7 @@ const createNotification = async (payload) => {
             context: 'NotificationService.createNotification',
             message: error.message,
         });
-        throw new errorRes.InternalServerError(error.message);
+        throw new errorRes.InternalServerError("Hệ thống lỗi, vui lòng thực hiện sau");
     }
 };
 
@@ -122,7 +122,7 @@ const createNotification = async (payload) => {
  * @param {object} data        - { type, title, message, action_url?, metadata?, channels? }
  */
 const sendToUser = async (recipientId, data) => {
-    if (!recipientId) throw new errorRes.BadRequestError('recipientId is required');
+    if (!recipientId) throw new errorRes.BadRequestError('Mã người nhận là bắt buộc');
     return createNotification({
         scope: 'INDIVIDUAL',
         recipient_id: recipientId,
@@ -143,7 +143,7 @@ const sendToUser = async (recipientId, data) => {
 const sendToRole = async (roles, data) => {
     try {
         if (!roles || (Array.isArray(roles) && roles.length === 0)) {
-            throw new errorRes.BadRequestError('roles is required');
+            throw new errorRes.BadRequestError('Vai trò là bắt buộc');
         }
 
         const target_roles = Array.isArray(roles) ? roles : [roles];
@@ -165,7 +165,7 @@ const sendToRole = async (roles, data) => {
             context: 'NotificationService.sendToRole',
             message: error.message,
         });
-        throw new errorRes.InternalServerError(error.message);
+        throw new errorRes.InternalServerError("Hệ thống lỗi, vui lòng thực hiện sau");
     }
 };
 
@@ -177,7 +177,7 @@ const sendToRole = async (roles, data) => {
 const sendToGroup = async (recipientIds, data) => {
     try {
         if (!recipientIds || recipientIds.length === 0) {
-            throw new errorRes.BadRequestError('recipientIds is required and must not be empty');
+            throw new errorRes.BadRequestError('Danh sách người nhận là bắt buộc và không được rỗng');
         }
 
         return createNotification({
@@ -196,7 +196,7 @@ const sendToGroup = async (recipientIds, data) => {
             context: 'NotificationService.sendToGroup',
             message: error.message,
         });
-        throw new errorRes.InternalServerError(error.message);
+        throw new errorRes.InternalServerError("Hệ thống lỗi, vui lòng thực hiện sau");
     }
 };
 
@@ -221,7 +221,7 @@ const sendGlobal = async (data) => {
             context: 'NotificationService.sendGlobal',
             message: error.message,
         });
-        throw new errorRes.InternalServerError(error.message);
+        throw new errorRes.InternalServerError("Hệ thống lỗi, vui lòng thực hiện sau");
     }
 };
 
@@ -300,7 +300,7 @@ const getNotifications = async ({ userId, userRole, page = 1, limit = 20 }) => {
             context: 'NotificationService.getNotifications',
             message: error.message,
         });
-        throw new errorRes.InternalServerError(error.message);
+        throw new errorRes.InternalServerError("Hệ thống lỗi, vui lòng thực hiện sau");
     }
 };
 
@@ -328,7 +328,7 @@ const getUnreadCount = async ({ userId, userRole }) => {
             context: 'NotificationService.getUnreadCount',
             message: error.message,
         });
-        throw new errorRes.InternalServerError(error.message);
+        throw new errorRes.InternalServerError("Hệ thống lỗi, vui lòng thực hiện sau");
     }
 };
 
@@ -344,13 +344,13 @@ const markAsRead = async (notificationId, userId) => {
     try {
         const notification = await Notification.findById(notificationId);
         if (!notification) {
-            throw new errorRes.NotFoundError('Notification not found');
+            throw new errorRes.NotFoundError('Không tìm thấy thông báo');
         }
 
         // Nếu thông báo gửi riêng (INDIVIDUAL), chỉ cần đổi status
         if (notification.scope === 'INDIVIDUAL') {
             if (notification.recipient_id.toString() !== userId.toString()) {
-                throw new errorRes.ForbiddenError('Not your notification');
+                throw new errorRes.ForbiddenError('Đây không phải thông báo của bạn');
             }
             notification.status = 'READ';
         } else {
@@ -373,7 +373,7 @@ const markAsRead = async (notificationId, userId) => {
             context: 'NotificationService.markAsRead',
             message: error.message,
         });
-        throw new errorRes.InternalServerError(error.message);
+        throw new errorRes.InternalServerError("Hệ thống lỗi, vui lòng thực hiện sau");
     }
 };
 
@@ -387,13 +387,13 @@ const markAsSeen = async (notificationId, userId) => {
     try {
         const notification = await Notification.findById(notificationId);
         if (!notification) {
-            throw new errorRes.NotFoundError('Notification not found');
+            throw new errorRes.NotFoundError('Không tìm thấy thông báo');
         }
 
         // Nếu thông báo gửi riêng (INDIVIDUAL), chỉ cần đổi field is_seen
         if (notification.scope === 'INDIVIDUAL') {
             if (notification.recipient_id.toString() !== userId.toString()) {
-                throw new errorRes.ForbiddenError('Not your notification');
+                throw new errorRes.ForbiddenError('Đây không phải thông báo của bạn');
             }
             notification.is_seen = true;
         } else {
@@ -416,7 +416,7 @@ const markAsSeen = async (notificationId, userId) => {
             context: 'NotificationService.markAsSeen',
             message: error.message,
         });
-        throw new errorRes.InternalServerError(error.message);
+        throw new errorRes.InternalServerError("Hệ thống lỗi, vui lòng thực hiện sau");
     }
 };
 
@@ -452,13 +452,13 @@ const markAllAsRead = async (userId, userRole) => {
 
         await Promise.all([updateIndividual, updateGroupGlobal]);
 
-        return { message: 'All notifications marked as read' };
+        return { message: 'Đã đánh dấu tất cả thông báo là đã đọc' };
     } catch (error) {
         logger.error('Error in markAllAsRead', {
             context: 'NotificationService.markAllAsRead',
             message: error.message,
         });
-        throw new errorRes.InternalServerError(error.message);
+        throw new errorRes.InternalServerError("Hệ thống lỗi, vui lòng thực hiện sau");
     }
 };
 
@@ -496,13 +496,13 @@ const deleteAllRead = async (userId, userRole) => {
 
         await Promise.all([deleteIndividual, hideGroupGlobal]);
 
-        return { message: 'All read notifications have been deleted/hidden' };
+        return { message: 'Đã xóa/ẩn tất cả thông báo đã đọc' };
     } catch (error) {
         logger.error('Error in deleteAllRead', {
             context: 'NotificationService.deleteAllRead',
             message: error.message,
         });
-        throw new errorRes.InternalServerError(error.message);
+        throw new errorRes.InternalServerError("Hệ thống lỗi, vui lòng thực hiện sau");
     }
 };
 /**
@@ -514,12 +514,12 @@ const toggleReadStatus = async (notificationId, userId) => {
     try {
         const notification = await Notification.findById(notificationId);
         if (!notification) {
-            throw new errorRes.NotFoundError('Notification not found');
+            throw new errorRes.NotFoundError('Không tìm thấy thông báo');
         }
 
         if (notification.scope === 'INDIVIDUAL') {
             if (notification.recipient_id.toString() !== userId.toString()) {
-                throw new errorRes.ForbiddenError('Not your notification');
+                throw new errorRes.ForbiddenError('Đây không phải thông báo của bạn');
             }
             notification.status = notification.status === 'READ' ? 'UNREAD' : 'READ';
         } else {
@@ -548,7 +548,7 @@ const toggleReadStatus = async (notificationId, userId) => {
             context: 'NotificationService.toggleReadStatus',
             message: error.message,
         });
-        throw new errorRes.InternalServerError(error.message);
+        throw new errorRes.InternalServerError("Hệ thống lỗi, vui lòng thực hiện sau");
     }
 };
 

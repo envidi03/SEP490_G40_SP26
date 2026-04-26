@@ -23,7 +23,7 @@ const getSubServicesByParent = async (req, res) => {
         return res.status(200).json({
             success: true,
             statusCode: 200,
-            message: 'Sub-services retrieved successfully',
+            message: 'Lấy danh sách dịch vụ con thành công',
             data: subServices
         });
     } catch (error) {
@@ -53,7 +53,7 @@ const getSubServiceById = async (req, res) => {
         return res.status(200).json({
             success: true,
             statusCode: 200,
-            message: 'Sub-service retrieved successfully',
+            message: 'Lấy thông tin dịch vụ con thành công',
             data: subService
         });
     } catch (error) {
@@ -76,11 +76,11 @@ const createSubService = async (req, res) => {
         const cleanData = cleanObjectData(rawData);
 
         if (!cleanData || Object.keys(cleanData).length === 0) {
-            throw new errorRes.BadRequestError('No data provided');
+            throw new errorRes.BadRequestError('Không có dữ liệu được cung cấp');
         }
 
         if (!cleanData.sub_service_name) {
-            throw new errorRes.BadRequestError('Sub-service name is required');
+            throw new errorRes.BadRequestError('Tên dịch vụ con là bắt buộc');
         }
 
         logger.debug('Creating sub-service', {
@@ -94,7 +94,7 @@ const createSubService = async (req, res) => {
         return res.status(201).json({
             success: true,
             statusCode: 201,
-            message: 'Sub-service created successfully',
+            message: 'Tạo dịch vụ con thành công',
             data: created
         });
     } catch (error) {
@@ -117,7 +117,7 @@ const updateSubService = async (req, res) => {
         const cleanData = cleanObjectData(rawData);
 
         if (!cleanData || Object.keys(cleanData).length === 0) {
-            throw new errorRes.BadRequestError('No update data provided');
+            throw new errorRes.BadRequestError('Không có dữ liệu cập nhật được cung cấp');
         }
 
         logger.debug('Updating sub-service', {
@@ -131,7 +131,7 @@ const updateSubService = async (req, res) => {
         return res.status(200).json({
             success: true,
             statusCode: 200,
-            message: 'Sub-service updated successfully',
+            message: 'Cập nhật dịch vụ con thành công',
             data: updated
         });
     } catch (error) {
@@ -161,7 +161,7 @@ const deleteSubService = async (req, res) => {
         return res.status(200).json({
             success: true,
             statusCode: 200,
-            message: 'Sub-service deleted successfully'
+            message: 'Xóa dịch vụ con thành công'
         });
     } catch (error) {
         logger.error('Error deleting sub-service', {

@@ -10,13 +10,13 @@ const mongoose = require("mongoose");
 const getSubServicesByParentId = async (parentId, query = {}) => {
     try {
         if (!mongoose.Types.ObjectId.isValid(parentId)) {
-            throw new errorRes.BadRequestError("Invalid parent service ID format");
+            throw new errorRes.BadRequestError("Định dạng mã dịch vụ cha không hợp lệ");
         }
 
         // Kiểm tra dịch vụ cha tồn tại
         const parentExists = await ServiceModel.findById(parentId).lean();
         if (!parentExists) {
-            throw new errorRes.NotFoundError("Parent service not found");
+            throw new errorRes.NotFoundError("Không tìm thấy dịch vụ cha");
         }
 
         const statusFilter = query.filter;
@@ -42,7 +42,7 @@ const getSubServicesByParentId = async (parentId, query = {}) => {
             message: error.message
         });
         if (error.statusCode) throw error;
-        throw new errorRes.InternalServerError(`An error occurred: ${error.message}`);
+        throw new errorRes.InternalServerError("Hệ thống lỗi, vui lòng thực hiện sau");
     }
 };
 
@@ -52,7 +52,7 @@ const getSubServicesByParentId = async (parentId, query = {}) => {
 const getSubServiceById = async (id) => {
     try {
         if (!mongoose.Types.ObjectId.isValid(id)) {
-            throw new errorRes.BadRequestError("Invalid sub-service ID format");
+            throw new errorRes.BadRequestError("Định dạng mã dịch vụ con không hợp lệ");
         }
 
         const subService = await SubServiceModel
@@ -61,7 +61,7 @@ const getSubServiceById = async (id) => {
             .lean();
 
         if (!subService) {
-            throw new errorRes.NotFoundError("Sub-service not found");
+            throw new errorRes.NotFoundError("Không tìm thấy dịch vụ con");
         }
 
         return subService;
@@ -71,7 +71,7 @@ const getSubServiceById = async (id) => {
             message: error.message
         });
         if (error.statusCode) throw error;
-        throw new errorRes.InternalServerError(`An error occurred: ${error.message}`);
+        throw new errorRes.InternalServerError("Hệ thống lỗi, vui lòng thực hiện sau");
     }
 };
 
@@ -81,12 +81,12 @@ const getSubServiceById = async (id) => {
 const createSubService = async (parentId, data) => {
     try {
         if (!mongoose.Types.ObjectId.isValid(parentId)) {
-            throw new errorRes.BadRequestError("Invalid parent service ID format");
+            throw new errorRes.BadRequestError("Định dạng mã dịch vụ cha không hợp lệ");
         }
 
         const parentExists = await ServiceModel.findById(parentId).lean();
         if (!parentExists) {
-            throw new errorRes.NotFoundError("Parent service not found");
+            throw new errorRes.NotFoundError("Không tìm thấy dịch vụ cha");
         }
 
         // Kiểm tra trùng tên (không phân biệt hoa thường) trong cùng một parent_id
@@ -118,7 +118,7 @@ const createSubService = async (parentId, data) => {
             message: error.message
         });
         if (error.statusCode) throw error;
-        throw new errorRes.InternalServerError(`An error occurred: ${error.message}`);
+        throw new errorRes.InternalServerError("Hệ thống lỗi, vui lòng thực hiện sau");
     }
 };
 
@@ -128,7 +128,7 @@ const createSubService = async (parentId, data) => {
 const updateSubService = async (id, data) => {
     try {
         if (!mongoose.Types.ObjectId.isValid(id)) {
-            throw new errorRes.BadRequestError("Invalid sub-service ID format");
+            throw new errorRes.BadRequestError("Định dạng mã dịch vụ con không hợp lệ");
         }
 
         // Không cho phép thay đổi parent_id qua update
@@ -138,7 +138,7 @@ const updateSubService = async (id, data) => {
         if (data.sub_service_name) {
             const currentSubService = await SubServiceModel.findById(id).lean();
             if (!currentSubService) {
-                throw new errorRes.NotFoundError("Sub-service not found");
+                throw new errorRes.NotFoundError("Không tìm thấy dịch vụ con");
             }
 
             const existing = await SubServiceModel.findOne({
@@ -159,7 +159,7 @@ const updateSubService = async (id, data) => {
         );
 
         if (!updated) {
-            throw new errorRes.NotFoundError("Sub-service not found");
+            throw new errorRes.NotFoundError("Không tìm thấy dịch vụ con");
         }
 
         logger.debug("Sub-service updated successfully", {
@@ -174,7 +174,7 @@ const updateSubService = async (id, data) => {
             message: error.message
         });
         if (error.statusCode) throw error;
-        throw new errorRes.InternalServerError(`An error occurred: ${error.message}`);
+        throw new errorRes.InternalServerError("Hệ thống lỗi, vui lòng thực hiện sau");
     }
 };
 
@@ -184,13 +184,13 @@ const updateSubService = async (id, data) => {
 const deleteSubService = async (id) => {
     try {
         if (!mongoose.Types.ObjectId.isValid(id)) {
-            throw new errorRes.BadRequestError("Invalid sub-service ID format");
+            throw new errorRes.BadRequestError("Định dạng mã dịch vụ con không hợp lệ");
         }
 
         const deleted = await SubServiceModel.findByIdAndDelete(id);
 
         if (!deleted) {
-            throw new errorRes.NotFoundError("Sub-service not found");
+            throw new errorRes.NotFoundError("Không tìm thấy dịch vụ con");
         }
 
         logger.debug("Sub-service deleted successfully", {
@@ -205,7 +205,7 @@ const deleteSubService = async (id) => {
             message: error.message
         });
         if (error.statusCode) throw error;
-        throw new errorRes.InternalServerError(`An error occurred: ${error.message}`);
+        throw new errorRes.InternalServerError("Hệ thống lỗi, vui lòng thực hiện sau");
     }
 };
 

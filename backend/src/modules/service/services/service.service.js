@@ -134,7 +134,7 @@ const getListService = async (query) => {
             message: error.message
         });
         throw new errorRes.InternalServerError(
-            `An error occurred while fetching services: ${error.message}`
+            "Hệ thống lỗi, vui lòng thực hiện sau"
         );
     }
 };
@@ -195,7 +195,7 @@ const getByIdService = async (id) => {
         if (error.statusCode) throw error;
 
         throw new errorRes.InternalServerError(
-            `An error occurred while fetching service by id: ${error.message}`
+            "Hệ thống lỗi, vui lòng thực hiện sau"
         );
     }
 };
@@ -228,7 +228,7 @@ const createService = async (dataCreate) => {
             stack: error.stack,
         });
         throw new errorRes.InternalServerError(
-            `An error occurred while creating service: ${error.message}`
+            "Hệ thống lỗi, vui lòng thực hiện sau"
         );
     }
 };
@@ -261,7 +261,7 @@ const updateService = async (id, updateData) => {
             stack: error.stack,
         });
         throw new errorRes.InternalServerError(
-            `An error occurred while updating service: ${error.message}`
+            "Hệ thống lỗi, vui lòng thực hiện sau"
         );
     }
 };
@@ -283,7 +283,7 @@ const checkUniqueServiceName = async (service_name) => {
             stack: error.stack,
         });
         throw new errorRes.InternalServerError(
-            `An error occurred while checking unique service name: ${error.message}`
+            "Hệ thống lỗi, vui lòng thực hiện sau"
         );
     }
 };
@@ -308,7 +308,7 @@ const checkUniqueServiceNameNotId = async (service_name, id) => {
             stack: error.stack,
         });
         throw new errorRes.InternalServerError(
-            `An error occurred while checking unique service name: ${error.message}`
+            "Hệ thống lỗi, vui lòng thực hiện sau"
         );
     }
 };
