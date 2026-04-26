@@ -39,7 +39,7 @@ const getEquipments = async (req, res) => {
         });
         const statistics = await EquipmentService.getStatistics();
 
-        return new successRes.GetListSuccess(data, page, 'Equipments retrieved successfully', statistics).send(res);
+        return new successRes.GetListSuccess(data, page, 'Lấy danh sách thiết bị thành công', statistics).send(res);
     } catch (error) {
         logger.error('Error get equipment', {
             context: 'EquipmentController.getEquipments',
@@ -84,7 +84,7 @@ const getEquipmentById = async (req, res) => {
             equipment: equipment
         });
         // return success response
-        return new successRes.GetDetailSuccess(equipment, 'Equipment retrieved successfully').send(res);
+        return new successRes.GetDetailSuccess(equipment, 'Lấy thông tin thiết bị thành công').send(res);
     } catch (error) {
         logger.error('Error get equipment by id', {
             context: 'EquipmentController.getEquipmentById',
@@ -109,12 +109,12 @@ const createEquipment = async (req, res) => {
 
         // 1. Kiểm tra Dữ liệu cha (equipment_type)
         if (!payload.equipment_type || !payload.equipment_type.trim()) {
-            throw new errorRes.BadRequestError("Missing required field: equipment_type");
+            throw new errorRes.BadRequestError("Thiếu trường dữ liệu bắt buộc: Loại thiết bị (equipment_type)");
         }
 
         // 2. Kiểm tra Dữ liệu con (Mảng thiết bị)
         if (!payload.equipment || !Array.isArray(payload.equipment) || payload.equipment.length === 0) {
-            throw new errorRes.BadRequestError("The 'equipment' array is required and must contain at least one item");
+            throw new errorRes.BadRequestError("Danh sách thiết bị là bắt buộc và phải chứa ít nhất một mục");
         }
 
         const cleanEquipmentArray = [];
@@ -136,7 +136,7 @@ const createEquipment = async (req, res) => {
                         index: i,
                         field: field
                     });
-                    throw new errorRes.BadRequestError(`Missing required field '${field}' at item index ${i}`);
+                    throw new errorRes.BadRequestError(`Thiếu trường dữ liệu bắt buộc '${field}' tại thiết bị thứ ${i + 1}`);
                 }
             }
 
@@ -145,12 +145,12 @@ const createEquipment = async (req, res) => {
             // Check độ dài Serial Number
             if (serialNumber.length < 6 || serialNumber.length > 20) {
                 logger.warn('Serial number length is invalid', { context, serial_number: serialNumber });
-                throw new errorRes.BadRequestError(`Serial number length must be between 6 and 20 characters at item index ${i}`);
+                throw new errorRes.BadRequestError(`Số seri tại thiết bị thứ ${i + 1} phải từ 6 đến 20 ký tự`);
             }
 
             // Check trùng lặp Serial Number ngay trong chính payload gửi lên (ngăn chặn user gửi 2 cái giống hệt nhau)
             if (serialNumbersInRequest.has(serialNumber)) {
-                throw new errorRes.BadRequestError(`Duplicate serial number '${serialNumber}' found in the request payload`);
+                throw new errorRes.BadRequestError(`Phát hiện số seri '${serialNumber}' bị trùng lặp trong dữ liệu gửi lên`);
             }
             serialNumbersInRequest.add(serialNumber);
 
@@ -158,7 +158,7 @@ const createEquipment = async (req, res) => {
             const existingEquipment = await EquipmentService.checkExitSerialNumber(serialNumber);
             if (existingEquipment) {
                 logger.warn('Serial number already exists in DB', { context, serial_number: serialNumber });
-                throw new errorRes.ConflictError(`Serial number '${serialNumber}' already exists in the system`);
+                throw new errorRes.ConflictError(`Số seri '${serialNumber}' đã tồn tại trong hệ thống`);
             }
 
             cleanEquipmentArray.push(dataCreate);
@@ -178,7 +178,7 @@ const createEquipment = async (req, res) => {
             equipmentTypeId: equipmentResult._id
         });
 
-        return new successRes.CreateSuccess(equipmentResult, 'Equipment created successfully').send(res);
+        return new successRes.CreateSuccess(equipmentResult, 'Thêm mới thiết bị thành công').send(res);
 
     } catch (error) {
         logger.error('Error create equipment', {
@@ -209,7 +209,7 @@ const addEquipmentItemsController = async (req, res) => {
         });
 
         if (!payload.equipment || !Array.isArray(payload.equipment) || payload.equipment.length === 0) {
-            throw new errorRes.BadRequestError("The 'equipment' array is required and must contain at least one item");
+            throw new errorRes.BadRequestError("Danh sách thiết bị là bắt buộc và phải chứa ít nhất một mục");
         }
 
         const cleanEquipmentArray = [];
@@ -223,24 +223,24 @@ const addEquipmentItemsController = async (req, res) => {
             const requiredFields = ['equipment_name', 'equipment_serial_number', 'supplier', 'warranty'];
             for (const field of requiredFields) {
                 if (!dataCreate[field] || !String(dataCreate[field]).trim()) {
-                    throw new errorRes.BadRequestError(`Missing required field '${field}' at item index ${i}`);
+                    throw new errorRes.BadRequestError(`Thiếu trường dữ liệu bắt buộc '${field}' tại thiết bị thứ ${i + 1}`);
                 }
             }
 
             const serialNumber = dataCreate.equipment_serial_number.trim();
 
             if (serialNumber.length < 6 || serialNumber.length > 20) {
-                throw new errorRes.BadRequestError(`Serial number length must be between 6 and 20 characters at item index ${i}`);
+                throw new errorRes.BadRequestError(`Số seri tại thiết bị thứ ${i + 1} phải từ 6 đến 20 ký tự`);
             }
 
             if (serialNumbersInRequest.has(serialNumber)) {
-                throw new errorRes.BadRequestError(`Duplicate serial number '${serialNumber}' found in the request payload`);
+                throw new errorRes.BadRequestError(`Phát hiện số seri '${serialNumber}' bị trùng lặp trong dữ liệu gửi lên`);
             }
             serialNumbersInRequest.add(serialNumber);
 
             const existingEquipment = await EquipmentService.checkExitSerialNumber(serialNumber);
             if (existingEquipment) {
-                throw new errorRes.ConflictError(`Serial number '${serialNumber}' already exists in the system`);
+                throw new errorRes.ConflictError(`Số seri '${serialNumber}' đã tồn tại trong hệ thống`);
             }
 
             cleanEquipmentArray.push(dataCreate);
@@ -256,7 +256,7 @@ const addEquipmentItemsController = async (req, res) => {
 
         return new successRes.CreateSuccess(
             updatedCategory,
-            'New equipment items added successfully'
+            'Thêm thiết bị vào danh mục thành công'
         ).send(res);
 
     } catch (error) {
@@ -287,12 +287,12 @@ const updateCategoryController = async (req, res) => {
         if (payload.status) safeData.status = payload.status.trim();
 
         if (Object.keys(safeData).length === 0) {
-            throw new errorRes.BadRequestError('No valid category data provided for update');
+            throw new errorRes.BadRequestError('Không có dữ liệu hợp lệ để cập nhật danh mục');
         }
 
         const updatedCategory = await EquipmentService.updateCategory(categoryId, safeData);
 
-        return new successRes.UpdateSuccess(updatedCategory, 'Equipment category updated successfully').send(res);
+        return new successRes.UpdateSuccess(updatedCategory, 'Cập nhật danh mục thiết bị thành công').send(res);
     } catch (error) {
         logger.error('Error updating equipment category', { context, message: error.message });
         throw error;
@@ -320,7 +320,7 @@ const updateEquipmentItemController = async (req, res) => {
         const cleanedData = cleanObjectData(dataUpdate);
 
         if (Object.keys(cleanedData).length === 0) {
-            throw new errorRes.BadRequestError('No valid equipment data provided');
+            throw new errorRes.BadRequestError('Không có dữ liệu hợp lệ để cập nhật thiết bị');
         }
 
         // 2. Kiểm tra Serial Number (Nếu có thay đổi)
@@ -328,20 +328,20 @@ const updateEquipmentItemController = async (req, res) => {
             const serial = cleanedData.equipment_serial_number;
 
             if (serial.length < 6 || serial.length > 20) {
-                throw new errorRes.BadRequestError('Serial number length must be between 6 and 20 characters');
+                throw new errorRes.BadRequestError('Số seri phải từ 6 đến 20 ký tự');
             }
 
             // Gọi hàm check trùng lặp (Đã được viết lại bên Service)
             const isExist = await EquipmentService.checkExitSerialNumberNotId(serial, equipmentId);
             if (isExist) {
-                throw new errorRes.ConflictError('Serial number already exists in another equipment');
+                throw new errorRes.ConflictError('Số seri này đã tồn tại ở một thiết bị khác');
             }
         }
 
         // 3. Gọi Service để update
         const updatedDoc = await EquipmentService.updateEquipmentItem(equipmentId, cleanedData);
 
-        return new successRes.UpdateSuccess(updatedDoc, 'Equipment item updated successfully').send(res);
+        return new successRes.UpdateSuccess(updatedDoc, 'Cập nhật thông tin thiết bị thành công').send(res);
     } catch (error) {
         logger.error('Error updating equipment item', { context, message: error.message });
         throw error;
@@ -369,7 +369,7 @@ const updateEquipmentStatus = async (req, res) => {
                 context: context,
                 status: status
             });
-            throw new errorRes.BadRequestError('Invalid or missing status value');
+            throw new errorRes.BadRequestError('Trạng thái không hợp lệ hoặc bị thiếu');
         }
 
         // Gọi đúng tên hàm Service là updateEquipmentItem
@@ -383,7 +383,7 @@ const updateEquipmentStatus = async (req, res) => {
         // return response update success
         return new successRes.UpdateSuccess(
             updatedEquipment,
-            'Equipment status updated successfully'
+            'Cập nhật trạng thái thiết bị thành công'
         ).send(res);
 
     } catch (error) {
@@ -410,7 +410,7 @@ const reportIncident = async (req, res) => {
 
         // 1. Basic validation
         if (!incidentData.issue_type || !incidentData.severity || !incidentData.description) {
-            throw new errorRes.BadRequestError('Missing required incident reporting fields');
+            throw new errorRes.BadRequestError('Thiếu các trường thông tin bắt buộc để báo cáo sự cố');
         }
 
         // 2. Map frontend types to backend enums if necessary
@@ -430,7 +430,7 @@ const reportIncident = async (req, res) => {
             equipmentId: updatedEquipment.id
         });
 
-        return new successRes.UpdateSuccess(updatedEquipment, 'Equipment incident reported successfully').send(res);
+        return new successRes.UpdateSuccess(updatedEquipment, 'Báo cáo sự cố thiết bị thành công').send(res);
     } catch (error) {
         logger.error('Error report equipment incident', {
             context: 'EquipmentController.reportIncident',

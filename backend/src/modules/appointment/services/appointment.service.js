@@ -561,7 +561,7 @@ const getByIdService = async (id) => {
             stack: error.stack,
         });
 
-        if (error.statusCode) throw error;
+    
 
         throw new errorRes.InternalServerError(
             "Hệ thống lỗi vui lòng thực hiện sau"
@@ -1038,7 +1038,7 @@ const staffCreateService = async (dataCreate) => {
         });
 
         // Đã sửa để ném ra đúng HTTP Status (Ví dụ: 409 Conflict, 404 Not Found)
-        if (error.statusCode) throw error;
+    
         throw new errorRes.InternalServerError("Hệ thống lỗi vui lòng thực hiện sau");
     }
 };
@@ -1157,7 +1157,7 @@ const updateService = async (id, data) => {
             stack: error.stack,
         });
 
-        if (error.statusCode) throw error;
+    
         throw new errorRes.InternalServerError("Hệ thống lỗi vui lòng thực hiện sau");
     }
 };
@@ -1367,7 +1367,7 @@ const updateStatusOnly = async (id, status, doctorId = null) => {
         });
 
         // Ném tiếp các lỗi đã được định nghĩa (ví dụ: NotFoundError)
-        if (error.statusCode) throw error;
+    
 
         // Bắt các lỗi hệ thống (Database lỗi, rớt mạng...)
         throw new errorRes.InternalServerError("Hệ thống lỗi vui lòng thực hiện sau");
@@ -1440,7 +1440,7 @@ const checkinService = async (data) => {
             data: data
         });
 
-        if (error.statusCode) throw error;
+    
         throw new errorRes.InternalServerError("Hệ thống lỗi vui lòng thực hiện sau");
     }
 };

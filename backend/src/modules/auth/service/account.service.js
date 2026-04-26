@@ -2,6 +2,7 @@ const { Role: RoleModel, Account: AccountModel, Profile: ProfileModel } = requir
 const PatientModel = require("../../../modules/patient/model/patient.model");
 const { Staff: StaffModel } = require("../../../modules/staff/models/index.model");
 const logger = require('../../../common/utils/logger');
+const errorRes = require("../../../common/errors"); // Import để dùng thông báo lỗi tập trung
 const bcryptjs = require('bcryptjs');
 const mongoose = require('mongoose');
 
@@ -33,8 +34,7 @@ const findAccountById = async (id) => {
 
 /**
  * Find a role by account ID
- * 
- * @param {'ObjectId'} accountId account id user
+ * * @param {'ObjectId'} accountId account id user
  * @returns object {role} if found, otherwise null
  */
 const findRoleByAccountId = async (accountId) => {
@@ -66,8 +66,7 @@ const findRoleByAccountId = async (accountId) => {
 }
 /**
  * Find a staff member by their account ID
- * 
- * @param {'ObjectId'} accountId account id user 
+ * * @param {'ObjectId'} accountId account id user 
  * @returns obejct {account, staff, profile, role} if found, otherwise null
  */
 const findStaffByAccountId = async (accountId) => {
@@ -100,8 +99,7 @@ const findStaffByAccountId = async (accountId) => {
 
 /**
  * Find a patient by their account ID
- * 
- * @param {'ObjectId'} accountId account id user 
+ * * @param {'ObjectId'} accountId account id user 
  * @returns obejct {account, patient, profile, role} if found, otherwise null
  */
 const findPatientByAccountId = async (accountId) => {
@@ -191,7 +189,7 @@ const createAccount = async (accountData, session) => {
             error: error.message,
             accountData: accountData
         });
-        throw error;
+        throw new errorRes.InternalServerError("Hệ thống lỗi vui lòng thực hiện sau");
     }
 };
 
@@ -216,7 +214,7 @@ const createProfile = async (profileData, session) => {
             error: error.message,
             profileData: profileData
         });
-        throw error;
+        throw new errorRes.InternalServerError("Hệ thống lỗi vui lòng thực hiện sau");
     }
 };
 
@@ -241,7 +239,7 @@ const createPatient = async (patientData, session) => {
             error: error.message,
             patientData: patientData
         });
-        throw error;
+        throw new errorRes.InternalServerError("Hệ thống lỗi vui lòng thực hiện sau");
     }
 };
 
@@ -299,7 +297,7 @@ const createPatientFromUserProfile = async (full_name, phone) => {
             error: error.message,
             accountData: { full_name, email, phone }
         });
-        throw error;
+        throw new errorRes.InternalServerError("Hệ thống lỗi vui lòng thực hiện sau");
     } finally {
         session.endSession();
     }

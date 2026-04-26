@@ -13,7 +13,7 @@ const updateProfileController = async (req, res) => {
 
     return new successRes.UpdateSuccess(
       result,
-      "Update profile successfully"
+      "Cập nhật thông tin cá nhân thành công"
     ).send(res);
 
   } catch (error) {
@@ -33,7 +33,7 @@ const getProfileController = async (req, res) => {
 
     return new successRes.GetListSuccess(
       result,
-      "Get profile successfully"
+      "Lấy thông tin cá nhân thành công"
     ).send(res);
 
   } catch (error) {

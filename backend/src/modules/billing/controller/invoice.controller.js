@@ -15,7 +15,7 @@ const getListController = async (req, res) => {
         return new successRes.GetListSuccess(
             data,
             pagination,
-            'Invoices retrieved successfully'
+            'Lấy danh sách hóa đơn thành công'
         ).send(res);
 
     } catch (error) {
@@ -40,7 +40,7 @@ const getByIdController = async (req, res) => {
 
         return new successRes.GetDetailSuccess(
             invoice,
-            'Invoice retrieved successfully'
+            'Lấy thông tin chi tiết hóa đơn thành công'
         ).send(res);
 
     } catch (error) {
@@ -65,7 +65,7 @@ const createController = async (req, res) => {
 
         return new successRes.CreateSuccess(
             invoice,
-            'Invoice created successfully'
+            'Tạo hóa đơn thành công'
         ).send(res);
 
     } catch (error) {
@@ -95,7 +95,7 @@ const updateStatusController = async (req, res) => {
 
         return new successRes.UpdateSuccess(
             invoice,
-            'Invoice status updated successfully'
+            'Cập nhật trạng thái hóa đơn thành công'
         ).send(res);
 
     } catch (error) {
@@ -106,6 +106,7 @@ const updateStatusController = async (req, res) => {
         throw error;
     }
 };
+
 // GET /api/billing/stats
 const getStatsController = async (req, res) => {
     try {
@@ -118,7 +119,7 @@ const getStatsController = async (req, res) => {
         // Use standard success response, it wraps data in `data` field typically
         return new successRes.GetDetailSuccess(
             stats,
-            'Invoice stats retrieved successfully'
+            'Lấy thống kê hóa đơn thành công'
         ).send(res);
 
     } catch (error) {

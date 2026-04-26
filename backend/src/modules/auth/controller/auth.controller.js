@@ -6,7 +6,7 @@ exports.register = async (req, res, next) => {
         const result = await authService.register(req.body);
         res.status(201).json({
             status: 'success',
-            message: 'Registration successful. Please check your email to verify your account.',
+            message: 'Đăng ký thành công. Vui lòng kiểm tra email để xác thực tài khoản của bạn.',
             data: result
         });
     } catch (error) {
@@ -25,7 +25,7 @@ exports.login = async (req, res, next) => {
         const result = await authService.login(req.body, ip_address, user_agent);
         res.status(200).json({
             status: 'success',
-            message: 'Login successful',
+            message: 'Đăng nhập thành công',
             data: result
         });
     } catch (error) {
@@ -39,14 +39,14 @@ exports.verifyEmail = async (req, res, next) => {
         if (!token) {
             return res.status(400).json({
                 status: 'error',
-                message: 'Verification token is required'
+                message: 'Mã xác thực email là bắt buộc'
             });
         }
 
         await authService.verifyEmail(token);
         res.status(200).json({
             status: 'success',
-            message: 'Email verified successfully. You can now login.'
+            message: 'Xác thực email thành công. Bạn có thể đăng nhập ngay bây giờ.'
         });
     } catch (error) {
         next(error);
@@ -59,14 +59,14 @@ exports.resendVerificationEmail = async (req, res, next) => {
         if (!email) {
             return res.status(400).json({
                 status: 'error',
-                message: 'Email is required'
+                message: 'Email không được để trống'
             });
         }
 
         const result = await authService.resendVerificationEmail(email);
         res.status(200).json({
             status: 'success',
-            message: result.message
+            message: 'Yêu cầu gửi lại email xác thực thành công'
         });
     } catch (error) {
         next(error);
@@ -79,14 +79,14 @@ exports.logout = async (req, res, next) => {
         if (!refreshToken) {
             return res.status(400).json({
                 status: 'error',
-                message: 'Refresh token is required'
+                message: 'Refresh token là bắt buộc'
             });
         }
 
         await authService.logout(refreshToken);
         res.status(200).json({
             status: 'success',
-            message: 'Logged out successfully'
+            message: 'Đăng xuất thành công'
         });
     } catch (error) {
         next(error);
@@ -99,14 +99,14 @@ exports.refreshToken = async (req, res, next) => {
         if (!refreshToken) {
             return res.status(400).json({
                 status: 'error',
-                message: 'Refresh token is required'
+                message: 'Refresh token là bắt buộc'
             });
         }
 
         const result = await authService.refreshToken(refreshToken);
         res.status(200).json({
             status: 'success',
-            message: 'Token refreshed successfully',
+            message: 'Làm mới mã truy cập thành công',
             data: result
         });
     } catch (error) {
@@ -122,14 +122,14 @@ exports.forgotPassword = async (req, res, next) => {
             logger.warn('[AuthController] Forgot password request missing email');
             return res.status(400).json({
                 status: 'error',
-                message: 'Email is required'
+                message: 'Email không được để trống'
             });
         }
 
         const result = await authService.forgotPassword(email);
         res.status(200).json({
             status: 'success',
-            message: result.message
+            message: 'Yêu cầu đặt lại mật khẩu đã được gửi đến email của bạn'
         });
     } catch (error) {
         logger.error('[AuthController] Error in forgotPassword:', { message: error.message });
@@ -143,14 +143,14 @@ exports.resetPassword = async (req, res, next) => {
         if (!email || !otp || !newPassword) {
             return res.status(400).json({
                 status: 'error',
-                message: 'Email, OTP, and new password are required'
+                message: 'Email, mã OTP và mật khẩu mới là bắt buộc'
             });
         }
 
         const result = await authService.resetPassword(email, otp, newPassword);
         res.status(200).json({
             status: 'success',
-            message: result.message
+            message: 'Đặt lại mật khẩu thành công'
         });
     } catch (error) {
         next(error);
@@ -163,14 +163,14 @@ exports.changePassword = async (req, res, next) => {
         if (!currentPassword || !newPassword) {
             return res.status(400).json({
                 status: 'error',
-                message: 'Current password and new password are required'
+                message: 'Mật khẩu hiện tại và mật khẩu mới là bắt buộc'
             });
         }
 
         const result = await authService.changePassword(req.user.account_id, currentPassword, newPassword);
         res.status(200).json({
             status: 'success',
-            message: result.message
+            message: 'Thay đổi mật khẩu thành công'
         });
     } catch (error) {
         next(error);
@@ -183,7 +183,7 @@ exports.googleAuth = async (req, res, next) => {
         if (!googleToken) {
             return res.status(400).json({
                 status: 'error',
-                message: 'Google token is required'
+                message: 'Google token là bắt buộc'
             });
         }
 
@@ -196,7 +196,7 @@ exports.googleAuth = async (req, res, next) => {
         const result = await authService.googleAuth(googleToken, ip_address, user_agent);
         res.status(200).json({
             status: 'success',
-            message: 'Google login successful',
+            message: 'Đăng nhập bằng Google thành công',
             data: result
         });
     } catch (error) {
@@ -210,14 +210,14 @@ exports.setupPassword = async (req, res, next) => {
         if (!email || !token || !newPassword) {
             return res.status(400).json({
                 status: 'error',
-                message: 'Email, token, and new password are required'
+                message: 'Email, mã xác thực và mật khẩu mới là bắt buộc'
             });
         }
 
         const result = await authService.setupPasswordService(email, token, newPassword);
         res.status(200).json({
             status: 'success',
-            message: result.message
+            message: 'Thiết lập mật khẩu thành công'
         });
     } catch (error) {
         next(error);

@@ -26,7 +26,7 @@ exports.register = async (data) => {
     const { username, email, password, phone_number, full_name, dob, gender, address, avatar_url } = data;
 
     if (!username || !email || !password || !full_name) {
-        throw new ValidationError('Username, email, password and full_name are required');
+        throw new ValidationError('Tên đăng nhập, email, mật khẩu và họ tên là bắt buộc');
     }
 
     if (username.length < 3) {
@@ -42,14 +42,13 @@ exports.register = async (data) => {
         throw new ValidationError('Tên đăng nhập chỉ được chứa chữ cái, số, dấu gạch dưới và không được bắt đầu bằng số');
     }
 
-
     if (password.length < 8) {
-        throw new ValidationError('Password must be at least 8 characters long');
+        throw new ValidationError('Mật khẩu phải có ít nhất 8 ký tự');
     }
 
     const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
     if (!passwordRegex.test(password)) {
-        throw new ValidationError('Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character');
+        throw new ValidationError('Mật khẩu phải chứa ít nhất một chữ hoa, một chữ thường, một số và một ký tự đặc biệt');
     }
 
     const existingEmail = await Account.findOne({ email });
@@ -71,7 +70,7 @@ exports.register = async (data) => {
 
     const defaultRole = await Role.findOne({ name: 'PATIENT' });
     if (!defaultRole) {
-        throw new NotFoundError('Default role not found. Please seed roles first.');
+        throw new NotFoundError('Không tìm thấy quyền mặc định. Vui lòng khởi tạo dữ liệu quyền trước.');
     }
 
     const hashPassword = await bcryptjs.hash(password, 10);
@@ -106,7 +105,7 @@ exports.register = async (data) => {
                 full_name
             );
         } catch (error) {
-            console.error('Failed to send verification email:', error);
+            console.error('Failed to send verification email:', error); // Giữ nguyên log tiếng Anh
         }
 
         const [user] = await Profile.create([{
@@ -150,29 +149,27 @@ exports.register = async (data) => {
         };
     } catch (error) {
         await session.abortTransaction();
-        throw error;
+        throw error; // Lỗi hệ thống (DB error) ném ra cho global handler bắt
     } finally {
         session.endSession();
     }
-
-
 };
 
 exports.verifyEmail = async (token) => {
     const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
     const emailVerification = await EmailVerification.findOne({ token_hash: hashedToken });
     if (!emailVerification) {
-        throw new NotFoundError('Email verification not found');
+        throw new NotFoundError('Không tìm thấy thông tin xác thực email');
     }
 
     if (emailVerification.expires_at < new Date()) {
         await emailVerification.deleteOne({ _id: emailVerification._id });
-        throw new ForbiddenError('Email verification expired');
+        throw new ForbiddenError('Xác thực email đã hết hạn');
     }
 
     const account = await Account.findById(emailVerification.account_id);
     if (!account) {
-        throw new NotFoundError('Account not found');
+        throw new NotFoundError('Không tìm thấy tài khoản');
     }
 
     account.email_verified = true;
@@ -185,10 +182,10 @@ exports.verifyEmail = async (token) => {
 exports.resendVerificationEmail = async (email) => {
     const account = await Account.findOne({ email });
     if (!account) {
-        throw new NotFoundError('Account not found');
+        throw new NotFoundError('Không tìm thấy tài khoản');
     }
     if (account.email_verified) {
-        throw new ConflictError('Email already verified');
+        throw new ConflictError('Email này đã được xác thực');
     }
 
     await EmailVerification.deleteMany({ account_id: account._id });
@@ -211,23 +208,21 @@ exports.resendVerificationEmail = async (email) => {
             user?.full_name || ''
         );
     } catch (error) {
-        console.error('Failed to send verification email:', error);
+        console.error('Failed to send verification email:', error); // Giữ nguyên log tiếng Anh
     }
     return {
-        message: 'Verification email sent successfully'
+        message: 'Đã gửi lại email xác thực thành công'
     };
 };
 
 exports.login = async (data, ip_address = 'unknown', user_agent = 'unknown') => {
-    logger.debug("data", {
-        data: data
-    })
+    logger.debug("data", { data: data }); // Giữ nguyên log tiếng Anh
     const { identifier, email, username, password, rememberMe } = data;
 
     const loginIdentifier = identifier || email || username;
 
     if (!loginIdentifier || !password) {
-        throw new ValidationError('Email/Username and password are required', 'AUTH_REQUIRED_FIELDS');
+        throw new ValidationError('Email/Tên đăng nhập và mật khẩu là bắt buộc', 'AUTH_REQUIRED_FIELDS');
     }
 
     const account = await Account.findOne({
@@ -243,29 +238,28 @@ exports.login = async (data, ip_address = 'unknown', user_agent = 'unknown') => 
                 path: 'permissions'
             }
         });
-    logger.debug("account", {
-        account: account
-    })
+    logger.debug("account", { account: account }); // Giữ nguyên log tiếng Anh
+    
     if (!account) {
-        throw new NotFoundError('Email or password is incorrect', 'AUTH_INVALID_CREDENTIALS');
+        throw new NotFoundError('Email hoặc mật khẩu không chính xác', 'AUTH_INVALID_CREDENTIALS');
     }
 
     const recentFailedAttempts = await LoginAttempt.countDocuments({
         account_id: account._id,
         ok: false,
         at: { $gte: new Date(Date.now() - 3 * 60 * 1000) }
-    })
+    });
 
     if (recentFailedAttempts >= 5) {
-        throw new ForbiddenError('Too many failed attempts. Please try again later', 'AUTH_TOO_MANY_ATTEMPTS');
+        throw new ForbiddenError('Đăng nhập sai quá nhiều lần. Vui lòng thử lại sau', 'AUTH_TOO_MANY_ATTEMPTS');
     }
 
     if (account.status === 'INACTIVE') {
-        throw new ForbiddenError('Account is inactive', 'AUTH_ACCOUNT_INACTIVE');
+        throw new ForbiddenError('Tài khoản đã bị vô hiệu hóa', 'AUTH_ACCOUNT_INACTIVE');
     }
 
     if (account.status === 'PENDING') {
-        throw new ForbiddenError('Please verify your email', 'AUTH_EMAIL_NOT_VERIFIED');
+        throw new ForbiddenError('Vui lòng xác thực email của bạn', 'AUTH_EMAIL_NOT_VERIFIED');
     }
 
     const isPasswordValid = await bcryptjs.compare(password, account.password);
@@ -275,19 +269,19 @@ exports.login = async (data, ip_address = 'unknown', user_agent = 'unknown') => 
             ip: ip_address,
             user_agent,
             ok: false,
-            reason: 'Invalid password'
-        })
+            reason: 'Invalid password' // Lý do lưu db giữ nguyên tiếng Anh
+        });
         const totalFailed = recentFailedAttempts + 1;
         if (totalFailed >= 5) {
             throw new ForbiddenError(
-                'Too many failed attempts. Your account is locked for 3 minutes.',
+                'Đăng nhập sai quá nhiều lần. Tài khoản của bạn bị khóa tạm thời trong 3 phút.',
                 'AUTH_TOO_MANY_ATTEMPTS'
             );
         }
 
         const remainingAttempts = 5 - totalFailed;
         throw new UnauthorizedError(
-            'Invalid password',
+            'Mật khẩu không chính xác',
             'AUTH_INVALID_CREDENTIALS',
             { remainingAttempts }
         );
@@ -295,7 +289,7 @@ exports.login = async (data, ip_address = 'unknown', user_agent = 'unknown') => 
 
     const user = await Profile.findOne({ account_id: account._id });
     if (!user) {
-        throw new NotFoundError('User not found');
+        throw new NotFoundError('Không tìm thấy thông tin người dùng');
     }
 
     const token = signToken({
@@ -328,7 +322,7 @@ exports.login = async (data, ip_address = 'unknown', user_agent = 'unknown') => 
         ip: ip_address,
         user_agent,
         ok: true
-    })
+    });
 
     return {
         account: {
@@ -368,48 +362,47 @@ exports.logout = async (refreshToken) => {
     const session = await Session.findOne({ refresh_token: hashedRefreshToken });
 
     if (!session) {
-        throw new NotFoundError('Session not found');
+        throw new NotFoundError('Không tìm thấy phiên đăng nhập');
     }
 
     if (session.revoked_at) {
-        throw new UnauthorizedError('Session already revoked');
+        throw new UnauthorizedError('Phiên đăng nhập đã bị thu hồi');
     }
 
     await Session.deleteOne({ _id: session._id });
 
     return {
-        message: 'Logged out successfully'
+        message: 'Đăng xuất thành công'
     };
 };
-
 
 exports.refreshToken = async (refreshToken) => {
     const session = await Session.findOne({ refresh_token: hashToken(refreshToken) });
     if (!session) {
-        throw new NotFoundError('Session not found');
+        throw new NotFoundError('Không tìm thấy phiên đăng nhập');
     }
 
     if (session.revoked_at) {
-        throw new UnauthorizedError('Session already revoked');
+        throw new UnauthorizedError('Phiên đăng nhập đã bị thu hồi');
     }
 
     if (session.expires_at < new Date()) {
         await session.deleteOne({ _id: session._id });
-        throw new ForbiddenError('Session expired');
+        throw new ForbiddenError('Phiên đăng nhập đã hết hạn');
     }
 
     const account = await Account.findById(session.account_id).populate('role_id');
     if (!account) {
-        throw new NotFoundError('Account not found');
+        throw new NotFoundError('Không tìm thấy tài khoản');
     }
 
     if (account.status === 'INACTIVE' || account.status === 'PENDING') {
-        throw new ForbiddenError('Account is not active');
+        throw new ForbiddenError('Tài khoản không hoạt động');
     }
 
     const user = await Profile.findOne({ account_id: account._id });
     if (!user) {
-        throw new NotFoundError('User not found');
+        throw new NotFoundError('Không tìm thấy thông tin người dùng');
     }
 
     const newAccessToken = signToken({
@@ -427,9 +420,10 @@ exports.refreshToken = async (refreshToken) => {
 exports.forgotPassword = async (email) => {
     const account = await Account.findOne({ email });
     logger.info('[AuthService] Forgot password requested for email', { email: email });
+    
     if (!account) {
         logger.warn('[AuthService] Forgot password requested for non-existent email', { email: email });
-        throw new NotFoundError('Account not found!')
+        throw new NotFoundError('Không tìm thấy tài khoản!');
     }
 
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
@@ -441,9 +435,9 @@ exports.forgotPassword = async (email) => {
         account_id: account._id,
         token_hash: hashedOtp,
         expires_at: new Date(Date.now() + 15 * 60 * 1000)
-    })
+    });
 
-    const user = await Profile.findOne({ account_id: account._id })
+    const user = await Profile.findOne({ account_id: account._id });
     try {
         logger.info('[AuthService] Sending password reset email', { email: email, user: user.full_name });
         await emailService.sendPasswordResetEmail(email, otp, user.full_name);
@@ -452,23 +446,23 @@ exports.forgotPassword = async (email) => {
     }
 
     return {
-        message: 'Password reset email sent successfully'
-    }
-}
+        message: 'Đã gửi email khôi phục mật khẩu thành công'
+    };
+};
 
 exports.resetPassword = async (email, otp, newPassword) => {
     if (!newPassword || newPassword.length < 8) {
-        throw new ValidationError('New password is required!');
+        throw new ValidationError('Vui lòng nhập mật khẩu mới có ít nhất 8 ký tự!');
     }
 
     const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
     if (!passwordRegex.test(newPassword)) {
-        throw new ValidationError('Password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, one number, and one special character!');
+        throw new ValidationError('Mật khẩu phải có ít nhất 8 ký tự, bao gồm ít nhất một chữ hoa, một chữ thường, một số và một ký tự đặc biệt!');
     }
 
     const account = await Account.findOne({ email });
     if (!account) {
-        throw new NotFoundError('Account not found!');
+        throw new NotFoundError('Không tìm thấy tài khoản!');
     }
 
     const hashedOtp = crypto.createHash('sha256').update(otp).digest('hex');
@@ -477,15 +471,15 @@ exports.resetPassword = async (email, otp, newPassword) => {
         account_id: account._id,
         token_hash: hashedOtp,
         used: false
-    })
+    });
 
     if (!passwordReset) {
-        throw new UnauthorizedError('Invalid OTP')
+        throw new UnauthorizedError('Mã OTP không hợp lệ');
     }
 
     if (passwordReset.expires_at < new Date()) {
-        await PasswordReset.deleteOne({ _id: passwordReset._id })
-        throw new UnauthorizedError('OTP is expired')
+        await PasswordReset.deleteOne({ _id: passwordReset._id });
+        throw new UnauthorizedError('Mã OTP đã hết hạn');
     }
 
     const hashedPassword = await bcryptjs.hash(newPassword, 10);
@@ -495,51 +489,50 @@ exports.resetPassword = async (email, otp, newPassword) => {
     passwordReset.used = true;
     await passwordReset.save();
 
-    await PasswordReset.deleteOne({ _id: passwordReset._id })
-
-    await Session.deleteMany({ account_id: account._id })
+    await PasswordReset.deleteOne({ _id: passwordReset._id });
+    await Session.deleteMany({ account_id: account._id });
 
     return {
-        message: 'Password reset successfully'
-    }
-}
+        message: 'Đặt lại mật khẩu thành công'
+    };
+};
 
 exports.changePassword = async (account_id, currentPassword, newPassword) => {
     if (!newPassword || newPassword.length < 8) {
-        throw new ValidationError('New password is required!')
+        throw new ValidationError('Vui lòng nhập mật khẩu mới có ít nhất 8 ký tự!');
     }
 
     const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
 
     if (!passwordRegex.test(newPassword)) {
-        throw new ValidationError('Password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, one number, and one special character!')
+        throw new ValidationError('Mật khẩu phải có ít nhất 8 ký tự, bao gồm ít nhất một chữ hoa, một chữ thường, một số và một ký tự đặc biệt!');
     }
 
-    const account = await Account.findById(account_id).select('+password')
+    const account = await Account.findById(account_id).select('+password');
     if (!account) {
-        throw new NotFoundError('Account not found!')
+        throw new NotFoundError('Không tìm thấy tài khoản!');
     }
 
-    const isPasswordValid = await bcryptjs.compare(currentPassword, account.password)
+    const isPasswordValid = await bcryptjs.compare(currentPassword, account.password);
     if (!isPasswordValid) {
-        throw new UnauthorizedError('Old password is incorrect!')
+        throw new UnauthorizedError('Mật khẩu cũ không chính xác!');
     }
 
-    const isSamePassword = await bcryptjs.compare(newPassword, account.password)
+    const isSamePassword = await bcryptjs.compare(newPassword, account.password);
     if (isSamePassword) {
-        throw new UnauthorizedError('New password is same as old password!')
+        throw new UnauthorizedError('Mật khẩu mới không được trùng với mật khẩu cũ!');
     }
 
-    const hashedPassword = await bcryptjs.hash(newPassword, 10)
-    account.password = hashedPassword
+    const hashedPassword = await bcryptjs.hash(newPassword, 10);
+    account.password = hashedPassword;
     await account.save();
 
-    await Session.deleteMany({ account_id: account._id })
+    await Session.deleteMany({ account_id: account._id });
 
     return {
-        message: 'Password changed successfully'
-    }
-}
+        message: 'Đổi mật khẩu thành công'
+    };
+};
 
 exports.googleAuth = async (googleToken, ip_address = 'unknown', user_agent = 'unknown') => {
     const { OAuth2Client } = require('google-auth-library');
@@ -556,20 +549,18 @@ exports.googleAuth = async (googleToken, ip_address = 'unknown', user_agent = 'u
         console.error('Google token verification failed:', error.message);
         console.error('GOOGLE_CLIENT_ID:', process.env.GOOGLE_CLIENT_ID);
         console.error('Token received (first 50 chars):', googleToken?.substring(0, 50));
-        throw new UnauthorizedError(`Invalid Google token: ${error.message}`);
+        throw new UnauthorizedError(`Token Google không hợp lệ: ${error.message}`);
     }
 
     const { sub: googleId, email, name, picture } = payload;
 
     let account;
-    // Check if this Google ID is already linked to another account
     const existingGoogleProvider = await AuthProvider.findOne({
         provider: 'google',
         provider_user_id: googleId
     });
 
     if (existingGoogleProvider) {
-        // Google ID already exists, use that account
         account = await Account.findById(existingGoogleProvider.account_id).populate({
             path: "role_id",
             populate: {
@@ -578,17 +569,14 @@ exports.googleAuth = async (googleToken, ip_address = 'unknown', user_agent = 'u
         });
 
         if (!account) {
-            // Case of data inconsistency: AuthProvider exists but Account was deleted.
-            // Delete the orphaned AuthProvider to allow the next logic to handle account creation/linking correctly.
             await AuthProvider.deleteOne({ _id: existingGoogleProvider._id });
             logger.warn('Deleted orphaned Google AuthProvider record', { googleId });
         } else if (account.status === 'INACTIVE') {
-            throw new ForbiddenError('Account is inactive');
+            throw new ForbiddenError('Tài khoản đã bị vô hiệu hóa');
         }
     }
 
     if (!account) {
-        // Google ID doesn't exist OR orphaned record was deleted, check if email exists
         account = await Account.findOne({ email }).populate({
             path: "role_id",
             populate: {
@@ -597,10 +585,9 @@ exports.googleAuth = async (googleToken, ip_address = 'unknown', user_agent = 'u
         });
 
         if (!account) {
-            // Create new account
             const defaultRole = await Role.findOne({ name: 'PATIENT' });
             if (!defaultRole) {
-                throw new NotFoundError('Default role not found');
+                throw new NotFoundError('Không tìm thấy quyền mặc định');
             }
 
             const randomPassword = crypto.randomBytes(32).toString('hex');
@@ -621,7 +608,6 @@ exports.googleAuth = async (googleToken, ip_address = 'unknown', user_agent = 'u
                 avatar_url: picture || undefined
             });
 
-            // Tự động tạo bản ghi Patient cho tài khoản Google mới
             await Patient.create({
                 account_id: account._id,
                 profile_id: profile._id,
@@ -635,14 +621,13 @@ exports.googleAuth = async (googleToken, ip_address = 'unknown', user_agent = 'u
                 email: email
             });
 
-            // Gửi email chào mừng kèm link thiết lập mật khẩu
             const setupToken = crypto.randomBytes(32).toString('hex');
             const hashedToken = crypto.createHash('sha256').update(setupToken).digest('hex');
 
             await PasswordReset.create({
                 account_id: account._id,
                 token_hash: hashedToken,
-                expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000) // 24h hiệu lực
+                expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000) 
             });
 
             try {
@@ -658,7 +643,6 @@ exports.googleAuth = async (googleToken, ip_address = 'unknown', user_agent = 'u
                 }
             });
         } else {
-            // Account exists, link Google provider if not already linked
             const existingProvider = await AuthProvider.findOne({
                 account_id: account._id,
                 provider: 'google'
@@ -674,14 +658,13 @@ exports.googleAuth = async (googleToken, ip_address = 'unknown', user_agent = 'u
             }
 
             if (account.status === 'INACTIVE') {
-                throw new ForbiddenError('Account is inactive');
+                throw new ForbiddenError('Tài khoản đã bị vô hiệu hóa');
             }
         }
     }
 
     const user = await Profile.findOne({ account_id: account._id });
 
-    // "Vá" dữ liệu cho các tài khoản Google cũ bị thiếu Patient record
     if (account.role_id.name === 'PATIENT') {
         const existingPatient = await Patient.findOne({ account_id: account._id });
         if (!existingPatient) {
@@ -797,11 +780,9 @@ exports.setupPasswordService = async (email, token, newPassword) => {
 
     await PasswordReset.deleteOne({ _id: setupTokenDoc._id });
 
-    // Đăng xuất các session cũ (nếu có)
     await Session.deleteMany({ account_id: account._id });
 
     return {
         message: 'Thiết lập mật khẩu thành công! Bây giờ bạn có thể đăng nhập bằng email và mật khẩu mới.'
     };
 };
-

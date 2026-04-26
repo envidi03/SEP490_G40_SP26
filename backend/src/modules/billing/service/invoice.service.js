@@ -13,7 +13,7 @@ const getListInvoice = async (query) => {
     try {
         const search = query.search?.trim();
         const statusFilter = query.status;
-        const patientIdFilter = query.patient_id; // ← Lọc theo bệnh nhân cụ thể
+        const patientIdFilter = query.patient_id; 
         const page = Math.max(1, parseInt(query.page || 1));
         const limit = Math.max(1, parseInt(query.limit || 10));
         const skip = (page - 1) * limit;
@@ -104,7 +104,8 @@ const getListInvoice = async (query) => {
             context: 'InvoiceService.getListInvoice',
             message: error.message,
         });
-        throw new errorRes.InternalServerError(error.message);
+        // Ném lỗi gốc để Global Error Middleware xử lý thành 500
+        throw error; 
     }
 };
 
@@ -121,7 +122,7 @@ const getInvoiceById = async (id) => {
             .populate('created_by', 'username');
 
         if (!invoice) {
-            throw new errorRes.NotFoundError('Invoice not found');
+            throw new errorRes.NotFoundError('Không tìm thấy thông tin hóa đơn');
         }
 
         return invoice;
@@ -132,32 +133,29 @@ const getInvoiceById = async (id) => {
             context: 'InvoiceService.getInvoiceById',
             message: error.message,
         });
-        throw new errorRes.InternalServerError(error.message);
+        throw error;
     }
 };
-
 
 const createInvoice = async (data) => {
     try {
         const { patient_id, appointment_id, items, note, created_by, payment_method } = data;
 
-        if (!patient_id) throw new errorRes.BadRequestError('patient_id is required');
-        if (!items || items.length === 0) throw new errorRes.BadRequestError('items cannot be empty');
+        if (!patient_id) throw new errorRes.BadRequestError('Thông tin bệnh nhân là bắt buộc');
+        if (!items || items.length === 0) throw new errorRes.BadRequestError('Danh sách dịch vụ không được để trống');
 
         // Kiểm tra patient tồn tại và lấy thông tin cơ bản
         const patient = await PatientModel.findById(patient_id).populate('profile_id', 'full_name');
-        if (!patient) throw new errorRes.NotFoundError('Patient not found');
+        if (!patient) throw new errorRes.NotFoundError('Không tìm thấy hồ sơ bệnh nhân');
 
         // Lấy thông tin dịch vụ từ DB cho từng item
-        // Lưu service_name và unit_price tại thời điểm tạo HĐ
-        // Tránh bị ảnh hưởng nếu dịch vụ thay đổi giá sau này
         const builtItems = await Promise.all(
             items.map(async (item) => {
                 const { service_id, sub_service_id, quantity = 1, price } = item;
-                if (!service_id) throw new errorRes.BadRequestError('service_id is required for each item');
+                if (!service_id) throw new errorRes.BadRequestError('Mỗi mục dịch vụ phải có ID hợp lệ');
 
                 const service = await ServiceModel.findById(service_id);
-                if (!service) throw new errorRes.NotFoundError(`Service ${service_id} not found`);
+                if (!service) throw new errorRes.NotFoundError(`Không tìm thấy dịch vụ hoặc dịch vụ không tồn tại (ID: ${service_id})`);
 
                 let subServiceName = null;
                 let unitPrice = price || service.price || 0;
@@ -166,7 +164,6 @@ const createInvoice = async (data) => {
                     const subService = await mongoose.model('SubService').findById(sub_service_id);
                     if (subService) {
                         subServiceName = subService.sub_service_name;
-                        // If price wasn't passed from frontend (auto-filled), use min_price as default for sub-service
                         if (price === undefined) {
                             unitPrice = subService.min_price || 0;
                         }
@@ -210,7 +207,10 @@ const createInvoice = async (data) => {
                 }
             });
         } catch (err) {
-            logger.error('Lỗi gửi thông báo cho Lễ tân chờ thanh toán:', { message: err.message });
+            // Chuyển log sang tiếng Anh để nhất quán
+            logger.error('Failed to send pending invoice notification to Receptionist', { 
+                message: err.message 
+            });
         }
 
         return invoice;
@@ -221,23 +221,23 @@ const createInvoice = async (data) => {
             context: 'InvoiceService.createInvoice',
             message: error.message,
         });
-        throw new errorRes.InternalServerError(error.message);
+        throw error;
     }
 };
 
 const updateInvoiceStatus = async (id, status, note, updated_by, payment_method) => {
     try {
         if (!['COMPLETED', 'CANCELLED'].includes(status)) {
-            throw new errorRes.BadRequestError('Status must be COMPLETED or CANCELLED');
+            throw new errorRes.BadRequestError('Trạng thái hóa đơn chỉ có thể là COMPLETED hoặc CANCELLED');
         }
 
         const invoice = await InvoiceModel.findById(id);
         if (!invoice) {
-            throw new errorRes.NotFoundError('Invoice not found');
+            throw new errorRes.NotFoundError('Không tìm thấy thông tin hóa đơn');
         }
 
         if (invoice.status !== 'PENDING') {
-            throw new errorRes.BadRequestError(`Cannot update invoice with status ${invoice.status}`);
+            throw new errorRes.BadRequestError(`Không thể cập nhật khi hóa đơn đang ở trạng thái ${invoice.status}`);
         }
 
         // Cập nhật trạng thái
@@ -257,7 +257,7 @@ const updateInvoiceStatus = async (id, status, note, updated_by, payment_method)
             context: 'InvoiceService.updateInvoiceStatus',
             message: error.message,
         });
-        throw new errorRes.InternalServerError(error.message);
+        throw error;
     }
 };
 
@@ -318,7 +318,7 @@ const getInvoiceStats = async () => {
             context: 'InvoiceService.getInvoiceStats',
             message: error.message,
         });
-        throw new errorRes.InternalServerError(error.message);
+        throw error;
     }
 };
 
@@ -331,14 +331,12 @@ const autoCreateInvoiceFromAppointment = async (appointmentId) => {
     try {
         if (!appointmentId) return null;
 
-        // 1. Kiểm tra xem đã có hóa đơn cho lịch hẹn này chưa (Idempotency)
         const existing = await InvoiceModel.findOne({ appointment_id: appointmentId }).lean();
         if (existing) {
             logger.debug('Invoice already exists for this appointment', { context, appointmentId, invoiceId: existing._id });
             return existing;
         }
 
-        // 2. Lấy thông tin lịch hẹn (+ services)
         const appointment = await AppointmentModel.findById(appointmentId).lean();
         if (!appointment) {
             logger.warn('Appointment not found for auto-invoice', { context, appointmentId });
@@ -350,24 +348,21 @@ const autoCreateInvoiceFromAppointment = async (appointmentId) => {
             return null;
         }
 
-        // 3. Chuẩn bị items từ book_service của lịch hẹn
         const items = appointment.book_service || [];
         if (items.length === 0) {
             logger.warn('Appointment has no booked services, skipping auto-invoice', { context, appointmentId });
             return null;
         }
 
-        // 4. Gọi createInvoice để xử lý logic lấy tên service, tính tiền...
-        // Mẹo: Truyền data thô vào, hàm createInvoice sẽ tự truy vấn ServiceModel để lấy name
         const invoiceData = {
             patient_id: appointment.patient_id,
             appointment_id: appointment._id,
             note: appointment.reason || 'Hóa đơn tự động sinh từ lịch hẹn',
-            payment_method: 'CASH', // Mặc định
+            payment_method: 'CASH',
             items: items.map(s => ({
                 service_id: s.service_id,
                 sub_service_id: s.sub_service_id,
-                price: s.unit_price, // Ưu tiên giá lúc đặt lịch
+                price: s.unit_price, 
                 quantity: 1
             }))
         };
@@ -388,7 +383,6 @@ const autoCreateInvoiceFromAppointment = async (appointmentId) => {
             appointmentId,
             message: error.message
         });
-        // Không quăng lỗi để không làm chết luồng cập nhật lịch hẹn
         return null;
     }
 };

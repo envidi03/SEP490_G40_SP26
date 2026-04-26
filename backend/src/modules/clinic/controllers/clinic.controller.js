@@ -1,7 +1,7 @@
 const logger = require('../../../common/utils/logger');
 const errorRes = require('../../../common/errors');
 const successRes = require('../../../common/success');
-const Pagination = require('../../../common/responses/Pagination');
+const Pagination = require('../../../common/responses/Pagination'); // Có thể bỏ nếu controller này chưa dùng đến
 const { cleanObjectData } = require('../../../common/utils/cleanObjectData');
 
 const clinicService = require('../services/clinic.service');
@@ -9,86 +9,107 @@ const { uploadToCloudinary } = require('../../../utils/cloudinaryHelper');
 
 const updateClinic = async (req, res) => {
     try {
-        logger.info('Attempting to update clinic');
+        logger.info('Attempting to update clinic', { context: 'ClinicController.updateClinic' });
         const clinicId = req.params.clinicId;
         const updateData = { ...req.body };
 
         // Handle logo upload if file is present
         if (req.file) {
-            logger.info('Logo file detected, uploading to Cloudinary');
+            logger.info('Logo file detected, uploading to Cloudinary', { context: 'ClinicController.updateClinic' });
             const logoUrl = await uploadToCloudinary(req.file, 'clinics/logos');
             updateData.logo = logoUrl;
         }
 
-        // Sửa: Dùng Template Literals để nối chuỗi ID và dữ liệu đã clean
-        logger.debug(`Clinic ID: ${clinicId}`);
-        logger.debug(`Update data: ${cleanObjectData(updateData)}`);
+        // Tối ưu: Để tham số thứ 2 là object để Logger in ra chi tiết dữ liệu thay vì chuỗi [object Object]
+        logger.debug('Clinic update payload details', { 
+            clinicId: clinicId, 
+            updateData: cleanObjectData(updateData) 
+        });
 
         // 1. Kiểm tra xem body có dữ liệu không
         if (!updateData || Object.keys(updateData).length === 0) {
-            throw new AppError.BadRequestError('No update data provided');
+            // Sửa AppError thành errorRes và dịch sang tiếng Việt
+            throw new errorRes.BadRequestError('Không có dữ liệu cập nhật nào được cung cấp');
         }
 
         // 2. Gọi service để cập nhật clinic
         const updatedClinic = await clinicService.updateClinic(clinicId, cleanObjectData(updateData));
 
-        // Sửa: Dùng Template Literals để hiển thị kết quả trả về
-        logger.debug(`Updated clinic: ${updatedClinic}`);
+        logger.debug('Clinic successfully updated in DB', { 
+            clinicId: clinicId,
+            updatedClinic: updatedClinic 
+        });
 
         logger.info(`Clinic ${clinicId} updated successfully`);
-        return new successRes.UpdateSuccess(updatedClinic, 'Clinic updated successfully').send(res);
+        
+        // Trả về Frontend bằng tiếng Việt
+        return new successRes.UpdateSuccess(updatedClinic, 'Cập nhật thông tin phòng khám thành công').send(res);
     } catch (error) {
-        // Sửa: Log chi tiết lỗi message
-        logger.error(`Error updating clinic: ${error.message}`, {
-            stack: error.stack,
-            context: 'ClinicController.updateClinic'
+        logger.error('Error updating clinic', {
+            context: 'ClinicController.updateClinic',
+            message: error.message,
+            stack: error.stack
         });
-        throw new errorRes.InternalServerError('An error occurred while updating the clinic');
+        // Bắn thẳng lỗi gốc ra ngoài để Global Error Middleware xử lý thành 500
+        throw error;
     }
 };
 
 const getInforClinics = async (req, res) => {
     try {
-        logger.info('Fetching data clinic');
+        logger.info('Fetching clinic data', { context: 'ClinicController.getInforClinics' });
         const clinicId = req.params.clinicId;
-        logger.debug(`Clinic ID from request params: ${clinicId}`);
-        const clicic = await clinicService.getInforClinics(clinicId);
-        if (!clicic) {
-            throw new errorRes.NotFoundError('No clinics found');
+        
+        logger.debug('Clinic ID from request params', { clinicId });
+        
+        const clinic = await clinicService.getInforClinics(clinicId);
+        if (!clinic) {
+            throw new errorRes.NotFoundError('Không tìm thấy thông tin phòng khám');
         }
-        logger.debug(`Clinics data retrieved: ${clicic}`);
-        return new successRes.GetDetailSuccess(clicic, 'Clinics retrieved successfully').send(res);
+        
+        return new successRes.GetDetailSuccess(clinic, 'Lấy thông tin phòng khám thành công').send(res);
     } catch (error) {
-        logger.error(`Error getting clinic data: ${error.message}`, {
-            stack: error.stack,
-            context: 'ClinicController.getInforClinics'
+        if (error.name === 'NotFoundError') throw error;
+        logger.error('Error getting clinic data', {
+            context: 'ClinicController.getInforClinics',
+            message: error.message,
+            stack: error.stack
         });
-        throw new errorRes.InternalServerError('An error occurred while fetching clinics');
+        throw error;
     }
 };
 
 const getAllClinics = async (req, res) => {
     try {
-        logger.info('Fetching all clinics');
+        logger.info('Fetching all clinics', { context: 'ClinicController.getAllClinics' });
+        
         const clinics = await clinicService.getAllClinics();
-        return new successRes.GetListSuccess(clinics, 'Clinics retrieved successfully').send(res);
+        
+        return new successRes.GetListSuccess(clinics, 'Lấy danh sách phòng khám thành công').send(res);
     } catch (error) {
-        logger.error(`Error getting all clinics: ${error.message}`, {
-            stack: error.stack,
-            context: 'ClinicController.getAllClinics'
+        logger.error('Error getting all clinics', {
+            context: 'ClinicController.getAllClinics',
+            message: error.message,
+            stack: error.stack
         });
-        throw new errorRes.InternalServerError('An error occurred while fetching clinics');
+        throw error;
     }
 };
 
 const getPublicClinics = async (req, res) => {
     try {
-        logger.info('Fetching public clinics data');
-        const clinics = await clinicService.getAllClinics();
-        return new successRes.GetListSuccess(clinics, 'Public clinics data retrieved successfully').send(res);
+        logger.info('Fetching public clinics data', { context: 'ClinicController.getPublicClinics' });
+        
+        const clinics = await clinicService.getAllClinics(); // Giả định service này lấy toàn bộ, bạn có thể cân nhắc hàm getPublicClinics riêng ở service sau này
+        
+        return new successRes.GetListSuccess(clinics, 'Lấy thông tin phòng khám công khai thành công').send(res);
     } catch (error) {
-        logger.error(`Error getting public clinics: ${error.message}`);
-        throw new errorRes.InternalServerError('An error occurred while fetching public clinic data');
+        logger.error('Error getting public clinics', {
+            context: 'ClinicController.getPublicClinics',
+            message: error.message,
+            stack: error.stack
+        });
+        throw error;
     }
 };
 
