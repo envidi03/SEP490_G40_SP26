@@ -13,7 +13,7 @@ const ReBooking = () => {
     const [treatments, setTreatments] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    
+
     // State cho bộ lọc
     const [searchTerm, setSearchTerm] = useState('');
     const [filterDate, setFilterDate] = useState('');

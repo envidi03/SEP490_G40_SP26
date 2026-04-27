@@ -13,6 +13,8 @@ import appointmentService from '../../services/appointmentService';
 const ReceptionistInvoices = () => {
     // --- State Dữ liệu ---
     const [appointmentsToPay, setAppointmentsToPay] = useState([]);
+    console.log("appointmentsToPay: ", appointmentsToPay);
+    
     const [pagination, setPagination] = useState({
         total_items: 0,
         total_pages: 1,
@@ -124,7 +126,7 @@ const ReceptionistInvoices = () => {
     };
 
     const handleCreateInvoiceClick = (appointmentItem) => {
-        // Gán thông tin cuộc hẹn vào selectedInvoice để truyền sang modal Tạo hóa đơn
+        console.log("appointmentItem: ", appointmentItem);
         setSelectedInvoice(appointmentItem);
         setIsCreateModalOpen(true);
     };

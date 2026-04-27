@@ -6,8 +6,6 @@ import billingService from '../../../../services/billingService';
 const PaymentModal = ({ isOpen, onClose, invoice, onSuccess, autoPoll = true }) => {
     const [isPaid, setIsPaid] = useState(false);
 
-    console.log('PaymentModal received invoice:', invoice);
-    
     // Parse thông tin invoice
     const amount = invoice?.total_amount || invoice?.total || 0;
     const invoiceCode = invoice?.invoice_code || (invoice?._id && invoice._id.substring(invoice._id.length - 6).toUpperCase()) || invoice?.code;

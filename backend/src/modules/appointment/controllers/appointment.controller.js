@@ -749,6 +749,32 @@ const getListAppointmentToPaymentController = async (req, res) => {
   }
 };
 
+const getServicesByAppointmentIdController = async (req, res) => {
+  const context = "AppointmentController.getServicesByAppointmentIdController";
+  try {
+    const { id: appointmentId } = req.params;
+    if (!appointmentId) {
+      logger.warn("Appointment ID is null or missing.", {
+        context,
+        appointment_id: appointmentId,
+      });
+      return new errorRes.NotFoundError("Mã lịch hẹn không được để trống.");
+    }
+    const services = await ServiceProcess.getServicesByAppointmentId(appointmentId);
+    return new successRes.GetDetailSuccess(
+      services,
+      "Lấy danh sách dịch vụ của lịch hẹn thành công.",
+    ).send(res);
+  } catch (err) {
+    logger.error("Error get services by appointment id.", {
+      context,
+      error: err,
+    });
+    if (err.statusCode) throw err;
+    throw new errorRes.InternalServerError("Hệ thống lỗi, vui lòng thực hiện sau.");
+  }
+};
+
 module.exports = {
   getListOfPatientController,
   getListController,
@@ -762,5 +788,6 @@ module.exports = {
   getListOfPatientControllerWithDate,
   getListOfDoctorController,
   calculateTotalAmountFromAppointment,
-  getListAppointmentToPaymentController
+  getListAppointmentToPaymentController,
+  getServicesByAppointmentIdController,
 };

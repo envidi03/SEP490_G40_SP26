@@ -1775,7 +1775,26 @@ const getFirstAppointmentOfPatientAtNowWithStatusCheckin = async (patientId) => 
     }
 };
 
-
+const getServicesByAppointmentId = async (appointmentId) => {
+    try {
+        const appointment = await AppointmentModel.findById(appointmentId).lean();
+        if (!appointment) {
+            logger.error("Could not find appointment by id.", {
+                context: "AppointmentService.getServicesByAppointmentId",
+                appointmentId
+            });
+            return [];
+        }
+        return appointment.book_service || [];
+    } catch (error) {
+        logger.error("Error get services by appointment id", {
+            context: "AppointmentService.getServicesByAppointmentId",
+            appointmentId,
+            error
+        });
+        return [];
+    }
+};
 module.exports = {
     getListService,
     getByIdService,
@@ -1791,5 +1810,6 @@ module.exports = {
     calculateTotalAmount,
     checkDuplicateFullNameAndPhoneAndAppointDateAndAppointTime,
     getListAppointmentToPayment,
-    getFirstAppointmentOfPatientAtNowWithStatusCheckin
+    getFirstAppointmentOfPatientAtNowWithStatusCheckin,
+    getServicesByAppointmentId,
 };

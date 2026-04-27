@@ -152,7 +152,19 @@ const createInvoice = async (data) => {
         const builtItems = await Promise.all(
             items.map(async (item) => {
                 const { service_id, sub_service_id, quantity = 1, price } = item;
-                if (!service_id) throw new errorRes.BadRequestError('Mỗi mục dịch vụ phải có ID hợp lệ');
+                logger.debug('Processing invoice item', { 
+                    context: 'InvoiceService.createInvoice',
+                    item: item
+                });
+                if (!service_id) {
+                    logger.warn('Missing service_id in invoice item', { 
+                        service_id: service_id,
+                        sub_service_id: sub_service_id,
+                        quantity: quantity,
+                        price: price
+                    });
+                    throw new errorRes.BadRequestError('Mỗi mục dịch vụ phải có ID hợp lệ');
+                }
 
                 const service = await ServiceModel.findById(service_id);
                 if (!service) throw new errorRes.NotFoundError(`Không tìm thấy dịch vụ hoặc dịch vụ không tồn tại (ID: ${service_id})`);

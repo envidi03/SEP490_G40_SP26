@@ -14,29 +14,56 @@ const CreateAppointment = ({ isOpen, onClose, treatmentData, onSuccess }) => {
         appointment_date: '',
         appointment_time: '',
         treatment_id: '',
+        book_service: [],
         priority: 1,
         reason: `Lên lịch hẹn cho phiếu điều trị: ${treatmentData?.record_info?.record_name || 'N/A'}`,
     });
 
+    const getBookService = async (appointmentId) => {
+        try {
+            const response = await appointmentService.getBookServiceFromAppointmentId(appointmentId);
+            return response;
+        } catch (err) {
+            console.error("Lỗi khi lấy dịch vụ từ appointment_id:", err);
+            return [];
+        }
+    };
+
     useEffect(() => {
         if (isOpen && treatmentData) {
-            let defaultDate = '';
-            if (treatmentData.planned_date) {
-                defaultDate = treatmentData.planned_date.split('T')[0];
-            }
+            const fetchData = async () => {
+                let bookServiceData = [];
+                let defaultDate = '';
 
-            setFormData({
-                patient_id: treatmentData.patient_id || '',
-                full_name: treatmentData.record_info?.full_name || treatmentData.full_name || '',
-                phone: treatmentData.record_info?.phone || treatmentData.phone || '',
-                email: treatmentData.record_info?.email || '',
-                appointment_date: defaultDate, 
-                appointment_time: '09:00', 
-                treatment_id: treatmentData._id || '',
-                priority: 1,
-                reason: `Lên lịch hẹn cho phiếu điều trị: ${treatmentData.record_info?.record_name || 'N/A'}`
-            });
-            setError(null);
+                if (treatmentData.planned_date) {
+                    defaultDate = treatmentData.planned_date.split('T')[0];
+                }
+
+                const appointmentId = treatmentData?.record_info?.appointment_id;
+
+                if (appointmentId) {
+                    const response = await getBookService(appointmentId);
+                    bookServiceData = response.data || [];
+                    console.log("bookService: ", bookServiceData);
+                }
+
+                setFormData({
+                    patient_id: treatmentData.patient_id || '',
+                    full_name: treatmentData.record_info?.full_name || treatmentData.full_name || '',
+                    phone: treatmentData.record_info?.phone || treatmentData.phone || '',
+                    email: treatmentData.record_info?.email || '',
+                    appointment_date: defaultDate,
+                    appointment_time: '09:00',
+                    treatment_id: treatmentData._id || '',
+                    priority: 1,
+                    book_service: bookServiceData,
+                    reason: `Lên lịch hẹn cho phiếu điều trị: ${treatmentData.record_info?.record_name || 'N/A'}`
+                });
+
+                setError(null);
+            };
+
+            fetchData();
         }
     }, [isOpen, treatmentData]);
 
@@ -60,14 +87,10 @@ const CreateAppointment = ({ isOpen, onClose, treatmentData, onSuccess }) => {
 
         try {
             console.log("Dữ liệu gửi lên API tạo lịch hẹn:", formData);
-            
             await appointmentService.staffCreateAppointment(formData);
-
             await new Promise(resolve => setTimeout(resolve, 1000));
-
             if (onSuccess) onSuccess(); 
             onClose(); 
-            
         } catch (err) {
             console.error("Lỗi tạo lịch hẹn:", err);
             setError(err.response?.data?.message || err.message || "Đã xảy ra lỗi khi tạo lịch hẹn.");
