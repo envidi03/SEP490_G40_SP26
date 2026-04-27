@@ -5,7 +5,6 @@ const fs = require("fs");
 const path = require("path");
 
 const model = require("../models/index.model");
-const { service: AppointmentService } = require("./../../appointment/index");
 
 /**
  * get treatment by id populate medicine_usage.medicine_id
@@ -99,7 +98,21 @@ const updateService = async (treatmentId, data) => {
         if (existingTreatment.status === 'DONE' || existingTreatment.status === 'CANCELLED') {
             throw new errorRes.BadRequestError(`Không thể cập nhật điều trị vì đã ở trạng thái ${existingTreatment.status}`);
         }
-
+        if (data.phase !== "PLAN") {
+            data.doctor_id = await appointmentService.getDoctorIdFromAppointmentId(data.appointment_id)
+                .then(res => res.data)
+                .catch(err => {
+                    logger.error("Error fetching doctor_id from appointmentId during treatment update", {
+                        context,
+                        treatmentId,
+                        appointmentId: existingTreatment.appointment_id,
+                        message: err.message,
+                        stack: err.stack
+                    });
+                    return null; 
+                });
+            data.status = "IN_PROGRESS";
+        }
         const dataUpdate = await model.Treatment.findByIdAndUpdate(
             treatmentId,
             data,
@@ -204,7 +217,7 @@ const updateService = async (treatmentId, data) => {
  */
 const findById = async (id) => {
     try {
-        const data = await model.Treatment.findById(id);
+        const data = await model.Treatment.findById(id).lean();
         return data || null;
     } catch (error) {
         logger.error("Error finding treatment by id", {
@@ -225,6 +238,7 @@ const findById = async (id) => {
  * @returns treatment object or null if not found
  */
 const updateStatusOnly = async (id, status) => {
+    const { service: AppointmentService } = require("./../../appointment/index");
     try {
         const treatment = await findById(id);
         if (!treatment) {
@@ -256,6 +270,34 @@ const updateStatusOnly = async (id, status) => {
         const dataUpdate = { status };
         if (status === "IN_PROGRESS") {
             dataUpdate.phase = "SESSION";
+            const treatment = await findById(id);
+            if (!treatment) {
+                logger.warn("Treatment not found by id", {
+                    context: "TreatmentService.updateStatusOnly",
+                    treatmentId: id
+                });
+                throw new errorRes.NotFoundError("Không tìm thấy điều trị để cập nhật.");
+            }
+
+            logger.debug("Treatment found for IN_PROGRESS update", {
+                context: "TreatmentService.updateStatusOnly",
+                treatmentId: id,
+                appointmentId: treatment.appointment_id,
+                recordId: treatment.record_id,
+                treatment: treatment
+            });
+            
+            const doctorId = await AppointmentService.getDoctorByAppointmentId(treatment.appointment_id);
+            if (!doctorId) {
+                logger.warn("Doctor ID not found from appointment", {
+                    context: "TreatmentService.updateStatusOnly",
+                    treatmentId: id,
+                    appointmentId: treatment.appointment_id,
+                    treatment: treatment
+                });
+                throw new errorRes.NotFoundError("Không tìm thấy bác sĩ để cập nhật.");
+            }
+            dataUpdate.doctor_id = doctorId;
         }
         const newData = await model.Treatment.findByIdAndUpdate(
             id,

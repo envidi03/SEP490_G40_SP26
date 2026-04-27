@@ -102,7 +102,7 @@ const createController = async (req, res) => {
       - Nếu appointment tồn tại nhưng patient_id của appointment không khớp với patient_id của dental record, 
       trả về lỗi BadRequest (vì treatment phải liên quan đến một cuộc hẹn của cùng một bệnh nhân)
     */
-    const requiredFields = ["record_id", "patient_id", "doctor_id", "phase"];
+    const requiredFields = ["record_id", "patient_id", "phase"];
     if (cleanedData.phase === "SESSION") {
       const appointmentService = require("../../appointment/services/appointment.service");
       const appointmentId = cleanedData.appointment_id || dental.appointment_id;

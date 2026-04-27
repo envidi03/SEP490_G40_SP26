@@ -1795,6 +1795,33 @@ const getServicesByAppointmentId = async (appointmentId) => {
         return [];
     }
 };
+
+const getDoctorByAppointmentId = async (appointmentId) => {
+    try {
+        const context = "AppointmentService.getDoctorByAppointmentId";
+        logger.debug("Getting doctor by appointment id", {
+            context,
+            appointmentId: appointmentId
+        });
+        const appointment = await AppointmentModel.findById(appointmentId).lean();
+        if (!appointment) {
+            logger.error("Could not find appointment by id.", {
+                context: "AppointmentService.getDoctorByAppointmentId",
+                appointmentId
+            });
+            return null;
+        }
+        return appointment.doctor_id || null;
+    } catch (error) {
+        logger.error("Error get doctor by appointment id", {
+            context: "AppointmentService.getDoctorByAppointmentId",
+            appointmentId,
+            error
+        });
+        return null;
+    }
+};
+
 module.exports = {
     getListService,
     getByIdService,
@@ -1812,4 +1839,5 @@ module.exports = {
     getListAppointmentToPayment,
     getFirstAppointmentOfPatientAtNowWithStatusCheckin,
     getServicesByAppointmentId,
+    getDoctorByAppointmentId,
 };

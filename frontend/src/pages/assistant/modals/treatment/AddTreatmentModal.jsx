@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { X, Save, FilePlus, AlertCircle, Plus, Trash2, Pill, DollarSign } from "lucide-react";
 import treatmentApi from "../../../../services/treatmentService";
+import appointmentApi from "../../../../services/appointmentService";
 import MedicineModal from "./medicineModal"; 
 
 // Hàm tạo 1 object thuốc rỗng
@@ -112,22 +113,15 @@ const AddTreatmentModal = ({ isOpen, onClose, record, onSuccess }) => {
     let errors = [];
 
     try {
-      // 1. VALIDATION NGHIÊM NGẶT
       for (let i = 0; i < forms.length; i++) {
         const form = forms[i];
-        
-        // Kiểm tra vị trí răng
         if (!form.tooth_position.trim()) {
           errors.push(`Phiếu #${i + 1}: Vui lòng nhập vị trí răng.`);
         }
-
-        // KIỂM TRA GIÁ TIỀN (BẮT BUỘC) -> Đã sửa cho phép giá = 0
         const priceValue = Number(form.price);
         if (form.price === "" || isNaN(priceValue) || priceValue < 0) {
           errors.push(`Phiếu #${i + 1}: Vui lòng nhập đơn giá hợp lệ (lớn hơn hoặc bằng 0).`);
         }
-
-        // Kiểm tra thuốc nếu có kê đơn
         if (form.phase !== "PLAN" && form.medicine_usage.length > 0) {
           for (let j = 0; j < form.medicine_usage.length; j++) {
             if (!form.medicine_usage[j].medicine_id) {
@@ -158,11 +152,23 @@ const AddTreatmentModal = ({ isOpen, onClose, record, onSuccess }) => {
             });
           }
 
+          let doctorId = null;
+
+          if (form.phase !== "PLAN") {
+            try {
+              const res = await appointmentApi.getDoctorIdFromAppointmentId(record.appointment_id);
+              doctorId = res?.data || null;
+            } catch (err) {
+              doctorId = null;
+              console.log("Error: ", err);
+            }
+          }
+
           const payload = {
             ...dataToSend,
             record_id: record._id,
             patient_id: record?.patient_id?._id || record?.patient_id,
-            doctor_id: record?.doctor_info?._id || record?.doctor_id,
+            doctor_id: doctorId,
             status: form.phase === "PLAN" ? "PLANNED" : "IN_PROGRESS",
             quantity: Number(form.quantity),
             price: Number(form.price), 

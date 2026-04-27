@@ -9,6 +9,7 @@ import { getStatusConfig } from "../modals/treatment/getStatusConfig";
 // Đảm bảo đường dẫn này trỏ đúng đến file StartTreatmentModal mà chúng ta vừa tạo
 import StartTreatmentModal from "../modals/StartTreatmentModal"; 
 import staffService from "../../../services/staffService";
+import appointmentService from "../../../services/appointmentService";
 
 const TreatmentComponent = ({ treatment, index, onRefresh }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -83,10 +84,9 @@ const TreatmentComponent = ({ treatment, index, onRefresh }) => {
     setIsChangingStatus(true);   
     
     try {
-      await treatmentApi.changeStatusTreatment(treatmentId, { 
-        status: "IN_PROGRESS",
-        doctor_id: data.doctorId 
-      });
+      await appointmentService.updateAppointmentStatus(treatment.appointment_id, "IN_CONSULTATION", data.doctorId );
+
+      await treatmentApi.changeStatusTreatment(treatmentId, { status: "IN_PROGRESS" });
       
       setLocalStatus("IN_PROGRESS");
       if (onRefresh) onRefresh();

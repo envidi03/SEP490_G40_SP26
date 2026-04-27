@@ -32,7 +32,6 @@ const treatmentSchema = new Schema(
         doctor_id: {
             type: Schema.Types.ObjectId,
             ref: "Staff",
-            required: true
         },
 
         // --- THÔNG TIN ĐIỀU TRỊ ---
