@@ -20,7 +20,6 @@ const UpdateTreatmentModal = ({ isOpen, onClose, treatment, onSuccess }) => {
   // State thông tin cơ bản - Thêm phase vào formData
   const [formData, setFormData] = useState({ note: "", price: "", phase: "PLAN" });
   const [medicines, setMedicines] = useState([]);
-
   // --- STATE QUẢN LÝ POPUP CONFIRM ---
   const [confirmPopup, setConfirmPopup] = useState({
     isOpen: false,
@@ -44,7 +43,6 @@ const UpdateTreatmentModal = ({ isOpen, onClose, treatment, onSuccess }) => {
       try {
         const response = await treatmentApi.viewTreatmentDetail(treatment._id);
         const detail = response?.data?.data || response?.data || response;
-        // Cập nhật formData bao gồm note, price và phase
         setFormData({ 
           note: detail.note || treatment.note || "",
           price: detail.price !== undefined ? detail.price : (treatment.price || 0),
