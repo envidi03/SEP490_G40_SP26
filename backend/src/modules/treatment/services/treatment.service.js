@@ -109,7 +109,6 @@ const updateService = async (treatmentId, data) => {
         } else {
             data.doctor_id = null;
             data.status = "PLANNED";
-            data.appointment_id = null;
         }
         const dataUpdate = await model.Treatment.findByIdAndUpdate(
             treatmentId,
