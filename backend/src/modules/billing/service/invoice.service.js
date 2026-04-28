@@ -13,7 +13,7 @@ const getListInvoice = async (query) => {
     try {
         const search = query.search?.trim();
         const statusFilter = query.status;
-        const patientIdFilter = query.patient_id; 
+        const patientIdFilter = query.patient_id;
         const page = Math.max(1, parseInt(query.page || 1));
         const limit = Math.max(1, parseInt(query.limit || 10));
         const skip = (page - 1) * limit;
@@ -105,7 +105,7 @@ const getListInvoice = async (query) => {
             message: error.message,
         });
         // Ném lỗi gốc để Global Error Middleware xử lý thành 500
-        throw error; 
+        throw error;
     }
 };
 
@@ -141,92 +141,100 @@ const createInvoice = async (data) => {
     try {
         const { patient_id, appointment_id, items, note, created_by, payment_method } = data;
 
-        if (!patient_id) throw new errorRes.BadRequestError('Thông tin bệnh nhân là bắt buộc');
-        if (!items || items.length === 0) throw new errorRes.BadRequestError('Danh sách dịch vụ không được để trống');
+        const invoiceData = await InvoiceModel.findOne({ appointment_id: appointment_id }).lean();
+        if (invoiceData) {
+            logger.info('Invoice already exists for this appointment, returning existing invoice', {
+                context: 'InvoiceService.createInvoice',
+                appointment_id: appointment_id,
+                invoice: invoiceData
+            });
+            return invoiceData;
+        } else {
+            if (!patient_id) throw new errorRes.BadRequestError('Thông tin bệnh nhân là bắt buộc');
+            if (!items || items.length === 0) throw new errorRes.BadRequestError('Danh sách dịch vụ không được để trống');
 
-        // Kiểm tra patient tồn tại và lấy thông tin cơ bản
-        const patient = await PatientModel.findById(patient_id).populate('profile_id', 'full_name');
-        if (!patient) throw new errorRes.NotFoundError('Không tìm thấy hồ sơ bệnh nhân');
+            // Kiểm tra patient tồn tại và lấy thông tin cơ bản
+            const patient = await PatientModel.findById(patient_id).populate('profile_id', 'full_name');
+            if (!patient) throw new errorRes.NotFoundError('Không tìm thấy hồ sơ bệnh nhân');
 
-        // Lấy thông tin dịch vụ từ DB cho từng item
-        const builtItems = await Promise.all(
-            items.map(async (item) => {
-                const { service_id, sub_service_id, quantity = 1, price } = item;
-                logger.debug('Processing invoice item', { 
-                    context: 'InvoiceService.createInvoice',
-                    item: item
-                });
-                if (!service_id) {
-                    logger.warn('Missing service_id in invoice item', { 
-                        service_id: service_id,
-                        sub_service_id: sub_service_id,
-                        quantity: quantity,
-                        price: price
+            // Lấy thông tin dịch vụ từ DB cho từng item
+            const builtItems = await Promise.all(
+                items.map(async (item) => {
+                    const { service_id, sub_service_id, quantity = 1, price } = item;
+                    logger.debug('Processing invoice item', {
+                        context: 'InvoiceService.createInvoice',
+                        item: item
                     });
-                    throw new errorRes.BadRequestError('Mỗi mục dịch vụ phải có ID hợp lệ');
-                }
+                    if (!service_id) {
+                        logger.warn('Missing service_id in invoice item', {
+                            service_id: service_id,
+                            sub_service_id: sub_service_id,
+                            quantity: quantity,
+                            price: price
+                        });
+                        throw new errorRes.BadRequestError('Mỗi mục dịch vụ phải có ID hợp lệ');
+                    }
 
-                const service = await ServiceModel.findById(service_id);
-                if (!service) throw new errorRes.NotFoundError(`Không tìm thấy dịch vụ hoặc dịch vụ không tồn tại (ID: ${service_id})`);
+                    const service = await ServiceModel.findById(service_id);
+                    if (!service) throw new errorRes.NotFoundError(`Không tìm thấy dịch vụ hoặc dịch vụ không tồn tại (ID: ${service_id})`);
 
-                let subServiceName = null;
-                let unitPrice = price || service.price || 0;
+                    let subServiceName = null;
+                    let unitPrice = price || service.price || 0;
 
-                if (sub_service_id) {
-                    const subService = await mongoose.model('SubService').findById(sub_service_id);
-                    if (subService) {
-                        subServiceName = subService.sub_service_name;
-                        if (price === undefined) {
-                            unitPrice = subService.min_price || 0;
+                    if (sub_service_id) {
+                        const subService = await mongoose.model('SubService').findById(sub_service_id);
+                        if (subService) {
+                            subServiceName = subService.sub_service_name;
+                            if (price === undefined) {
+                                unitPrice = subService.min_price || 0;
+                            }
                         }
                     }
-                }
 
-                return {
-                    service_id: service._id,
-                    sub_service_id: sub_service_id || null,
-                    service_name: service.service_name,
-                    sub_service_name: subServiceName,
-                    unit_price: unitPrice,
-                    quantity,
-                    amount: unitPrice * quantity
-                };
-            })
-        );
+                    return {
+                        service_id: service._id,
+                        sub_service_id: sub_service_id || null,
+                        service_name: service.service_name,
+                        sub_service_name: subServiceName,
+                        unit_price: unitPrice,
+                        quantity,
+                        amount: unitPrice * quantity
+                    };
+                })
+            );
 
-        // Tạo invoice — pre-save hook sẽ tự gen invoice_code và tính lại total_amount
-        const invoice = await InvoiceModel.create({
-            patient_id,
-            appointment_id: (appointment_id && mongoose.isValidObjectId(appointment_id)) ? appointment_id : null,
-            items: builtItems,
-            status: 'PENDING',
-            note: note || '',
-            payment_method: payment_method || 'CASH',
-            created_by: created_by || null,
-        });
-
-        try {
-            const patientName = patient.profile_id?.full_name || 'Khách hàng';
-            await notificationService.sendToRole(['RECEPTIONIST'], {
-                type: 'INVOICE_READY',
-                title: 'Hóa đơn chờ thanh toán',
-                message: `Bác sĩ vừa chỉ định xong cho bệnh nhân ${patientName}. Vui lòng hỗ trợ bệnh nhân thanh toán hóa đơn.`,
-                action_url: `/invoices/${invoice._id}`,
-                channels: {
-                    in_app: { enabled: true },
-                    zalo: { enabled: true },
-                    sms: { enabled: true }
-                }
+            // Tạo invoice — pre-save hook sẽ tự gen invoice_code và tính lại total_amount
+            const invoice = await InvoiceModel.create({
+                patient_id,
+                appointment_id: (appointment_id && mongoose.isValidObjectId(appointment_id)) ? appointment_id : null,
+                items: builtItems,
+                status: 'PENDING',
+                note: note || '',
+                payment_method: payment_method || 'CASH',
+                created_by: created_by || null,
             });
-        } catch (err) {
-            // Chuyển log sang tiếng Anh để nhất quán
-            logger.error('Failed to send pending invoice notification to Receptionist', { 
-                message: err.message 
-            });
+
+            try {
+                const patientName = patient.profile_id?.full_name || 'Khách hàng';
+                await notificationService.sendToRole(['RECEPTIONIST'], {
+                    type: 'INVOICE_READY',
+                    title: 'Hóa đơn chờ thanh toán',
+                    message: `Bác sĩ vừa chỉ định xong cho bệnh nhân ${patientName}. Vui lòng hỗ trợ bệnh nhân thanh toán hóa đơn.`,
+                    action_url: `/invoices/${invoice._id}`,
+                    channels: {
+                        in_app: { enabled: true },
+                        zalo: { enabled: true },
+                        sms: { enabled: true }
+                    }
+                });
+            } catch (err) {
+                // Chuyển log sang tiếng Anh để nhất quán
+                logger.error('Failed to send pending invoice notification to Receptionist', {
+                    message: err.message
+                });
+            }
+            return invoice;
         }
-
-        return invoice;
-
     } catch (error) {
         if (['BadRequestError', 'NotFoundError'].includes(error.name)) throw error;
         logger.error('Error creating invoice', {
@@ -374,7 +382,7 @@ const autoCreateInvoiceFromAppointment = async (appointmentId) => {
             items: items.map(s => ({
                 service_id: s.service_id,
                 sub_service_id: s.sub_service_id,
-                price: s.unit_price, 
+                price: s.unit_price,
                 quantity: 1
             }))
         };

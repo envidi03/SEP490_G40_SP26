@@ -14,7 +14,7 @@ const ReceptionistInvoices = () => {
     // --- State Dữ liệu ---
     const [appointmentsToPay, setAppointmentsToPay] = useState([]);
     console.log("appointmentsToPay: ", appointmentsToPay);
-    
+
     const [pagination, setPagination] = useState({
         total_items: 0,
         total_pages: 1,
@@ -34,7 +34,7 @@ const ReceptionistInvoices = () => {
     const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
-    
+
     // State cho Modal Chi tiết Treatment
     const [isTreatmentModalOpen, setIsTreatmentModalOpen] = useState(false);
     const [selectedAppointmentForTreatment, setSelectedAppointmentForTreatment] = useState(null);
@@ -247,7 +247,7 @@ const ReceptionistInvoices = () => {
                                             <span className="text-sm font-bold text-red-600">
                                                 {(item.total_payment_amount || 0).toLocaleString('vi-VN')}đ
                                             </span>
-                                            <div 
+                                            <div
                                                 className="text-xs text-primary-600 mt-1 flex items-center justify-end gap-1 cursor-pointer hover:text-primary-800 hover:underline transition-colors"
                                                 onClick={() => handleViewTreatments(item)}
                                             >
@@ -262,7 +262,7 @@ const ReceptionistInvoices = () => {
                                                 onClick={() => handleCreateInvoiceClick(item)}
                                                 className="inline-flex px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 transition-colors items-center gap-1.5 shadow-sm"
                                             >
-                                                <Plus size={16} /> Tạo Hóa Đơn
+                                                <Plus size={16} /> Thanh toán
                                             </button>
                                         </td>
                                     </tr>
