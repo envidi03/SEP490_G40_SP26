@@ -1,4 +1,7 @@
 const medicineService = require("../service/medicine.service");
+const successResponse = require("../../../common/success/index");
+const errorResponse = require("../../../common/errors/index");
+const logger = require("../../../common/utils/logger");
 
 exports.getMedicines = async (req, res) => {
     try {
@@ -105,6 +108,44 @@ exports.updateMedicine = async (req, res) => {
             success: false,
             message: error.message
         });
+    }
+};
+
+exports.updateMedicinePartial = async (req, res) => {
+    try {
+        const medicine = await medicineService.updateMedicinePartial(req.params.id, req.body);
+        return new successResponse.UpdateSuccess(medicine, "Cập nhật thuốc thành công").send(res);
+    } catch (error) {
+        logger.error("Error updating medicine", {
+            context: "medicine.controller.updateMedicinePartial",
+            message: error.message,
+            stack: error.stack,
+            error: error
+        });
+        if (error.statusCode) {
+            throw error;
+        }
+        throw new errorRes.InternalServerError("Hệ thống lỗi, vui lòng thực hiện sau.");
+    }
+};
+
+exports.importMedicines = async (req, res) => {
+    try {
+        const medicineId = req.params.id;
+        const quantity = req.body.quantity;
+        const medicine = await medicineService.updateMedicinePartial(medicineId, { $inc: { quantity: quantity } });
+        return new successResponse.UpdateSuccess(medicine, "Cập nhật thuốc thành công").send(res);
+    } catch (error) {
+        logger.error("Error importing medicine", {
+            context: "medicine.controller.importMedicines",
+            message: error.message,
+            stack: error.stack,
+            error: error
+        });
+        if (error.statusCode) {
+            throw error;
+        }
+        throw new errorRes.InternalServerError("Hệ thống lỗi, vui lòng thực hiện sau.");
     }
 };
 

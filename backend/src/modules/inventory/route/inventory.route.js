@@ -13,6 +13,11 @@ const prescriptionController = require("../controller/prescription.controller");
 
 // ======================== MEDICINE ROUTES ========================
 
+
+router.patch("/medicines/:id", medicineController.updateMedicinePartial);
+
+router.patch("/import/medicines/:id", medicineController.importMedicines);
+
 /**
  * @swagger
  * /api/inventory/medicines:

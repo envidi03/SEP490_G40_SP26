@@ -3,6 +3,16 @@ import apiClient from './api';
 const inventoryService = {
     // ======================== DASHBOARD ========================
 
+    updateMedicinePartial: async (id, data) => {
+        const response = await apiClient.patch(`/api/inventory/medicines/${id}`, data);
+        return response;
+    },
+
+    importMedicines: async (id, data) => {
+        const response = await apiClient.patch(`/api/inventory/import/medicines/${id}`, data);
+        return response;
+    },
+
     /**
      * Lấy thống kê tổng quan dashboard kho thuốc
      * GET /api/inventory/dashboard/stats

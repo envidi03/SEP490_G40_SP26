@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Package, TrendingDown, TrendingUp, AlertCircle, Search, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Package, TrendingDown, TrendingUp, AlertCircle, Search, ChevronLeft, ChevronRight, Plus, Trash2, X } from 'lucide-react';
 import Card from '../../components/ui/Card';
 import Badge from '../../components/ui/Badge';
 import inventoryService from '../../services/inventoryService';
@@ -12,6 +12,11 @@ const PharmacyInventory = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const LIMIT = 10;
+
+    // --- STATE CHO MODAL NHẬP THUỐC ---
+    const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+    const [importForms, setImportForms] = useState([{ medicineId: '', quantity: 1 }]);
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     // Stats tính từ danh sách hiện tại trên trang (server đã sort quantity tăng dần)
     const totalStockOnPage = inventory.reduce((sum, item) => sum + (item.quantity || 0), 0);
@@ -47,12 +52,12 @@ const PharmacyInventory = () => {
             fetchInventory();
         }, 400);
         return () => clearTimeout(timer);
-    }, [searchTerm]);
+    }, [searchTerm, fetchInventory]);
 
     // Fetch khi page thay đổi
     useEffect(() => {
         fetchInventory();
-    }, [currentPage]);
+    }, [currentPage, fetchInventory]);
 
     const formatDate = (dateStr) => {
         if (!dateStr) return '—';
@@ -70,7 +75,7 @@ const PharmacyInventory = () => {
         }
     };
 
-    const getTrendIcon = (stockStatus, quantity, minQuantity) => {
+    const getTrendIcon = (stockStatus) => {
         if (stockStatus === 'Hết hàng') return <TrendingDown className="text-red-500" size={16} />;
         if (stockStatus === 'Thấp') return <TrendingDown className="text-yellow-500" size={16} />;
         return <TrendingUp className="text-green-500" size={16} />;
@@ -87,15 +92,70 @@ const PharmacyInventory = () => {
         return Math.min(100, Math.round((quantity / (minQuantity * 2)) * 100));
     };
 
+    // --- LOGIC XỬ LÝ MODAL NHẬP THUỐC ---
+    const openImportModal = () => {
+        setImportForms([{ medicineId: '', quantity: 1 }]);
+        setIsImportModalOpen(true);
+    };
+
+    const handleAddFormRow = () => {
+        setImportForms([...importForms, { medicineId: '', quantity: 1 }]);
+    };
+
+    const handleRemoveFormRow = (index) => {
+        const newForms = importForms.filter((_, i) => i !== index);
+        setImportForms(newForms);
+    };
+
+    const handleFormChange = (index, field, value) => {
+        const newForms = [...importForms];
+        newForms[index][field] = value;
+        setImportForms(newForms);
+    };
+
+    const handleSubmitImport = async () => {
+        // Lọc bỏ các dòng chưa chọn thuốc hoặc số lượng không hợp lệ
+        const validData = importForms.filter(form => form.medicineId && form.quantity > 0);
+
+        if (validData.length === 0) {
+            alert('Vui lòng chọn thuốc và nhập số lượng hợp lệ!');
+            return;
+        }
+
+        setIsSubmitting(true);
+        try {
+            for (const form of validData) {
+                await inventoryService.importMedicines(form.medicineId, { quantity: form.quantity });
+            }
+            alert('Nhập thuốc thành công!');
+            setIsImportModalOpen(false);
+            fetchInventory(); // Reload lại table sau khi nhập thành công
+        } catch (error) {
+            console.error('Lỗi khi nhập thuốc:', error);
+            alert('Có lỗi xảy ra khi nhập thuốc.');
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
     return (
-        <div>
+        <div className="relative">
             {/* Header */}
-            <div className="mb-8">
-                <h1 className="text-3xl font-bold text-gray-900">Theo Dõi Tồn Kho</h1>
-                <p className="text-gray-600 mt-1">Quản lý và theo dõi số lượng thuốc</p>
+            <div className="mb-8 flex justify-between items-end">
+                <div>
+                    <h1 className="text-3xl font-bold text-gray-900">Theo Dõi Tồn Kho</h1>
+                    <p className="text-gray-600 mt-1">Quản lý và theo dõi số lượng thuốc</p>
+                </div>
+                <button
+                    onClick={openImportModal}
+                    className="flex items-center gap-2 bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition-colors"
+                >
+                    <Plus size={20} />
+                    <span>Nhập thuốc</span>
+                </button>
             </div>
 
-            {/* Stats từ dashboard API */}
+            {/* Các thành phần hiện tại (Stats, Search, Table, Pagination) giữ nguyên */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
                 <Card>
                     <div className="flex items-center justify-between">
@@ -145,7 +205,6 @@ const PharmacyInventory = () => {
                 </Card>
             </div>
 
-            {/* Error */}
             {error && (
                 <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center justify-between">
                     <p className="text-red-700 text-sm">{error}</p>
@@ -158,7 +217,6 @@ const PharmacyInventory = () => {
                 </div>
             )}
 
-            {/* Search */}
             <Card className="mb-6">
                 <div className="relative">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
@@ -172,7 +230,6 @@ const PharmacyInventory = () => {
                 </div>
             </Card>
 
-            {/* Inventory Table */}
             <Card>
                 <div className="overflow-x-auto">
                     <table className="w-full">
@@ -244,7 +301,7 @@ const PharmacyInventory = () => {
                                                 </span>
                                             </td>
                                             <td className="px-6 py-4 text-center">
-                                                {getTrendIcon(item.stock_status, item.quantity, item.min_quantity)}
+                                                {getTrendIcon(item.stock_status)}
                                             </td>
                                         </tr>
                                     );
@@ -254,7 +311,6 @@ const PharmacyInventory = () => {
                     </table>
                 </div>
 
-                {/* Pagination */}
                 {!loading && pagination.totalPages > 1 && (
                     <div className="flex items-center justify-between px-6 py-4 border-t border-gray-200">
                         <p className="text-sm text-gray-600">
@@ -282,6 +338,109 @@ const PharmacyInventory = () => {
                     </div>
                 )}
             </Card>
+
+            {/* --- MODAL NHẬP THUỐC --- */}
+            {isImportModalOpen && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+
+                        {/* Modal Header */}
+                        <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+                            <h2 className="text-xl font-bold text-gray-900">Nhập Thuốc Mới</h2>
+                            <button
+                                onClick={() => setIsImportModalOpen(false)}
+                                className="text-gray-400 hover:text-gray-600 transition-colors"
+                            >
+                                <X size={24} />
+                            </button>
+                        </div>
+
+                        {/* Modal Body */}
+                        <div className="p-6 overflow-y-auto flex-1">
+                            <div className="space-y-4">
+                                {importForms.map((form, index) => (
+                                    <div key={index} className="flex items-start gap-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                                        <div className="flex-1">
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                Chọn thuốc
+                                            </label>
+                                            <select
+                                                value={form.medicineId}
+                                                onChange={(e) => handleFormChange(index, 'medicineId', e.target.value)}
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500 bg-white"
+                                            >
+                                                <option value="">-- Chọn thuốc --</option>
+                                                {/* Giả định dùng mảng inventory làm danh sách chọn. 
+                                                    Thực tế bạn nên gọi API lấy Master list danh sách thuốc */}
+                                                {inventory.map(item => (
+                                                    <option key={item._id} value={item._id}>
+                                                        {item.medicine_name}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                        <div className="w-32">
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                Số lượng
+                                            </label>
+                                            <input
+                                                type="number"
+                                                min="1"
+                                                value={form.quantity}
+                                                onChange={(e) => handleFormChange(index, 'quantity', parseInt(e.target.value) || 0)}
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500"
+                                            />
+                                        </div>
+                                        {importForms.length > 1 && (
+                                            <div className="pt-7">
+                                                <button
+                                                    onClick={() => handleRemoveFormRow(index)}
+                                                    className="p-2 text-red-500 hover:bg-red-50 rounded-md transition-colors"
+                                                    title="Xóa dòng"
+                                                >
+                                                    <Trash2 size={20} />
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+
+                            <button
+                                onClick={handleAddFormRow}
+                                className="mt-4 flex items-center gap-2 text-primary-600 hover:text-primary-700 font-medium text-sm"
+                            >
+                                <Plus size={16} /> Thêm dòng khác
+                            </button>
+                        </div>
+
+                        {/* Modal Footer */}
+                        <div className="px-6 py-4 border-t border-gray-200 bg-gray-50 flex justify-end gap-3 rounded-b-xl">
+                            <button
+                                onClick={() => setIsImportModalOpen(false)}
+                                className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                                disabled={isSubmitting}
+                            >
+                                Hủy bỏ
+                            </button>
+                            <button
+                                onClick={handleSubmitImport}
+                                disabled={isSubmitting}
+                                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:bg-primary-400 flex items-center gap-2"
+                            >
+                                {isSubmitting ? (
+                                    <>
+                                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                                        Đang xử lý...
+                                    </>
+                                ) : (
+                                    'Xác nhận nhập'
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
