@@ -11,7 +11,6 @@ jest.mock('../src/modules/inventory/model/medicine.model');
 jest.mock('../src/modules/treatment/models/treatment.model');
 
 describe('Inventory Dashboard Service', () => {
-
     beforeEach(() => {
         jest.clearAllMocks();
     });
@@ -83,7 +82,7 @@ describe('Inventory Dashboard Service', () => {
                 { _id: '2', medicine_name: 'M2', quantity: 3, min_quantity: 5 }, // Thấp
                 { _id: '3', medicine_name: 'M3', quantity: 10, min_quantity: 5 } // Đủ hàng
             ];
-            
+
             Medicine.find = jest.fn().mockReturnValue({
                 select: jest.fn().mockReturnValue({
                     sort: jest.fn().mockReturnValue({
@@ -99,7 +98,7 @@ describe('Inventory Dashboard Service', () => {
 
             // Kiểm tra phân trang và tìm kiếm (có new RegExp)
             expect(result.pagination.totalItems).toBe(3);
-            
+
             // Branch: quantity <= 0
             expect(result.medicines[0].stock_status).toBe('Hết hàng');
             // Branch: quantity <= min_quantity

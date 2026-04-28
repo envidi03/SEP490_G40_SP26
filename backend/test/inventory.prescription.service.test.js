@@ -125,7 +125,7 @@ describe('Inventory Prescription Service', () => {
             });
 
             Medicine.findById = jest.fn().mockResolvedValue({
-                _id: 'm1', medicine_name: 'Para', quantity: 2, units_per_selling_unit: 1, base_unit: 'Vien', selling_unit: 'Hop' 
+                _id: 'm1', medicine_name: 'Para', quantity: 2, units_per_selling_unit: 1, base_unit: 'Vien', selling_unit: 'Hop'
             }); // Yêu cầu 10 > Tồn kho 2
 
             await expect(prescriptionService.dispensePrescription('t1')).rejects.toThrow(/Tồn kho không đủ/);

@@ -5,7 +5,8 @@ const mongoose = require("mongoose");
 const PatientModel = require("../../../modules/patient/model/patient.model");
 const AppointmentModel = require("./../models/appointment.model");
 const { model: ServiceModel } = require("../../service/index");
-const { service: DentisService } = require("../../treatment/index")
+const { service: DentisService } = require("../../treatment/index");
+const AuthModel = require("../../../modules/auth/models/index.model");
 
 const emailService = require("../../../common/service/email.service");
 const notificationService = require("../../notification/service/notification.service");
@@ -1754,6 +1755,7 @@ const getListAppointmentToPayment = async (query) => {
  * @returns Object appointment || null if not found
  */
 const getFirstAppointmentOfPatientAtNowWithStatusCheckin = async (patientId) => {
+    const context = "AppointmentService.getFirstAppointmentOfPatientAtNowWithStatusCheckin";
     try {
         const today = new Date();
         const startOfDay = new Date(today.setHours(0, 0, 0, 0));

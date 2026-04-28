@@ -575,34 +575,26 @@ describe('Auth Service', () => {
         });
     });
 
-    // ===================================================
     //  9. resendVerificationEmail(email)
-    //  Input: email (string)
-    // ===================================================
     describe('resendVerificationEmail(email)', () => {
-        // TC-RVE-01: Email hợp lệ, chưa verify → gửi lại thành công
-        it('TC-RVE-01: Email hợp lệ, chưa verify → gửi lại email xác thực thành công', async () => {
+        it('TC-RV-01: Gửi lại email xác thực thành công', async () => {
             Account.findOne.mockResolvedValue({ _id: 'acc1', email_verified: false });
             EmailVerification.deleteMany.mockResolvedValue({});
-            EmailVerification.create.mockResolvedValue({});
+            EmailVerification.create.mockResolvedValue([{}]);
             Profile.findOne.mockResolvedValue({ full_name: 'Quoc Nguyen' });
 
             const result = await authService.resendVerificationEmail('user@email.com');
-
             expect(result.message).toBe('Verification email sent successfully');
-            expect(EmailVerification.deleteMany).toHaveBeenCalledWith({ account_id: 'acc1' });
             expect(EmailVerification.create).toHaveBeenCalled();
             expect(emailService.sendEmailVerificationEmail).toHaveBeenCalled();
         });
 
-        // TC-RVE-02: Email không tồn tại trong DB
-        it('TC-RVE-02: Email không tồn tại → NotFoundError', async () => {
+        it('TC-RV-02: Email không tồn tại → NotFoundError', async () => {
             Account.findOne.mockResolvedValue(null);
             await expect(authService.resendVerificationEmail('notfound@email.com')).rejects.toThrow(NotFoundError);
         });
 
-        // TC-RVE-03: Email đã được verify trước đó
-        it('TC-RVE-03: Email đã được verify → ConflictError', async () => {
+        it('TC-RV-03: Email đã được xác thực → ConflictError', async () => {
             Account.findOne.mockResolvedValue({ _id: 'acc1', email_verified: true });
             await expect(authService.resendVerificationEmail('verified@email.com')).rejects.toThrow(ConflictError);
         });

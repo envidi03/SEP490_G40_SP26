@@ -401,7 +401,6 @@ const staffCreateService = async (dataCreate) => {
             stack: error.stack,
         });
 
-        // Đã sửa để ném ra đúng HTTP Status (Ví dụ: 409 Conflict, 404 Not Found)
         if (error.statusCode) throw error;
         throw new errorRes.InternalServerError("Hệ thống lỗi, vui lòng thực hiện sau");
     }

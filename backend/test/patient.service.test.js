@@ -24,8 +24,8 @@ jest.mock('../src/common/responses/Pagination', () =>
 
 // ── Import sau khi mock ──────────────────────────────────────
 const patientService = require('../src/modules/patient/service/patient.service');
-const PatientModel   = require('../src/modules/patient/model/patient.model');
-const ProfileModel   = require('../src/modules/auth/models/profile.model');
+const PatientModel = require('../src/modules/patient/model/patient.model');
+const ProfileModel = require('../src/modules/auth/models/profile.model');
 const {
     NotFoundError,
     BadRequestError,
@@ -184,8 +184,8 @@ describe('Patient Service', () => {
 
         // TC-CP-01: Dữ liệu hợp lệ → tạo thành công
         it('TC-CP-01: Dữ liệu hợp lệ → tạo Profile + Patient thành công', async () => {
-            ProfileModel.create  = jest.fn().mockResolvedValue(mockProfile);
-            PatientModel.create  = jest.fn().mockResolvedValue({ _id: 'p2' });
+            ProfileModel.create = jest.fn().mockResolvedValue(mockProfile);
+            PatientModel.create = jest.fn().mockResolvedValue({ _id: 'p2' });
             PatientModel.findById = jest.fn().mockReturnValue({
                 populate: jest.fn().mockResolvedValue(mockCreatedPatient)
             });
@@ -206,8 +206,8 @@ describe('Patient Service', () => {
 
         // TC-CP-03: DB lỗi sau khi tạo Profile → rollback xoá Profile + InternalServerError
         it('TC-CP-03: DB lỗi khi tạo Patient → rollback xoá Profile, ném InternalServerError', async () => {
-            ProfileModel.create          = jest.fn().mockResolvedValue(mockProfile);
-            PatientModel.create          = jest.fn().mockRejectedValue(new Error('DB error'));
+            ProfileModel.create = jest.fn().mockResolvedValue(mockProfile);
+            PatientModel.create = jest.fn().mockRejectedValue(new Error('DB error'));
             ProfileModel.findByIdAndDelete = jest.fn().mockResolvedValue({});
 
             await expect(patientService.createPatientService(validData)).rejects.toThrow(InternalServerError);
@@ -216,7 +216,7 @@ describe('Patient Service', () => {
 
         // TC-CP-04: ProfileModel.create thất bại → createdProfile = null → KHÔNG rollback
         it('TC-CP-04: DB lỗi ngay khi tạo Profile → không rollback, ném InternalServerError', async () => {
-            ProfileModel.create          = jest.fn().mockRejectedValue(new Error('Profile DB error'));
+            ProfileModel.create = jest.fn().mockRejectedValue(new Error('Profile DB error'));
             ProfileModel.findByIdAndDelete = jest.fn();
 
             await expect(patientService.createPatientService(validData)).rejects.toThrow(InternalServerError);
@@ -282,8 +282,8 @@ describe('Patient Service', () => {
             PatientModel.findById = jest.fn()
                 .mockResolvedValueOnce(mockPatient)
                 .mockReturnValue({ populate: jest.fn().mockResolvedValue({ ...mockPatient, status: 'active' }) });
-            PatientModel.findByIdAndUpdate  = jest.fn().mockResolvedValue({});
-            ProfileModel.findByIdAndUpdate  = jest.fn();
+            PatientModel.findByIdAndUpdate = jest.fn().mockResolvedValue({});
+            ProfileModel.findByIdAndUpdate = jest.fn();
 
             await patientService.updatePatientService('p1', { status: 'active' });
 

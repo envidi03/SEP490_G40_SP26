@@ -32,7 +32,7 @@ describe('Clinic Service', () => {
         // TC-GC-01: Không truyền id
         it('TC-GC-01: id rỗng hoặc null → trả về null, log warn', async () => {
             const result = await clinicService.getInforClinics(null);
-            
+
             expect(result).toBeNull();
             expect(logger.warn).toHaveBeenCalledWith("No clinic ID provided to getInforClinics service");
             expect(ClinicModel.findById).not.toHaveBeenCalled();
