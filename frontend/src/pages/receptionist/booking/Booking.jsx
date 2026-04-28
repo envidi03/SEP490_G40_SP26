@@ -17,7 +17,7 @@ const Booking = () => {
             email: '',
             appointment_date: '',
             appointment_time: '',
-            doctor_id: '',
+            // doctor_id: '',
             reason: '',
             notes: '',
             book_service: [{

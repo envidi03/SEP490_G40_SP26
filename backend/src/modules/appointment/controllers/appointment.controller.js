@@ -414,7 +414,7 @@ const staffCreateController = async (req, res) => {
         phone: cleanedData.phone,
         accountId: accountExisted._id,
       });
-      const {patient} = await accountService.findPatientByAccountId(accountExisted._id);
+      const { patient } = await accountService.findPatientByAccountId(accountExisted._id);
       logger.info("Patient linked to existing account", {
         context: "AppointmentController.staffCreateController",
         patientId: patient ? patient._id : null,
@@ -440,12 +440,12 @@ const staffCreateController = async (req, res) => {
       cleanedData.patient_id = patientCreated._id;
     }
     if (!cleanedData.patient_id) {
-        logger.warn("Patient ID is missing", {
-          context: "AppointmentController.staffCreateController",
-          cleanedData: cleanedData,
-        });
-        throw new errorRes.InternalServerError("Tạo tài khoản bệnh nhân thất bại.");
-      }
+      logger.warn("Patient ID is missing", {
+        context: "AppointmentController.staffCreateController",
+        cleanedData: cleanedData,
+      });
+      throw new errorRes.InternalServerError("Tạo tài khoản bệnh nhân thất bại.");
+    }
     const newAppointment = await ServiceProcess.staffCreateService(cleanedData);
 
     if (!newAppointment) {
@@ -548,7 +548,7 @@ const patientRequestUpdateController = async (req, res) => {
       appointment_date,
       appointment_time,
       reason,
-      userRole: "PATIENT", 
+      userRole: "PATIENT",
     };
 
     const updated = await ServiceProcess.updateService(id, updateData);

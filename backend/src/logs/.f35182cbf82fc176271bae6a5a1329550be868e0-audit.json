@@ -6,26 +6,6 @@
     "auditLog": "D:\\Respositories\\SEP490_G40_SP26\\backend\\src\\logs\\.f35182cbf82fc176271bae6a5a1329550be868e0-audit.json",
     "files": [
         {
-            "date": 1775207194519,
-            "name": "D:\\Respositories\\SEP490_G40_SP26\\backend\\src\\logs\\application-2026-04-03.log",
-            "hash": "bb65ebcd5fa5ff0817f161f8319758b413bb1f02598e7820a885e9c6a1822979"
-        },
-        {
-            "date": 1775466421578,
-            "name": "D:\\Respositories\\SEP490_G40_SP26\\backend\\src\\logs\\application-2026-04-06.log",
-            "hash": "a566512c805b6a8a7612e8e4b8c593a2fb57ed4a9ca6ff8aec74c3472c33135d"
-        },
-        {
-            "date": 1775652313192,
-            "name": "D:\\Respositories\\SEP490_G40_SP26\\backend\\src\\logs\\application-2026-04-08.log",
-            "hash": "df8a4adce7e0ac6b96a0429a2ff32fe33a838765dec158072849582af8a2b988"
-        },
-        {
-            "date": 1775702870212,
-            "name": "D:\\Respositories\\SEP490_G40_SP26\\backend\\src\\logs\\application-2026-04-09.log",
-            "hash": "205b37d353be269939c75ffafbb3b9611fee5109f5ecef29df3c790f93fc7af0"
-        },
-        {
             "date": 1776139378956,
             "name": "D:\\Respositories\\SEP490_G40_SP26\\backend\\src\\logs\\application-2026-04-14.log",
             "hash": "6df2c9a64e70a75ebb9463448259cc7b6e829df653217e63b8c69c4b40182706"
@@ -34,6 +14,11 @@
             "date": 1776245679605,
             "name": "D:\\Respositories\\SEP490_G40_SP26\\backend\\src\\logs\\application-2026-04-15.log",
             "hash": "47e211bb11fc5432c8ce9a93f3220191a549ce1207fb5e98ce1dc6c40c8ae311"
+        },
+        {
+            "date": 1777198101038,
+            "name": "D:\\Respositories\\SEP490_G40_SP26\\backend\\src\\logs\\application-2026-04-26.log",
+            "hash": "bc68add0070fc491de0dae3bc9cd4e482b7d03174c7c0c307d7d016a4837d391"
         }
     ],
     "hashType": "sha256"
