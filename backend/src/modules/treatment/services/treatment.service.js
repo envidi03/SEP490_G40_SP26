@@ -107,6 +107,7 @@ const updateService = async (treatmentId, data) => {
             }
             data.doctor_id = await AppointmentService.getDoctorByAppointmentId(existingTreatment.appointment_id || data.appointment_id);
         } else {
+            data.doctor_id = null;
             data.status = "PLANNED";
         }
         const dataUpdate = await model.Treatment.findByIdAndUpdate(
