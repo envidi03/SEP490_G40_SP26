@@ -617,11 +617,19 @@ exports.updateRestockRequestStatus = async (medicineId, requestId, newStatus) =>
         request.status = newStatus;
         await medicine.save();
 
-    return {
-        _id: request._id,
-        status: request.status,
-        medicine_name: medicine.medicine_name
-    };
+        return {
+            _id: request._id,
+            status: request.status,
+            medicine_name: medicine.medicine_name
+        };
+    } catch (error) {
+        if (error.statusCode) {
+            logger.warn(`Business logic error in updateRestockRequestStatus: ${error.message}`);
+        } else {
+            logger.error(`Error in updateRestockRequestStatus: ${error.message}`);
+        }
+        throw error;
+    }
 };
 
 exports.updateMedicinePartial = async (medicineId, updateData) => {
