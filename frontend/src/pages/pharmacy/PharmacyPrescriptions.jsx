@@ -5,6 +5,7 @@ import Badge from '../../components/ui/Badge';
 import inventoryService from '../../services/inventoryService';
 import ConfirmationModal from '../../components/ui/ConfirmationModal';
 import SharedPagination from '../../components/ui/SharedPagination';
+import PaymentModal from '../receptionist/components/modals/PaymentModal';
 
 const PharmacyPrescriptions = () => {
     const [prescriptions, setPrescriptions] = useState([]);
@@ -23,6 +24,9 @@ const PharmacyPrescriptions = () => {
         totalItems: 0,
         itemsPerPage: 10
     });
+    // State cho PaymentModal thuốc
+    const [paymentInvoice, setPaymentInvoice] = useState(null);
+    const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
 
     const fetchPrescriptions = useCallback(async () => {
         setLoading(true);
@@ -73,13 +77,23 @@ const PharmacyPrescriptions = () => {
         setDispensingId(prescription._id);
         setDispenseMsg(null);
         try {
-            const res = await inventoryService.dispensePrescription(prescription._id);
-            if (res?.success) {
-                setDispenseMsg({ type: 'success', text: `Xuất thuốc thành công cho bệnh nhân ${prescription.patient_name}!` });
-                fetchPrescriptions();
+            // Bước 1: Xuất thuốc (trừ kho)
+            const dispenseRes = await inventoryService.dispensePrescription(prescription._id);
+            if (!dispenseRes?.success) throw new Error('Xuất thuốc thất bại');
+
+            // Bước 2: Tạo hóa đơn thuốc
+            const invoiceRes = await inventoryService.createMedicineInvoice(prescription._id);
+            if (invoiceRes?.success && invoiceRes?.data) {
+                // Mở PaymentModal để chọn hình thức thanh toán
+                setPaymentInvoice(invoiceRes.data);
+                setIsPaymentModalOpen(true);
+            } else {
+                // Tạo HĐ thất bại nhưng thuốc đã xuất — vẫn báo xuất thuốc OK
+                setDispenseMsg({ type: 'success', text: `Xuất thuốc thành công cho bệnh nhân ${prescription.patient_name}! (Không tạo được hóa đơn)` });
             }
+            fetchPrescriptions();
         } catch (err) {
-            const msg = err?.response?.data?.message || 'Xuất thuốc thất bại.';
+            const msg = err?.response?.data?.message || err?.message || 'Xuất thuốc thất bại.';
             setDispenseMsg({ type: 'error', text: msg });
         } finally {
             setDispensingId(null);
@@ -267,12 +281,26 @@ const PharmacyPrescriptions = () => {
                 onClose={() => setShowConfirmModal(false)}
                 onConfirm={confirmDispense}
                 title="Xác nhận xuất thuốc"
-                message={`Xác nhận xuất thuốc cho bệnh nhân ${selectedPrescription?.patient_name}?\nThao tác này sẽ trừ tồn kho ngay lập tức.`}
-                confirmText="Xuất thuốc"
+                message={`Xác nhận xuất thuốc cho bệnh nhân ${selectedPrescription?.patient_name}?\nThao tác này sẽ trừ tồn kho và tạo hóa đơn thanh toán ngay lập tức.`}
+                confirmText="Xuất thuốc & Tạo hóa đơn"
                 icon={FileText}
                 iconBgClass="bg-blue-50 text-blue-500"
                 confirmBtnClass="bg-blue-600 text-white hover:bg-blue-700 shadow-blue-200 focus:ring-blue-300"
                 cancelBtnClass="border-gray-200 text-gray-600 hover:bg-gray-50 focus:ring-gray-200"
+            />
+
+            {/* PaymentModal thuốc */}
+            <PaymentModal
+                isOpen={isPaymentModalOpen}
+                invoice={paymentInvoice}
+                onClose={() => {
+                    setIsPaymentModalOpen(false);
+                    setPaymentInvoice(null);
+                }}
+                onSuccess={() => {
+                    setDispenseMsg({ type: 'success', text: 'Thanh toán thuốc thành công!' });
+                    fetchPrescriptions();
+                }}
             />
         </div>
     );
