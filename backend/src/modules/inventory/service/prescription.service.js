@@ -88,15 +88,6 @@ exports.getPrescriptions = async ({ status, search, page = 1, limit = 10, date }
         }
 
         return {
-<<<<<<< HEAD
-            prescriptions: filtered,
-            pagination: {
-                currentPage: parseInt(page),
-                totalPages: Math.ceil(totalCount / limitNum),
-                totalItems: totalCount,
-                itemsPerPage: limitNum
-            }
-=======
             _id: t._id,
             patient_name: patientProfile?.full_name || "N/A",
             patient_phone: patientProfile?.phone || "",
@@ -112,7 +103,6 @@ exports.getPrescriptions = async ({ status, search, page = 1, limit = 10, date }
                 usage_instruction: m.usage_instruction,
                 dispensed: m.dispensed
             }))
->>>>>>> dinh
         };
     } catch (error) {
         logger.error(`Error in getPrescriptions: ${error.message}`);
@@ -229,8 +219,6 @@ exports.dispensePrescription = async (treatmentId) => {
         }
         throw error;
     }
-<<<<<<< HEAD
-=======
 
     await Treatment.updateOne(
         { _id: treatment._id },
@@ -242,7 +230,6 @@ exports.dispensePrescription = async (treatmentId) => {
         dispensed_count: dispensedItems.length,
         message: "Xuất thuốc thành công"
     };
->>>>>>> dinh
 };
 
 /**
