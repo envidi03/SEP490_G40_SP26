@@ -13,7 +13,8 @@ const getListInvoice = async (query) => {
     try {
         const search = query.search?.trim();
         const statusFilter = query.status;
-        const patientIdFilter = query.patient_id; // ← Lọc theo bệnh nhân cụ thể
+        const patientIdFilter = query.patient_id;
+        const invoiceTypeFilter = query.invoice_type; // 'MEDICAL' | 'MEDICINE'
         const page = Math.max(1, parseInt(query.page || 1));
         const limit = Math.max(1, parseInt(query.limit || 10));
         const skip = (page - 1) * limit;
@@ -29,6 +30,11 @@ const getListInvoice = async (query) => {
 
         if (statusFilter) {
             matchCondition.status = statusFilter;
+        }
+
+        // Lọc theo loại hóa đơn — mặc định nếu không truyền thì lấy tất cả
+        if (invoiceTypeFilter) {
+            matchCondition.invoice_type = invoiceTypeFilter;
         }
 
         if (search) {

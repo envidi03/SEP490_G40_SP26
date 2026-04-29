@@ -5,6 +5,7 @@ import ProtectedRoute from '../guards/ProtectedRoute';
 import PharmacyMedicines from '../../pages/pharmacy/PharmacyMedicines';
 import PharmacyInventory from '../../pages/pharmacy/PharmacyInventory';
 import PharmacyPrescriptions from '../../pages/pharmacy/PharmacyPrescriptions';
+import PharmacyInvoices from '../../pages/pharmacy/PharmacyInvoices';
 import PharmacyRequests from '../../pages/pharmacy/PharmacyRequests';
 import LeaveRequestList from '../../pages/leave_requests/LeaveRequestList';
 
@@ -38,6 +39,16 @@ const pharmacyRoutes = [
             <ProtectedRoute allowedRoles={['PHARMACY', 'ADMIN_CLINIC']}>
                 <PharmacyLayout>
                     <PharmacyPrescriptions />
+                </PharmacyLayout>
+            </ProtectedRoute>
+        )
+    },
+    {
+        path: '/pharmacy/invoices',
+        element: (
+            <ProtectedRoute allowedRoles={['PHARMACY', 'ADMIN_CLINIC']}>
+                <PharmacyLayout>
+                    <PharmacyInvoices />
                 </PharmacyLayout>
             </ProtectedRoute>
         )

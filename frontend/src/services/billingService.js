@@ -6,6 +6,11 @@ const billingService = {
         return api.get('/api/billing', { params });
     },
 
+    // Lấy danh sách hóa đơn THUỐC (dành cho trang Dược sĩ)
+    getMedicineInvoices: (params) => {
+        return api.get('/api/billing', { params: { ...params, invoice_type: 'MEDICINE' } });
+    },
+
     // Thống kê tổng quan hóa đơn
     getInvoiceStats: () => {
         return api.get('/api/billing/stats');
