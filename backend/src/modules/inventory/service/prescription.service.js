@@ -191,7 +191,10 @@ exports.dispensePrescription = async (treatmentId) => {
         dispensedItems.push(item);
     }
 
-    await treatment.save();
+    await Treatment.updateOne(
+        { _id: treatment._id },
+        { $set: { medicine_usage: treatment.medicine_usage } }
+    );
 
     return {
         treatment_id: treatment._id,
@@ -227,7 +230,15 @@ exports.skipDispensePrescription = async (treatmentId) => {
         });
         treatment.skipped_dispense = true;
 
-        await treatment.save();
+        await Treatment.updateOne(
+            { _id: treatment._id },
+            { 
+                $set: { 
+                    medicine_usage: treatment.medicine_usage,
+                    skipped_dispense: treatment.skipped_dispense 
+                } 
+            }
+        );
 
         return {
             treatment_id: treatment._id,
