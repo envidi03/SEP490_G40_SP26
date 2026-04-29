@@ -35,7 +35,8 @@ const invoiceSchema = new Schema(
                 service_id: {
                     type: Schema.Types.ObjectId,
                     ref: 'Service',
-                    required: true
+                    required: false,
+                    default: null
                 },
                 sub_service_id: {
                     type: Schema.Types.ObjectId,
@@ -102,6 +103,15 @@ const invoiceSchema = new Schema(
             type: String,
             enum: ['CASH', 'TRANSFER'],
             default: 'CASH',
+            required: true
+        },
+
+        // MEDICAL  → Hóa đơn dịch vụ khám bệnh (tạo từ appointment)
+        // MEDICINE → Hóa đơn thuốc (tạo từ đơn thuốc sau khám)
+        invoice_type: {
+            type: String,
+            enum: ['MEDICAL', 'MEDICINE'],
+            default: 'MEDICAL',
             required: true
         }
     },

@@ -5,6 +5,7 @@ import Badge from '../../components/ui/Badge';
 import inventoryService from '../../services/inventoryService';
 import ConfirmationModal from '../../components/ui/ConfirmationModal';
 import SharedPagination from '../../components/ui/SharedPagination';
+import PaymentModal from '../receptionist/components/modals/PaymentModal';
 
 const PharmacyPrescriptions = () => {
     const [prescriptions, setPrescriptions] = useState([]);
@@ -14,8 +15,10 @@ const PharmacyPrescriptions = () => {
     const [filterStatus, setFilterStatus] = useState('all');
     const [filterDate, setFilterDate] = useState('');
     const [dispensingId, setDispensingId] = useState(null);
+    const [skippingId, setSkippingId] = useState(null);
     const [dispenseMsg, setDispenseMsg] = useState(null); // { type: 'success'|'error', text }
     const [showConfirmModal, setShowConfirmModal] = useState(false);
+    const [showSkipModal, setShowSkipModal] = useState(false);
     const [selectedPrescription, setSelectedPrescription] = useState(null);
     const [currentPage, setCurrentPage] = useState(1);
     const [pagination, setPagination] = useState({
@@ -23,6 +26,9 @@ const PharmacyPrescriptions = () => {
         totalItems: 0,
         itemsPerPage: 10
     });
+    // State cho PaymentModal thuốc
+    const [paymentInvoice, setPaymentInvoice] = useState(null);
+    const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
 
     const fetchPrescriptions = useCallback(async () => {
         setLoading(true);
@@ -65,6 +71,11 @@ const PharmacyPrescriptions = () => {
         setShowConfirmModal(true);
     };
 
+    const handleSkip = (prescription) => {
+        setSelectedPrescription(prescription);
+        setShowSkipModal(true);
+    };
+
     const confirmDispense = async () => {
         if (!selectedPrescription) return;
 
@@ -73,16 +84,48 @@ const PharmacyPrescriptions = () => {
         setDispensingId(prescription._id);
         setDispenseMsg(null);
         try {
-            const res = await inventoryService.dispensePrescription(prescription._id);
-            if (res?.success) {
-                setDispenseMsg({ type: 'success', text: `Xuất thuốc thành công cho bệnh nhân ${prescription.patient_name}!` });
-                fetchPrescriptions();
+            // Bước 1: Xuất thuốc (trừ kho)
+            const dispenseRes = await inventoryService.dispensePrescription(prescription._id);
+            if (!dispenseRes?.success) throw new Error('Xuất thuốc thất bại');
+
+            // Bước 2: Tạo hóa đơn thuốc
+            const invoiceRes = await inventoryService.createMedicineInvoice(prescription._id);
+            if (invoiceRes?.success && invoiceRes?.data) {
+                // Mở PaymentModal để chọn hình thức thanh toán
+                setPaymentInvoice(invoiceRes.data);
+                setIsPaymentModalOpen(true);
+            } else {
+                // Tạo HĐ thất bại nhưng thuốc đã xuất — vẫn báo xuất thuốc OK
+                setDispenseMsg({ type: 'success', text: `Xuất thuốc thành công cho bệnh nhân ${prescription.patient_name}! (Không tạo được hóa đơn)` });
             }
+            fetchPrescriptions();
         } catch (err) {
-            const msg = err?.response?.data?.message || 'Xuất thuốc thất bại.';
+            const msg = err?.response?.data?.message || err?.message || 'Xuất thuốc thất bại.';
             setDispenseMsg({ type: 'error', text: msg });
         } finally {
             setDispensingId(null);
+            setSelectedPrescription(null);
+        }
+    };
+
+    const confirmSkip = async () => {
+        if (!selectedPrescription) return;
+
+        const prescription = selectedPrescription;
+        setShowSkipModal(false);
+        setSkippingId(prescription._id);
+        setDispenseMsg(null);
+        try {
+            const res = await inventoryService.skipDispensePrescription(prescription._id);
+            if (res?.success) {
+                setDispenseMsg({ type: 'success', text: `Đã đánh dấu đơn thuốc của ${prescription.patient_name} là mua ngoài!` });
+                fetchPrescriptions();
+            }
+        } catch (err) {
+            const msg = err?.response?.data?.message || err?.message || 'Đánh dấu thất bại.';
+            setDispenseMsg({ type: 'error', text: msg });
+        } finally {
+            setSkippingId(null);
             setSelectedPrescription(null);
         }
     };
@@ -223,16 +266,24 @@ const PharmacyPrescriptions = () => {
                             </div>
 
                             {prescription.dispense_status === 'Chờ xuất' && (
-                                <div className="mt-4 flex gap-2">
+                                <div className="mt-4 flex flex-wrap gap-2">
                                     <button
                                         onClick={() => handleDispense(prescription)}
-                                        disabled={dispensingId === prescription._id}
-                                        className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-60 flex items-center justify-center gap-2"
+                                        disabled={dispensingId === prescription._id || skippingId === prescription._id}
+                                        className="flex-1 min-w-[140px] px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-60 flex items-center justify-center gap-2"
                                     >
                                         {dispensingId === prescription._id && <Loader2 size={16} className="animate-spin" />}
-                                        Xuất thuốc
+                                        Xuất & Tạo hóa đơn
                                     </button>
-                                    <button className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">
+                                    <button
+                                        onClick={() => handleSkip(prescription)}
+                                        disabled={dispensingId === prescription._id || skippingId === prescription._id}
+                                        className="flex-1 min-w-[140px] px-4 py-2 bg-orange-100 text-orange-700 rounded-lg hover:bg-orange-200 disabled:opacity-60 flex items-center justify-center gap-2 font-medium"
+                                    >
+                                        {skippingId === prescription._id && <Loader2 size={16} className="animate-spin" />}
+                                        Mua ngoài
+                                    </button>
+                                    <button className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 whitespace-nowrap">
                                         In đơn
                                     </button>
                                 </div>
@@ -267,12 +318,39 @@ const PharmacyPrescriptions = () => {
                 onClose={() => setShowConfirmModal(false)}
                 onConfirm={confirmDispense}
                 title="Xác nhận xuất thuốc"
-                message={`Xác nhận xuất thuốc cho bệnh nhân ${selectedPrescription?.patient_name}?\nThao tác này sẽ trừ tồn kho ngay lập tức.`}
-                confirmText="Xuất thuốc"
+                message={`Xác nhận xuất thuốc cho bệnh nhân ${selectedPrescription?.patient_name}?\nThao tác này sẽ trừ tồn kho và tạo hóa đơn thanh toán ngay lập tức.`}
+                confirmText="Xuất thuốc & Tạo hóa đơn"
                 icon={FileText}
                 iconBgClass="bg-blue-50 text-blue-500"
                 confirmBtnClass="bg-blue-600 text-white hover:bg-blue-700 shadow-blue-200 focus:ring-blue-300"
                 cancelBtnClass="border-gray-200 text-gray-600 hover:bg-gray-50 focus:ring-gray-200"
+            />
+
+            <ConfirmationModal
+                show={showSkipModal}
+                onClose={() => setShowSkipModal(false)}
+                onConfirm={confirmSkip}
+                title="Bệnh nhân mua ngoài"
+                message={`Xác nhận bệnh nhân ${selectedPrescription?.patient_name} mua thuốc ngoài?\nĐơn thuốc sẽ được đánh dấu hoàn tất (không trừ kho, không tạo hóa đơn).`}
+                confirmText="Xác nhận mua ngoài"
+                icon={AlertTriangle}
+                iconBgClass="bg-orange-50 text-orange-500"
+                confirmBtnClass="bg-orange-600 text-white hover:bg-orange-700 shadow-orange-200 focus:ring-orange-300"
+                cancelBtnClass="border-gray-200 text-gray-600 hover:bg-gray-50 focus:ring-gray-200"
+            />
+
+            {/* PaymentModal thuốc */}
+            <PaymentModal
+                isOpen={isPaymentModalOpen}
+                invoice={paymentInvoice}
+                onClose={() => {
+                    setIsPaymentModalOpen(false);
+                    setPaymentInvoice(null);
+                }}
+                onSuccess={() => {
+                    setDispenseMsg({ type: 'success', text: 'Thanh toán thuốc thành công!' });
+                    fetchPrescriptions();
+                }}
             />
         </div>
     );

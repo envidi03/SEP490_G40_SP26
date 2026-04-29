@@ -578,7 +578,50 @@ router.get("/prescriptions", prescriptionController.getPrescriptions);
  *       500:
  *         description: Lỗi server
  */
+/**
+ * @swagger
+ * /api/inventory/prescriptions/{id}/create-invoice:
+ *   post:
+ *     summary: Tạo hóa đơn thuốc riêng từ đơn thuốc (medicine_usage)
+ *     tags: [Inventory]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID của treatment
+ *     responses:
+ *       201:
+ *         description: Tạo hóa đơn thuốc thành công, trả về invoice object
+ *       400:
+ *         description: Không có thuốc hợp lệ
+ *       404:
+ *         description: Không tìm thấy đơn thuốc
+ *       500:
+ *         description: Lỗi server
+ */
+router.post("/prescriptions/:id/create-invoice", prescriptionController.createMedicineInvoiceController);
+
 router.post("/prescriptions/:id/dispense", prescriptionController.dispensePrescription);
+
+/**
+ * @swagger
+ * /api/inventory/prescriptions/{id}/skip:
+ *   patch:
+ *     summary: Đánh dấu đơn thuốc là mua ngoài (không trừ kho)
+ *     tags: [Inventory]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Thành công
+ */
+router.patch("/prescriptions/:id/skip", prescriptionController.skipDispensePrescription);
 
 // ======================== DASHBOARD ROUTES ========================
 

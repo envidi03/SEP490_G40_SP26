@@ -14,6 +14,10 @@ const getListInvoice = async (query) => {
         const search = query.search?.trim();
         const statusFilter = query.status;
         const patientIdFilter = query.patient_id;
+<<<<<<< HEAD
+=======
+        const invoiceTypeFilter = query.invoice_type; // 'MEDICAL' | 'MEDICINE'
+>>>>>>> dinh
         const page = Math.max(1, parseInt(query.page || 1));
         const limit = Math.max(1, parseInt(query.limit || 10));
         const skip = (page - 1) * limit;
@@ -29,6 +33,11 @@ const getListInvoice = async (query) => {
 
         if (statusFilter) {
             matchCondition.status = statusFilter;
+        }
+
+        // Lọc theo loại hóa đơn — mặc định nếu không truyền thì lấy tất cả
+        if (invoiceTypeFilter) {
+            matchCondition.invoice_type = invoiceTypeFilter;
         }
 
         if (search) {
@@ -278,6 +287,97 @@ const updateInvoiceStatus = async (id, status, note, updated_by, payment_method)
             message: error.message,
         });
         throw error;
+<<<<<<< HEAD
+=======
+    }
+};
+
+/**
+ * Tạo hóa đơn thuốc riêng biệt từ đơn thuốc (treatment.medicine_usage)
+ * Gọi sau khi xuất thuốc (dispensePrescription) thành công
+ */
+const createMedicineInvoice = async (treatmentId) => {
+    const context = 'InvoiceService.createMedicineInvoice';
+    try {
+        if (!mongoose.isValidObjectId(treatmentId)) {
+            throw new errorRes.BadRequestError('Treatment ID không hợp lệ');
+        }
+
+        const TreatmentModel = mongoose.model('Treatment');
+        const MedicineModel = mongoose.model('Medicine');
+
+        const treatment = await TreatmentModel.findById(treatmentId).lean();
+        if (!treatment) {
+            throw new errorRes.NotFoundError('Không tìm thấy điều trị');
+        }
+
+        if (!treatment.medicine_usage || treatment.medicine_usage.length === 0) {
+            throw new errorRes.BadRequestError('Điều trị này không có thuốc');
+        }
+
+        // Kiểm tra hóa đơn thuốc đã tồn tại chưa (tránh tạo trung)
+        const existing = await InvoiceModel.findOne({
+            'meta.treatment_id': new mongoose.Types.ObjectId(treatmentId),
+            invoice_type: 'MEDICINE'
+        }).lean();
+        if (existing) {
+            logger.debug('Medicine invoice already exists for treatment', { context, treatmentId, invoiceId: existing._id });
+            return existing;
+        }
+
+        // Build items từ medicine_usage
+        const items = [];
+        for (const usage of treatment.medicine_usage) {
+            const medicine = await MedicineModel.findById(usage.medicine_id).lean();
+            if (!medicine) {
+                logger.warn('Medicine not found when building invoice item', { context, medicine_id: usage.medicine_id });
+                continue;
+            }
+
+            // Dùng giá bán của thuốc, tính theo số lượng base_unit
+            const unitPrice = medicine.price || 0;
+            const qty = usage.quantity || 1;
+
+            items.push({
+                medicine_name: medicine.medicine_name,
+                unit_price: unitPrice,
+                quantity: qty,
+                amount: unitPrice * qty,
+                // Lưu medicine_id vào service_id field — dùng ObjectId chở không ref Service
+                // (invoice.model không bắt buộc service_id kết nối, nên ta truyền medicine_id)
+                service_id: medicine._id,
+                service_name: medicine.medicine_name,
+            });
+        }
+
+        if (items.length === 0) {
+            throw new errorRes.BadRequestError('Không có thuốc hợp lệ để lập hóa đơn');
+        }
+
+        // Tính tổng tiền
+        const total_amount = items.reduce((sum, i) => sum + i.amount, 0);
+
+        // Tạo invoice
+        const invoice = new InvoiceModel({
+            patient_id: treatment.patient_id,
+            appointment_id: treatment.appointment_id || null,
+            items,
+            total_amount,
+            status: 'PENDING',
+            invoice_type: 'MEDICINE',
+            payment_method: 'CASH',
+            note: `Hóa đơn thuốc từ điều trị #${treatmentId}`,
+        });
+        await invoice.save();
+
+        logger.info('Medicine invoice created', { context, treatmentId, invoiceId: invoice._id, total_amount });
+        return invoice;
+
+    } catch (error) {
+        if (['BadRequestError', 'NotFoundError'].includes(error.name)) throw error;
+        logger.error('Error creating medicine invoice', { context, message: error.message });
+        throw error;
+>>>>>>> dinh
     }
 };
 
@@ -413,5 +513,11 @@ module.exports = {
     createInvoice,
     updateInvoiceStatus,
     getInvoiceStats,
+<<<<<<< HEAD
     autoCreateInvoiceFromAppointment
 };
+=======
+    autoCreateInvoiceFromAppointment,
+    createMedicineInvoice
+};
+>>>>>>> dinh
