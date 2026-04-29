@@ -182,6 +182,15 @@ const inventoryService = {
     },
 
     /**
+     * Đánh dấu đơn thuốc là mua ngoài (không trừ kho)
+     * PATCH /api/inventory/prescriptions/:id/skip
+     */
+    skipDispensePrescription: async (id) => {
+        const response = await apiClient.patch(`/api/inventory/prescriptions/${id}/skip`);
+        return response;
+    },
+
+    /**
      * Tạo hóa đơn thuốc riêng từ treatment (gọi sau khi dispense thành công)
      * POST /api/inventory/prescriptions/:id/create-invoice
      */

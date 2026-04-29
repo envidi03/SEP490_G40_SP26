@@ -61,7 +61,7 @@ exports.getPrescriptions = async ({ status, search, page = 1, limit = 10, date }
             patient_phone: patientProfile?.phone || "",
             doctor_name: doctorProfile?.full_name || "N/A",
             created_at: t.createdAt,
-            dispense_status: allDispensed ? "Đã xuất" : "Chờ xuất",
+            dispense_status: t.skipped_dispense ? "Mua ngoài" : (allDispensed ? "Đã xuất" : "Chờ xuất"),
             medicines: t.medicine_usage.map((m) => ({
                 _id: m._id,
                 medicine_name: m.medicine_id?.medicine_name || "N/A",
@@ -198,4 +198,47 @@ exports.dispensePrescription = async (treatmentId) => {
         dispensed_count: dispensedItems.length,
         message: "Xuất thuốc thành công"
     };
+};
+
+/**
+ * Đánh dấu đơn thuốc là "Bệnh nhân mua ngoài"
+ * Sẽ không trừ kho, chỉ đánh dấu trạng thái để biến mất khỏi danh sách chờ
+ */
+exports.skipDispensePrescription = async (treatmentId) => {
+    try {
+        const treatment = await Treatment.findById(treatmentId);
+
+        if (!treatment) {
+            const error = new Error("Không tìm thấy đơn thuốc");
+            error.statusCode = 404;
+            throw error;
+        }
+
+        if (treatment.skipped_dispense) {
+            const error = new Error("Đơn thuốc này đã được đánh dấu mua ngoài trước đó");
+            error.statusCode = 400;
+            throw error;
+        }
+
+        // Đánh dấu tất cả là đã dispensed (để filter không bắt nó vào pending)
+        treatment.medicine_usage.forEach(item => {
+            item.dispensed = true;
+            item.dispensed_at = new Date();
+        });
+        treatment.skipped_dispense = true;
+
+        await treatment.save();
+
+        return {
+            treatment_id: treatment._id,
+            message: "Đã đánh dấu đơn thuốc: Bệnh nhân mua ngoài"
+        };
+    } catch (error) {
+        if (error.statusCode) {
+            console.warn(`Business logic error in skipDispensePrescription: ${error.message}`);
+        } else {
+            console.error(`Error in skipDispensePrescription: ${error.message}`);
+        }
+        throw error;
+    }
 };

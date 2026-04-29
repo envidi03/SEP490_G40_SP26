@@ -600,6 +600,24 @@ router.post("/prescriptions/:id/create-invoice", prescriptionController.createMe
 
 router.post("/prescriptions/:id/dispense", prescriptionController.dispensePrescription);
 
+/**
+ * @swagger
+ * /api/inventory/prescriptions/{id}/skip:
+ *   patch:
+ *     summary: Đánh dấu đơn thuốc là mua ngoài (không trừ kho)
+ *     tags: [Inventory]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Thành công
+ */
+router.patch("/prescriptions/:id/skip", prescriptionController.skipDispensePrescription);
+
 // ======================== DASHBOARD ROUTES ========================
 
 /**

@@ -15,7 +15,7 @@ const treatmentSchema = new Schema(
             required: function () {
                 // Skip validation for updates (findByIdAndUpdate) as Query context lacks doc instance.
                 if (this.getUpdate || this.constructor.name === 'Query') return false;
-                
+
                 // Also skip for existing documents being saved (e.g. inventory dispense), 
                 // assuming appointment_id was handled during creation.
                 if (this.isNew === false) return false;
